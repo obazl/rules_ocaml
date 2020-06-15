@@ -1,0 +1,73 @@
+load(
+    "@bazel_skylib//rules:common_settings.bzl",
+    "bool_flag",
+    "bool_setting",
+    "string_flag",
+    "string_list_flag",
+)
+load(
+    "//go/private:mode.bzl",
+    "LINKMODE_NORMAL",
+)
+
+bool_flag(
+    name = "incompatible_package_conflict_is_error",
+    # TODO(#1374): Flip in v0.25.
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "static",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "race",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "msan",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "pure",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_setting(
+    name = "strip",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "debug",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+string_flag(
+    name = "linkmode",
+    build_setting_default = LINKMODE_NORMAL,
+    visibility = ["//visibility:public"],
+)
+
+string_list_flag(
+    name = "tags",
+    build_setting_default = [],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "all_files",
+    testonly = True,
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)

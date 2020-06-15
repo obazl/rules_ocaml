@@ -1,0 +1,50 @@
+load("@obazl//ocaml:build.bzl",
+     "ocaml_binary",
+     "ocaml_ppx_binary",
+     "ocaml_ppx_library")
+
+## Use the compiled preprocessor.
+genrule(
+    name = "preproc",
+    message = "Preprocessing sources...",
+    tools = ["//deriving-slowly/deriving-hello/src:deriving_hello_bin"],
+    srcs = ["hello_world_test.ml", "hello_world_test.mli"],
+    ### ORDER MATTERS! Put the mli files before the ml files in the outputs!
+    ## If you put the ml files first, you'll get
+    ##     Error: Could not find the .cmi file for interface
+    # (Note: this implies Bazel orders result of cmd to match outs param...)
+    outs = ["pp_hello_world_test.mli", "pp_hello_world_test.ml"],
+    # outs = ["pp_hello_world_test.ml"],
+    ## NOTE: '$<' = input file, '$@' = output file
+    cmd = "for f in $(SRCS);"
+    + "do"
+    + "    echo $$f;"
+    + "    BNAME=`basename $$f`;"
+    + "    PGM=$(location //deriving-slowly/deriving-hello/src:deriving_hello_bin);"
+    + "    echo PGM $$PGM;"
+    + "    $(location //deriving-slowly/deriving-hello/src:deriving_hello_bin) --dump-ast $$f > $(@D)/pp_$$BNAME;"
+    + " done"
+)
+
+ocaml_ppx_binary(
+    name = "hello_world_test",
+    # preprocessor = "//deriving-slowly/deriving-hello/src:deriving_hello_bin",
+    ##FIXME: how to pass parameters to ppx? e.g. -dump-ast
+    # srcs = [ "hello_world_test.mli", "hello_world_test.ml" ],
+    srcs = [":preproc"],
+    # srcs_impl = [ "hello_world_test.ml" ],
+    # srcs_intf = [ "hello_world_test.mli" ],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            ":preproc"
+    ],
+    # mode = "native",
+    copts = [
+        # "-quiet",
+        "-verbose",
+        "-linkall",
+    ],
+    # src_root = "hello_world_test.ml",
+)
+
+

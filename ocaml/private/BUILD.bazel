@@ -1,0 +1,32 @@
+filegroup(
+    name = "all_rules",
+    srcs = glob(["**/*.bzl"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "all_files",
+    testonly = True,
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "strip-always",
+    values = {"strip": "always"},
+)
+
+config_setting(
+    name = "strip-sometimes",
+    values = {"strip": "sometimes"},
+)
+
+config_setting(
+    name = "strip-never",
+    values = {"strip": "never"},
+)
+
+config_setting(
+    name = "stamp",
+    values = {"stamp": "true"},
+)

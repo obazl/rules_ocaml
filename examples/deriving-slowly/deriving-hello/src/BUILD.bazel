@@ -1,0 +1,90 @@
+load("@obazl//ocaml:build.bzl",
+     "ocaml_binary",
+     "ocaml_library",
+     "ocaml_ppx_binary",
+     "ocaml_ppx_library")
+
+load("@obazl//ocaml:dev/compile.bzl",
+     "ocaml_compile")
+     # "ocaml_link")
+
+# NOTE: the preprocessor contains only `ppxlib.metaquot`; since this
+# is a common pattern, we implement it as a utility in ../../ppx/BUILD.bazel.
+
+## Use the compiled metaquot preprocessor to transform our ppx source.
+genrule(
+    name = "preproc",
+    message = "Preprocessing sources...",
+    tools = ["//ppx:metaquot_ppx"], # <= see ../../ppx/BUILD.bazel
+    srcs = ["deriving_hello.ml"],
+    outs = ["deriving_hello.pp.ml"],
+    ## NOTE: $(location foo), where 'foo' is a label, resolves to the
+    ## path of the thing labeled, in this case the ppx executable.
+    cmd = "$(location //ppx:metaquot_ppx)"
+    + " --cookie 'library-name=\"deriving_hello\"'"
+    + " -dump-ast"
+    + " --impl $< > \"$@\";"
+    # + " $< > \"$@\";"
+)
+
+## Compile the transformed source as a normal library (linked or not).
+ocaml_library(
+    name = "deriving_hello_lib",
+    message = "Compiling preprocessed sources...",
+    srcs = [":preproc"],
+    copts = ["-linkall",
+             "-predicates", "ppx_driver",
+             # tell ocamlfind we want native libs:
+             "-predicates", "native",
+             # "-c",
+             # "-linkpkg",
+             ## to produce a cmxa: -a
+             "-a"
+    ],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+    ]
+)
+
+## Turn the lib into an executable:
+ocaml_ppx_binary(
+    name = "deriving_hello_bin",
+    message = "Compiling executable ppx",
+    visibility = ["//visibility:public"],
+    copts = ["-linkall",
+             # this links findlib pkgs and has the side effect
+             # of creating an executable:
+             "-linkpkg",
+    ],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            ":deriving_hello_lib",
+
+            ## WARNING: adding either of these drivers results in:
+            ## Error: Ppxlib.Deriving: 'hello_world' is not a supported type deriving generator
+            # "@opam//pkg:ocaml-migrate-parsetree.driver-main",
+            # "@opam//pkg:ppxlib.runner",
+            # So how do we end up with a command line interface?
+            # The -linkpkg param makes an executable,
+            # but we are not linking in a driver. We're only
+            # going to use this to preprocess the test files,
+            # so we do not need a fancy UI.
+    ],
+)
+
+################################################################
+## WARNING: this is a preliminary version of ppx sugar, using an
+## attribute "preprocessor", which does what the above genrule does.
+## It's currently broken, sorry...
+ocaml_ppx_library(
+    name = "deriving_hello_ppxlib",
+    visibility = ["//visibility:public"],
+    srcs = ["deriving_hello.ml"],
+    preprocessor = "//ppx:metaquot_ppxlib",
+    dump_ast = False, # default is True, but we want to be able to read the output
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            # "@opam//pkg:ppxlib.runner",
+            # "@opam//pkg:ocaml-migrate-parsetree.driver-main",
+    ]
+)

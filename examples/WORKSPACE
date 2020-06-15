@@ -1,0 +1,15 @@
+local_repository(
+    name = "obazl",
+    path = "/Users/gar/bazel/obazl"
+)
+
+load("@obazl//ocaml:deps.bzl",
+     "ocaml_configure_tooling",
+     # "ocaml_repositories",
+     # "ocaml_home_sdk",
+     "ocaml_register_toolchains")
+
+ocaml_configure_tooling()
+
+ocaml_register_toolchains(installation="host")
+

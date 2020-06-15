@@ -1,0 +1,51 @@
+build --spawn_strategy=standalone
+
+# build --toolchain_resolution_debug
+
+# build --override_repository=xbyak=/Users/gar/snark/xbyak
+# build --override_repository=ate_pairing=/Users/gar/snark/ate-pairing
+# build --override_repository=libff=/Users/gar/snark/libff
+# build --override_repository=libfqfft=/Users/gar/snark/libfqfft
+
+build --color=yes
+build --subcommands=pretty_print
+build --verbose_failures
+build --sandbox_debug
+
+# build --show_timestamps
+# build --keep_going
+# build --jobs 600
+# query --keep_going
+
+# build --spawn_strategy=local
+# build --//bzl/tc:musl_home="/usr/local/Cellar/musl-cross/0.9.9"
+# # /libexec/x86_64-linux-musl"
+
+# build --//bzl/tc:musl_triplet="x86_64-linux-musl"
+# build --platforms=//:x86_64-linux-musl
+# build --platform_suffix=-x86_64m
+
+################################################################
+# ## crosstools-ng toolchains
+# build --//bzl/tc:ctng_home="/Volumes/CrossToolNG"
+
+# ## linux x86
+# build --//bzl/tc:ctng_triplet="x86_64-unknown-linux-gnu"
+# build --platforms=//:x86_64-unknown-linux-gnu
+# build --platform_suffix=-x86_64
+
+# ## linux arm
+# build --//bzl/tc:ctng_triplet="armv8-rpi3-linux-gnueabihf"
+# build --platforms=//:armv8-rpi3-linux-gnueabihf
+# build --platform_suffix=-armv8
+
+# build --//bzl/tc:arch="armv8" # x86_64, etc
+# build --//bzl/tc:arch_extension="sse" # sse2, sse3, ssse3, sse4mmx, etc.
+
+# build --//bzl/tc:vendor="unknown"  # apple, pc, etc.
+# build --//bzl/tc:sys="linux"  # synonym of OS?
+# build --//bzl/tc:abi="gnu"  # eabi, etc.
+# build --//bzl/tc:libc="musl"  # glibc, etc. or does abi cover clib
+
+# --workspace_status_command=bzl_workspace_status
+
