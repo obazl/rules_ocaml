@@ -187,10 +187,10 @@ def _ocaml_library_sequential(ctx):
   obj_files = []
   if "-c" in ctx.attr.copts:
     for src_f in ctx.files.srcs:
-      print("SRC: " + src_f.path)
-      print("BNAME: " + src_f.basename)
-      print("SHORT: " + src_f.short_path)
-      print("ROOT: " + src_f.root.path)
+      # print("SRC: " + src_f.path)
+      # print("BNAME: " + src_f.basename)
+      # print("SHORT: " + src_f.short_path)
+      # print("ROOT: " + src_f.root.path)
       # print("TREEREL: " + src_f.tree_relative_path)
       # ocmi = ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "cmi")
       # obj_files.append(ocmi)
@@ -199,7 +199,7 @@ def _ocaml_library_sequential(ctx):
         src_f.basename.rstrip("ml") + "cmx",
         sibling = src_f
       )
-      print("CMX: " + obj_cmx.path)
+      # print("CMX: " + obj_cmx.path)
       obj_files.append(obj_cmx)
       # obj_files.append(ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "o"))
   else:
