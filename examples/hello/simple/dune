@@ -1,0 +1,5 @@
+; To build: $ dune build hello_simple.exe
+; To run: $ dune exec ./hello_simple.exe
+
+(executable
+ (name hello_simple))

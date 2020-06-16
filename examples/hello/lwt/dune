@@ -1,0 +1,6 @@
+; To build: $ dune build hello_lwt.exe
+; To run: $ dune exec ./hello_lwt.exe
+
+(executable
+ (name hello_lwt)
+ (libraries lwt.unix))

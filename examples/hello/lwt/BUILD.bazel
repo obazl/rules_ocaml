@@ -1,0 +1,19 @@
+# To build, from examples/ run: $ bazel build //hello/lwt:lwt
+# You can shorten //hello/lwt:lwt to hello/lwt
+# To run: $ bazel run hello/lwt
+
+load("@obazl//ocaml:build.bzl", "ocaml_binary")
+
+ocaml_binary(
+    name = "lwt",
+    message = "Compiling hello_lwt",
+    srcs = ["hello_lwt.ml"],
+    opts = [
+        "-linkpkg",
+        "-thread",  # avoid warning about possible linking problems
+        # "-verbose"
+    ],
+    deps = ["@opam//pkg:lwt.unix"],
+    visibility = ["//visibility:public"],
+)
+

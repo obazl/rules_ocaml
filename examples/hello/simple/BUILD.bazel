@@ -1,0 +1,14 @@
+# To build, from examples/ run: $ bazel build //hello/simple:simple
+# You can shorten //hello/simple:simple to hello/simple
+# To run: $ bazel run hello/simple
+
+load("@obazl//ocaml:build.bzl", "ocaml_binary")
+
+ocaml_binary(
+    name = "simple",
+    message = "Compiling hello_simple",
+    srcs = ["hello_simple.ml"],
+    # opts = ["-verbose"],
+    visibility = ["//visibility:public"],
+)
+
