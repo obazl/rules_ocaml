@@ -1,6 +1,6 @@
 local_repository(
     name = "obazl",
-    path = "/Users/gar/bazel/obazl"
+    path = ".."
 )
 
 load("@obazl//ocaml:deps.bzl",
