@@ -47,21 +47,25 @@ load(
 # print("private/sdk.bzl loading")
 
 def _ocaml_home_sdk_impl(ctx):
-    # print("_ocaml_home_sdk_impl")
+    print("_ocaml_home_sdk_impl")
     # Go calls the next two in order to get <os> and <arch>,
     # which are params in the BUILD template.
+    # if "HOME" in ctx.os.environ:
+    #     opamroot = ctx.os.environ["HOME"] + "/.opam"
+    # else:
+    #     fail("HOME environment variable not set.")
+
     ocamlroot = _detect_installed_sdk_home(ctx)
     platform = _installed_sdk_triplet(ctx, ocamlroot)
     # print("ocamlroot: " + ocamlroot)
     _sdk_build_file(ctx, platform)
     # _symlink_sdk(ctx, ocamlroot)
-    opamroot = "/Users/gar/.opam"
-    switch = "4.07.1"
-    _symlink_sdk(ctx, opamroot, switch)
+    _symlink_sdk(ctx) # , opamroot, ctx.attr.switch)
 
 _ocaml_home_sdk = repository_rule(
     _ocaml_home_sdk_impl,
-    environ = ["OCAMLROOT"],
+    environ = ["OCAMLROOT", "OPAM_SWITCH_PREFIX"],
+    configure = True
 )
 
 def ocaml_home_sdk(name, **kwargs):
@@ -118,7 +122,7 @@ def _ocaml_local_sdk_impl(repository_ctx):
     ocamlroot = repository_ctx.attr.path
     platform = _installed_sdk_triplet(repository_ctx, ocamlroot)
     _sdk_build_file(repository_ctx, platform)
-    _symlink_sdk(repository_ctx, ocamlroot)
+    _symlink_sdk(repository_ctx) # , ocamlroot)
 
 _ocaml_local_sdk = repository_rule(
     _ocaml_local_sdk_impl,
@@ -135,7 +139,7 @@ def _ocaml_wrap_sdk_impl(repository_ctx):
     ocamlroot = str(repository_ctx.path(repository_ctx.attr.root_file).dirname)
     platform = _installed_sdk_triplet(repository_ctx, ocamlroot)
     _sdk_build_file(repository_ctx, platform)
-    _symlink_sdk(repository_ctx, ocamlroot)
+    _symlink_sdk(repository_ctx) # , ocamlroot)
 
 _ocaml_wrap_sdk = repository_rule(
     _ocaml_wrap_sdk_impl,
@@ -184,10 +188,18 @@ def _remote_sdk(ctx, urls, strip_prefix, sha256):
             sha256 = sha256,
         )
 
-def _symlink_sdk(ctx, opamroot, switch):
+def _symlink_sdk(ctx): # , opamroot, switch):
     # print("_symlink_sdk: " + opamroot + ", " + switch)
-    ctx.symlink(opamroot, "opamroot")
-    ctx.symlink(opamroot + "/" + switch, "switch")
+    if "OPAMROOT" in ctx.os.environ:
+        ctx.symlink(ctx.os.environ["OPAMROOT"], "opamroot")
+        # ctx.symlink(opamroot, "opamroot")
+    else:
+        fail("Environment var OPAMROOT must be set (try `$ export OPAMROOT=~/.opam'un).")
+    if "OPAM_SWITCH_PREFIX" in ctx.os.environ:
+        ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"], "switch")
+    else:
+        fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+    # ctx.symlink(opamroot + "/" + switch, "switch")
     # print("_symlink_sdk done")
 
 def _sdk_build_file(ctx, platform):
@@ -267,17 +279,26 @@ def _detect_installed_sdk_home(ctx):
     FIXME: should return ocaml root in $HOME, which may be different than OCAMLROOT.
 """
     # print("_detect_installed_sdk_home")
-    root = "@invalid@"
-    if "OCAMLROOT" in ctx.os.environ:
-        return ctx.os.environ["OCAMLROOT"]
-    res = ctx.execute([executable_path(ctx, "opam"), "switch", "show"])
-    if res.return_code:
-        fail("Could not detect host ocaml version")
-    root = res.stdout.strip()
-    if not root:
-        fail("host ocaml version failed to report it's OCAMLROOT")
-    ##FIXME: get OPAMHOME
-    return "/Users/gar/.opam/" + root
+    if "OPAM_SWITCH_PREFIX" in ctx.os.environ:
+        return ctx.os.environ["OPAM_SWITCH_PREFIX"]
+    else:
+        fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+
+    # root = "@invalid@"
+    # # if "OCAMLROOT" in ctx.os.environ:
+    # if "OPAMROOT" in ctx.os.environ:
+    #     return ctx.os.environ["OPAMROOT"]
+    # else:
+    #     fail("OPAMROOT must be set.")
+
+    # res = ctx.execute([executable_path(ctx, "opam"), "switch", "show"])
+    # if res.return_code:
+    #     fail("Could not detect host ocaml version")
+    # root = res.stdout.strip()
+    # if not root:
+    #     fail("host ocaml version failed to report it's OCAMLROOT")
+    # ##FIXME: get OPAMHOME
+    # return "/Users/gar/.opam/" + root
 
 def _installed_sdk_triplet(ctx, ocamlroot):
     """Return platform triple for installed sdk, e.g. darwin_amd64.
