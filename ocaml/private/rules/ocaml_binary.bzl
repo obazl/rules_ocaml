@@ -110,7 +110,6 @@ def _compile_with_ppx(ctx):
   new_intfs, new_impls = compile_new_srcs(ctx, env, tc, new_intfs, new_impls)
 
   # 3. link and produce executable
-  # Dune: (cd _build/default && /Users/gar/.opam/4.07.1/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -o deriving-hello/test/hello_world_test.exe deriving-hello/test/.hello_world_test.eobjs/native/hello_world_test.cmx)
 
   outbinary = ctx.actions.declare_file(ctx.label.name)
 
