@@ -56,14 +56,15 @@ def _compile_without_ppx(ctx):
 
   args = ctx.actions.args()
   args.add("ocamlopt")
+
+  args.add_all(ctx.attr.opts)
   #TODO: if --verbose
-  args.add("-verbose")
-  args.add("-ccopt", "-v")
+  # args.add("-verbose")
+  # args.add("-ccopt", "-v")
   args.add("-o", outbinary)
-  args.add("-w", "-24")
-  args.add("-linkpkg") # create executable
-  args.add("-linkall")
-  args.add_all(srcs)
+  # args.add("-w", "-24")
+  # args.add("-linkpkg") # create executable
+  # args.add("-linkall")
   opamdeps = []
   xdeps = []
   for dep in ctx.attr.deps:
@@ -79,11 +80,13 @@ def _compile_without_ppx(ctx):
   # for ocamlfind-enabled deps, use -package
   args.add_joined("-package", opamdeps, join_with=",")
 
+  args.add_all(srcs)
+
   #### REGISTER ACTION: OCAML_BINARY ####
   ctx.actions.run(
     env = env,
-    pgm = tc.ocamlfind,
-    args = [args],
+    executable = tc.ocamlfind,
+    arguments = [args],
     # inputs = ctx.files.srcs_impl + ctx.files.srcs_intf,
     inputs = srcs,
     outputs = [outbinary],
@@ -142,11 +145,12 @@ def _compile_with_ppx(ctx):
 ################
 def _ocaml_binary_impl(ctx):
 
-  if PpxInfo in ctx.attr.preprocessor:
-    ##FIXME: how to pass parameters to ppx?
-    return _compile_with_ppx(ctx)
-  else:
-    return _compile_without_ppx(ctx)
+  # if ctx.attr.preprocessor:
+  # # if hasattr(ctx.attr, ("preprocessor"):
+  #   ##FIXME: how to pass parameters to ppx?
+  #   return _compile_with_ppx(ctx)
+  # else:
+  return _compile_without_ppx(ctx)
 
 ################################################################
 ocaml_binary = rule(
@@ -164,6 +168,7 @@ ocaml_binary = rule(
     srcs_intf = attr.label_list(
       allow_files = OCAML_INTF_FILETYPES
     ),
+    opts = attr.string_list(),
     copts = attr.string_list(),
     linkopts = attr.string_list(),
     preprocessor = attr.label(
