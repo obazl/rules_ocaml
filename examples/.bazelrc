@@ -1,3 +1,6 @@
+## needed for now:
+build --spawn_strategy=standalone
+
 try-import user.bazelrc
 
 # enable platform-based toolchain resolution:
