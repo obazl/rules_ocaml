@@ -21,7 +21,7 @@ def ocaml_submodule_rename(name, prefix, srcs):
         name = name,
         srcs = srcs,
         # NB: srcs arg is list of strings, we have to extract the basename
-        outs = ["{}__{}".format(prefix, f.split("/").pop()) for f in srcs],
+        outs = ["{}__{}".format(prefix, f.split("/").pop().capitalize()) for f in srcs],
         cmd = RENAME_CMD.format(prefix=prefix, srcs="$(SRCS)"),
     )
 
