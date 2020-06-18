@@ -1,7 +1,7 @@
 # To build, from examples/ run: $ bazel build //hello/ppx:ppx
 # You can shorten //hello/ppx:ppx to hello/ppx
 # To run: $ bazel run hello/ppx
-# You can also build the other steps:
+# You can also build the other steps, separately:
 # $ bazel build hello/ppx:ppx_pipeline
 # $ bazel build hello/ppx:preproc
 
@@ -28,13 +28,16 @@ ocaml_ppx_pipeline(
             "-linkpkg",
             "-verbose",
     ],
-    deps = [
-        "@opam//pkg:ppx_jane",
-    ]
+    deps = ["@opam//pkg:ppx_jane"]
 )
 
 # Step 2: use pipeline from step 1 (":ppx_pipeline") to preprocess source file.
-SRCS = ["hello_ppx.ml"]
+# This is macro that wraps a genrule:
+ocaml_preproc(name="preproc",
+              ppx=":ppx_pipeline",
+              srcs=["hello_ppx.ml"])
+# NOTE: we could also use a genrule to do the same thing:
+# SRCS = ["hello_ppx.ml"]
 # genrule(
 #     name = "preproc",
 #     message = "Preprocessing sources...",
@@ -47,10 +50,6 @@ SRCS = ["hello_ppx.ml"]
 #     + "    $(location :ppx_pipeline) $$f > $@;"
 #     + " done"
 # )
-
-ocaml_preproc(name="preprocx",
-              ppx=":ppx_pipeline",
-              srcs=["hello_ppx.ml"])
 
 # Step 3: compile preprocessed source (":preproc") from step 2.
 ocaml_binary(

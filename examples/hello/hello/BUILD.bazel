@@ -5,7 +5,7 @@
 load("@obazl//ocaml:build.bzl", "ocaml_binary")
 
 ocaml_binary(
-    name = "simple",
+    name = "hello",
     message = "Compiling hello_simple",
     srcs = ["hello_simple.ml"],
     # opts = ["-verbose"],
