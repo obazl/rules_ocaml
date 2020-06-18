@@ -49,54 +49,130 @@ def _compile_without_ppx(ctx):
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
-  srcs = ctx.files.srcs
+
   outfilename = ctx.label.name
   outbinary = ctx.actions.declare_file(outfilename)
+  # we will wait to add the -o flag until after we compile the interface files
+
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
-  args = ctx.actions.args()
-  args.add("ocamlopt")
+  args_intf = ctx.actions.args()
+  args_impl = ctx.actions.args()
+  args_intf.add("ocamlc")
+  args_intf.add("-c")
+  args_impl.add("ocamlopt")
+  args_intf.add_all(ctx.attr.opts)
+  args_impl.add_all(ctx.attr.opts)
 
-  args.add_all(ctx.attr.opts)
-  #TODO: if --verbose
-  # args.add("-verbose")
-  # args.add("-ccopt", "-v")
-  args.add("-o", outbinary)
-  # args.add("-w", "-24")
-  # args.add("-linkpkg") # create executable
-  # args.add("-linkall")
-  opamdeps = []
-  xdeps = []
+  ## we don't want to do this, it reorders the deps
+  # opamdeps = []
+  # xdeps = []
+  # for dep in ctx.attr.deps:
+  #   if OpamPkgInfo in dep:
+  #     opamdeps.append(dep[OpamPkgInfo].pkg)
+  #   else:
+  #     ##FIXME: filter for PpxInfo deps
+  #     xdeps.append(dep[PpxInfo].ppx)
+  # # non-ocamlfind-enabled deps:
+  # args_intf.add_joined(xdeps, join_with=" ")
+  # # for ocamlfind-enabled deps, use -package
+  # args_intf.add_joined("-package", opamdeps, join_with=",")
+
+  ## deps are the same for all sources (.mli, .ml)
+  # build_deps = []
+  includes = []
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
-      opamdeps.append(dep[OpamPkgInfo].pkg)
+      args_intf.add("-package", dep[OpamPkgInfo].pkg)
+      args_impl.add("-package", dep[OpamPkgInfo].pkg)
+      # build_deps.append(dep[OpamPkgInfo].pkg)
     else:
-      ##FIXME: filter for PpxInfo deps
-      xdeps.append(dep[PpxInfo].ppx)
+      for g in dep[DefaultInfo].files.to_list():
+        if g.path.endswith(".cmx"):
+          args_intf.add(g)
+          args_impl.add(g)
+          includes.append(g.dirname)
+          # build_deps.append(g)
+        if g.path.endswith(".cmxa"):
+          args_intf.add(g)
+          args_impl.add(g)
+          includes.append(g.dirname)
+          # build_deps.append(g)
+      # if PpxInfo in dep:
+      #   print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+      #   build_deps.append(dep[PpxInfo].cmxa)
+      #   build_deps.append(dep[PpxInfo].a)
+      # else:
+      #   print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+      #   for g in dep[DefaultInfo].files.to_list():
+      #     print(g)
+      #     if g.path.endswith(".cmx"):
+      #       build_deps.append(g)
+      #       args_intf.add("-I", g.dirname)
 
-  # non-ocamlfind-enabled deps:
-  args.add_joined(xdeps, join_with=" ")
+  args_intf.add_all(includes, before_each="-I", uniquify = True)
+  args_impl.add_all(includes, before_each="-I", uniquify = True)
 
-  # for ocamlfind-enabled deps, use -package
-  args.add_joined("-package", opamdeps, join_with=",")
+  ## srcs: deal with .mli and .ml separately
+  srcs_mli = []
+  outs_cmi = []
+  srcs_ml  = []
+  outs_cmx = []
 
-  args.add_all(srcs)
+  for src in ctx.files.srcs:
+    if src.path.endswith(".mli"):
+      srcs_mli.append(src)
+      # register cmi outfile with Bazel
+      outfname = src.basename.rstrip(".mli") + ".cmi"
+      outf = ctx.actions.declare_file(outfname)
+      outs_cmi.append(outf)
+    else:
+      if src.path.endswith(".ml"):
+        srcs_ml.append(src)
+        # register cmx outfile with Bazel
+        # outfname = src.basename.rstrip(".ml") + ".cmx"
+        # outf = ctx.actions.declare_file(outfname)
+        # outs_cmx.append(outf)
+      else:
+        fail("Not an OCaml source file: %s" % src.path)
 
-  #### REGISTER ACTION: OCAML_BINARY ####
+  ## without this, the compiler may not be able to find the cmi files:
+  includes_mli = []
+  for src in srcs_mli:
+    includes_mli.append(src.dirname)
+  args_impl.add_all(includes_mli, before_each="-I", uniquify = True)
+
+  # args_impl.add_all(outs_cmi)
+
+  args_intf.add_all(srcs_mli)
+  args_impl.add_all(srcs_ml)
+
+  # first compile interface files
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
-    arguments = [args],
-    # inputs = ctx.files.srcs_impl + ctx.files.srcs_intf,
-    inputs = srcs,
-    outputs = [outbinary],
-    # force dependency resolution?
-    tools = [], # ppx_dep] # , tc.opam, tc.ocamlfind, tc.ocamlopt]
-    progress_message = "ocaml_compile({}): {}".format(
+    arguments = [args_intf],
+    inputs = srcs_mli,
+    outputs = outs_cmi,
+    progress_message = "ocaml_compile({}): compiling interfaces {}".format(
       ctx.label.name, ctx.attr.message,
     )
   )
 
+  args_impl.add("-o", outbinary)
+
+  # then compile implementation files and produce executable
+  ctx.actions.run(
+    env = env,
+    executable = tc.ocamlfind,
+    arguments = [args_impl],
+    inputs = srcs_ml + outs_cmi,
+    outputs = [outbinary],
+    # tools = [], # ppx_dep] # , tc.opam, tc.ocamlfind, tc.ocamlopt]
+    progress_message = "ocaml_compile({}): compiling implementations {}".format(
+      ctx.label.name, ctx.attr.message
+    )
+  )
 
   return [DefaultInfo(executable = outbinary)]
 
