@@ -58,5 +58,3 @@ let () =
   let sig_type_decl = Deriving.Generator.make_noarg sig_gen in
   Deriving.add name ~str_type_decl ~sig_type_decl
   |> Deriving.ignore
-
-let () = Migrate_parsetree.Driver.run_main ()
