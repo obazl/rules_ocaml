@@ -9,8 +9,6 @@ load("@obazl//ocaml:build.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-ocaml_submodule_rename(name="rename_easy", prefix="foo_bar", srcs=["easy.ml"])
-
 ocaml_module(
     name = "easy",
     message = "Compiling easy.ml",
