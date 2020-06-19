@@ -1,3 +1,4 @@
+################################################################
 RENAME_CMD = """
 for f in {srcs};
 do
@@ -12,7 +13,7 @@ do
 done
 """
 
-def ocaml_submodule_rename(name, prefix, srcs):
+def ocaml_submodule_rename(name, prefix, srcs, visibility=None):
     ## IMPORTANT! We use the "make variable" $(SRCS), not the arg
     ## 'srcs'! Bazel will set it to the value of the srcs attrib
     ## (independent of order). That way the filenames are expanded
@@ -25,7 +26,7 @@ def ocaml_submodule_rename(name, prefix, srcs):
         cmd = RENAME_CMD.format(prefix=prefix, srcs="$(SRCS)"),
     )
 
-def ocaml_preproc(name, ppx, srcs):
+def ocaml_preproc(name, ppx, srcs, visibility=None):
     native.genrule(
         name = name,
         message = "Preprocessing sources...",
@@ -55,7 +56,7 @@ do
 done
 """
 
-def ocaml_redirector_gen(name, redirector, srcs):
+def ocaml_redirector_gen(name, redirector, srcs, visibility=None):
     native.genrule(
         name = name,
         srcs = srcs,
