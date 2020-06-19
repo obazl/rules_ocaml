@@ -79,7 +79,9 @@ def _compile_without_ppx(ctx):
   # args_intf.add_joined("-package", opamdeps, join_with=",")
 
   ## deps are the same for all sources (.mli, .ml)
-  # build_deps = []
+  ## we need to accumulate them so we can add them to the action inputs arg,
+  ## in order to  register the dependency with Bazel.
+  build_deps = []
   includes = []
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
@@ -88,16 +90,21 @@ def _compile_without_ppx(ctx):
       # build_deps.append(dep[OpamPkgInfo].pkg)
     else:
       for g in dep[DefaultInfo].files.to_list():
-        if g.path.endswith(".cmx"):
-          args_intf.add(g)
-          args_impl.add(g)
-          includes.append(g.dirname)
-          # build_deps.append(g)
-        if g.path.endswith(".cmxa"):
-          args_intf.add(g)
-          args_impl.add(g)
-          includes.append(g.dirname)
-          # build_deps.append(g)
+        args_intf.add(g)
+        args_impl.add(g)
+        includes.append(g.dirname)
+        build_deps.append(g)
+        # if g.path.endswith(".cmx"):
+        #   args_intf.add(g)
+        #   args_impl.add(g)
+        #   includes.append(g.dirname)
+        #   build_deps.append(g)
+        # if g.path.endswith(".cmxa"):
+        #   args_intf.add(g)
+        #   args_impl.add(g)
+        #   includes.append(g.dirname)
+        #   build_deps.append(g)
+
       # if PpxInfo in dep:
       #   print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
       #   build_deps.append(dep[PpxInfo].cmxa)
@@ -129,6 +136,7 @@ def _compile_without_ppx(ctx):
     else:
       if src.path.endswith(".ml"):
         srcs_ml.append(src)
+        args_impl.add("-I", src.dirname)
         # register cmx outfile with Bazel
         # outfname = src.basename.rstrip(".ml") + ".cmx"
         # outf = ctx.actions.declare_file(outfname)
@@ -148,30 +156,34 @@ def _compile_without_ppx(ctx):
   args_impl.add_all(srcs_ml)
 
   # first compile interface files
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args_intf],
-    inputs = srcs_mli,
-    outputs = outs_cmi,
-    progress_message = "ocaml_compile({}): compiling interfaces {}".format(
-      ctx.label.name, ctx.attr.message,
+  if srcs_mli:
+    ctx.actions.run(
+      env = env,
+      executable = tc.ocamlfind,
+      arguments = [args_intf],
+      inputs = srcs_mli,
+      outputs = outs_cmi,
+      progress_message = "ocaml_compile({}): compiling interfaces {}".format(
+        ctx.label.name, ctx.attr.message,
+      )
     )
-  )
 
   args_impl.add("-o", outbinary)
 
+  print("BUILD DEPS: %s" % build_deps)
+
   # then compile implementation files and produce executable
+  # if srcs_ml:
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
     arguments = [args_impl],
-    inputs = srcs_ml + outs_cmi,
+    inputs = srcs_ml + outs_cmi + build_deps,
     outputs = [outbinary],
-    # tools = [], # ppx_dep] # , tc.opam, tc.ocamlfind, tc.ocamlopt]
-    progress_message = "ocaml_compile({}): compiling implementations {}".format(
-      ctx.label.name, ctx.attr.message
-    )
+    # tools = build_deps,
+      progress_message = "ocaml_compile({}): compiling implementations {}".format(
+        ctx.label.name, ctx.attr.message
+      )
   )
 
   return [DefaultInfo(executable = outbinary)]
