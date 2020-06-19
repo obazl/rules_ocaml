@@ -56,6 +56,16 @@ def _ocaml_archive_sequential(ctx):
   args.add("-o", obj_cmxa)
   obj_files.append(obj_cmxa)
 
+  ## We also need to add the .o files as outputs. Why? Because -
+  ## assuming we use lazy linking - a change to a source file that
+  ## does not affect an interface will not result in a change to the
+  ## cmxa file, so downstream targets that depend only on cmxa will
+  ## not rebuilt. So we need the dependency to be on both the cmxa and
+  ## the associated object files.
+  for src in ctx.files.srcs:
+    if src.path.endswith(".ml"):
+      obj_files.append(ctx.actions.declare_file(src.basename.rstrip(".ml") + ".o"))
+
   # print("OBJ_FILES")
   # print(obj_files)
 
@@ -122,7 +132,7 @@ def _ocaml_archive_sequential(ctx):
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
-  outputs_arg = obj_files
+  outputs_arg = obj_files + build_deps
   # print("OUTPUTS_ARG:")
   # print(outputs_arg)
 
@@ -143,7 +153,7 @@ def _ocaml_archive_sequential(ctx):
   return [
     DefaultInfo(
       files = depset(
-        direct = obj_files
+        direct = outputs_arg # obj_files
       ))
   ]
 
