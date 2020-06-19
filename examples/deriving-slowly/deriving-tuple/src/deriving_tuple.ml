@@ -50,5 +50,3 @@ let name = "tuple"
 let () =
   Deriving.add name ~str_type_decl
   |> Deriving.ignore
-
-let () = Migrate_parsetree.Driver.run_main ()

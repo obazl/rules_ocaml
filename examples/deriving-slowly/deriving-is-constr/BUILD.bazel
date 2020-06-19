@@ -1,0 +1,74 @@
+load("@obazl//ocaml:build.bzl",
+     "ocaml_binary",
+     "ocaml_library",
+     "ocaml_ppx_binary",
+     "ocaml_ppx_library",
+     "ocaml_ppx_pipeline")
+
+ocaml_ppx_pipeline(
+    name = "metaquot",
+    visibility = ["//visibility:public"],
+    message = "Compiling //ppx:metaquot_ppxlib",
+    opts = ["-linkall",
+            "-linkpkg",
+             "-predicates", "ppx_driver", ## <== DON'T FORGET THIS
+            "-verbose"],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            "@opam//pkg:ppxlib.metaquot",
+            "@opam//pkg:ppxlib.runner",
+    ],
+)
+
+genrule(
+    name = "preproc",
+    message = "Preprocessing sources...",
+    tools = [":metaquot"],
+    srcs = ["src/deriving_is_constr.ml"],
+    outs = ["deriving_is_constr.pp.ml"],
+    cmd = "$(location :metaquot)"
+    + " --cookie 'library-name=\"deriving_is_constr\"'"
+    + " -dump-ast"
+    + " --impl $< > \"$@\";"
+    # + " $< > \"$@\";"
+)
+
+ocaml_ppx_pipeline(
+    name = "ppx",
+    visibility = ["//visibility:public"],
+    srcs = [
+        ":preproc",
+        "@obazl//ppxlib:driver_standalone_shim"
+        # "@obazl//ppx:migrate_parsetree_driver_shim"
+    ],
+    opts = ["-linkall",
+            "-predicates", "ppx_deriving",
+            "-predicates", "native",
+            "-linkpkg"],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            # ":preproc"
+    ]
+)
+
+## Use the compiled preprocessor to preprocess test sources.
+genrule(
+    name = "preproc_test",
+    message = "Preprocessing test sources...",
+    tools = [":ppx"],
+    srcs = [ "test/test.mli", "test/test.ml" ],
+    outs = ["pp_test.mli", "pp_test.ml"],
+    cmd = "for f in $(SRCS);"
+    + "do"
+    + "    echo $$f;"
+    + "    BNAME=`basename $$f`;"
+    + "    $(location :ppx)"
+    # + "    --dump-ast"
+    + "    $$f > $(@D)/pp_$$BNAME;"
+    + " done"
+)
+
+ocaml_binary(
+    name = "test",
+    srcs = [":preproc_test"],
+)

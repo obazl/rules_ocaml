@@ -1,0 +1,78 @@
+load("@obazl//ocaml:build.bzl",
+     "ocaml_binary",
+     "ocaml_library",
+     "ocaml_ppx_pipeline")
+
+ocaml_ppx_pipeline(
+    name = "metaquot",
+    visibility = ["//visibility:public"],
+    message = "Compiling //ppx:metaquot_ppxlib",
+    opts = ["-linkall",
+            "-linkpkg",
+             "-predicates", "ppx_driver", ## <== DON'T FORGET THIS
+            "-verbose"],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            "@opam//pkg:ppxlib.metaquot",
+            "@opam//pkg:ppxlib.runner",
+    ],
+)
+
+## Use the compiled metaquot preprocessor to transform our ppx source.
+genrule(
+    name = "preproc",
+    message = "Preprocessing sources...",
+    tools = [":metaquot"],
+    srcs = ["src/deriving_poly.ml"],
+    outs = ["_tmp_/deriving_poly.ml"],
+    cmd = "$(location :metaquot)"
+    + " --cookie 'library-name=\"deriving_poly\"'"
+    + " -dump-ast"
+    + " --impl $<"
+    + " -o \"$@\";"
+)
+
+ocaml_ppx_pipeline(
+    name = "ppx",
+    message = "Compiling executable ppx",
+    visibility = ["//visibility:public"],
+    srcs = [":preproc",
+            "@obazl//ppxlib:driver_standalone_shim"
+    ],
+    opts = ["-linkpkg"],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib"],
+)
+
+## Use the compiled preprocessor to preprocess test sources.
+genrule(
+    name = "preproc_test",
+    message = "Preprocessing test sources...",
+    tools = [":ppx"],
+    srcs = ["test/test.ml"],
+    outs = ["_tmp_/test.ml"],
+    cmd = "for f in $(SRCS);"
+    + "do"
+    + "    echo $$f;"
+    + "    BNAME=`basename $$f`;"
+    + "    $(location :ppx)"
+    # + "    --dump-ast"
+    + "    $$f > $(@D)/$$BNAME;"
+    + " done"
+)
+
+ocaml_binary(
+    name = "test",
+    srcs = [":preproc_test"],
+    deps = ["@opam//pkg:base",
+            "@opam//pkg:ppxlib",
+            ":preproc_test"
+    ],
+    copts = [
+        "-w", "-49",
+        # "-quiet",
+        "-verbose",
+        "-linkall",
+    ],
+)
+

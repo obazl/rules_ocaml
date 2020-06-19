@@ -11,4 +11,5 @@ let (a, b, c) = tuple_r x
 let () =
   assert (x.a = a);
   assert (x.b = b);
-  assert (x.c = c)
+  assert (x.c = c);
+  print_endline "deriving-tuple tests passed"
