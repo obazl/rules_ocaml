@@ -1,0 +1,5 @@
+filegroup(
+    name = "sort_deps",
+    srcs = ["sort_deps.ml"],
+    visibility = ["//visibility:public"],
+)
