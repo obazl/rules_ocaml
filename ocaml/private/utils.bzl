@@ -1,5 +1,11 @@
 load("@obazl//ocaml/private:providers.bzl",
-     "OcamlSDK")
+     "OcamlSDK",
+     "OcamlArchiveProvider",
+     "OcamlInterfaceProvider",
+     "OcamlLibraryProvider",
+     "OcamlModuleProvider",
+     "OpamPkgInfo",
+     "PpxInfo")
 
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
