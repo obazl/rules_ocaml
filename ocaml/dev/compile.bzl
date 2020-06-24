@@ -104,7 +104,7 @@ ocaml_compile_with_ppx = rule(
     deps = attr.label_list(),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     # outputs = attr.output_list(
     #   # default = ["%{name}.pp.ml",
@@ -313,7 +313,7 @@ ocaml_compile = rule(
     deps = attr.label_list(),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     message = attr.string()
     # outputs = attr.output_list(
