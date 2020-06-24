@@ -12,6 +12,10 @@ load("@obazl//ocaml/private:rules/ocaml_archive.bzl",
     _ocaml_archive = "ocaml_archive")
 load("@obazl//ocaml/private:rules/ocaml_binary.bzl",
     _ocaml_binary = "ocaml_binary")
+load("@obazl//ocaml/private:rules/ocaml_interface.bzl",
+    _ocaml_interface = "ocaml_interface")
+load("@obazl//ocaml/private:rules/ocaml_deps.bzl",
+    _ocaml_deps = "ocaml_deps")
 load("@obazl//ocaml/private:rules/ocaml_library.bzl",
     _ocaml_library = "ocaml_library")
 load("@obazl//ocaml/private:rules/ocaml_module.bzl",
@@ -45,6 +49,8 @@ load("@obazl//ocaml/private:macros/preproc.bzl",
 
 ocaml_archive = _ocaml_archive
 ocaml_binary = _ocaml_binary
+ocaml_deps = _ocaml_deps
+ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
 ocaml_ns_archive = _ocaml_ns_archive
