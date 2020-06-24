@@ -86,7 +86,7 @@ def ocaml_configure_tooling(is_rules_ocaml = False):
     # )
 
     # This may be overridden by ocaml_register_toolchains, but it's not mandatory
-    # for users to call that function (they may declare their own @ocaml_sdk and
+    # for users to call that function (they may declare their own @ocaml and
     # register their own toolchains).
     # _maybe(
     #     ocaml_register_noocaml,
@@ -100,7 +100,8 @@ def ocaml_configure_tooling(is_rules_ocaml = False):
     # )
 
     # opam_repo(name="opam")
-    ocaml_home_sdk("ocaml_sdk")
+    # this is a repo rule, it writes BUILD.bazel in external/ocaml dir
+    ocaml_home_sdk("ocaml")
 
     # print("ocaml_configure_tooling done")
 
