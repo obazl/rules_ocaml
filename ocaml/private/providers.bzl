@@ -110,7 +110,7 @@ def effective_importpath_pkgpath(lib):
         importpath = importpath[:-len("_test")]
     if importmap.endswith("_test"):
         importmap = importmap[:-len("_test")]
-    parts = importmap.split("/")
+        parts = importmap.split("/")
     if "vendor" not in parts:
         # Unusual case not handled by ocaml build. Just return importpath.
         return importpath, importpath
@@ -121,7 +121,70 @@ def effective_importpath_pkgpath(lib):
         # Vendor directory somewhere in the main repo. Leave it alone.
         return importpath, importmap
 
-OpamPkgInfo = provider(fields=["pkg"])
-
 PpxInfo = provider(fields=["ppx", "cmo", "o", "cmx", "a", "cmxa"])
 
+OpamPkgInfo = provider(
+    doc = "Provider for OPAM packages.",
+    fields = {
+        "pkg": "Label depset containing package name string used by ocamlfind.",
+    }
+)
+
+OcamlArchiveProvider = provider(
+    doc = "OCaml library provider. A library is a collection of modules.",
+    fields = {
+        "archive": """A struct with the following fields:
+            name: Name of archive
+            cma : .cma file produced by the target
+            cmxa: .cmxa file produced by the target
+            cmxs: .cmxs file produced by the target
+            a   : .a file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+OcamlLibraryProvider = provider(
+    doc = "OCaml library provider. A library is a collection of modules.",
+    fields = {
+        "library": """A struct with the following fields:
+            name: Name of library
+            modules : vector of modules in lib
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+OcamlInterfaceProvider = provider(
+    doc = "OCaml interface provider.",
+    fields = {
+        "interface": """A struct with the following fields:
+            cmi: .cmi file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+OcamlModuleProvider = provider(
+    doc = "OCaml module provider.",
+    fields = {
+        "module": """A struct with the following fields:
+            cmi: .cmi file produced by the target
+            cmx: .cmx file produced by the target
+            o  : .o file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
