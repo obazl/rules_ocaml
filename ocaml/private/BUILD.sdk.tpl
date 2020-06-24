@@ -20,6 +20,13 @@ ocaml_sdkpath(
     visibility = ["//visibility:public"],
 )
 
+cc_library(
+    name = "csdk",
+    srcs = glob(["csdk/*.a"]),
+    hdrs = glob(["csdk/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+
 filegroup(
     name = "ocamlc",
     srcs = ["switch/bin/ocamlc"],
@@ -60,21 +67,53 @@ filegroup(
 )
 
 ocaml_toolchain(
-    name = "ocaml_toolchaininfo_provider",
+    name = "ocaml_toolchaininfo_native_provider",
+    # compiler = "ocamlopt",
+    # opam_root= "...",
+    # sdk_path = "...",
+    # mode     = "native",
+    visibility = ["//visibility:public"],
+)
+
+ocaml_toolchain(
+    name = "ocaml_toolchaininfo_bytecode_provider",
+    # compiler = "ocamlc",
+    # opam_root= "...",
+    # sdk_path = "...",
+    # mode     = "bytecode",
     visibility = ["//visibility:public"],
 )
 
 toolchain(
-    name = "ocaml_toolchain_selector",
+    name = "ocaml_toolchain_native",
     toolchain_type = "@obazl//ocaml:toolchain",
     exec_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
+        "@obazl//:native"
     ],
     target_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
+        "@obazl//:native"
     ],
     # target_compatible_with = constraints,
-    toolchain = ":ocaml_toolchaininfo_provider"
+    toolchain = ":ocaml_toolchaininfo_native_provider"
+)
+
+toolchain(
+    name = "ocaml_toolchain_bytecode",
+    toolchain_type = "@obazl//ocaml:toolchain",
+    exec_compatible_with = [
+        "@platforms//os:macos",
+        "@platforms//cpu:x86_64",
+        # "@platforms//mode:bytecode"
+    ],
+    target_compatible_with = [
+        "@platforms//os:macos",
+        "@platforms//cpu:x86_64",
+        # "@platforms//mode:bytecode"
+    ],
+    # target_compatible_with = constraints,
+    toolchain = ":ocaml_toolchaininfo_bytecode_provider"
 )

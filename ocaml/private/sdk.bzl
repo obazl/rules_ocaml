@@ -46,8 +46,10 @@ load(
 
 # print("private/sdk.bzl loading")
 
+OCAML_SDK = "ocaml"
+
 def _ocaml_home_sdk_impl(ctx):
-    print("_ocaml_home_sdk_impl")
+    # print("_ocaml_home_sdk_impl")
     # Go calls the next two in order to get <os> and <arch>,
     # which are params in the BUILD template.
     # if "HOME" in ctx.os.environ:
@@ -197,6 +199,7 @@ def _symlink_sdk(ctx): # , opamroot, switch):
         fail("Environment var OPAMROOT must be set (try `$ export OPAMROOT=~/.opam'un).")
     if "OPAM_SWITCH_PREFIX" in ctx.os.environ:
         ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"], "switch")
+        ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml", "csdk")
     else:
         fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
     # ctx.symlink(opamroot + "/" + switch, "switch")
@@ -214,6 +217,15 @@ def _sdk_build_file(ctx, platform):
             "{sdkpath}": sdkpath
         },
     )
+    # ctx.template(
+    #     "csdk/BUILD.bazel",
+    #     Label("@obazl//ocaml/private:BUILD.csdk.tpl"),
+    #     executable = False,
+    #     substitutions = {
+    #         "{sdkpath}": sdkpath
+    #     },
+    # )
+
 ## We use a trick to obtain the absolute path of the sdk, which we
 ## need to set the PATH env var for the compilers. This rule is only
 ## used in the BUILD file that we generate, parameterized by the path
@@ -322,9 +334,9 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
     sdk_kinds = ("_ocaml_project_sdk", "_ocaml_home_sdk", "_ocaml_local_sdk", "_ocaml_wrap_sdk")
     existing_rules = native.existing_rules()
     sdk_rules = [r for r in existing_rules.values() if r["kind"] in sdk_kinds]
-    if len(sdk_rules) == 0 and "ocaml_sdk" in existing_rules:
+    if len(sdk_rules) == 0 and OCAML_SDK in existing_rules:
         # may be local_repository in bazel_tests.
-        sdk_rules.append(existing_rules["ocaml_sdk"])
+        sdk_rules.append(existing_rules[OCAML_SDK])
 
     opam_repo(name="opam")
 
@@ -334,17 +346,18 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
         if not installation:
             installation = DEFAULT_VERSION
         if installation == "host":
-            ocaml_home_sdk(name = "ocaml_sdk")
+            ocaml_home_sdk(name = OCAML_SDK)
         else:
             if not versions.is_at_least(MIN_SUPPORTED_VERSION, installation):
                 print("DEPRECATED: ocaml_register_toolchains: support for Ocaml versions before {} will be removed soon".format(MIN_SUPPORTED_VERSION))
                 ocaml_project_sdk(
-                    name = "ocaml_sdk",
+                    name = OCAML_SDK,
                     version = installation,
                 )
 
     # toolchain target defined in generated file ocaml_sdk/BUILD.bazel
-    native.register_toolchains("@ocaml_sdk//:ocaml_toolchain_selector")
+    native.register_toolchains("@ocaml//:ocaml_toolchain_native")
+    native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode")
 
     # if noocaml:
     #     # Override default definition in ocaml_rules_dependencies().
