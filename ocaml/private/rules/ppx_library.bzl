@@ -324,7 +324,7 @@ ocaml_ppx_library = rule(
     deps = attr.label_list(),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     # outputs = attr.output_list(
     #   # default = ["%{name}.pp.ml",

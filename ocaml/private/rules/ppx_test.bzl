@@ -100,7 +100,7 @@ ocaml_ppx_test = rule(
       allow_single_file = True
     ),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     srcs = attr.label_list(
       allow_files = OCAML_IMPL_FILETYPES

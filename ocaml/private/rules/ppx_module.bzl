@@ -205,7 +205,7 @@ ocaml_ppx_module = rule(
   # implementation = _ocaml_ppx_module_compile_test,
   attrs = dict(
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     copts = attr.string_list(),
     linkopts = attr.string_list(),

@@ -120,7 +120,7 @@ ocaml_ppx_pipeline = rule(
   implementation = _ocaml_ppx_pipeline_impl,
   attrs = dict(
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
