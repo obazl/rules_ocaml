@@ -77,9 +77,9 @@ opam_repo = repository_rule(
 )
 
 def _ocamlfind_package_impl(ctx):
-  sep = "." if ctx.label.package else ""
-  # return [OpamPkgInfo(pkg=ctx.label.package + sep + ctx.label.name)]
-  return [OpamPkgInfo(pkg=ctx.label.name)]
+  ## client should do:
+  ## dep[OpamPkgInfo].pkg.to_list()[0].name)
+  return [OpamPkgInfo(pkg = depset(direct = [ctx.label]))]
 
 ocamlfind_package = rule(
     implementation = _ocamlfind_package_impl,
