@@ -1,5 +1,8 @@
 load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
+     "OcamlInterfaceProvider",
+     "OcamlLibraryProvider",
+     "OcamlModuleProvider",
      "OpamPkgInfo",
      "PpxInfo")
 load("@obazl//ocaml/private:actions/ppx.bzl",
@@ -11,6 +14,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
 load("@obazl//ocaml/private:utils.bzl",
+     "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -20,45 +24,52 @@ load("@obazl//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-# testing
-load("@obazl//ocaml/private:actions/ocamlopt.bzl",
-     "compile_native_with_ppx",
-     "link_native")
 
-# print("private/ocaml.bzl loading")
+################################################################
+def _compile_interface(ctx):
 
-
-########## RULE:  OCAML_MODULE  ################
-def _ocaml_module_impl(ctx):
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  if ctx.file.impl:
-    outfilename = ctx.file.impl.basename.rstrip("ml") + "cmx"
-  else:
-    outfilename = ctx.label.name + ".cmx"
+  cmifname = ctx.file.intf.basename.rstrip("mli") + "cmi"
+  obj_cmi = ctx.actions.declare_file(cmifname)
 
-  ## Sibling arg can be used to ensure output will go to same
-  ## dir as input.
-  # if file is in same package as BUILD.bazel:
-  #   obj_cmx = ctx.actions.declare_file(outfilename, sibling=ctx.file.impl)
-  # else:
-  obj_cmx = ctx.actions.declare_file(outfilename)
+  args = ctx.actions.args()
+  # args.add("-c")
+  args.add("-o", obj_cmi)
+  args.add(ctx.file.intf)
 
-  # impl_file = obj_cmx.path.rstrip("cmx") + "ml"
-  impl_file = ctx.file.impl
+  ctx.actions.run(
+    env = env,
+    executable = tc.ocamlopt,
+    arguments = [args],
+    inputs = [ctx.file.intf],
+    outputs = [obj_cmi],
+    tools = [tc.ocamlopt],
+    mnemonic = "OcamlModuleInterface",
+    progress_message = "ocaml_module({}), compiling interface {}".format(
+      ctx.label.name, ctx.attr.message
+      )
+  )
+  return [obj_cmi]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+################################################################
+def _compile_implementation(ctx):
+
+  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  env = {"OPAMROOT": get_opamroot(),
+         "PATH": get_sdkpath(ctx)}
 
   args = ctx.actions.args()
   # we will pass ocamlfind as the exec arg, so we start args with ocamlopt
   args.add("ocamlopt")
+
+  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+
   args.add_all(ctx.attr.opts)
   # modules are always compile-only
   args.add("-c")
-
-  args.add("-o", obj_cmx)
 
   # for wrapper gen:
   # args.add("-w", "-24")
@@ -68,10 +79,12 @@ def _ocaml_module_impl(ctx):
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg)
-      # build_deps.append(dep[OpamPkgInfo].pkg)
+      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
     else:
       for g in dep[DefaultInfo].files.to_list():
+        if g.path.endswith(".o"):
+          build_deps.append(g)
+          includes.append(g.dirname)
         if g.path.endswith(".cmx"):
           build_deps.append(g)
           includes.append(g.dirname)
@@ -98,6 +111,20 @@ def _ocaml_module_impl(ctx):
   # non-ocamlfind-enabled deps:
   args.add_all(build_deps)
 
+  impl_file = ctx.file.impl
+  cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
+  obj_cmx = ctx.actions.declare_file(cmxfname)
+  ofname = ctx.file.impl.basename.rstrip("ml") + "o"
+  obj_o = ctx.actions.declare_file(ofname)
+
+  ## Sibling arg can be used to ensure output will go to same
+  ## dir as input.
+  # if file is in same package as BUILD.bazel:
+  #   obj_cmx = ctx.actions.declare_file(outfilename, sibling=ctx.file.impl)
+  # else:
+
+  args.add("-o", obj_cmx)
+
   args.add(impl_file)
 
   inputs = build_deps + ctx.files.impl
@@ -109,7 +136,7 @@ def _ocaml_module_impl(ctx):
     executable = tc.ocamlfind,
     arguments = [args],
     inputs = inputs,
-    outputs = [obj_cmx],
+    outputs = [obj_cmx, obj_o],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPPXBinary",
     progress_message = "ocaml_module({}), {}".format(
@@ -117,9 +144,42 @@ def _ocaml_module_impl(ctx):
       )
   )
 
-  return [DefaultInfo(files = depset(direct = [obj_cmx])),
-          PpxInfo(ppx=obj_cmx)]
+  return [obj_cmx, obj_o]
+  # return [DefaultInfo(files = depset(direct = [obj_cmx, obj_o]))]
 # OutputGroupInfo(bin = depset([bin_output]))]
+
+########## RULE:  OCAML_MODULE  ################
+def _ocaml_module_impl(ctx):
+
+  mydeps = get_all_deps(ctx.attr.deps)
+  # print("ALL DEPS for target %s" % ctx.label.name)
+  # print(mydeps)
+
+  rintf = []
+  rimpl = []
+  if ctx.file.intf:
+    rintf = _compile_interface(ctx)
+
+  if ctx.file.impl:
+    rimpl = _compile_implementation(ctx)
+
+  module_provider = OcamlModuleProvider(
+    module = struct(
+      cmi = rintf,
+      cmx = rimpl[0] if rimpl else None,
+      o   = rimpl[1] if rimpl else None,
+    ),
+    deps = struct(
+      opam  = mydeps.opam,
+      nopam = mydeps.nopam
+    )
+  )
+  # print("MODULE PROVIDER for {mod}: {mp}".format(mod=ctx.label.name, mp=module_provider))
+
+  return [
+    DefaultInfo(files = depset(direct = rimpl)),
+    module_provider
+  ]
 
 # (library
 #  (name deriving_hello)
@@ -133,7 +193,7 @@ ocaml_module = rule(
   implementation = _ocaml_module_impl,
   attrs = dict(
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
@@ -142,13 +202,20 @@ ocaml_module = rule(
     impl = attr.label(
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
+    intf = attr.label(
+      allow_single_file = OCAML_INTF_FILETYPES
+    ),
     deps = attr.label_list(
-      # providers = [OpamPkgInfo]
+      providers = [[OpamPkgInfo],
+                   [OcamlLibraryProvider], [OcamlModuleProvider],
+                   # [OcamlInterfaceProvider]]
+                   [CcInfo]],
     ),
     mode = attr.string(default = "native"),
-    message = attr.string()
+    message = attr.string(),
   ),
-  provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
+  provides = [OcamlModuleProvider],
+  # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = False,
   toolchains = ["@obazl//ocaml:toolchain"],
 )

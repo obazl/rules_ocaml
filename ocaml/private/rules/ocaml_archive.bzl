@@ -10,10 +10,15 @@ load("@obazl//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
 load("@obazl//ocaml/private:providers.bzl",
+     "OcamlArchiveProvider",
+     "OcamlInterfaceProvider",
+     "OcamlLibraryProvider",
+     "OcamlModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
 load("@obazl//ocaml/private:utils.bzl",
+     "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -29,32 +34,50 @@ load("@obazl//ocaml/private:utils.bzl",
 ######## RULE DECL:  OCAML_ARCHIVE  #########
 #  Build .cmxa, .a
 ##################################################
-def _ocaml_archive_sequential(ctx):
+def _ocaml_archive_batch(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
+
+  mydeps = get_all_deps(ctx.attr.deps)
+  # print("ALL DEPS for target %s" % ctx.label.name)
+  # print(mydeps)
 
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
-  args = ctx.actions.args()
-  args.add("ocamlopt")
-  args.add("-a")
-  args.add_all(ctx.attr.opts)
-
   ## declare outputs
   obj_files = []
-  if "-c" in ctx.attr.opts:
-    fail("-c option imcompatible with ocaml_archive target.")
-
-
+  obj_cmxa = None
+  obj_cmxs = None
+  obj_a    = None
   if ctx.attr.archive_name:
-    obj_cmxa = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxa")
+    if ctx.attr.linkshared:
+      obj_cmxs = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxs")
+    else:
+      obj_cmxa = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxa")
+      # obj_a = ctx.actions.declare_file(ctx.attr.archive_name + ".a")
   else:
-    obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
+    if ctx.attr.linkshared:
+      obj_cmxs = ctx.actions.declare_file(ctx.label.name + ".cmxs")
+    else:
+      obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
+      # obj_a = ctx.actions.declare_file(ctx.label.name + ".a")
 
-  args.add("-o", obj_cmxa)
-  obj_files.append(obj_cmxa)
+  args = ctx.actions.args()
+  args.add("ocamlopt")
+  args.add("-w", ctx.attr.warnings)
+  options = tc.opts + ctx.attr.opts
+  # if ctx.attr.nocopts:
+  args.add_all(options)
+  if ctx.attr.linkshared:
+    args.add("-shared")
+    args.add("-o", obj_cmxs)
+    obj_files.append(obj_cmxs)
+  else:
+    args.add("-a")
+    args.add("-o", obj_cmxa)
+    obj_files.append(obj_cmxa)
 
   ## We also need to add the .o files as outputs. Why? Because -
   ## assuming we use lazy linking - a change to a source file that
@@ -69,27 +92,48 @@ def _ocaml_archive_sequential(ctx):
   # print("OBJ_FILES")
   # print(obj_files)
 
-
-  build_deps = []
+  build_deps = []  # for the command line
   includes = []
+  inputs_arg = []  # for the run action inputs
+
+  # print("XXXXXXXXXXXXXXXX0 %s" % mydeps.opam)
+  for dep in mydeps.opam.to_list():  # depsets are not iterable, use to_list()
+    # print("XXXXXXXXXXXXXXXX1 %s" % dep)
+    for l in dep.to_list():
+      print("XXXXXXXXXXXXXXXX2 %s" % l)
+    # print("XXXXXXXXXXXXXXXX3 %s" % dep.to_list()[0].to_list())
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  # args.add_all([dep.name for dep in mydeps.opam.to_list()], before_each="-package")
+
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
       args.add("-package", dep[OpamPkgInfo].pkg)
     else:
       for g in dep[DefaultInfo].files.to_list():
+        inputs_arg.append(g)
+        includes.append(g.dirname)
+        # exclude cmi deps, archives do not know what to do with them
         # if g.path.endswith(".cmi"):
         #   build_deps.append(g)
         if g.path.endswith(".cmx"):
           build_deps.append(g)
-          includes.append(g.dirname)
-        if g.path.endswith(".cmxa"):
+        elif g.path.endswith(".cmxa"):
           build_deps.append(g)
-          includes.append(g.dirname)
-        # if g.path.endswith(".o"):
+          # includes.append(g.dirname)
+        elif g.path.endswith(".o"):
+          build_deps.append(g)
+        ## link a c lib
+        elif g.extension == "a":
+          # build_deps.append(g)
+          ## -dllib is for bytecode only
+          # args.add("-dllib", "lrakia")
+          ## incredibly, starlark's rstrip function does not strip suffix strings. we have to hack it:
+          libname = g.basename.rstrip("a")
+          libname = libname.rstrip(".")
+          libname = libname.lstrip("lib")
+          args.add("-cclib", "-l" + libname)
+        # elif g.path.endswith(".so"):
         #   build_deps.append(g)
-        # if g.path.endswith(".cmxa"):
-        #   build_deps.append(g)
-        #   args.add(g) # dep[DefaultInfo].files)
         # else:
         #   args.add(g) # dep[DefaultInfo].files)
 
@@ -128,11 +172,11 @@ def _ocaml_archive_sequential(ctx):
   # args.add("-plugin")
   # args.add("migrate_parsetree_driver_main.cmxs")
 
-  inputs_arg = ctx.files.srcs + build_deps
+  inputs_arg = inputs_arg + ctx.files.srcs
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
-  outputs_arg = obj_files + build_deps
+  outputs_arg = obj_files  # + build_deps
   # print("OUTPUTS_ARG:")
   # print(outputs_arg)
 
@@ -149,17 +193,31 @@ def _ocaml_archive_sequential(ctx):
       )
   )
 
+  ap = OcamlArchiveProvider(
+    archive = struct(
+      name = ctx.label.name,
+      cmxa = obj_cmxa,
+      cmxs = obj_cmxs,
+      a    = obj_a
+    ),
+    deps = struct(
+      opam = mydeps.opam,
+      nopam = mydeps.nopam
+    )
+  )
 
+  # print("ARCHIVEPROVIDER for {arch}: {ap}".format(arch=ctx.label.name, ap=ap))
   return [
     DefaultInfo(
       files = depset(
         direct = outputs_arg # obj_files
-      ))
+      )),
+    ap
   ]
 
 ################################################################
 def _ocaml_archive_impl(ctx):
-  return _ocaml_archive_sequential(ctx)
+  return _ocaml_archive_batch(ctx)
 
   # obj_files = []
   # for f in ctx.files.srcs:
@@ -195,11 +253,11 @@ ocaml_archive = rule(
     ## Problem is, this target registers two actions,
     ## compile and link, and each has its own params.
     ## for now, these affect the compile action:
-    strict_sequence         = attr.bool(default = True),
+    # strict_sequence         = attr.bool(default = True),
+    # strict_formats          = attr.bool(default = True),
+    # short_paths             = attr.bool(default = True),
     compile_strict_sequence = attr.bool(default = True),
     link_strict_sequence    = attr.bool(default = True),
-    strict_formats          = attr.bool(default = True),
-    short_paths             = attr.bool(default = True),
     keep_locs               = attr.bool(default = True),
     opaque                  = attr.bool(default = True),
     no_alias_deps           = attr.bool(default = True),
@@ -210,20 +268,27 @@ ocaml_archive = rule(
     warnings                = attr.string(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
     ),
+    # nocopts = attr.string(),
+    linkshared = attr.bool(default = False),
     #### end options ####
     # lib = attr.bool(default = False)
-    deps = attr.label_list(),
+    deps = attr.label_list(
+      providers = [[OpamPkgInfo],
+                   [OcamlInterfaceProvider], [OcamlModuleProvider],
+                   [OcamlLibraryProvider], [OcamlArchiveProvider],
+                   [CcInfo]],
+    ),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
-    message = attr.string()
+    message = attr.string(),
     # outputs = attr.output_list(
     #   # default = ["%{name}.pp.ml",
     #   #           "%{name}.pp.ml.d"],
     # )
   ),
-  # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
+  provides = [OcamlArchiveProvider],
   executable = False,
   toolchains = ["@obazl//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },

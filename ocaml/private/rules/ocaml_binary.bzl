@@ -8,10 +8,13 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
 load("@obazl//ocaml/private:actions/ocaml.bzl",
      "ocaml_compile")
 load("@obazl//ocaml/private:providers.bzl",
+     "OcamlLibraryProvider",
+     "OcamlModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
 load("@obazl//ocaml/private:utils.bzl",
+     "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "strip_ml_extension",
@@ -20,6 +23,7 @@ load("@obazl//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load("rules/copy_srcs.bzl", "copy_srcs_to_tmp")
 
 # def _ocaml_interface_impl(ctx):
 #   ctx.actions.run_shell(
@@ -46,12 +50,24 @@ load("@obazl//ocaml/private:utils.bzl",
 
 ################################################################
 def _compile_without_ppx(ctx):
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+
+  mydeps = get_all_deps(ctx.attr.deps)
+  # print("ALL DEPS for %s" % ctx.label.name)
+  # print(mydeps)
+
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  outfilename = ctx.label.name
-  outbinary = ctx.actions.declare_file(outfilename)
+  srcs = copy_srcs_to_tmp(ctx)
+
+  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+
+  if ctx.attr.exe_name:
+    outfilename = ctx.attr.exe_name
+    outbinary = ctx.actions.declare_file(outfilename)
+  else:
+    outfilename = ctx.label.name
+    outbinary = ctx.actions.declare_file(outfilename)
   # we will wait to add the -o flag until after we compile the interface files
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
@@ -83,27 +99,57 @@ def _compile_without_ppx(ctx):
   ## in order to  register the dependency with Bazel.
   build_deps = []
   includes = []
-  for dep in ctx.attr.deps:
-    if OpamPkgInfo in dep:
-      args_intf.add("-package", dep[OpamPkgInfo].pkg)
-      args_impl.add("-package", dep[OpamPkgInfo].pkg)
-      # build_deps.append(dep[OpamPkgInfo].pkg)
-    else:
-      for g in dep[DefaultInfo].files.to_list():
-        args_intf.add(g)
-        args_impl.add(g)
-        includes.append(g.dirname)
-        build_deps.append(g)
-        # if g.path.endswith(".cmx"):
-        #   args_intf.add(g)
-        #   args_impl.add(g)
-        #   includes.append(g.dirname)
-        #   build_deps.append(g)
-        # if g.path.endswith(".cmxa"):
-        #   args_intf.add(g)
-        #   args_impl.add(g)
-        #   includes.append(g.dirname)
-        #   build_deps.append(g)
+  args_impl.add("-linkpkg")  ## an ocamlfind parameter
+  # print("OPAM_DEPS: %s" % mydeps.opam)
+  for dep in mydeps.opam.to_list():
+    # print("OPAM DEP: %s" % dep)
+    for depdep in dep.to_list():
+      # print("OPAM DEPDEP: %s" % depdep)
+      args_impl.add("-package", depdep.name)
+  # args_impl.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+
+  # print("NOPAM_DEPS for {bin}: {deps}".format(bin=ctx.label.name, deps=mydeps.nopam))
+  for dep in mydeps.nopam.to_list():  # ctx.attr.deps:
+    # print("NOPAM_DEP: %s" % dep)
+    if hasattr(dep, "clib"):
+      build_deps = build_deps + dep.clib.files.to_list()
+      args_impl.add("-cclib", "-lrakia")
+    if hasattr(dep, "cmx"):    ## composited lib
+      build_deps.append(dep.cmx)
+      includes.append(dep.cmx.dirname)
+      args_impl.add(dep.cmx)
+    # elif hasattr(dep, "modules"):  ## batched lib
+    #   nopam_modules = dep.modules
+    #   for module in nopam_modules:
+    #     build_deps.append(module)
+    #     includes.append(module.dirname)
+    #     args_impl.add(module)
+
+    # if OpamPkgInfo in dep:
+    #   if not linkpkg:
+    #     ##FIXME: reorder - put this first
+    #     linkpkg = True
+    #     args_impl.add("-linkpkg")  ## an ocamlfind parameter
+    #   # opam_dep = dep[OpamPkgInfo].pkg.to_list()[0].name
+    #   # args_intf.add("-package", opam_dep)
+    #   # args_impl.add("-package", opam_dep)
+    #   # build_deps.append(dep[OpamPkgInfo].pkg)
+    # else:
+    #   for g in dep[DefaultInfo].files.to_list():
+    #     args_intf.add(g)
+    #     args_impl.add(g)
+    #     includes.append(g.dirname)
+    #     build_deps.append(g)
+    #     # if g.path.endswith(".cmx"):
+    #     #   args_intf.add(g)
+    #     #   args_impl.add(g)
+    #     #   includes.append(g.dirname)
+    #     #   build_deps.append(g)
+    #     # if g.path.endswith(".cmxa"):
+    #     #   args_intf.add(g)
+    #     #   args_impl.add(g)
+    #     #   includes.append(g.dirname)
+    #     #   build_deps.append(g)
 
       # if PpxInfo in dep:
       #   print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
@@ -126,7 +172,7 @@ def _compile_without_ppx(ctx):
   srcs_ml  = []
   outs_cmx = []
 
-  for src in ctx.files.srcs:
+  for src in srcs: ## ctx.files.srcs:
     if src.path.endswith(".mli"):
       srcs_mli.append(src)
       # register cmi outfile with Bazel
@@ -170,7 +216,17 @@ def _compile_without_ppx(ctx):
 
   args_impl.add("-o", outbinary)
 
-  print("BUILD DEPS: %s" % build_deps)
+  if ctx.attr.strip_data_prefixes:
+    myrunfiles = ctx.runfiles(
+      files = ctx.files.data,
+      symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
+    )
+  else:
+    myrunfiles = ctx.runfiles(
+      files = ctx.files.data,
+    )
+
+  # print("BUILD DEPS: %s" % build_deps)
 
   # then compile implementation files and produce executable
   # if srcs_ml:
@@ -181,12 +237,13 @@ def _compile_without_ppx(ctx):
     inputs = srcs_ml + outs_cmi + build_deps,
     outputs = [outbinary],
     # tools = build_deps,
-      progress_message = "ocaml_compile({}): compiling implementations {}".format(
+      progress_message = "ocaml_binary({}): compiling implementations {}".format(
         ctx.label.name, ctx.attr.message
       )
   )
 
-  return [DefaultInfo(executable = outbinary)]
+  return [DefaultInfo(executable = outbinary,
+                      runfiles = myrunfiles)]
 
 ################################################################
 def _compile_with_ppx(ctx):
@@ -244,17 +301,26 @@ def _ocaml_binary_impl(ctx):
 ocaml_binary = rule(
   implementation = _ocaml_binary_impl,
   attrs = dict(
+    exe_name = attr.string(),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     srcs = attr.label_list(
       allow_files = OCAML_FILETYPES
     ),
-    srcs_impl = attr.label_list(
-      allow_files = OCAML_IMPL_FILETYPES
+    # srcs_impl = attr.label_list(
+    #   allow_files = OCAML_IMPL_FILETYPES
+    # ),
+    # srcs_intf = attr.label_list(
+    #   allow_files = OCAML_INTF_FILETYPES
+    # ),
+    data = attr.label_list(
+      allow_files = True,
+      doc = "Data files used by this executable."
     ),
-    srcs_intf = attr.label_list(
-      allow_files = OCAML_INTF_FILETYPES
+    strip_data_prefixes = attr.bool(
+      doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
+      default = False
     ),
     opts = attr.string_list(),
     copts = attr.string_list(),
@@ -267,7 +333,11 @@ ocaml_binary = rule(
       cfg = "exec",
     ),
     deps = attr.label_list(
-      doc = "Dependencies. Do not include preprocessor (PPX) deps."
+      doc = "Dependencies. Do not include preprocessor (PPX) deps.",
+      providers = [[OpamPkgInfo],
+                   [OcamlLibraryProvider], [OcamlModuleProvider],
+                   # [OcamlInterfaceProvider]]
+                   [CcInfo]],
     ),
     mode = attr.string(default = "native"), # or "bytecode"
     message = attr.string()
@@ -275,60 +345,3 @@ ocaml_binary = rule(
   executable = True,
   toolchains = ["@obazl//ocaml:toolchain"],
 )
-
-
-  # interface_inputs = []
-  # intf_out = ctx.actions.declare_file("hello_world_test.cmi")
-  # interface_outputs = [intf_out]
-  # for s in ctx.attr.srcs_intf:
-  #   interface_inputs.append(s.label.name)
-  #   # interface_outputs.append(s.files.to_list()[0])
-  # print("INTERFACE FILES:")
-  # print(interface_inputs)
-
-  # implementation_inputs = []
-  # impl_out = ctx.actions.declare_file("hello_world_test")
-  # implementation_outputs = [impl_out]
-  # for s in ctx.attr.srcs_impl:
-  #   implementation_inputs.append(s.label.name)
-  #   # implementation_outputs.append(s.files.to_list()[0])
-  # # print("IMPLEMENTATION FILES:")
-  # # print(implementation_inputs)
-
-  # ################ compile interface files ################
-  # command = " ".join([
-  #   opam_env_command,
-  #   ocamlfind, # .path,
-  #   "ocamlopt",
-  #   "-verbose",
-  #   # ocamlbuild_opts,
-  #   " ".join(ctx.attr.copts),
-  #   ppx,
-  #   lflags,
-  #   # pkgs,
-  #   "-linkpkg -package base -package ppxlib",
-  #   # "-c ",
-  #   "-linkall",
-  #   "-o hello_world_test.cmi",
-  #   # interface_outputs[0].basename,
-  #   # src_root,
-  #   " ".join(interface_inputs),
-  #   # "&& cp -L %s %s" % (intermediate_bin, ctx.outputs.executable.path)
-  # ])
-  # print("command: " + command)
-  # ctx.actions.run_shell(
-  #   inputs = ctx.files.srcs_intf,
-  #   # NOTE: here the tools attrib establishes the dependency of this
-  #   # action on the preprocessor target. Without it, the ppx will not
-  #   # be built.
-  #   tools = [ppx_dep],
-  #   # tools = [ocamlfind, ocamlbuild, opam],
-  #   outputs = interface_outputs,
-  #   command = command,
-  #   mnemonic = "Ocamlbuild",
-  #   progress_message = "Compiling OCaml interface files %s" % ctx.label.name,
-  #   # This is (unfortunately) not hermetic yet.
-  #     use_default_shell_env = True,
-  #   execution_requirements = {"local": "1"},
-  # )
-

@@ -10,10 +10,15 @@ load("@obazl//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
 load("@obazl//ocaml/private:providers.bzl",
+     "OcamlArchiveProvider",
+     "OcamlInterfaceProvider",
+     "OcamlLibraryProvider",
+     "OcamlModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
 load("@obazl//ocaml/private:utils.bzl",
+     "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -24,60 +29,89 @@ load("@obazl//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load("rules/copy_srcs.bzl", "copy_srcs_to_tmp")
 
 ##################################################
 ######## RULE DECL:  OCAML_LIBRARY  #########
 ##################################################
-def _ocaml_library_parallel(ctx, src_f):
+################################################################
+def _ocaml_library_batch(ctx):
+  # print("OCAML LIBRARY BATCH")
+
+  mydeps = get_all_deps(ctx.attr.deps)
+  # print("MYDEPS for {lib}: {deps}".format(lib=ctx.label.name, deps=mydeps))
+
   env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx),
-         "OCAMLFIND_FIND_IGNORE_DUPS_IN": "/Users/gar/.opam/4.07.1/lib/ocaml/compiler-libs"
-  }
+         "PATH": get_sdkpath(ctx)}
+
+  ## no input srcs means we're being used just to force dep builds, so
+  ## we just pass input deps as our outputs
+  dset = []
+  for dep in mydeps.nopam.to_list(): #] # ctx.attr.deps]
+    if hasattr(dep, "cmx"):
+      dset.append(dep.cmx)
+  # flatten
+  # dset = [val for sublist in dset for val in sublist]
+  if not ctx.files.srcs:
+    ctx.actions.do_nothing(mnemonic = "pass-through", inputs = dset)
+
+    lp = OcamlLibraryProvider(
+      library = struct(
+        name = ctx.label.name,
+        modules = ctx.attr.deps
+      ),
+      deps = struct(
+        opam = mydeps.opam,
+        nopam = mydeps.nopam
+      )
+    )
+    # print("LIBPROVIDER: %s" % lp)
+    return [
+      DefaultInfo(files = depset(direct = dset)),
+      lp
+    ]
+
+  ################################################################
+  # print("CTX SRCS")
+  # print([src.path for src in ctx.files.srcs])
+
+  # copy all srcs to working dir
+  # we need to do this because the OCaml compiler (or ocamlfind) spawns processes outside of Bazel's control.
+  srcs = copy_srcs_to_tmp(ctx)
+  # return [DefaultInfo(files=depset(direct=srcs)),OcamlLibraryProvider()]
 
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
-  ## task 1: declare outputs for each input source file
-
-  print("CTX.BINDIR: " + ctx.bin_dir.path)
-  print("CTX.BUILD_FILE_PATH: " + ctx.build_file_path)
-
-  ## task 2: construct command
-
   args = ctx.actions.args()
-  args.add("ocamlopt")
+  args.add(tc.compiler.basename)
   args.add("-w", ctx.attr.warnings)
+  options = tc.opts + ctx.attr.opts
+  args.add_all(ctx.attr.opts)
 
-  # Error (warning 49): no cmi file was found in path for module <m>
-  # Disable for wrapper generation:
-  args.add("-w", "-49")
-
-  ## We pass a standard set of flags, which we ape from Dune:
-  if ctx.attr.strict_sequence:
-    args.add("-strict-sequence")
-  if ctx.attr.strict_formats:
-    args.add("-strict-formats")
-  if ctx.attr.short_paths:
-    args.add("-short-paths")
-  if ctx.attr.keep_locs:
-    args.add("-keep-locs")
-  if ctx.attr.debug:
-    args.add("-g")
-
-  args.add_all(ctx.attr.copts)
+  # if "-a" in ctx.attr.opts:
+  #   args.add("-o", obj_cmxa)
+  # else:
+  #   args.add("-o", obj_cmx)
 
   build_deps = []
+  includes = []
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg)
+      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
     else:
       for g in dep[DefaultInfo].files.to_list():
-        # if g.path.endswith(".cmi"):
-        #   build_deps.append(g)
+        # print(g)
+        if g.path.endswith(".cmi"):
+          build_deps.append(g)
         if g.path.endswith(".cmx"):
           build_deps.append(g)
-          args.add("-I", g.dirname)
+          includes.append(g.dirname)
+        if g.path.endswith(".cmxa"):
+          build_deps.append(g)
+          includes.append(g.dirname)
         # if g.path.endswith(".o"):
         #   build_deps.append(g)
         # if g.path.endswith(".cmxa"):
@@ -85,6 +119,10 @@ def _ocaml_library_parallel(ctx, src_f):
         #   args.add(g) # dep[DefaultInfo].files)
         # else:
         #   args.add(g) # dep[DefaultInfo].files)
+
+  # args.add("-I", "src")
+  # args.add("-I", "src-ocaml")
+  args.add_all(includes, before_each="-I", uniquify = True)
 
   # WARNING: including this causes search for mli file for intf, which fails
   # if len(ctx.files.srcs) > 1:
@@ -107,71 +145,90 @@ def _ocaml_library_parallel(ctx, src_f):
   # else:
   # args.add("-impl", src_file)
 
-  # if "-a" in ctx.attr.copts:
+  # if "-a" in ctx.attr.opts:
   args.add_all(build_deps)
-  print("DEPS")
-  print(build_deps)
+  # print("DEPS")
+  # print(build_deps)
 
-  ## WARNING: declare_file is relative to the BUILD.bazel dir, so if
-  ## we're compiling generated files in a new directory, we have to
-  ## account for that in declare_file.  The compiler puts output in
-  ## the same dir as input.
+  includes = []
 
-  if "-c" in ctx.attr.copts:
-    print("SRC: " + src_f.path)
-    print("BNAME: " + src_f.basename)
-    print("ROOT: " + src_f.root.path)
-    # print("TREEREL: " + src_f.tree_relative_path)
-    # ocmi = ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "cmi")
-    # obj_files.append(ocmi)
-    # print("SRC: " + ocmi.path)
-    obj_cmx = ctx.actions.declare_file(src_f.basename.rstrip("ml") + "cmx")
-    # obj_files.append(ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "o"))
-  # else:
-  #   ## declare an output for a lib archive:
-  #   if "-a" in ctx.attr.copts:
-  #     obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-  #     obj_files.append(obj_cmxa)
-  #   # else:
-  #   #   if "-linkpkg" in ctx.attr.copts:
-  #   #     obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-  #   #     obj_files.append(obj_cmxa)
+  ## Use case: srcs include paths. i.e. they're in subdirs of the pkg dir,
+  ## In that case we want to include their dirs, that's where to output goes
+  ## so we need to include them in case following files want to link
+  ## input files could involve any number of subdirs, we need to add them all.
+  ## Alternatively, we could -o all output files to one dir, but that would risk name clashes?
+  # abs = "/Users/gar/coda/digestif/"
 
-  # print("OBJ_FILES")
-  # print(obj_files)
+  bindir = ctx.bin_dir.path
 
-  # if "-a" in ctx.attr.copts:
-  #   args.add("-o", obj_cmxa)
-  args.add("-o", obj_cmx)
+  for src in srcs: # ctx.files.srcs:
+    includes.append(src.dirname)
+  args.add("-I", bindir)
+  args.add_all(includes, before_each="-I", uniquify = True)
 
-  # args.add(src_f)
-  args.add_all(ctx.files.srcs)
+  if ctx.attr.depgraph:
+    # args.add("-args", tmp_depgraph) # ctx.file.depgraph.path)
+    args.add("-args", ctx.file.depgraph.path)
+  else:
+    args.add_all([src.path for src in srcs])
 
-  inputs_arg = [src_f] + build_deps
-  # print("INPUT_ARGS:")
-  # print(inputs_arg)
-
-  outputs_arg = [obj_cmx]
-  # print("OUTPUTS_ARG:")
-  # print(outputs_arg)
+  in_files = [] # [ctx.file.depgraph]
+  includes = []
+  out_files = []
+  for src in srcs: #  ctx.files.srcs:
+    if src.path.endswith("ml"):
+      # args.add(src)
+      # includes.append(bindir + "/" + src.dirname)
+      in_files.append(src)
+      ## declare outputs
+      obj_cmx = ctx.actions.declare_file(src.short_path.rstrip("ml") + tc.ocamlext)
+      obj_o = ctx.actions.declare_file(src.short_path.rstrip("ml") + "o")
+      # obj_cmx = ctx.actions.declare_file(
+      #   src.basename.rstrip("ml") + "cmx",
+      #   sibling = src
+      # )
+      # obj_o = ctx.actions.declare_file(
+      #   src.basename.rstrip("ml") + "o",
+      #   sibling = src
+      # )
+      out_files.append(obj_cmx)
+      out_files.append(obj_o)
+  # args.add_all(includes, before_each="-I", uniquify = True)
+  print("INS:")
+  print(in_files)
+  print("OUTS:")
+  print(out_files)
 
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
-    inputs = inputs_arg,
-    outputs = outputs_arg,
-    tools = [tc.ocamlfind, tc.ocamlopt],
+    inputs = in_files,
+    outputs = out_files,
+    tools = [tc.ocamlfind, tc.compiler],
     mnemonic = "OcamlLibrary",
     progress_message = "ocaml_library({}): {}".format(
-        ctx.label.name, ctx.attr.message
-      )
+      ctx.label.name, ctx.attr.message
+    )
   )
 
-  return obj_cmx
+  return [
+    DefaultInfo(files = depset(direct = out_files)),
+    OcamlLibraryProvider(
+      library = struct(
+        name = ctx.label.name,
+        modules = out_files,
+      ),
+      deps = struct(
+        opam = mydeps.opam,
+        nopam = mydeps.nopam
+      )
+    )
+  ]
 
 ################################################################
-def _ocaml_library_sequential(ctx):
+def _ocaml_library_parallel(ctx):
+  print("OCAML LIBRARY PARALLEL")
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -180,43 +237,13 @@ def _ocaml_library_sequential(ctx):
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   args = ctx.actions.args()
-  args.add("ocamlopt")
-  args.add_all(ctx.attr.copts)
+  args.add(tc.compiler.basename)
+  args.add_all(ctx.attr.opts)
 
-  ## declare outputs
-  obj_files = []
-  if "-c" in ctx.attr.copts:
-    for src_f in ctx.files.srcs:
-      # print("SRC: " + src_f.path)
-      # print("BNAME: " + src_f.basename)
-      # print("SHORT: " + src_f.short_path)
-      # print("ROOT: " + src_f.root.path)
-      # print("TREEREL: " + src_f.tree_relative_path)
-      # ocmi = ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "cmi")
-      # obj_files.append(ocmi)
-      # print("SRC: " + ocmi.path)
-      obj_cmx = ctx.actions.declare_file(
-        src_f.basename.rstrip("ml") + "cmx",
-        sibling = src_f
-      )
-      # print("CMX: " + obj_cmx.path)
-      obj_files.append(obj_cmx)
-      # obj_files.append(ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "o"))
-  else:
-    if "-a" in ctx.attr.copts:
-      ## declare one output for a lib archive:
-      obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-      obj_files.append(obj_cmxa)
-    # else:
-    #   if "-linkpkg" in ctx.attr.copts:
-    #     obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-    #     obj_files.append(obj_cmxa)
-
-  # print("OBJ_FILES")
-  # print(obj_files)
-
-  if "-a" in ctx.attr.copts:
-    args.add("-o", obj_cmxa)
+  # if "-a" in ctx.attr.opts:
+  #   args.add("-o", obj_cmxa)
+  # else:
+  #   args.add("-o", obj_cmx)
 
   build_deps = []
   includes = []
@@ -264,50 +291,70 @@ def _ocaml_library_sequential(ctx):
   # else:
   # args.add("-impl", src_file)
 
-  # if "-a" in ctx.attr.copts:
+  # if "-a" in ctx.attr.opts:
   args.add_all(build_deps)
   # print("DEPS")
   # print(build_deps)
 
-  args.add_all(ctx.files.srcs)
+  includes = []
 
-  # args.add("-passrest")
-  # args.add("-package", "ocaml-migrate-parsetree.driver-main")
-  # args.add("-plugin")
-  # args.add("migrate_parsetree_driver_main.cmxs")
+  args.add_all(ctx.attr.opts)
 
-  inputs_arg = ctx.files.srcs + build_deps
-  # print("INPUT_ARGS:")
-  # print(inputs_arg)
+  ## Use case: srcs include paths. i.e. they're in subdirs of the pkg dir,
+  ## In that case we want to include their dirs, that's where to output goes
+  ## so we need to include them in case following files want to link
+  ## input files could involve any number of subdirs, we need to add them all.
+  ## Alternatively, we could -o all output files to one dir, but that would risk name clashes?
+  bindir = ctx.bin_dir.path
+  for src in ctx.files.srcs:
+    includes.append(bindir + "/" + src.dirname)
+  args.add("-I", bindir)
+  args.add_all(includes, before_each="-I", uniquify = True)
 
-  outputs_arg = obj_files
-  # print("OUTPUTS_ARG:")
-  # print(outputs_arg)
 
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = inputs_arg,
-    outputs = outputs_arg,
-    tools = [tc.ocamlfind, tc.ocamlopt],
-    mnemonic = "OcamlLibrary",
-    progress_message = "ocaml_library({}): {}".format(
+  # compile each file separately
+  out_files = []
+  for src in ctx.files.srcs:
+    if src.path.endswith("mli"):
+      continue
+    ## declare outputs
+    obj_cmx = ctx.actions.declare_file(src.path.rstrip("ml") + tc.ocamlext)
+    obj_o = ctx.actions.declare_file(src.path.rstrip("ml") + "o")
+    # obj_cmx = ctx.actions.declare_file(
+    #   src.basename.rstrip("ml") + "cmx",
+    #   sibling = src
+    # )
+    # obj_o = ctx.actions.declare_file(
+    #   src.basename.rstrip("ml") + "o",
+    #   sibling = src
+    # )
+    out_files.append(obj_cmx)
+    out_files.append(obj_o)
+
+    ctx.actions.run(
+      env = env,
+      executable = tc.ocamlfind,
+      arguments = [args, "-o", obj_cmx.path, src.path],
+      inputs = [src],
+      outputs = [obj_cmx, obj_o],
+      tools = [tc.ocamlfind, tc.compiler],
+      mnemonic = "OcamlLibrary",
+      progress_message = "ocaml_library({}): {}".format(
         ctx.label.name, ctx.attr.message
       )
-  )
+    )
 
 
   return [
     DefaultInfo(
       files = depset(
-        direct = obj_files
+        direct = out_files
       ))
   ]
 
 ################################################################
 def _ocaml_library_impl(ctx):
-  return _ocaml_library_sequential(ctx)
+  return _ocaml_library_batch(ctx)
 
   # obj_files = []
   # for f in ctx.files.srcs:
@@ -333,8 +380,10 @@ ocaml_library = rule(
     srcs = attr.label_list(
       allow_files = OCAML_FILETYPES
     ),
+    depgraph = attr.label(
+      allow_single_file = True,
+    ),
     # src_root = attr.label(
-    #   allow_single_file = True,
     #   mandatory = True,
     # ),
     ####  OPTIONS  ####
@@ -353,17 +402,22 @@ ocaml_library = rule(
     no_alias_deps           = attr.bool(default = True),
     debug                   = attr.bool(default = True),
     ## use these to pass additional args
-    copts                   = attr.string_list(),
+    opts                   = attr.string_list(),
     linkopts                = attr.string_list(),
     warnings                = attr.string(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
     ),
     #### end options ####
     # lib = attr.bool(default = False)
-    deps = attr.label_list(),
+    deps = attr.label_list(
+      providers = [[OpamPkgInfo],
+                   [OcamlArchiveProvider], [OcamlLibraryProvider],
+                   [OcamlModuleProvider], [OcamlInterfaceProvider],
+                   [CcInfo]]
+    ),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
-      default = Label("@ocaml_sdk//:path")
+      default = Label("@ocaml//:path")
     ),
     message = attr.string()
     # outputs = attr.output_list(
@@ -371,7 +425,7 @@ ocaml_library = rule(
     #   #           "%{name}.pp.ml.d"],
     # )
   ),
-  # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
+  provides = [OcamlLibraryProvider],
   executable = False,
   toolchains = ["@obazl//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
