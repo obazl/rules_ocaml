@@ -101,7 +101,7 @@ def _ocaml_archive_batch(ctx):
     # print("XXXXXXXXXXXXXXXX1 %s" % dep)
     for l in dep.to_list():
       print("XXXXXXXXXXXXXXXX2 %s" % l)
-    # print("XXXXXXXXXXXXXXXX3 %s" % dep.to_list()[0].to_list())
+      # print("XXXXXXXXXXXXXXXX3 %s" % dep.to_list()[0].to_list())
   args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
   # args.add_all([dep.name for dep in mydeps.opam.to_list()], before_each="-package")
 
