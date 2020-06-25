@@ -12,22 +12,23 @@ Most commonly used: Dune and ocamlfind.
 Here's the problem: their package naming conventions confuse module
 paths, file paths, module names, package names, and subpackage names.
 
-Example: the macaddr package. Located at `lib/macaddr`.  Contains
-subdirs `lib/macaddr/sexp` and `lib/macaddr/top`.  The ocamlfind META
-file lists `sexp` and `top` as packages (that is, subpackages of
-package `macaddr`).  To list those as dependencies, one writes
-`macaddr.sexp`, resp. `macaddr.top`.  In other works, the _package
-path_ (in dotted seg notation) maps to the _filesystem path_
-(solidus-segmented notation).  But neither one has anything to do with
-the _module name_ or _module path_.  If you depend on `macaddr.top`,
-that does not mean you can write `open Macaddr.Top` or similar in your
-code.  You have to just know that the module associated with this
-package name is `Macaddr_top`.  Very confusing. If you need
-`Macaddr_top`, why not write that as the dep, instead of
-`macaddr.top`?  I suspect the answer is: because findlib
+Example: the macaddr package. Located (within your OPAM tree) at
+`lib/macaddr`.  Contains subdirs `lib/macaddr/sexp` and
+`lib/macaddr/top`.  The ocamlfind META file lists `sexp` and `top` as
+packages (that is, subpackages of package `macaddr`).  To list those
+as dependencies, one writes `macaddr.sexp`, resp. `macaddr.top`.  In
+other works, the _package path_ (in dotted seg notation) maps to the
+_filesystem path_ (solidus-segmented notation).  But neither one has
+anything to do with the _module name_ or _module path_.  If you depend
+on `macaddr.top`, that does not mean you can write `open Macaddr.Top`
+or similar in your code.  You have to just know that the module
+associated with this package name is `Macaddr_top`.  Very
+confusing. If you need `Macaddr_top`, why not write that as the dep,
+instead of `macaddr.top`?  I suspect the answer is: because findlib
 (i.e. ocamlfind) decided to implement a notion of subpackages using
 dotted-segment notation. But this gives the false impression that such
-package paths are somehow related to module paths. This is a bad thing, IMHO.
+package paths are somehow related to module paths. This is a bad
+thing, IMHO.
 
 Dune: similar.
 
