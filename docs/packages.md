@@ -17,7 +17,7 @@ Example: the macaddr package. Located (within your OPAM tree) at
 `lib/macaddr/top`.  The ocamlfind META file lists `sexp` and `top` as
 packages (that is, subpackages of package `macaddr`).  To list those
 as dependencies, one writes `macaddr.sexp`, resp. `macaddr.top`.  In
-other works, the _package path_ (in dotted seg notation) maps to the
+other words, the _package path_ (in dotted seg notation) maps to the
 _filesystem path_ (solidus-segmented notation).  But neither one has
 anything to do with the _module name_ or _module path_.  If you depend
 on `macaddr.top`, that does not mean you can write `open Macaddr.Top`
@@ -33,9 +33,11 @@ thing, IMHO.
 Dune: similar.
 
 With OBazl there is no conflation of package/target names and module
-names.  But we _can_ (if we choose to do so) structure our names to
-mirror the package structure expressed by the META files.  In our
-example, we would have the following targets:
+names.  But since Bazel is nicely namespaced (packages within
+workspaces, targets withing packages, and package name structure
+matches filesystem path), we _can_ (if we choose to do so) structure
+our names to mirror the package structure expressed by the META files.
+In our example, we would have the following targets:
 
 * `//lib/macaddr`  - corresponds to `macaddr`
 * `//lib/macaddr:sexp` - corresponds to `macaddr.sexp`, but does not suggest a module path quite so strongly
