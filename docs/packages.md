@@ -34,8 +34,8 @@ Dune: similar.
 
 With OBazl there is no conflation of package/target names and module
 names.  But since Bazel is nicely namespaced (packages within
-workspaces, targets withing packages, and package name structure
-matches filesystem path), we _can_ (if we choose to do so) structure
+workspaces, targets within packages, and package name structure
+matching directory structure), we _can_ (if we choose to do so) structure
 our names to mirror the package structure expressed by the META files.
 In our example, we would have the following targets:
 
