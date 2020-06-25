@@ -99,7 +99,7 @@ Compare this with what's in `lib/ipaddr`:
 ## rules to compile each module
 ocaml_module( name = "ipaddr_ml", intf = "ipaddr.mli", impl = "ipaddr.ml")
 ocaml_module( name = "ipaddr_sexp_ml", intf = "sexp/ipaddr_sexp.mli", impl = "sexp/ipaddr_sexp.ml")
-ocaml_module( name = "ipaddr_top_ml", intf = "ipaddr.mli", impl = "ipaddr.ml")
+ocaml_module( name = "ipaddr_top_ml", intf = "top/ipaddr_top.mli", impl = "top/ipaddr_top.ml")
 ocaml_module( name = "ipaddr_unix_ml", intf = "unix/ipaddr_unix.mli", impl = "unix/ipaddr_unix.ml")
 ## rules to assemble libs/archives
 ocaml_archive( name = "ipaddr",  ## target //lib/ipaddr, produces ipaddr.cmxa
@@ -119,6 +119,7 @@ ocaml_archive( name = "unix",  ## target //lib/ipaddr:unixe, produces ipaddr_uni
                        ":ipaddr",
                        "//lib/unix"])
 ```
+
 
 #### predicates?  wft?!
 
