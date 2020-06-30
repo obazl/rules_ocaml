@@ -74,8 +74,8 @@ _ocaml_tools_attrs = {
     allow_single_file = True,
     cfg = "host",
   ),
-  "_ocamlext": attr.string(
-    default = "cmx",
+  "_objext": attr.string(
+    default = ".cmx",
   )
 }
 
@@ -95,7 +95,7 @@ def _ocaml_toolchain_impl(ctx):
     ocamlbuild = ctx.attr._ocamlbuild.files.to_list()[0],
     ocamlfind  = ctx.attr._ocamlfind.files.to_list()[0],
     ocamldep   = ctx.attr._ocamldep.files.to_list()[0],
-    ocamlext   = ctx.attr._ocamlext
+    objext   = ctx.attr._objext
     )]
 
 ocaml_toolchain = rule(
