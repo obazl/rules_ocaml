@@ -7,6 +7,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "compile_new_srcs")
 load("@obazl//ocaml/private:actions/ocaml.bzl",
      "ocaml_compile")
+load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
 load("@obazl//ocaml/private:providers.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
@@ -23,7 +24,6 @@ load("@obazl//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load("rules/copy_srcs.bzl", "copy_srcs_to_tmp")
 
 # def _ocaml_interface_impl(ctx):
 #   ctx.actions.run_shell(
@@ -51,6 +51,8 @@ load("rules/copy_srcs.bzl", "copy_srcs_to_tmp")
 ################################################################
 def _compile_without_ppx(ctx):
 
+  # print("ALL DEPS for %s" % ctx.label.name)
+  # print(ctx.files.deps)
   mydeps = get_all_deps(ctx.attr.deps)
   # print("ALL DEPS for %s" % ctx.label.name)
   # print(mydeps)
