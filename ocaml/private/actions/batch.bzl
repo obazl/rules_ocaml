@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
+
   # copy all srcs to working dir
   # we need to do this because the OCaml compiler (or ocamlfind) spawns processes outside of Bazel's control.
 
@@ -24,24 +26,53 @@
 
 #### TODO: figure out how to use symlinks
 
+# We insert segment "_obazl" at CWD, so it becomes the relative root.
 def copy_srcs_to_tmp(ctx):
   print("****************  RUN SHELL COPY ****************\n\n")
+  # print("CTX.BIN_DIR (root): %s" % ctx.bin_dir.path)
+  # print("CTX.BUILD_FILE_PATH: %s" % ctx.build_file_path)
+
+  cwd = paths.dirname(ctx.build_file_path)
+  # print("CWD: %s" % cwd)
+
   # srcs = ctx.files.srcs
   srcs = []
   cmd = ""
   bindir = ctx.bin_dir.path
   tmpdir = "_obazl/"
-  for src in ctx.files.srcs:
-    srcs.append(ctx.actions.declare_file(tmpdir + src.path))
+
+  in_srcs = []
+  if ctx.files.srcs:
+    in_srcs = ctx.files.srcs
+  elif ctx.file.impl:
+    in_srcs.append(ctx.file.impl)
+
+  for src in in_srcs:
+    # print("SRC.PATH: %s" % src.path)
+    # print("SRC.SHORT_PATH: %s" % src.short_path)
+    # print("SRC.DIRNAME: %s" % src.dirname)
+    relpath = paths.relativize(src.dirname, cwd)
+    # print("SRC RELPATH: %s" % relpath)
+    outdir = tmpdir + "/" + relpath
+    outfname = outdir + "/" + src.basename
+    outfile = ctx.actions.declare_file(outfname)
+    srcs.append(outfile)
+    # print("OUTFILE: %s" % outfile.path)
+    # destdir = cwd + "/" + relpath + tmpdir + src.dirname
+    destdir = paths.normalize(outdir)
+    # print("DESTDIR: %s" % destdir)
+    # dest = bindir + "/" + destdir + src.basename
+    dest = outfile.path
+    # print("DEST: %s" % dest)
     # cmd = cmd + "touch {dest}; ".format(dest = bindir + "/" + tmpdir + src.path)
     cmd = cmd + "mkdir -vp {destdir} && cp -v {src} {dest} && ".format(
       src = src.path,
-      destdir = tmpdir + src.dirname,
-      dest = bindir + "/" + tmpdir + src.path
+      destdir = destdir,
+      dest = dest
     )
   cmd = cmd + " true;"
-  print("CMD: %s" % cmd)
-  print("CP SRCS")
+  # print("CMD: %s" % cmd)
+  # print("CP SRCS")
   print(srcs)
 
   ctx.actions.run_shell(
