@@ -5,7 +5,9 @@ load("@obazl//ocaml/private:providers.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OpamPkgInfo",
-     "PpxInfo")
+     "PpxArchiveProvider",
+     "PpxBinaryProvider",
+     "PpxModuleProvider")
 
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
@@ -18,6 +20,15 @@ OCAML_INTF_FILETYPES = [
 ]
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
+
+def capitalize_initial_char(s):
+  """Starlark's capitalize fn downcases everything but the first char.  This fn only affects first char."""
+  first = s[:1]
+  rest  = s[1:]
+  return first.capitalize() + rest
+
+def get_target_file(target):
+  return target.files.to_list()[0]
 
 def get_src_root(ctx, root_file_names = ["main.ml"]):
   if (ctx.file.src_root != None):
@@ -117,6 +128,18 @@ def get_all_deps(direct_deps):
       # print("CcInfo dep: %s" % cp)
       # print("CcInfo payload: %s" % dep[DefaultInfo])
       nopam_directs.append(struct( clib = dep[DefaultInfo]) )
+    elif PpxArchiveProvider in dep:
+      ap = dep[PpxArchiveProvider]
+      nopam_directs.append(ap.payload)
+      nopam_transitives.append(ap.deps.nopam)
+    elif PpxModuleProvider in dep:
+      pmp = dep[PpxModuleProvider]
+      # print("OcamlInterfaceProvider dep: %s" % pmp)
+      nopam_directs.append(pmp.payload)
+      nopam_transitives.append(pmp.deps.nopam)
+      # opams = opams + d.opam_deps.to_list()
+      # nopam_deps.append(d)
+      # nopam_transitive_deps.append(d)
     else:
       fail("UNKNOWN DEP TYPE: %s" % dep)
 
