@@ -35,55 +35,22 @@ def _ocaml_ppx_test_impl(ctx):
     ["exit $err"],
   )
 
-  ctx.actions.do_nothing(mnemonic="require ppx", inputs=ctx.attr.ppx.files)
+  ## force build of deps?
+  ctx.actions.do_nothing(mnemonic="require ppx",
+                         inputs=ctx.attr.ppx.files)
+                         # inputs=ctx.attr.ppx.files + depset(direct=[ctx.attr.ppx]))
 
   # Write the file, it is executed by 'bazel test'.
   ctx.actions.write(
-    output = ctx.outputs.executable,
-    content = script,
+      output = ctx.outputs.executable,
+      is_executable = True,
+      content = script,
   )
 
   # To ensure the files needed by the script are available, we put them in
   # the runfiles.
   runfiles = ctx.runfiles(files = ctx.files.srcs + ctx.files.deps)
-  return [DefaultInfo(runfiles = runfiles)]
-
-  # tc = ctx.toolchains["@obazl//ocaml:toolchain"]
-  # env = {"OPAMROOT": get_opamroot(),
-  #        "PATH": get_sdkpath(ctx)}
-
-  # ppx = ctx.attr.ppx.files.to_list()[0]
-  # outexe = ctx.actions.declare_file(ppx.path)
-  # # outfiles = []
-  # # for src in ctx.file.srcs:
-  # #   outfiles.append(ctx.actions.declare_file(src + "pp.ml")
-  # outfile = ctx.actions.declare_file(ctx.files.srcs[0].basename + "pp.ml")
-
-  # args = ctx.actions.args()
-  # args.add("--cookie", "library-name=expired")
-  # args.add("-o", outfile)
-  # args.add("--impl", outfile)
-  # args.add("-corrected-suffix", ".ppx-corrected")
-  # args.add("-diff-cmd", "-")
-  # # args.add("--dump-ast")
-
-  # # equivalent of preproc genrules
-  # ctx.actions.run(
-  #   env = env,
-  #   executable = ppx,
-  #   arguments = [args],
-  #   inputs = ctx.files.srcs,
-  #   outputs = [outfile],
-  #   tools = [ppx],
-  #   mnemonic = "OcamlPPXTest",
-  #   progress_message = "ocaml_ppx_test({}), {}".format(
-  #     ctx.label.name, ctx.attr.message
-  #     )
-  # )
-
-  # runfiles = ctx.runfiles(files = ctx.files.srcs)
-
-  # return [DefaultInfo(runfiles = runfiles)]
+  return [DefaultInfo(runfiles = runfiles, executable = ctx.outputs.executable)]
 
 #################################################
 ######### DECL:  OCAML_PPX_TEST  ################
@@ -95,12 +62,14 @@ ocaml_ppx_test = rule(
   implementation = _ocaml_ppx_test_impl,
   test = True,
   attrs = dict(
-    ppx = attr.label(
-      mandatory = True,
-      allow_single_file = True
-    ),
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
+    ),
+    ppx = attr.label(
+        mandatory = True,
+        executable = True,
+        cfg = "host",
+        allow_single_file = True
     ),
     srcs = attr.label_list(
       allow_files = OCAML_IMPL_FILETYPES

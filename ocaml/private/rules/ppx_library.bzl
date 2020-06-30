@@ -163,12 +163,12 @@ def _ocaml_ppx_library_impl(ctx):
   if ctx.attr.debug:
     args.add("-g")
 
-  args.add_all(ctx.attr.copts)
+  args.add_all(ctx.attr.opts)
 
   build_deps = []
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg)
+      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
     else:
       for g in dep[DefaultInfo].files.to_list():
         # if g.path.endswith(".cmi"):
@@ -194,7 +194,7 @@ def _ocaml_ppx_library_impl(ctx):
   ## By contrast, the output files must be listed in the action output arg
   ## in order to be registered in the action dependency graph.
 
-  # if "-a" in ctx.attr.copts:
+  # if "-a" in ctx.attr.opts:
   args.add_all(build_deps)
   # print("DEPS")
   # print(build_deps)
@@ -205,7 +205,7 @@ def _ocaml_ppx_library_impl(ctx):
   ## the same dir as input.
 
   obj_files = []
-  if "-c" in ctx.attr.copts:
+  if "-c" in ctx.attr.opts:
     for src_f in ctx.files.srcs:
       # print("BNAME: " + src_f.basename)
       # print("SHORT: " + src_f.short_path)
@@ -220,14 +220,14 @@ def _ocaml_ppx_library_impl(ctx):
       args.add(obj_cmx)
   else:
     ## declare an output for a lib archive:
-    if "-a" in ctx.attr.copts:
+    if "-a" in ctx.attr.opts:
       obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
       ##Question: do we need to declare the .o file?
       # obj_a = ctx.actions.declare_file(ctx.label.name + ".a")
       obj_files.append(obj_cmxa)
       # obj_files.append(obj_a)
     else:
-      if "-linkpkg" in ctx.attr.copts:
+      if "-linkpkg" in ctx.attr.opts:
         obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
         obj_files.append(obj_cmxa)
 
@@ -235,7 +235,7 @@ def _ocaml_ppx_library_impl(ctx):
   # print(obj_files)
 
 
-  if "-a" in ctx.attr.copts:
+  if "-a" in ctx.attr.opts:
     # args.add("-open")
     # args.add("Ppx_snarky__Wrapper")
     args.add("-o", obj_cmxa)
@@ -315,7 +315,7 @@ ocaml_ppx_library = rule(
     no_alias_deps           = attr.bool(default = True),
     debug                   = attr.bool(default = True),
     ## use these to pass additional args
-    copts                   = attr.string_list(),
+    opts                    = attr.string_list(),
     linkopts                = attr.string_list(),
     warnings                = attr.string(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"

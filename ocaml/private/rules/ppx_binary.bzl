@@ -1,7 +1,8 @@
 load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
-     "PpxInfo")
+     "PpxBinaryProvider",
+     "PpxModuleProvider")
 load("@obazl//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
@@ -11,6 +12,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
 load("@obazl//ocaml/private:utils.bzl",
+     "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -28,57 +30,64 @@ load("@obazl//ocaml/private:actions/ocamlopt.bzl",
 # print("private/ocaml.bzl loading")
 
 ################################################################
-# for testing
-def split_srcs(srcs):
-  print("SPLIT_SRCS")
-  print(srcs)
-  intfs = []
-  impls = []
-  for s in srcs:
-    if s.extension == "ml":
-      impls.append(s)
-    else:
-      intfs.append(s)
-  return intfs, impls
+# # for testing
+# def split_srcs(srcs):
+#   print("SPLIT_SRCS")
+#   print(srcs)
+#   intfs = []
+#   impls = []
+#   for s in srcs:
+#     if s.extension == "ml":
+#       impls.append(s)
+#     else:
+#       intfs.append(s)
+#   return intfs, impls
 
-def _ocaml_ppx_binary_compile_test(ctx):
-  print("TEST: _ocaml_ppx_binary_compile_impl")
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+# def _ocaml_ppx_binary_compile_test(ctx):
+#   print("TEST: _ocaml_ppx_binary_compile_impl")
+#   env = {"OPAMROOT": get_opamroot(),
+#          "PATH": get_sdkpath(ctx)}
 
-  if ctx.attr.preprocessor:
-    if PpxInfo in ctx.attr.preprocessor:
-      new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
-  else:
-    new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
+#   if ctx.attr.ppx:  # preprocessor:
+#     if PpxInfo in ctx.attr.preprocessor:
+#       new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
+#   else:
+#     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+#   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+#   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
-  outfiles_cmx = []
-  outfiles_o = []
-  outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
-    ctx, env, tc, new_intf_srcs, new_impl_srcs
-  )
+#   outfiles_cmx = []
+#   outfiles_o = []
+#   outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
+#     ctx, env, tc, new_intf_srcs, new_impl_srcs
+#   )
 
-  return [
-    DefaultInfo(
-      files = depset(direct = outfiles_o + outfiles_cmx)
-    ),
-    PpxInfo(
-      cmx=outfiles_cmx,
-      o = outfiles_o
-    )]
+#   return [
+#     DefaultInfo(
+#       files = depset(direct = outfiles_o + outfiles_cmx)
+#     ),
+#     PpxBinaryProvider(
+#       payload = struct(
+#         name = ctx.label.name,
+#         modules = ctx.attr.deps
+#       ),
+#       deps = struct(
+#         opam = mydeps.opam,
+#         nopam = mydeps.nopam
+#       )
+#     )
+#       cmx=outfiles_cmx,
+#       o = outfiles_o
+#     )]
 
 #############################################
-########## RULE:  OCAML_PPX_BINARY  ################
-
-# def dep_to_str(dep):
-#   return dep[OpamPkgInfo].pkg
-
 ####  OCAML_PPX_BINARY IMPLEMENTATION
 def _ocaml_ppx_binary_impl(ctx):
+
+  mydeps = get_all_deps(ctx.attr.deps)
+
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -90,7 +99,7 @@ def _ocaml_ppx_binary_impl(ctx):
   args = ctx.actions.args()
   # we will pass ocamlfind as the exec arg, so we start args with ocamlopt
   args.add("ocamlopt")
-  args.add_all(ctx.attr.copts)
+  args.add_all(ctx.attr.opts)
   args.add("-o", outbinary)
 
   # for wrapper gen:
@@ -107,7 +116,7 @@ def _ocaml_ppx_binary_impl(ctx):
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg)
+      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
       # build_deps.append(dep[OpamPkgInfo].pkg)
     else:
       for g in dep[DefaultInfo].files.to_list():
@@ -159,8 +168,13 @@ def _ocaml_ppx_binary_impl(ctx):
 
   return [DefaultInfo(executable=outbinary,
                       files = depset(direct = [outbinary])),
-          PpxInfo(ppx=outbinary)]
-# OutputGroupInfo(bin = depset([bin_output]))]
+          PpxBinaryProvider(
+            payload=outbinary,
+            deps = struct(
+              opam = mydeps.opam,
+              nopam = mydeps.nopam
+            )
+          )]
 
 # (library
 #  (name deriving_hello)
@@ -177,19 +191,23 @@ ocaml_ppx_binary = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
-    copts = attr.string_list(),
-    linkopts = attr.string_list(),
-    linkall = attr.bool(default = True),
     srcs = attr.label_list(
       allow_files = OCAML_IMPL_FILETYPES
     ),
+    ppx  = attr.label(
+      doc = "PPX binary (executable).",
+      providers = [PpxBinaryProvider]
+    ),
+    opts = attr.string_list(),
+    linkopts = attr.string_list(),
+    linkall = attr.bool(default = True),
     deps = attr.label_list(
-      # providers = [OpamPkgInfo]
+      providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
     mode = attr.string(default = "native"),
     message = attr.string()
   ),
-  provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
+  provides = [DefaultInfo, PpxBinaryProvider],
   executable = True,
   toolchains = ["@obazl//ocaml:toolchain"],
 )

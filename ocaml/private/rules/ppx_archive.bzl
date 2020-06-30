@@ -1,7 +1,9 @@
 load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
-     "PpxInfo")
+     "PpxArchiveProvider",
+     "PpxBinaryProvider",
+     "PpxModuleProvider")
 load("@obazl//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
@@ -14,6 +16,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      # "ocaml_ppx_library_link"
 )
 load("@obazl//ocaml/private:utils.bzl",
+     "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -30,14 +33,16 @@ load("@obazl//ocaml/private:utils.bzl",
 ################################################################
 #### compile after preprocessing:
 def _ocaml_ppx_library_with_ppx_impl(ctx):
+
+  mydeps = get_all_deps(ctx.attr.deps)
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  if ctx.attr.preprocessor:
-    if PpxInfo in ctx.attr.preprocessor:
-      new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
-  else:
-    new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
+  # if ctx.attr.preprocessor:
+  #   if PpxInfo in ctx.attr.preprocessor:
+  #     new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
+  # else:
+  new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
 
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
 
@@ -104,24 +109,32 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
     progress_message = "ocaml_ppx_library({}): {}".format(
       ctx.label.name,
       ctx.attr.message,
-      )
+    )
   )
 
   return [
     DefaultInfo(
-    files = depset(direct = [#outfile_ppml,
-                             #outfile_cmo,
-                             # outfile_o,
-                             # outfile_cmx,
-                             outfile_a,
-                             outfile_cmxa
-    ])),
-    PpxInfo(ppx=outfile_cmxa,
-            # cmo=outfile_cmo,
-            # cmx=outfile_cmx,
-            cmxa=outfile_cmxa,
-            a=outfile_a
-    )]
+      files = depset(direct = [#outfile_ppml,
+        #outfile_cmo,
+        # outfile_o,
+        # outfile_cmx,
+        outfile_a,
+        outfile_cmxa
+      ])),
+    PpxArchiveProvider(
+      payload = struct(
+        cmxa = outfile_cmxa,
+        a    = outfile_a
+        # cmi  : .cmi file produced by the target
+        # cm   : .cmx or .cmo file produced by the target
+        # o    : .o file produced by the target
+      ),
+      deps = struct(
+        opam  = mydeps.opam,
+        nopam = mydeps.nopam
+      )
+    )
+  ]
 
 ################################################################
 #### Compile/link without preprocessing.
@@ -131,6 +144,8 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
 def _ocaml_ppx_archive_impl(ctx):
   ## this is essentially the same as ocaml_library, but it returns a
   ## ppx provider. should unify them?
+
+  mydeps = get_all_deps(ctx.attr.deps)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -147,10 +162,13 @@ def _ocaml_ppx_archive_impl(ctx):
 
   if ctx.attr.archive_name:
     outfile_cmxa_name = ctx.attr.archive_name + ".cmxa"
+    outfile_a_name    = ctx.attr.archive_name + ".a"
   else:
     outfile_cmxa_name = ctx.label.name + ".cmxa"
+    outfile_a_name    = ctx.label.name + ".a"
 
   obj_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
+  obj_a    = ctx.actions.declare_file(outfile_a_name)
 
   args = ctx.actions.args()
   args.add("ocamlopt")
@@ -163,8 +181,8 @@ def _ocaml_ppx_archive_impl(ctx):
   # a ppx_archive is always cmxa
   args.add("-a")
   # if "-a" in ctx.attr.opts:
-    # args.add("-open")
-    # args.add("Ppx_snarky__Wrapper")
+  # args.add("-open")
+  # args.add("Ppx_snarky__Wrapper")
   args.add("-o", obj_cmxa)
 
   ## We insert -I for each non-opam dep; since this would usually
@@ -191,7 +209,7 @@ def _ocaml_ppx_archive_impl(ctx):
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg)
+      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
     else:
       for g in dep[DefaultInfo].files.to_list():
         # if g.path.endswith(".cmi"):
@@ -204,13 +222,13 @@ def _ocaml_ppx_archive_impl(ctx):
           # args.add("-I", g.dirname)
           args.add(g)
           build_deps.append(g)
-        # if g.path.endswith(".o"):
-        #   build_deps.append(g)
-        # if g.path.endswith(".cmxa"):
-        #   build_deps.append(g)
-        #   args.add(g) # dep[DefaultInfo].files)
-        # else:
-        #   args.add(g) # dep[DefaultInfo].files)
+          # if g.path.endswith(".o"):
+          #   build_deps.append(g)
+          # if g.path.endswith(".cmxa"):
+          #   build_deps.append(g)
+          #   args.add(g) # dep[DefaultInfo].files)
+          # else:
+          #   args.add(g) # dep[DefaultInfo].files)
 
   # args.add_all(build_deps)
 
@@ -224,7 +242,7 @@ def _ocaml_ppx_archive_impl(ctx):
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
-  outputs_arg = [obj_cmxa]
+  outputs_arg = [obj_cmxa, obj_a]
   # print("OUTPUTS_ARG:")
   # print(outputs_arg)
 
@@ -240,20 +258,28 @@ def _ocaml_ppx_archive_impl(ctx):
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPpxLibrary",
     progress_message = "ocaml_ppx_archive({}): {}".format(
-        ctx.label.name, ctx.attr.message
-      )
+      ctx.label.name, ctx.attr.message
+    )
   )
 
   return [
     DefaultInfo(
-    files = depset(direct = [obj_cmxa]
-    )),
-    PpxInfo(ppx=obj_cmxa,
-            # cmo=outfile_cmo,
-            # cmx=outfile_cmx,
-            # cmxa=obj_cmxa,
-            # a=obj_a
-    )]
+      files = depset(direct = [obj_cmxa, obj_a])
+    ),
+    PpxArchiveProvider(
+      payload = struct(
+        cmxa = obj_cmxa,
+        a    = obj_a
+        # cmi  : .cmi file produced by the target
+        # cm   : .cmx or .cmo file produced by the target
+        # o    : .o file produced by the target
+      ),
+      deps = struct(
+        opam  = mydeps.opam,
+        nopam = mydeps.nopam
+      )
+    )
+  ]
 
 #############################################
 #### RULE DECL:  OCAML_PPX_ARCHIVE  #########
@@ -262,7 +288,7 @@ ocaml_ppx_archive = rule(
   attrs = dict(
     archive_name = attr.string(),
     preprocessor = attr.label(
-      providers = [PpxInfo],
+      providers = [PpxBinaryProvider],
       executable = True,
       cfg = "exec",
       # allow_single_file = True
@@ -288,7 +314,7 @@ ocaml_ppx_archive = rule(
         "-g",
         "-no-alias-deps",
         "-opaque"
-  ]
+      ]
     ),
     ## Problem is, this target registers two actions,
     ## compile and link, and each has its own params.
@@ -310,7 +336,9 @@ ocaml_ppx_archive = rule(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
     ),
     #### end options ####
-    deps = attr.label_list(),
+    deps = attr.label_list(
+      providers = [[DefaultInfo], [PpxModuleProvider]]
+    ),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
@@ -320,7 +348,7 @@ ocaml_ppx_archive = rule(
     #   #           "%{name}.pp.ml.d"],
     # )
   ),
-  # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
+  provides = [DefaultInfo, PpxArchiveProvider],
   executable = False,
   toolchains = ["@obazl//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
