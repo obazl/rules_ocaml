@@ -33,7 +33,6 @@ def _ocaml_deps_impl(ctx):
          "PATH": get_sdkpath(ctx)}
 
   args = ctx.actions.args()
-  args.add("-modules")
   args.add_all(ctx.attr.opts)
 
   deps = []
@@ -46,7 +45,7 @@ def _ocaml_deps_impl(ctx):
     # depfile = ctx.actions.declare_file(src.basename + ".depends")
     # deps.append(depfile)
 
-    cmd = cmd + tc.ocamldep.path + " -modules -impl " + src.path + " >> " + depfile.path + ";\n"
+    cmd = cmd + tc.ocamldep.path + " -modules -native -one-line -impl " + src.path + " >> " + depfile.path + ";\n"
 
   ctx.actions.run_shell(
     env = env,
@@ -73,22 +72,9 @@ ocaml_deps = rule(
     srcs = attr.label_list(
       allow_files = OCAML_FILETYPES
     ),
-    srcs_impl = attr.label_list(
-      allow_files = OCAML_IMPL_FILETYPES
-    ),
-    srcs_intf = attr.label_list(
-      allow_files = OCAML_INTF_FILETYPES
-    ),
     opts = attr.string_list(),
     copts = attr.string_list(),
     linkopts = attr.string_list(),
-    preprocessor = attr.label(
-      doc = "Preprocessor. Must be a single PPX executable.",
-      allow_single_file = True,
-      providers = [PpxInfo],
-      executable = True,
-      cfg = "exec",
-    ),
     deps = attr.label_list(
       doc = "Dependencies. Do not include preprocessor (PPX) deps."
     ),
