@@ -121,11 +121,10 @@ def effective_importpath_pkgpath(lib):
         # Vendor directory somewhere in the main repo. Leave it alone.
         return importpath, importmap
 
-PpxInfo = provider(fields=["ppx", "cmo", "o", "cmx", "a", "cmxa"])
-
 OpamPkgInfo = provider(
     doc = "Provider for OPAM packages.",
     fields = {
+        ## clients must write: dep[OpamPkgInfo].pkg.to_list()[0].name
         "pkg": "Label depset containing package name string used by ocamlfind.",
     }
 )
@@ -180,6 +179,51 @@ OcamlModuleProvider = provider(
         "module": """A struct with the following fields:
             cmi: .cmi file produced by the target
             cmx: .cmx file produced by the target
+            o  : .o file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+PpxInfo = provider(fields=["ppx", "cmo", "o", "cmx", "a", "cmxa"])
+
+PpxArchiveProvider = provider(
+    doc = "OCaml PPX archive provider.",
+    fields = {
+        "payload": """A struct with the following fields:
+            cmxa : .cmxa file produced by the target
+            a    : .a file produced by the target
+            # cmi  : .cmi file produced by the target
+            # cm   : .cmx or .cmo file produced by the target
+            # o    : .o file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+PpxBinaryProvider = provider(
+    doc = "OCaml PPX binary provider.",
+    fields = {
+        "payload": "Executable file produced by the target.",
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+PpxModuleProvider = provider(
+    doc = "OCaml PPX module provider.",
+    fields = {
+        "payload": """A struct with the following fields:
+            cmi: .cmi file produced by the target
+            cm: .cmx or .cmo file produced by the target
             o  : .o file produced by the target
         """,
         "deps"   : """A pair of depsets:
