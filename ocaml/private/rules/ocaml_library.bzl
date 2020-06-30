@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
+
 load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_compile")
 load("@obazl//ocaml/private:actions/ppx.bzl",
@@ -6,6 +8,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_gendeps",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_link")
+load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
 load("@obazl//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
@@ -29,7 +32,6 @@ load("@obazl//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load("rules/copy_srcs.bzl", "copy_srcs_to_tmp")
 
 ##################################################
 ######## RULE DECL:  OCAML_LIBRARY  #########
@@ -97,7 +99,11 @@ def _ocaml_library_batch(ctx):
 
   build_deps = []
   includes = []
+
+  ## transitive opam deps
   args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+
+  ## direct deps
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
       args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
@@ -120,38 +126,6 @@ def _ocaml_library_batch(ctx):
         # else:
         #   args.add(g) # dep[DefaultInfo].files)
 
-  # args.add("-I", "src")
-  # args.add("-I", "src-ocaml")
-  args.add_all(includes, before_each="-I", uniquify = True)
-
-  # WARNING: including this causes search for mli file for intf, which fails
-  # if len(ctx.files.srcs) > 1:
-  #     args.add("-intf-suffix", ".ml")
-
-  # args.add("-no-alias-deps")
-  # args.add("-opaque")
-
-  ## IMPORTANT!  from the ocamlopt docs:
-  ## -o exec-file   Specify the name of the output file produced by the linker.
-  ## That covers both executables and library archives (-a).
-  ## If you're just compiling (-c), no need to pass -o.
-  ## By contrast, the output files must be listed in the action output arg
-  ## in order to be registered in the action dependency graph.
-
-  ## finally, pass the input source file:
-  # if len(ctx.files.srcs) > 1:
-  #     for s in ctx.files.srcs:
-  #         args.add(s)
-  # else:
-  # args.add("-impl", src_file)
-
-  # if "-a" in ctx.attr.opts:
-  args.add_all(build_deps)
-  # print("DEPS")
-  # print(build_deps)
-
-  includes = []
-
   ## Use case: srcs include paths. i.e. they're in subdirs of the pkg dir,
   ## In that case we want to include their dirs, that's where to output goes
   ## so we need to include them in case following files want to link
@@ -163,8 +137,14 @@ def _ocaml_library_batch(ctx):
 
   for src in srcs: # ctx.files.srcs:
     includes.append(src.dirname)
-  args.add("-I", bindir)
+
+  # args.add("-I", bindir)
+
   args.add_all(includes, before_each="-I", uniquify = True)
+
+  args.add_all(build_deps)
+  # print("DEPS")
+  # print(build_deps)
 
   if ctx.attr.depgraph:
     # args.add("-args", tmp_depgraph) # ctx.file.depgraph.path)
@@ -173,16 +153,31 @@ def _ocaml_library_batch(ctx):
     args.add_all([src.path for src in srcs])
 
   in_files = [] # [ctx.file.depgraph]
-  includes = []
+  # includes = []
   out_files = []
+  # print("CTX.BIN_DIR (root): %s" % ctx.bin_dir.path)
+  # print("CTX.BUILD_FILE_PATH: %s" % ctx.build_file_path)
+  cwd = paths.dirname(ctx.build_file_path)
+  # print("CWD: %s" % cwd)
+
+  ## declare outfiles for srcs
   for src in srcs: #  ctx.files.srcs:
     if src.path.endswith("ml"):
-      # args.add(src)
-      # includes.append(bindir + "/" + src.dirname)
+      # print("LIB SRC: %s" % src.path)
       in_files.append(src)
       ## declare outputs
-      obj_cmx = ctx.actions.declare_file(src.short_path.rstrip("ml") + tc.ocamlext)
-      obj_o = ctx.actions.declare_file(src.short_path.rstrip("ml") + "o")
+      path_pfx = ctx.bin_dir.path + "/" + cwd
+      relpath = paths.relativize(src.path, path_pfx)
+      # print("LIB RELPATH: %s" % relpath)
+      # outfname = src.short_path.rstrip("ml") + tc.objext
+      # outfname = paths.replace_extension(src.short_path, tc.objext)
+      cmx_outfname = paths.replace_extension(relpath, tc.objext)
+      # print("LIB CMX_OUTFNAME: %s" % cmx_outfname)
+      obj_cmx = ctx.actions.declare_file(cmx_outfname)
+      # print("LIB OBJ_CMX: %s" % obj_cmx.path)
+      o_outfname = paths.replace_extension(relpath, ".o")
+      # obj_o = ctx.actions.declare_file(src.short_path.rstrip("ml") + "o")
+      obj_o = ctx.actions.declare_file(o_outfname)
       # obj_cmx = ctx.actions.declare_file(
       #   src.basename.rstrip("ml") + "cmx",
       #   sibling = src
@@ -194,10 +189,10 @@ def _ocaml_library_batch(ctx):
       out_files.append(obj_cmx)
       out_files.append(obj_o)
   # args.add_all(includes, before_each="-I", uniquify = True)
-  print("INS:")
-  print(in_files)
-  print("OUTS:")
-  print(out_files)
+  # print("INS:")
+  # print(in_files)
+  # print("OUTS:")
+  # print(out_files)
 
   ctx.actions.run(
     env = env,
@@ -318,7 +313,7 @@ def _ocaml_library_parallel(ctx):
     if src.path.endswith("mli"):
       continue
     ## declare outputs
-    obj_cmx = ctx.actions.declare_file(src.path.rstrip("ml") + tc.ocamlext)
+    obj_cmx = ctx.actions.declare_file(src.path.rstrip("ml") + tc.objext)
     obj_o = ctx.actions.declare_file(src.path.rstrip("ml") + "o")
     # obj_cmx = ctx.actions.declare_file(
     #   src.basename.rstrip("ml") + "cmx",
