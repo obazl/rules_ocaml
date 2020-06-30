@@ -28,7 +28,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 # We insert segment "_obazl" at CWD, so it becomes the relative root.
 def copy_srcs_to_tmp(ctx):
-  print("****************  RUN SHELL COPY ****************\n\n")
+  # print("****************  RUN SHELL COPY ****************\n\n")
   # print("CTX.BIN_DIR (root): %s" % ctx.bin_dir.path)
   # print("CTX.BUILD_FILE_PATH: %s" % ctx.build_file_path)
 
@@ -73,7 +73,7 @@ def copy_srcs_to_tmp(ctx):
   cmd = cmd + " true;"
   # print("CMD: %s" % cmd)
   # print("CP SRCS")
-  print(srcs)
+  # print(srcs)
 
   ctx.actions.run_shell(
     # env = env,
