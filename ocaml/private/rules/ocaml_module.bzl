@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
+
 load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OcamlInterfaceProvider",
@@ -5,6 +7,7 @@ load("@obazl//ocaml/private:providers.bzl",
      "OcamlModuleProvider",
      "OpamPkgInfo",
      "PpxInfo")
+load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
 load("@obazl//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
@@ -57,6 +60,12 @@ def _compile_interface(ctx):
 ################################################################
 def _compile_implementation(ctx):
 
+  # print("IMPL: %s" % ctx.file.impl.path)
+  # srcs = copy_srcs_to_tmp(ctx)
+  # print("SRCS: %s" % srcs)
+  # impl_file = srcs[0]
+  impl_file = ctx.file.impl
+
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -67,6 +76,9 @@ def _compile_implementation(ctx):
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
+  args.add("-no-alias-deps")
+  args.add("-opaque")
+
   args.add_all(ctx.attr.opts)
   # modules are always compile-only
   args.add("-c")
@@ -75,7 +87,15 @@ def _compile_implementation(ctx):
   # args.add("-w", "-24")
 
   build_deps = []
-  includes = []
+  includes = ["src", "src-ocaml",
+              "bazel-out/darwin-fastbuild/bin/src",
+              "bazel-out/darwin-fastbuild/bin",
+              "darwin-fastbuild/bin",
+              "bin",
+              "bazel-out/darwin-fastbuild",
+              "bazel-out",
+              "."
+  ]
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
@@ -111,10 +131,11 @@ def _compile_implementation(ctx):
   # non-ocamlfind-enabled deps:
   args.add_all(build_deps)
 
-  impl_file = ctx.file.impl
-  cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
+  # impl_file = ctx.file.impl
+  # cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
+  cmxfname = paths.replace_extension(impl_file.basename, tc.objext)
   obj_cmx = ctx.actions.declare_file(cmxfname)
-  ofname = ctx.file.impl.basename.rstrip("ml") + "o"
+  ofname = paths.replace_extension(impl_file.basename, ".o")
   obj_o = ctx.actions.declare_file(ofname)
 
   ## Sibling arg can be used to ensure output will go to same
@@ -123,13 +144,19 @@ def _compile_implementation(ctx):
   #   obj_cmx = ctx.actions.declare_file(outfilename, sibling=ctx.file.impl)
   # else:
 
+  # args.add("-open", "Digestif_by")
   args.add("-o", obj_cmx)
 
   args.add(impl_file)
 
-  inputs = build_deps + ctx.files.impl
+  inputs = build_deps + [impl_file]  # ctx.files.impl
   # print("INPUTS:")
   # print(inputs)
+
+  # print("CTX.BIN_DIR (root): %s" % ctx.bin_dir.path)
+  # print("CTX.BUILD_FILE_PATH: %s" % ctx.build_file_path)
+  cwd = paths.dirname(ctx.build_file_path)
+  # print("CWD: %s" % cwd)
 
   ctx.actions.run(
     env = env,
@@ -198,7 +225,7 @@ ocaml_module = rule(
     opts = attr.string_list(),
     linkopts = attr.string_list(),
     linkall = attr.bool(default = True),
-    srcs = attr.label_list(),
+    # srcs = attr.label_list(),
     impl = attr.label(
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
