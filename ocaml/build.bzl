@@ -22,6 +22,8 @@ load("@obazl//ocaml/private:rules/ocaml_module.bzl",
     _ocaml_module = "ocaml_module")
 load("@obazl//ocaml/private:rules/ocaml_ns_archive.bzl",
     _ocaml_ns_archive = "ocaml_ns_archive")
+load("@obazl//ocaml/private:rules/ocaml_ns_module.bzl",
+    _ocaml_ns_module = "ocaml_ns_module")
 
 load("@obazl//ocaml/private:rules/ppx_binary.bzl",
      _ocaml_ppx_binary = "ocaml_ppx_binary")
@@ -54,6 +56,7 @@ ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
 ocaml_ns_archive = _ocaml_ns_archive
+ocaml_ns_module  = _ocaml_ns_module
 
 ocaml_ppx_archive = _ocaml_ppx_archive
 ocaml_ppx_binary = _ocaml_ppx_binary
