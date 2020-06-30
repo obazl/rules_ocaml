@@ -96,14 +96,7 @@ def _ocaml_archive_batch(ctx):
   includes = []
   inputs_arg = []  # for the run action inputs
 
-  # print("XXXXXXXXXXXXXXXX0 %s" % mydeps.opam)
-  for dep in mydeps.opam.to_list():  # depsets are not iterable, use to_list()
-    # print("XXXXXXXXXXXXXXXX1 %s" % dep)
-    for l in dep.to_list():
-      print("XXXXXXXXXXXXXXXX2 %s" % l)
-      # print("XXXXXXXXXXXXXXXX3 %s" % dep.to_list()[0].to_list())
   args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-  # args.add_all([dep.name for dep in mydeps.opam.to_list()], before_each="-package")
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
