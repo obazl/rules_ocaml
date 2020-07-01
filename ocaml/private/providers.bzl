@@ -149,7 +149,7 @@ OcamlArchiveProvider = provider(
 OcamlLibraryProvider = provider(
     doc = "OCaml library provider. A library is a collection of modules.",
     fields = {
-        "library": """A struct with the following fields:
+        "payload": """A struct with the following fields:
             name: Name of library
             modules : vector of modules in lib
         """,
