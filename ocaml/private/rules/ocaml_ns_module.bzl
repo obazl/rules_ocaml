@@ -4,6 +4,7 @@ load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "OcamlModuleProvider")
+load("@obazl//ocaml/private:actions/ns_module.bzl", "ns_module_action")
 load("@obazl//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
@@ -36,75 +37,8 @@ load("@obazl//ocaml/private:actions/ocamlopt.bzl",
 ## namespaced submodules listed as sources.
 
 def _ocaml_ns_module_impl(ctx):
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
 
-  ## generate content: one alias per submodule
-  aliases = []
-  pfx = capitalize_initial_char(ctx.attr.ns)
-  for sm in ctx.files.submodules:
-        alias = "module {sm} = {pfx}{sm}".format(
-          sm=capitalize_initial_char(paths.split_extension(sm.basename)[0]),
-          pfx = pfx
-        )
-        aliases.append(alias)
-  print("ALIASES: %s" % aliases)
-
-  ## declare ns module file, as input to compile action
-  module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
-  module_src = ctx.actions.declare_file(module_fname)
-  print("NS MODULE SRC: %s" % module_src)
-
-  ## action: generate ns module file with alias content
-  ctx.actions.write(
-    output = module_src,
-    content = "\n".join(aliases) + "\n"
-  )
-
-  ## now declare compilation outputs. compiling always produces 3 files:
-  obj_cmi_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".cmi"
-  obj_cmi = ctx.actions.declare_file(obj_cmi_fname)
-  obj_cmx_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".cmx"
-  obj_cmx = ctx.actions.declare_file(obj_cmx_fname)
-  obj_o_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".o"
-  obj_o = ctx.actions.declare_file(obj_o_fname)
-
-  ## action: compile ns module
-  args = ctx.actions.args()
-  args.add("ocamlopt")
-  args.add_all(ctx.attr.opts)
-  args.add("-c")
-  args.add("-o", obj_cmx)
-  args.add(module_src.path)
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = [module_src],
-    outputs = [obj_cmx, obj_o, obj_cmi],
-    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
-    mnemonic = "OcamlNsModule",
-    progress_message = "ocaml_ns_module({}), {}".format(
-      ctx.label.name, ctx.attr.message
-      )
-  )
-
-  return [
-    DefaultInfo(files = depset(direct = [obj_cmx, obj_cmi, obj_o])),
-    OcamlModuleProvider(
-      module = struct(
-        cmi = obj_cmi,
-        cmx = obj_cmx,
-        o   = obj_o
-      ),
-      deps = struct(
-        opam  = depset(),
-        nopam = depset()
-      )
-    )
-  ]
-# OutputGroupInfo(bin = depset([bin_output]))]
+  return ns_module_action(ctx)
 
 # (library
 #  (name deriving_hello)
@@ -141,7 +75,8 @@ ocaml_ns_module = rule(
     #   # providers = [OpamPkgInfo]
     # ),
     mode = attr.string(default = "native"),
-    message = attr.string()
+    msg = attr.string(),
+    _rule = attr.string(default = "ocaml_ns_module")
   ),
   provides = [DefaultInfo, OcamlModuleProvider],
   executable = False,
