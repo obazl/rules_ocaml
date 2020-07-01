@@ -219,6 +219,20 @@ PpxBinaryProvider = provider(
     }
 )
 
+PpxLibraryProvider = provider(
+    doc = "PPX library provider. A PPX library is a collection of ppx modules.",
+    fields = {
+        "payload": """A struct with the following fields:
+            name: Name of library
+            modules : vector of modules in lib
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
 PpxModuleProvider = provider(
     doc = "OCaml PPX module provider.",
     fields = {
