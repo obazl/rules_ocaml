@@ -203,7 +203,7 @@ def _ocaml_library_batch(ctx):
     tools = [tc.ocamlfind, tc.compiler],
     mnemonic = "OcamlLibrary",
     progress_message = "ocaml_library({}): {}".format(
-      ctx.label.name, ctx.attr.message
+        ctx.label.name, ctx.attr.msg
     )
   )
 
@@ -335,7 +335,7 @@ def _ocaml_library_parallel(ctx):
       tools = [tc.ocamlfind, tc.compiler],
       mnemonic = "OcamlLibrary",
       progress_message = "ocaml_library({}): {}".format(
-        ctx.label.name, ctx.attr.message
+        ctx.label.name, ctx.attr.msg
       )
     )
 
@@ -414,7 +414,7 @@ ocaml_library = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
-    message = attr.string()
+    msg = attr.string(),
     # outputs = attr.output_list(
     #   # default = ["%{name}.pp.ml",
     #   #           "%{name}.pp.ml.d"],
