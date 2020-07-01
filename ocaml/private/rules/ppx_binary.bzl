@@ -120,11 +120,13 @@ def _ppx_binary_impl(ctx):
   build_deps = []
   includes = []
 
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+
   for dep in ctx.attr.deps:
-    if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-      # build_deps.append(dep[OpamPkgInfo].pkg)
-    else:
+    # if OpamPkgInfo in dep:
+    #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
+    #   # build_deps.append(dep[OpamPkgInfo].pkg)
+    # else:
       for g in dep[DefaultInfo].files.to_list():
         if g.path.endswith(".cmx"):
           args.add(g)
