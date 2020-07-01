@@ -5,6 +5,7 @@ load("@obazl//ocaml/private:providers.bzl",
 load("@obazl//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
+load("@obazl//ocaml/private:actions/library.bzl", "library_action")
 load("@obazl//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      # "ocaml_ppx_compile",
@@ -282,7 +283,7 @@ def _ppx_library_impl(ctx):
 #############################################
 #### RULE DECL:  PPX_LIBRARY  #########
 ppx_library = rule(
-  implementation = _ppx_library_impl,
+  implementation = library_action, # _ppx_library_impl,
   attrs = dict(
     preprocessor = attr.label(
       providers = [PpxInfo],
@@ -330,6 +331,7 @@ ppx_library = rule(
     #   # default = ["%{name}.pp.ml",
     #   #           "%{name}.pp.ml.d"],
     # )
+    _rule = attr.string(default = "ppx_library")
   ),
   # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = False,
