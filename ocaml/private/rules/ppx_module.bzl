@@ -51,17 +51,17 @@ def _ppx_module_impl(ctx):
 
   # srcs now contains declared output files, and we no longer need ns or ppx
   # srcs :: struct( impl :: declared File, maybe intf :: File )
-  print("SRCS: %s" % srcs)
+  # print("SRCS: %s" % srcs)
 
   obj = {}
 
   if srcs.intf:
-    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.intf.short_path, ".cmi"))
+    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.intf.basename, ".cmi"))
   else:
-    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.impl.short_path, ".cmi"))
+    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.impl.basename, ".cmi"))
 
-  obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(srcs.impl.short_path, ".cmx"))
-  obj["o"]           = ctx.actions.declare_file(paths.replace_extension(srcs.impl.short_path, ".o"))
+  obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(srcs.impl.basename, ".cmx"))
+  obj["o"]           = ctx.actions.declare_file(paths.replace_extension(srcs.impl.basename, ".o"))
 
   # if srcs.intf:
   #   out_cmi = compile_interface(ctx, srcs.intf)
