@@ -24,12 +24,12 @@ fi
 """.format(ppx = ppx.short_path, lib = lib, file = f.short_path)
   # --dump-ast;
 
-########## RULE:  OCAML_PPX_TEST  ################
-def _ocaml_ppx_test_impl(ctx):
+########## RULE:  PPX_TEST  ################
+def _ppx_test_impl(ctx):
 
   script = "\n".join(
     ["err=0"] +
-    [_preprocess_file(ctx.attr.ppx.files.to_list()[0],
+    [_preprocess_file(ctx.file.ppx,
                       "unexpired",
                       f) for f in ctx.files.srcs] +
     ["exit $err"],
@@ -53,13 +53,13 @@ def _ocaml_ppx_test_impl(ctx):
   return [DefaultInfo(runfiles = runfiles, executable = ctx.outputs.executable)]
 
 #################################################
-######### DECL:  OCAML_PPX_TEST  ################
+######### DECL:  PPX_TEST  ################
 ## A ppx_test rule builds and runs a ppx executable on an input file.
 ## Just like ppx_binary, but with an additional parameter to specify
 ## the file to preprocess.
 
-ocaml_ppx_test = rule(
-  implementation = _ocaml_ppx_test_impl,
+ppx_test = rule(
+  implementation = _ppx_test_impl,
   test = True,
   attrs = dict(
     _sdkpath = attr.label(

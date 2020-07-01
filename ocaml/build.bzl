@@ -26,19 +26,19 @@ load("@obazl//ocaml/private:rules/ocaml_ns_module.bzl",
     _ocaml_ns_module = "ocaml_ns_module")
 
 load("@obazl//ocaml/private:rules/ppx_binary.bzl",
-     _ocaml_ppx_binary = "ocaml_ppx_binary")
+     _ppx_binary = "ppx_binary")
+load("@obazl//ocaml/private:rules/ppx_module.bzl",
+     _ppx_ns_module = "ppx_ns_module")
 load("@obazl//ocaml/private:rules/ppx_library.bzl",
-     _ocaml_ppx_library = "ocaml_ppx_library")
+     _ppx_library = "ppx_library")
 
 load("@obazl//ocaml/private:rules/ppx_archive.bzl",
-     _ocaml_ppx_archive = "ocaml_ppx_archive")
+     _ppx_archive = "ppx_archive")
 load("@obazl//ocaml/private:rules/ppx_module.bzl",
-     _ocaml_ppx_module = "ocaml_ppx_module")
-load("@obazl//ocaml/private:rules/ppx_pipeline.bzl",
-     _ocaml_ppx_pipeline = "ocaml_ppx_pipeline")
+     _ppx_module = "ppx_module")
 
 load("@obazl//ocaml/private:rules/ppx_test.bzl",
-     _ocaml_ppx_test = "ocaml_ppx_test")
+     _ppx_test = "ppx_test")
 
 load("@obazl//ocaml/private:macros/ns_archive.bzl",
      _ocaml_ns_archive_macro = "ocaml_ns_archive_macro"
@@ -58,12 +58,12 @@ ocaml_module = _ocaml_module
 ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns_module  = _ocaml_ns_module
 
-ocaml_ppx_archive = _ocaml_ppx_archive
-ocaml_ppx_binary = _ocaml_ppx_binary
-ocaml_ppx_library = _ocaml_ppx_library
-ocaml_ppx_module = _ocaml_ppx_module
-ocaml_ppx_pipeline = _ocaml_ppx_pipeline
-ocaml_ppx_test = _ocaml_ppx_test
+ppx_archive = _ppx_archive
+ppx_binary = _ppx_binary
+ppx_library = _ppx_library
+ppx_module = _ppx_module
+ppx_test = _ppx_test
+ppx_ns_module = _ppx_ns_module
 
 # macros
 ocaml_ns_archive_macro = _ocaml_ns_archive_macro

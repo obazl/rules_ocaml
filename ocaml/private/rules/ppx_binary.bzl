@@ -83,10 +83,16 @@ load("@obazl//ocaml/private:actions/ocamlopt.bzl",
 #     )]
 
 #############################################
-####  OCAML_PPX_BINARY IMPLEMENTATION
-def _ocaml_ppx_binary_impl(ctx):
+####  PPX_BINARY IMPLEMENTATION
+def _ppx_binary_impl(ctx):
+
+  # print("PPX BINARY ATTR.DEPS")
+  # print(ctx.attr.deps)
 
   mydeps = get_all_deps(ctx.attr.deps)
+
+  # print("PPX BINARY OPAM DEPS")
+  # print(mydeps.opam)
 
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
@@ -161,7 +167,7 @@ def _ocaml_ppx_binary_impl(ctx):
     outputs = [outbinary],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPPXBinary",
-    progress_message = "ocaml_ppx_binary({}), {}".format(
+    progress_message = "ppx_binary({}), {}".format(
       ctx.label.name, ctx.attr.message
       )
   )
@@ -183,10 +189,10 @@ def _ocaml_ppx_binary_impl(ctx):
 #  (kind ppx_deriver))
 
 #############################################
-########## DECL:  OCAML_PPX_BINARY  ################
-ocaml_ppx_binary = rule(
-  implementation = _ocaml_ppx_binary_impl,
-  # implementation = _ocaml_ppx_binary_compile_test,
+########## DECL:  PPX_BINARY  ################
+ppx_binary = rule(
+  implementation = _ppx_binary_impl,
+  # implementation = _ppx_binary_compile_test,
   attrs = dict(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")

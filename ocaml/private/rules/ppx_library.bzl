@@ -29,7 +29,7 @@ load("@obazl//ocaml/private:utils.bzl",
 
 ################################################################
 #### compile after preprocessing:
-def _ocaml_ppx_library_with_ppx_impl(ctx):
+def _ppx_library_with_ppx_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -83,7 +83,7 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
   args.add_all(outfiles_cmx)
   # args.add_all(outfiles_o)
   #################################################
-  # ocaml_ppx_library_link(ctx,
+  # ppx_library_link(ctx,
   #                        env = env,
   #                        pgm = tc.ocamlopt,
   #                        # pgm = tc.ocamlfind,
@@ -101,7 +101,7 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
     outputs = [outfile_cmxa, outfile_a],
     tools = [tc.ocamlfind, tc.ocamlc],
     mnemonic = "OcamlPPXLibrary",
-    progress_message = "ocaml_ppx_library({}): {}".format(
+    progress_message = "ppx_library({}): {}".format(
       ctx.label.name,
       ctx.attr.message,
       )
@@ -124,7 +124,7 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
     )]
 
 #### just compile, no preprocessing:
-def _ocaml_ppx_library_impl(ctx):
+def _ppx_library_impl(ctx):
   ## this is essentially the same as ocaml_library, but it returns a
   ## ppx provider. should unify them?
 
@@ -263,7 +263,7 @@ def _ocaml_ppx_library_impl(ctx):
     outputs = outputs_arg,
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPpxLibrary",
-    progress_message = "ocaml_ppx_library({}): {}".format(
+    progress_message = "ppx_library({}): {}".format(
         ctx.label.name, ctx.attr.message
       )
   )
@@ -280,9 +280,9 @@ def _ocaml_ppx_library_impl(ctx):
     )]
 
 #############################################
-#### RULE DECL:  OCAML_PPX_LIBRARY  #########
-ocaml_ppx_library = rule(
-  implementation = _ocaml_ppx_library_impl,
+#### RULE DECL:  PPX_LIBRARY  #########
+ppx_library = rule(
+  implementation = _ppx_library_impl,
   attrs = dict(
     preprocessor = attr.label(
       providers = [PpxInfo],

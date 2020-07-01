@@ -97,7 +97,7 @@ def _ocaml_ppx_module_impl(ctx):
   srcs = None
   impl_src_file = get_target_file(ctx.attr.impl)
   if ctx.attr.ppx:
-    srcs = transform_module("ocaml_ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
+    srcs = transform_module("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
   elif ctx.attr.ns:
     srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
   else:
@@ -180,7 +180,7 @@ def _ocaml_ppx_module_impl(ctx):
     outputs = obj.values(),
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPPXBinary",
-    progress_message = "ocaml_ppx_module({}), {}".format(
+    progress_message = "ppx_module({}), {}".format(
       ctx.label.name, ctx.attr.msg
       )
   )
@@ -222,14 +222,15 @@ def _ocaml_ppx_module_impl(ctx):
 #  (kind ppx_deriver))
 
 #############################################
-########## DECL:  OCAML_PPX_MODULE  ################
-ocaml_ppx_module = rule(
-  implementation = _ocaml_ppx_module_impl,
-  # implementation = _ocaml_ppx_module_compile_test,
+########## DECL:  PPX_MODULE  ################
+ppx_module = rule(
+  implementation = _ppx_module_impl,
+  # implementation = _ppx_module_compile_test,
   attrs = dict(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
+    doc = attr.string(doc = "Docstring"),
     module_name = attr.string(
       doc = "Allows user to specify a module name different than the target name."
     ),

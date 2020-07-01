@@ -32,9 +32,10 @@ load("@obazl//ocaml/private:utils.bzl",
 
 ################################################################
 #### compile after preprocessing:
-def _ocaml_ppx_library_with_ppx_impl(ctx):
+def _ppx_library_with_ppx_impl(ctx):
 
   mydeps = get_all_deps(ctx.attr.deps)
+
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -106,7 +107,7 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
     outputs = [outfile_cmxa, outfile_a],
     tools = [tc.ocamlfind, tc.ocamlc],
     mnemonic = "OcamlPPXLibrary",
-    progress_message = "ocaml_ppx_library({}): {}".format(
+    progress_message = "ppx_library({}): {}".format(
       ctx.label.name,
       ctx.attr.message,
     )
@@ -141,11 +142,14 @@ def _ocaml_ppx_library_with_ppx_impl(ctx):
 #### WARNING: this impl is sequential; it passes all source files to
 #### one action, which will compile them (presumably in sequence) and
 #### then link.
-def _ocaml_ppx_archive_impl(ctx):
+def _ppx_archive_impl(ctx):
   ## this is essentially the same as ocaml_library, but it returns a
   ## ppx provider. should unify them?
 
   mydeps = get_all_deps(ctx.attr.deps)
+
+  # print("PPX ARCHIVE MYDEPS")
+  # print(mydeps.opam)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -158,7 +162,7 @@ def _ocaml_ppx_archive_impl(ctx):
   # obj_files = []
 
   if "-linkpkg" in ctx.attr.opts:
-    fail("-linkpkg option not supported for ocaml_ppx_archive rule")
+    fail("-linkpkg option not supported for ppx_archive rule")
 
   if ctx.attr.archive_name:
     outfile_cmxa_name = ctx.attr.archive_name + ".cmxa"
@@ -257,7 +261,7 @@ def _ocaml_ppx_archive_impl(ctx):
     outputs = outputs_arg,
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPpxLibrary",
-    progress_message = "ocaml_ppx_archive({}): {}".format(
+    progress_message = "ppx_archive({}): {}".format(
       ctx.label.name, ctx.attr.message
     )
   )
@@ -282,9 +286,9 @@ def _ocaml_ppx_archive_impl(ctx):
   ]
 
 #############################################
-#### RULE DECL:  OCAML_PPX_ARCHIVE  #########
-ocaml_ppx_archive = rule(
-  implementation = _ocaml_ppx_archive_impl,
+#### RULE DECL:  PPX_ARCHIVE  #########
+ppx_archive = rule(
+  implementation = _ppx_archive_impl,
   attrs = dict(
     archive_name = attr.string(),
     preprocessor = attr.label(
