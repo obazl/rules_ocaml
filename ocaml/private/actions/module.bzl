@@ -73,6 +73,9 @@ def rename_module(ctx, srcs, pfx):
   return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
 
 ################################################################
+def to_libarg(lib):
+  return "'library-name=\"{}\"'".format(lib)
+
 def transform_module(rule, ctx, srcs):
   """Apply a PPX to module sources.
 
@@ -98,14 +101,24 @@ def transform_module(rule, ctx, srcs):
   new_impl = ctx.actions.declare_file(pfx + module)
   outputs = {}
   outputs["impl"] = new_impl
-  print("NEW IMPL: %s" % new_impl)
+  # print("NEW IMPL: %s" % new_impl)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
   args = ctx.actions.args()
-  args.add(srcs.impl)
+  # args.add_all(ctx.attr.args)
+
+  # IF ppx_inline_test
+  # args.add("--cookie")
+  # args.add("library=\"ppx_optcomp_test\"")
+  # args.add("ppx_optcomp_test", format="'library=\"%s\"'")
+  # args.add("-inline-test-lib", "ppx_optcomp_test")
+
   args.add("-o", new_impl)
+  args.add("-impl", srcs.impl)
+  # args.add("-corrected-suffix", ".ppx-corrected")
+  args.add("-dump-ast")
 
   ppx = ctx.attr.ppx.files.to_list()[0]
 
@@ -121,6 +134,6 @@ def transform_module(rule, ctx, srcs):
       rule=rule, target=ctx.label.name, msg = "" if not ctx.attr.msg else ", msg: " + ctx.attr.msg
     )
   )
-  print("TRANSFORM result: %s" % outputs.values())
+  # print("TRANSFORM result: %s" % outputs.values())
   return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
 
