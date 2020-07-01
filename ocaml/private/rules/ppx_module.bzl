@@ -6,16 +6,18 @@ load("@obazl//ocaml/private:providers.bzl",
      "PpxBinaryProvider",
      "PpxModuleProvider")
 load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
+load("@obazl//ocaml/private:actions/ns_module.bzl", "ns_module_action")
 load("@obazl//ocaml/private:actions/module.bzl", "rename_module", "transform_module")
-load("@obazl//ocaml/private:actions/ppx.bzl",
-     "apply_ppx",
-     "ocaml_ppx_compile",
+# load("@obazl//ocaml/private:actions/ppx.bzl",
+     # "apply_ppx",
+     # "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
-     "ocaml_ppx_library_gendeps",
-     "ocaml_ppx_library_cmo",
-     "ocaml_ppx_library_compile",
-     "ocaml_ppx_library_link")
+     # "ocaml_ppx_library_gendeps",
+     # "ocaml_ppx_library_cmo",
+     # "ocaml_ppx_library_compile",
+     # "ocaml_ppx_library_link")
 load("@obazl//ocaml/private:utils.bzl",
+     "capitalize_initial_char",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -27,66 +29,10 @@ load("@obazl//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-# testing
-load("@obazl//ocaml/private:actions/ocamlopt.bzl",
-     "compile_native_with_ppx",
-     "link_native")
-
-# print("private/ocaml.bzl loading")
-
-################################################################
-# # for testing
-# def split_srcs(srcs):
-#   print("SPLIT_SRCS")
-#   print(srcs)
-#   intfs = []
-#   impls = []
-#   for s in srcs:
-#     if s.extension == "ml":
-#       impls.append(s)
-#     else:
-#       intfs.append(s)
-#   return intfs, impls
-
-# def _ocaml_ppx_module_compile_test(ctx):
-#   print("TEST: _ocaml_ppx_module_compile_impl")
-#   env = {"OPAMROOT": get_opamroot(),
-#          "PATH": get_sdkpath(ctx)}
-
-#   if ctx.attr.preprocessor:
-#     if PpxInfo in ctx.attr.preprocessor:
-#       new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
-#   else:
-#     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
-
-#   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
-
-#   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
-
-#   outfiles_cmx = []
-#   outfiles_o = []
-#   outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
-#     ctx, env, tc, new_intf_srcs, new_impl_srcs
-#   )
-
-#   return [
-#     DefaultInfo(
-#       files = depset(direct = outfiles_o + outfiles_cmx)
-#     ),
-#     PpxInfo(
-#       cmx=outfiles_cmx,
-#       o = outfiles_o
-#     )]
-
-def _preprocess_srcs(ctx):
-  return [ctx.files.impl, ctx.files.intf]
-
-def _copy_srcs(ctx):
-  return [ctx.files.impl, ctx.files.intf]
 
 #############################################
 ####  OCAML_PPX_MODULE IMPLEMENTATION
-def _ocaml_ppx_module_impl(ctx):
+def _ppx_module_impl(ctx):
 
   mydeps = get_all_deps(ctx.attr.deps)
 
@@ -144,12 +90,13 @@ def _ocaml_ppx_module_impl(ctx):
   args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   linkpkg_flag = False
+  ##FIXME:  use mydeps.nopam
   for dep in ctx.attr.deps:
-    if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-      linkpkg_flag = True
-      # build_deps.append(dep[OpamPkgInfo].pkg)
-    else:
+    # if OpamPkgInfo in dep:
+    #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
+    #   linkpkg_flag = True
+    #   # build_deps.append(dep[OpamPkgInfo].pkg)
+    # else:
       for g in dep[DefaultInfo].files.to_list():
         if g.path.endswith(".cmx"):
           build_deps.append(g)
@@ -178,7 +125,7 @@ def _ocaml_ppx_module_impl(ctx):
     arguments = [args],
     inputs = inputs,
     outputs = obj.values(),
-    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
+    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt] + ctx.files.data,
     mnemonic = "OcamlPPXBinary",
     progress_message = "ppx_module({}), {}".format(
       ctx.label.name, ctx.attr.msg
@@ -198,7 +145,7 @@ def _ocaml_ppx_module_impl(ctx):
   #           )
   #         )]
 
-  print("srcs.impl: %s" % srcs.impl)
+  # print("srcs.impl: %s" % srcs.impl)
   # testing:
   return [
     DefaultInfo(files = depset(direct = obj.values())),
@@ -247,6 +194,13 @@ ppx_module = rule(
     ppx  = attr.label(
       doc = "PPX binary (executable).",
       providers = [PpxBinaryProvider]
+    ),
+    args  = attr.string_list(
+      doc = "PPX cmd args.",
+    ),
+    data  = attr.label_list(
+      doc = "PPX data deps, e.g. headers",
+      allow_files = True
     ),
     opts = attr.string_list(),
     warnings                = attr.string(
