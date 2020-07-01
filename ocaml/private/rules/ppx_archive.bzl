@@ -109,7 +109,7 @@ def _ppx_library_with_ppx_impl(ctx):
     mnemonic = "OcamlPPXLibrary",
     progress_message = "ppx_library({}): {}".format(
       ctx.label.name,
-      ctx.attr.message,
+      ctx.attr.msg
     )
   )
 
@@ -262,7 +262,7 @@ def _ppx_archive_impl(ctx):
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPpxLibrary",
     progress_message = "ppx_archive({}): {}".format(
-      ctx.label.name, ctx.attr.message
+      ctx.label.name, ctx.attr.msg
     )
   )
 
@@ -297,7 +297,7 @@ ppx_archive = rule(
       cfg = "exec",
       # allow_single_file = True
     ),
-    message = attr.string(),
+    msg = attr.string(),
     dump_ast = attr.bool(default = True),
     srcs = attr.label_list(
       allow_files = OCAML_FILETYPES
