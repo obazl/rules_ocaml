@@ -211,6 +211,7 @@ PpxBinaryProvider = provider(
     doc = "OCaml PPX binary provider.",
     fields = {
         "payload": "Executable file produced by the target.",
+        "args"   : "Args to be passed when binary is invoked",
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target

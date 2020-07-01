@@ -136,10 +136,11 @@ def get_all_deps(direct_deps):
       nopam_transitives.append(ap.deps.nopam)
       opam_transitives.append(ap.deps.opam)
     elif PpxBinaryProvider in dep:
-      ap = dep[PpxBinaryProvider]
-      nopam_directs.append(ap.payload)
-      nopam_transitives.append(ap.deps.nopam)
-      opam_transitives.append(ap.deps.opam)
+      bp = dep[PpxBinaryProvider]
+      # print("PpxBinaryProvider: %s" % bp)
+      nopam_directs.append(bp.payload)
+      nopam_transitives.append(bp.deps.nopam)
+      opam_transitives.append(bp.deps.opam)
     elif PpxModuleProvider in dep:
       pmp = dep[PpxModuleProvider]
       # print("OcamlInterfaceProvider dep: %s" % pmp)
@@ -176,4 +177,4 @@ def get_all_deps(direct_deps):
   # print("NOPAM_DEPSET:")
   # print(nopam_depset)
 
-  return struct( opam = opam_depset, nopam = nopam_depset)
+  return struct( opam = opam_depset, nopam = nopam_depset )

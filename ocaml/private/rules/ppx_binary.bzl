@@ -178,6 +178,7 @@ def _ppx_binary_impl(ctx):
                       files = depset(direct = [outbinary])),
           PpxBinaryProvider(
             payload=outbinary,
+            args = depset(direct = ctx.attr.args),
             deps = struct(
               opam = mydeps.opam,
               nopam = mydeps.nopam

@@ -1,4 +1,5 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@obazl//ocaml/private:providers.bzl", "PpxBinaryProvider")
 load("@obazl//ocaml/private:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
@@ -109,11 +110,9 @@ def transform_module_action(rule, ctx, srcs):
   args = ctx.actions.args()
   # args.add_all(ctx.attr.args)
 
-  # IF ppx_inline_test
-  # args.add("--cookie")
-  # args.add("library=\"ppx_optcomp_test\"")
-  # args.add("ppx_optcomp_test", format="'library=\"%s\"'")
-  # args.add("-inline-test-lib", "ppx_optcomp_test")
+  if PpxBinaryProvider in ctx.attr.ppx:
+    args.add_all(ctx.attr.ppx[PpxBinaryProvider].args)
+    args.add("-inline-test-lib", "ppx_optcomp_test")
 
   args.add("-o", new_impl)
   args.add("-impl", srcs.impl)
