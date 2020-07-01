@@ -45,7 +45,30 @@ def _opam_repo_impl(repository_ctx):
         Label("@obazl//opam:BUILD.opampkg.tpl"),
         executable = False,
         substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
+    )
+
+    repository_ctx.template(
+        "ppx/BUILD.bazel",
+        Label("@obazl//opam:ppx/BUILD.tpl"),
+        executable = False,
+    )
+    repository_ctx.file(
+        "ppx/ppx_inline_test_lib_runtime_exit.ml",
+        content = "(* GENERATED FILE - DO NOT EDIT *)\nlet () = Ppx_inline_test_lib.Runtime.exit ();;",
+        executable = False,
+    )
+
+    repository_ctx.template(
+        "ppxlib/BUILD.bazel",
+        Label("@obazl//opam:ppxlib/BUILD.tpl"),
+        executable = False,
+        # substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
         # substitutions = {"{pkg}": "ppxlib.metaquot"}
+    )
+    repository_ctx.file(
+        "ppxlib/ppxlib_driver_standalone_runner.ml",
+        content = "(* GENERATED FILE - DO NOT EDIT *)\nlet () = Ppxlib.Driver.standalone ()",
+        executable = False,
     )
 
 
