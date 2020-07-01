@@ -34,10 +34,10 @@ def rename_module(ctx, srcs, pfx):
   inputs.append(srcs.impl)
   new_impl = ctx.actions.declare_file(pfx + srcs.impl.basename.capitalize())
   outputs["impl"] = new_impl
-  print("NEW IMPL: %s" % new_impl)
+  # print("NEW IMPL: %s" % new_impl)
 
   destdir = paths.normalize(new_impl.dirname)
-  print("DESTDIR: %s" % destdir)
+  # print("DESTDIR: %s" % destdir)
 
   cmd = ""
   dest = new_impl.path
@@ -70,7 +70,7 @@ def rename_module(ctx, srcs, pfx):
       ctx.label.name, srcs
     )
   )
-  print("RENAME result: %s" % outputs.values())
+  # print("RENAME result: %s" % outputs.values())
   return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
 
 ################################################################

@@ -15,7 +15,7 @@ load("@obazl//ocaml/private:utils.bzl",
 )
 
 def ns_module_action(ctx):
-  print("ns_module_action: %s" % ctx)
+  # print("ns_module_action: %s" % ctx)
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
