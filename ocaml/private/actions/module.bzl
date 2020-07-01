@@ -112,7 +112,6 @@ def transform_module_action(rule, ctx, srcs):
 
   if PpxBinaryProvider in ctx.attr.ppx:
     args.add_all(ctx.attr.ppx[PpxBinaryProvider].args)
-    args.add("-inline-test-lib", "ppx_optcomp_test")
 
   args.add("-o", new_impl)
   args.add("-impl", srcs.impl)
