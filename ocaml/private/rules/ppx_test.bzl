@@ -1,3 +1,4 @@
+load("@obazl//ocaml/private:providers.bzl", "PpxBinaryProvider")
 load("@obazl//ocaml/private:utils.bzl", "OCAML_IMPL_FILETYPES")
 
 ##FIXME: handle expected failures
@@ -40,6 +41,8 @@ def _ppx_test_impl(ctx):
                          inputs=ctx.attr.ppx.files)
                          # inputs=ctx.attr.ppx.files + depset(direct=[ctx.attr.ppx]))
 
+  # print("TEST SCRIPT:")
+  # print(script)
   # Write the file, it is executed by 'bazel test'.
   ctx.actions.write(
       output = ctx.outputs.executable,
@@ -67,6 +70,7 @@ ppx_test = rule(
     ),
     ppx = attr.label(
         mandatory = True,
+        providers = [[DefaultInfo], [PpxBinaryProvider]],
         executable = True,
         cfg = "host",
         allow_single_file = True
