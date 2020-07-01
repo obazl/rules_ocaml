@@ -76,7 +76,7 @@ def ns_module_action(ctx):
       provider = OcamlModuleProvider(
           module = struct(
               cmi = obj_cmi,
-              cmx = obj_cmx,
+              cm  = obj_cmx,
               o   = obj_o
           ),
           deps = struct(
@@ -88,7 +88,7 @@ def ns_module_action(ctx):
       provider = PpxModuleProvider(
           payload = struct(
               cmi = obj_cmi,
-              cmx = obj_cmx,
+              cm  = obj_cmx,
               o   = obj_o
           ),
           deps = struct(
