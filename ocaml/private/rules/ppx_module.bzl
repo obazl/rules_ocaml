@@ -79,6 +79,7 @@ def _ppx_module_impl(ctx):
   if ctx.attr.ns:
     args.add("-no-alias-deps")
     args.add("-opaque")
+    args.add("-open", capitalize_initial_char(ctx.attr.ns))
 
   args.add("-c")
   args.add("-o", obj["cm"])
