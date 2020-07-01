@@ -219,3 +219,36 @@ ppx_module = rule(
   executable = False,
   toolchains = ["@obazl//ocaml:toolchain"],
 )
+
+################################################################
+################################################################
+##########  PPX_NS_MODULE  ################
+ppx_ns_module = rule(
+  implementation = ns_module_action,
+  attrs = dict(
+    _sdkpath = attr.label(
+      default = Label("@ocaml//:path")
+    ),
+    module_name = attr.string(),
+    ns = attr.string(),
+    submodules = attr.label_list(
+      allow_files = OCAML_FILETYPES
+    ),
+    opts = attr.string_list(
+      default = [
+        "-w", "-49", # ignore Warning 49: no cmi file was found in path for module x
+        "-no-alias-deps", # lazy linking
+        "-opaque"         #  do not generate cross-module optimization information
+      ]
+    ),
+    linkopts = attr.string_list(),
+    linkall = attr.bool(default = True),
+    mode = attr.string(default = "native"),
+    msg = attr.string(),
+    _rule = attr.string(default = "ppx_ns_module")
+  ),
+  provides = [DefaultInfo, PpxModuleProvider],
+  executable = False,
+  toolchains = ["@obazl//ocaml:toolchain"],
+)
+
