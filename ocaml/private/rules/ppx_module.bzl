@@ -7,7 +7,7 @@ load("@obazl//ocaml/private:providers.bzl",
      "PpxModuleProvider")
 load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
 load("@obazl//ocaml/private:actions/ns_module.bzl", "ns_module_action")
-load("@obazl//ocaml/private:actions/module.bzl", "rename_module", "transform_module")
+load("@obazl//ocaml/private:actions/module.bzl", "rename_module", "transform_module_action")
 # load("@obazl//ocaml/private:actions/ppx.bzl",
      # "apply_ppx",
      # "ocaml_ppx_compile",
@@ -43,7 +43,7 @@ def _ppx_module_impl(ctx):
   srcs = None
   impl_src_file = get_target_file(ctx.attr.impl)
   if ctx.attr.ppx:
-    srcs = transform_module("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
+    srcs = transform_module_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
   elif ctx.attr.ns:
     srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
   else:

@@ -76,7 +76,7 @@ def rename_module(ctx, srcs, pfx):
 def to_libarg(lib):
   return "'library-name=\"{}\"'".format(lib)
 
-def transform_module(rule, ctx, srcs):
+def transform_module_action(rule, ctx, srcs):
   """Apply a PPX to module sources.
 
   Inputs: context, srcs:: struct(intf :: File, maybe impl :: File)
