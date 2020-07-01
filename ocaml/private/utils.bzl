@@ -129,14 +129,23 @@ def get_all_deps(direct_deps):
       # print("CcInfo payload: %s" % dep[DefaultInfo])
       nopam_directs.append(struct( clib = dep[DefaultInfo]) )
     elif PpxArchiveProvider in dep:
+      # print("PROVIDER: PpxArchiveProvider")
       ap = dep[PpxArchiveProvider]
+      # print(ap.deps)
       nopam_directs.append(ap.payload)
       nopam_transitives.append(ap.deps.nopam)
+      opam_transitives.append(ap.deps.opam)
+    elif PpxBinaryProvider in dep:
+      ap = dep[PpxBinaryProvider]
+      nopam_directs.append(ap.payload)
+      nopam_transitives.append(ap.deps.nopam)
+      opam_transitives.append(ap.deps.opam)
     elif PpxModuleProvider in dep:
       pmp = dep[PpxModuleProvider]
       # print("OcamlInterfaceProvider dep: %s" % pmp)
       nopam_directs.append(pmp.payload)
       nopam_transitives.append(pmp.deps.nopam)
+      opam_transitives.append(pmp.deps.opam)
       # opams = opams + d.opam_deps.to_list()
       # nopam_deps.append(d)
       # nopam_transitive_deps.append(d)
