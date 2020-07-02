@@ -176,7 +176,7 @@ OcamlInterfaceProvider = provider(
 OcamlModuleProvider = provider(
     doc = "OCaml module provider.",
     fields = {
-        "module": """A struct with the following fields:
+        "payload": """A struct with the following fields:
             cmi: .cmi file produced by the target
             cmx: .cmx file produced by the target
             o  : .o file produced by the target

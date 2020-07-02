@@ -201,7 +201,7 @@ def library_action(ctx):
   return [
     DefaultInfo(files = depset(direct = out_files)),
     OcamlLibraryProvider(
-      library = struct(
+      payload = struct(
         name = ctx.label.name,
         modules = out_files,
       ),
