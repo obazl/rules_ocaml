@@ -16,27 +16,27 @@
 # This is a configuration independent provider.
 # You must call resolve with a mode to produce a OcamlSource.
 # See ocaml/providers.rst#OcamlLibrary for full documentation.
-OcamlLibrary = provider()
+# OcamlLibrary = provider()
 
 # The filtered inputs and dependencies needed to build a OcamlArchive
 # This is a configuration specific provider.
 # It has no transitive information.
 # See ocaml/providers.rst#OcamlSource for full documentation.
-OcamlSource = provider()
+# OcamlSource = provider()
 
 # This compiled form of a package used in transitive dependencies.
 # This is a configuration specific provider.
 # See ocaml/providers.rst#OcamlArchiveData for full documentation.
-OcamlArchiveData = provider()
+# OcamlArchiveData = provider()
 
 # The compiled form of a OcamlLibrary, with everything needed to link it into a binary.
 # This is a configuration specific provider.
 # See ocaml/providers.rst#OcamlArchive for full documentation.
-OcamlArchive = provider()
+# OcamlArchive = provider()
 
-OcamlAspectProviders = provider()
+# OcamlAspectProviders = provider()
 
-OcamlPath = provider()
+# OcamlPath = provider()
 
 OcamlSDK = provider(
     doc = "Contains information about the Ocaml SDK used in the toolchain",
@@ -74,52 +74,52 @@ INFERRED_PATH = "inferred"
 
 EXPORT_PATH = "export"
 
-def get_source(dep):
-    if type(dep) == "struct":
-        return dep
-    if OcamlAspectProviders in dep:
-        return dep[OcamlAspectProviders].source
-    return dep[OcamlSource]
+# def get_source(dep):
+#     if type(dep) == "struct":
+#         return dep
+#     if OcamlAspectProviders in dep:
+#         return dep[OcamlAspectProviders].source
+#     return dep[OcamlSource]
 
-def get_archive(dep):
-    if type(dep) == "struct":
-        return dep
-    if OcamlAspectProviders in dep:
-        return dep[OcamlAspectProviders].archive
-    return dep[OcamlArchive]
+# def get_archive(dep):
+#     if type(dep) == "struct":
+#         return dep
+#     if OcamlAspectProviders in dep:
+#         return dep[OcamlAspectProviders].archive
+#     return dep[OcamlArchive]
 
-def effective_importpath_pkgpath(lib):
-    """Returns import and package paths for a given lib with modifications for display.
+# def effective_importpath_pkgpath(lib):
+#     """Returns import and package paths for a given lib with modifications for display.
 
-    This is used when we need to represent sources in a manner compatible with Ocaml
-    build (e.g., for packaging or coverage data listing). _test suffixes are
-    removed, and vendor directories from importmap may be modified.
+#     This is used when we need to represent sources in a manner compatible with Ocaml
+#     build (e.g., for packaging or coverage data listing). _test suffixes are
+#     removed, and vendor directories from importmap may be modified.
 
-    Args:
-      lib: OcamlLibrary or OcamlArchiveData
+#     Args:
+#       lib: OcamlLibrary or OcamlArchiveData
 
-    Returns:
-      A tuple of effective import path and effective package path. Both are ""
-      for synthetic archives (e.g., generated testmain).
-    """
-    if lib.pathtype not in (EXPLICIT_PATH, EXPORT_PATH):
-        return "", ""
-    importpath = lib.importpath
-    importmap = lib.importmap
-    if importpath.endswith("_test"):
-        importpath = importpath[:-len("_test")]
-    if importmap.endswith("_test"):
-        importmap = importmap[:-len("_test")]
-        parts = importmap.split("/")
-    if "vendor" not in parts:
-        # Unusual case not handled by ocaml build. Just return importpath.
-        return importpath, importpath
-    elif len(parts) > 2 and lib.label.workspace_root == "external/" + parts[0]:
-        # Common case for importmap set by Gazelle in external repos.
-        return importpath, importmap[len(parts[0]):]
-    else:
-        # Vendor directory somewhere in the main repo. Leave it alone.
-        return importpath, importmap
+#     Returns:
+#       A tuple of effective import path and effective package path. Both are ""
+#       for synthetic archives (e.g., generated testmain).
+#     """
+#     if lib.pathtype not in (EXPLICIT_PATH, EXPORT_PATH):
+#         return "", ""
+#     importpath = lib.importpath
+#     importmap = lib.importmap
+#     if importpath.endswith("_test"):
+#         importpath = importpath[:-len("_test")]
+#     if importmap.endswith("_test"):
+#         importmap = importmap[:-len("_test")]
+#         parts = importmap.split("/")
+#     if "vendor" not in parts:
+#         # Unusual case not handled by ocaml build. Just return importpath.
+#         return importpath, importpath
+#     elif len(parts) > 2 and lib.label.workspace_root == "external/" + parts[0]:
+#         # Common case for importmap set by Gazelle in external repos.
+#         return importpath, importmap[len(parts[0]):]
+#     else:
+#         # Vendor directory somewhere in the main repo. Leave it alone.
+#         return importpath, importmap
 
 OpamPkgInfo = provider(
     doc = "Provider for OPAM packages.",
