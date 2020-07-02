@@ -194,7 +194,7 @@ def library_action(ctx):
     tools = [tc.ocamlfind, tc.compiler],
     mnemonic = "OcamlLibrary",
     progress_message = "ocaml_library({}): {}".format(
-      ctx.label.name, ctx.attr.message
+      ctx.label.name, ctx.attr.msg
     )
   )
 
