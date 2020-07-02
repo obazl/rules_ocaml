@@ -60,10 +60,15 @@ def _compile_interface(ctx):
 ################################################################
 def _compile_implementation(ctx):
 
+  mydeps = get_all_deps(ctx.attr.deps)
+  # print("ALL DEPS for target %s" % ctx.label.name)
+  # print(mydeps)
+
   # print("IMPL: %s" % ctx.file.impl.path)
   # srcs = copy_srcs_to_tmp(ctx)
   # print("SRCS: %s" % srcs)
   # impl_file = srcs[0]
+
   impl_file = ctx.file.impl
 
   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
@@ -86,22 +91,20 @@ def _compile_implementation(ctx):
   # for wrapper gen:
   # args.add("-w", "-24")
 
-  build_deps = []
-  includes = ["src", "src-ocaml",
-              "bazel-out/darwin-fastbuild/bin/src",
-              "bazel-out/darwin-fastbuild/bin",
-              "darwin-fastbuild/bin",
-              "bin",
-              "bazel-out/darwin-fastbuild",
-              "bazel-out",
-              "."
-  ]
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
+  build_deps = []
+  includes   = []
+
+  print("XXXX DEPS for %s" % ctx.label.name)
   for dep in ctx.attr.deps:
+    print(dep)
     if OpamPkgInfo in dep:
+      g = dep[OpamPkgInfo].pkg.to_list()[0]
       args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
     else:
       for g in dep[DefaultInfo].files.to_list():
+        # print(g)
         if g.path.endswith(".o"):
           build_deps.append(g)
           includes.append(g.dirname)
@@ -171,16 +174,12 @@ def _compile_implementation(ctx):
       )
   )
 
-  return [obj_cmx, obj_o]
+  return [obj_cmx, obj_o], struct( opam = mydeps.opam, nopam = mydeps.nopam )
   # return [DefaultInfo(files = depset(direct = [obj_cmx, obj_o]))]
 # OutputGroupInfo(bin = depset([bin_output]))]
 
 ########## RULE:  OCAML_MODULE  ################
 def _ocaml_module_impl(ctx):
-
-  mydeps = get_all_deps(ctx.attr.deps)
-  # print("ALL DEPS for target %s" % ctx.label.name)
-  # print(mydeps)
 
   rintf = []
   rimpl = []
@@ -188,18 +187,19 @@ def _ocaml_module_impl(ctx):
     rintf = _compile_interface(ctx)
 
   if ctx.file.impl:
-    rimpl = _compile_implementation(ctx)
+    rimpl, deps = _compile_implementation(ctx)
 
   module_provider = OcamlModuleProvider(
-    module = struct(
+    payload = struct(
       cmi = rintf,
       cmx = rimpl[0] if rimpl else None,
       o   = rimpl[1] if rimpl else None,
     ),
-    deps = struct(
-      opam  = mydeps.opam,
-      nopam = mydeps.nopam
-    )
+    deps = deps
+    # deps = struct(
+    #   opam  = mydeps.opam,
+    #   nopam = mydeps.nopam
+    # )
   )
   # print("MODULE PROVIDER for {mod}: {mp}".format(mod=ctx.label.name, mp=module_provider))
 
