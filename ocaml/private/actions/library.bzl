@@ -24,6 +24,7 @@ def library_action(ctx):
 
   ## no input srcs means we're being used just to force dep builds, so
   ## we just pass input deps as our outputs
+  # print("library_action for: %s" % ctx.label.name)
   dset = []
   for dep in mydeps.nopam.to_list(): #] # ctx.attr.deps]
     print("DEP: %s" % dep)
@@ -58,9 +59,9 @@ def library_action(ctx):
                 nopam = mydeps.nopam
             )
         )
-    print("LIBPROVIDER: %s" % provider)
+    # print("LIBPROVIDER for {lib}: {prov}".format(lib = ctx.label.name, prov = provider))
     return [
-        DefaultInfo(files = depset(direct = dset)),
+        DefaultInfo(files = depset(direct = ctx.files.deps)),
         provider
     ]
 
