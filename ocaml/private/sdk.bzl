@@ -330,6 +330,7 @@ def _installed_sdk_triplet(ctx, ocamlroot):
     # fail("Could not detect SDK platform")
     return "darwin_amd64"
 
+## this is the fn used by the user, in WORKSPACE
 def ocaml_register_toolchains(installation = None, noocaml = None):
     """See /ocaml/toolchains.rst#ocaml-register-toolchains for full documentation."""
     # print("ocaml_register_toolchains, installation = " + installation)
