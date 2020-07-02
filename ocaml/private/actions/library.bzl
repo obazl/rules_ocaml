@@ -27,9 +27,9 @@ def library_action(ctx):
   # print("library_action for: %s" % ctx.label.name)
   dset = []
   for dep in mydeps.nopam.to_list(): #] # ctx.attr.deps]
-    print("DEP: %s" % dep)
+    # print("DEP: %s" % dep)
     if hasattr(dep, "cm"):
-        print("CM DEP: %s" % dep)
+        # print("CM DEP: %s" % dep)
         dset.append(dep.cm)
   # flatten
   # dset = [val for sublist in dset for val in sublist]

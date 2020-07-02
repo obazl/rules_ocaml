@@ -96,9 +96,9 @@ def _compile_implementation(ctx):
   build_deps = []
   includes   = []
 
-  print("XXXX DEPS for %s" % ctx.label.name)
+  # print("XXXX DEPS for %s" % ctx.label.name)
   for dep in ctx.attr.deps:
-    print(dep)
+    # print(dep)
     if OpamPkgInfo in dep:
       g = dep[OpamPkgInfo].pkg.to_list()[0]
       args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
