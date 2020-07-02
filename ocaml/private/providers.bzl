@@ -178,7 +178,7 @@ OcamlModuleProvider = provider(
     fields = {
         "payload": """A struct with the following fields:
             cmi: .cmi file produced by the target
-            cmx: .cmx file produced by the target
+            cm : .cmx/cmo file produced by the target
             o  : .o file produced by the target
         """,
         "deps"   : """A pair of depsets:
