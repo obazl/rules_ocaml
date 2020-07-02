@@ -33,7 +33,7 @@ def library_action(ctx):
   # flatten
   # dset = [val for sublist in dset for val in sublist]
   if not ctx.files.srcs:
-    ctx.actions.do_nothing(mnemonic = "pass-through", inputs = dset)
+    # ctx.actions.do_nothing(mnemonic = "pass-through", inputs = dset)
 
     provider = None
     if ctx.attr._rule == "ocaml_library":
