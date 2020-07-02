@@ -11,7 +11,7 @@ OPAMROOT = "OPAMROOT"
 # Set up OPAM
 def _opam_repo_impl(repository_ctx):
     # print("_opam_binary_impl")
-    opampath = "/usr/local/Cellar/opam/2.0.7/bin"
+
     opamroot = repository_ctx.execute(["opam", "var", "prefix"]).stdout.strip()
     # print("opamroot: " + opamroot)
 
@@ -31,7 +31,12 @@ def _opam_repo_impl(repository_ctx):
     #   print(p)
     ocamlfind_pkgs = "\n".join(ocamlfind_packages)
 
-    repository_ctx.symlink(opampath + "/opam", "opam")
+    opambin = repository_ctx.which("opam") # "/usr/local/Cellar/opam/2.0.7/bin"
+    # if "OPAM_SWITCH_PREFIX" in repository_ctx.os.environ:
+    #     opampath = repository_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/bin"
+    # else:
+    #     fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+    repository_ctx.symlink(opambin, "opam")
     repository_ctx.symlink(opamroot, "sdk")
     repository_ctx.file("WORKSPACE", "", False)
     repository_ctx.template(

@@ -274,6 +274,8 @@ def _detect_host_platform(ctx):
 
         # Default to amd64 when uname doesn't return a known value.
 
+    elif ctx.os.name == "linux":
+        host = "linux_amd64"
     elif ctx.os.name == "mac os x":
         host = "darwin_amd64"
     elif ctx.os.name.startswith("windows"):
