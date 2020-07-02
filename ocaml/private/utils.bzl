@@ -99,7 +99,7 @@ def get_all_deps(direct_deps):
     elif OcamlLibraryProvider in dep:
       lp = dep[OcamlLibraryProvider]
       # print("OcamlLibraryProvider: %s" % lp)
-      nopam_directs.append(lp.library)
+      nopam_directs.append(lp.payload)
       nopam_transitives.append(lp.deps.nopam)
       if lp.deps.opam:
         opam_transitives.append(lp.deps.opam)
@@ -107,7 +107,7 @@ def get_all_deps(direct_deps):
       mp = dep[OcamlModuleProvider]
       # print("OcamlModuleProvider dep: %s" % mp)
       # print("OcamlModuleProvider dep type: %s" % type(mp))
-      nopam_directs.append(mp.module)
+      nopam_directs.append(mp.payload)
       nopam_transitives.append(mp.deps.nopam)
       # opam_directs.append(None)
       if mp.deps.opam:
