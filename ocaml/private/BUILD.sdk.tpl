@@ -90,15 +90,15 @@ toolchain(
     exec_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
-        "@obazl//:native"
+        # "@obazl//:native"
     ],
     target_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
-        "@obazl//:native"
+        # "@obazl//:native"
     ],
     # target_compatible_with = constraints,
-    toolchain = ":ocaml_toolchaininfo_native_provider"
+    toolchain = ":ocaml_toolchaininfo_native_provider_macos"
 )
 
 toolchain(
