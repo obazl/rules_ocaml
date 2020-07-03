@@ -145,7 +145,7 @@ def _ppx_library_impl(ctx):
 
   args = ctx.actions.args()
   args.add("ocamlopt")
-  args.add("-verbose")
+  # args.add("-verbose")
   args.add("-w", ctx.attr.warnings)
 
   # Error (warning 49): no cmi file was found in path for module <m>

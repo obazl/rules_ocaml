@@ -26,7 +26,7 @@ def _compile_native_with_ppx_impl(ctx, env, tc, src_file):
 
     args = ctx.actions.args()
     args.add("ocamlopt")
-    args.add("-verbose")
+    # args.add("-verbose")
     args.add("-ccopt", "-v")
     args.add("-w", ctx.attr.warnings)
 

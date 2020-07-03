@@ -10,7 +10,8 @@ ppx_binary(
             "-linkpkg",
             ## DON'T FORGET THIS:
             "-predicates", "ppx_driver",
-            "-verbose"],
+            # "-verbose"
+    ],
     deps = ["@opam//pkg:base",
             "@opam//pkg:ppxlib",
             "@opam//pkg:ppxlib.metaquot",

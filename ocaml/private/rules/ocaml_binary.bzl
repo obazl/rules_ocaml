@@ -266,7 +266,7 @@ def _compile_with_ppx(ctx):
   args = ctx.actions.args()
   args.add("ocamlopt")
   #TODO: if --verbose
-  args.add("-verbose")
+  # args.add("-verbose")
   args.add("-ccopt", "-v")
   args.add("-w", WARNING_FLAGS)
   args.add_all(["-strict-sequence", "-strict-formats", "-short-paths",

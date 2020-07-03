@@ -15,7 +15,7 @@ ppx_module(
         "-linkall",
         "-linkpkg",
         "-predicates", "ppx_driver",
-        "-verbose",
+        # "-verbose",
         "-c",
     ],
     deps = ["@opam//pkg:base",
