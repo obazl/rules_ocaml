@@ -2,7 +2,7 @@
 # You can shorten //hello/archive:archive to hello/archive
 # To run: $ bazel run hello/archive
 
-load("@obazl//ocaml:build.bzl",
+load("@obazl_rules_ocaml//ocaml:build.bzl",
      "ocaml_submodule_rename",  # macro
      "ocaml_archive", "ocaml_module",
 )

@@ -1,6 +1,6 @@
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
     "OpamPkgInfo")
-load("@obazl//ocaml/private:common.bzl",
+load("@obazl_rules_ocaml//ocaml/private:common.bzl",
     "OCAML_VERSION")
 
 # The path to the root opam directory within external
@@ -41,20 +41,20 @@ def _opam_repo_impl(repository_ctx):
     repository_ctx.file("WORKSPACE", "", False)
     repository_ctx.template(
         "BUILD.bazel",
-        Label("@obazl//opam:BUILD.opam.tpl"),
+        Label("@obazl_rules_ocaml//opam:BUILD.opam.tpl"),
         executable = False,
         # substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
     )
     repository_ctx.template(
         "pkg/BUILD.bazel",
-        Label("@obazl//opam:BUILD.opampkg.tpl"),
+        Label("@obazl_rules_ocaml//opam:BUILD.opampkg.tpl"),
         executable = False,
         substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
     )
 
     repository_ctx.template(
         "ppx/BUILD.bazel",
-        Label("@obazl//opam:ppx/BUILD.tpl"),
+        Label("@obazl_rules_ocaml//opam:ppx/BUILD.tpl"),
         executable = False,
     )
     repository_ctx.file(
@@ -65,7 +65,7 @@ def _opam_repo_impl(repository_ctx):
 
     repository_ctx.template(
         "ppxlib/BUILD.bazel",
-        Label("@obazl//opam:ppxlib/BUILD.tpl"),
+        Label("@obazl_rules_ocaml//opam:ppxlib/BUILD.tpl"),
         executable = False,
         # substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
         # substitutions = {"{pkg}": "ppxlib.metaquot"}

@@ -76,11 +76,11 @@ Compare:
 
 prints as:
 
-depset([depset([Label("@obazl//alpha/beta:bar")]), depset([depset([Label("@obazl//alpha/beta:foo")])])])
+depset([depset([Label("@obazl_rules_ocaml//alpha/beta:bar")]), depset([depset([Label("@obazl_rules_ocaml//alpha/beta:foo")])])])
 
 with to_list():
 
-[depset([Label("@obazl//alpha/beta:bar")]), depset([depset([Label("@obazl//alpha/beta:foo")])])]
+[depset([Label("@obazl_rules_ocaml//alpha/beta:bar")]), depset([depset([Label("@obazl_rules_ocaml//alpha/beta:foo")])])]
 
 Note that one depset level has been removed from the transitive one, beta:bar.
 

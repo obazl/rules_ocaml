@@ -1,4 +1,4 @@
-load("@obazl//ocaml:build.bzl",
+load("@obazl_rules_ocaml//ocaml:build.bzl",
      "ocaml_binary",
      "ocaml_library",
      "ocaml_ppx_binary",
@@ -38,8 +38,8 @@ ocaml_ppx_pipeline(
     visibility = ["//visibility:public"],
     srcs = [
         ":preproc",
-        "@obazl//ppxlib:driver_standalone_shim"
-        # "@obazl//ppx:migrate_parsetree_driver_shim"
+        "@obazl_rules_ocaml//ppxlib:driver_standalone_shim"
+        # "@obazl_rules_ocaml//ppx:migrate_parsetree_driver_shim"
     ],
     opts = ["-linkall",
             "-predicates", "ppx_deriving",

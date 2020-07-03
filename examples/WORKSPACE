@@ -1,9 +1,9 @@
 local_repository(
-    name = "obazl",
+    name = "obazl_rules_ocaml",
     path = ".."
 )
 
-load("@obazl//ocaml:deps.bzl",
+load("@obazl_rules_ocaml//ocaml:deps.bzl",
      "ocaml_configure_tooling",
      # "ocaml_repositories",
      # "ocaml_home_sdk",

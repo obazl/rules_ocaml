@@ -1,5 +1,5 @@
-load("@obazl//ocaml/private:rules/ppx_binary.bzl", "ppx_binary")
-load("@obazl//ocaml/private:rules/ppx_module.bzl", "ppx_module")
+load("@obazl_rules_ocaml//ocaml/private:rules/ppx_binary.bzl", "ppx_binary")
+load("@obazl_rules_ocaml//ocaml/private:rules/ppx_module.bzl", "ppx_module")
 
 package(default_visibility = ["//visibility:public"])
 

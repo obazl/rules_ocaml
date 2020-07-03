@@ -2,7 +2,7 @@
 # You can shorten //hello/simple:simple to hello/simple
 # To run: $ bazel run hello/simple
 
-load("@obazl//ocaml:build.bzl", "ocaml_binary")
+load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_binary")
 
 ocaml_binary(
     name = "hello",

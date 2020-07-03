@@ -1,4 +1,4 @@
-load("@obazl//template:build.bzl",
+load("@obazl_rules_ocaml//template:build.bzl",
      "obazl_template",
      "ocaml_ppx_tpl",
      "ocaml_preproc_tpl")

@@ -2,7 +2,7 @@
 # You can shorten //hello/lwt:lwt to hello/lwt
 # To run: $ bazel run hello/lwt
 
-load("@obazl//ocaml:build.bzl", "ocaml_binary")
+load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_binary")
 
 ocaml_binary(
     name = "lwt",

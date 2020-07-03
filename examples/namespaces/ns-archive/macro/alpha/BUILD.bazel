@@ -1,4 +1,4 @@
-load("@obazl//ocaml:build.bzl",
+load("@obazl_rules_ocaml//ocaml:build.bzl",
      # macros
      "ocaml_ns_archive_macro",
      "ocaml_submodule_rename",

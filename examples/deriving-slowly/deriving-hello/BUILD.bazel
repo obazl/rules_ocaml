@@ -1,4 +1,4 @@
-load("@obazl//ocaml:build.bzl",
+load("@obazl_rules_ocaml//ocaml:build.bzl",
      "ocaml_binary",
      "ocaml_library",
      "ocaml_ppx_pipeline")
@@ -58,8 +58,8 @@ ocaml_ppx_pipeline(
     visibility = ["//visibility:public"],
     srcs = [
         # A driver is REQUIRED for a ppx pipeline. Either of these will do:
-        # "@obazl//ppxlib:driver_standalone_shim"
-        "@obazl//ppx:migrate_parsetree_driver_shim"
+        # "@obazl_rules_ocaml//ppxlib:driver_standalone_shim"
+        "@obazl_rules_ocaml//ppx:migrate_parsetree_driver_shim"
     ],
     opts = ["-linkall",
             # this links findlib pkgs and has the side effect

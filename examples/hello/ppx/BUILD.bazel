@@ -9,7 +9,7 @@
 # each build, so you can compare the original source to the preprocessed
 # source (in this case: bazel-bin/hello/ppx/_pp_/hello_ppx.ml).
 
-load("@obazl//ocaml:build.bzl",
+load("@obazl_rules_ocaml//ocaml:build.bzl",
      "ocaml_preproc", # macro
      "ocaml_binary", "ocaml_ppx_pipeline" # rules
 )
@@ -17,7 +17,7 @@ load("@obazl//ocaml:build.bzl",
 # Step 1: compile the ppx pipeline.
 ocaml_ppx_pipeline(
     name = "ppx_pipeline",
-    srcs = ["@obazl//ppxlib:driver_standalone_shim"], # <= REQUIRED for ppx pipeline
+    srcs = ["@obazl_rules_ocaml//ppxlib:driver_standalone_shim"], # <= REQUIRED for ppx pipeline
     opts = ["-strict-sequence",
             "-strict-formats",
             "-short-paths",

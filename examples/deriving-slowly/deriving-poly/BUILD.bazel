@@ -1,4 +1,4 @@
-load("@obazl//ocaml:build.bzl",
+load("@obazl_rules_ocaml//ocaml:build.bzl",
      "ocaml_binary",
      "ocaml_library",
      "ocaml_ppx_pipeline")
@@ -37,7 +37,7 @@ ocaml_ppx_pipeline(
     message = "Compiling executable ppx",
     visibility = ["//visibility:public"],
     srcs = [":preproc",
-            "@obazl//ppxlib:driver_standalone_shim"
+            "@obazl_rules_ocaml//ppxlib:driver_standalone_shim"
     ],
     opts = ["-linkpkg"],
     deps = ["@opam//pkg:base",
