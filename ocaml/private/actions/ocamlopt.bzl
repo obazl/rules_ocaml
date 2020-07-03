@@ -1,7 +1,7 @@
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_compile")
-load("@obazl//ocaml/private:providers.bzl", "OpamPkgInfo", "PpxInfo")
-load("@obazl//ocaml/private:utils.bzl", "WARNING_FLAGS")
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl", "OpamPkgInfo", "PpxInfo")
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl", "WARNING_FLAGS")
 
 def _compile_native_intf(ctx, env, tc, f):
     outfile_cmi = ctx.actions.declare_file(f.basename.rstrip("mli") + "cmi")

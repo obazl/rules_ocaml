@@ -1,14 +1,14 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -16,7 +16,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -31,7 +31,7 @@ load("@obazl//ocaml/private:utils.bzl",
 ################################################################
 def _compile_interface(ctx):
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -71,7 +71,7 @@ def _compile_implementation(ctx):
 
   impl_file = ctx.file.impl
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -244,5 +244,5 @@ ocaml_module = rule(
   provides = [OcamlModuleProvider],
   # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

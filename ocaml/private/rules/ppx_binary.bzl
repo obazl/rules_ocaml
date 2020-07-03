@@ -1,9 +1,9 @@
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -11,7 +11,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -23,7 +23,7 @@ load("@obazl//ocaml/private:utils.bzl",
      "WARNING_FLAGS"
 )
 # testing
-load("@obazl//ocaml/private:actions/ocamlopt.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
 
@@ -54,7 +54,7 @@ load("@obazl//ocaml/private:actions/ocamlopt.bzl",
 #   else:
 #     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
 
-#   tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+#   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
 #   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -94,7 +94,7 @@ def _ppx_binary_impl(ctx):
   # print("PPX BINARY OPAM DEPS")
   # print(mydeps.opam)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -218,5 +218,5 @@ ppx_binary = rule(
   ),
   provides = [DefaultInfo, PpxBinaryProvider],
   executable = True,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

@@ -13,17 +13,17 @@
 # limitations under the License.
 
 load(
-    "@obazl//ocaml/private:sdk.bzl",
+    "@obazl_rules_ocaml//ocaml/private:sdk.bzl",
     _ocaml_register_toolchains = "ocaml_register_toolchains",
 )
 load(
-    "@obazl//ocaml/private:sdk_list.bzl",
+    "@obazl_rules_ocaml//ocaml/private:sdk_list.bzl",
     _DEFAULT_VERSION = "DEFAULT_VERSION",
     _MIN_SUPPORTED_VERSION = "MIN_SUPPORTED_VERSION",
     _SDK_REPOSITORIES = "SDK_REPOSITORIES",
 )
 load(
-    "@obazl//ocaml/private:platforms.bzl",
+    "@obazl_rules_ocaml//ocaml/private:platforms.bzl",
     "OCAMLARCH_CONSTRAINTS",
     "OCAMLOS_CONSTRAINTS",
     "PLATFORMS",
@@ -50,7 +50,7 @@ def declare_constraints():
     @bazel_tools//platforms:default_platform will be used most of the time).
     """
     for ocamlos, constraint in OCAMLOS_CONSTRAINTS.items():
-        if constraint.startswith("@obazl//ocaml/toolchain:"):
+        if constraint.startswith("@obazl_rules_ocaml//ocaml/toolchain:"):
             native.constraint_value(
                 name = ocamlos,
                 constraint_setting = "@platforms//os:os",
@@ -62,7 +62,7 @@ def declare_constraints():
             )
 
     for ocamlarch, constraint in OCAMLARCH_CONSTRAINTS.items():
-        if constraint.startswith("@obazl//ocaml/toolchain:"):
+        if constraint.startswith("@obazl_rules_ocaml//ocaml/toolchain:"):
             native.constraint_value(
                 name = ocamlarch,
                 constraint_setting = "@platforms//cpu:cpu",

@@ -1,4 +1,4 @@
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",

@@ -134,7 +134,7 @@ COCAML_OCAMLOS_OCAMLARCH = {
 
 def _generate_constraints(names, bazel_constraints):
     return {
-        name: bazel_constraints.get(name, "@obazl//ocaml/toolchain:" + name)
+        name: bazel_constraints.get(name, "@obazl_rules_ocaml//ocaml/toolchain:" + name)
         for name in names
     }
 
@@ -152,7 +152,7 @@ def _generate_platforms():
             name = ocamlos + "_" + ocamlarch,
             ocamlos = ocamlos,
             ocamlarch = ocamlarch,
-            constraints = constraints + ["@obazl//ocaml/toolchain:cocaml_off"],
+            constraints = constraints + ["@obazl_rules_ocaml//ocaml/toolchain:cocaml_off"],
             cocaml = False,
         ))
         if (ocamlos, ocamlarch) in COCAML_OCAMLOS_OCAMLARCH:
@@ -163,7 +163,7 @@ def _generate_platforms():
                 name = ocamlos + "_" + ocamlarch + "_cocaml",
                 ocamlos = ocamlos,
                 ocamlarch = ocamlarch,
-                constraints = constraints + ["@obazl//ocaml/toolchain:cocaml_on"] + mingw,
+                constraints = constraints + ["@obazl_rules_ocaml//ocaml/toolchain:cocaml_on"] + mingw,
                 cocaml = True,
             ))
 
@@ -176,14 +176,14 @@ def _generate_platforms():
             name = "ios_" + ocamlarch,
             ocamlos = "darwin",
             ocamlarch = ocamlarch,
-            constraints = constraints + ["@obazl//ocaml/toolchain:cocaml_off"],
+            constraints = constraints + ["@obazl_rules_ocaml//ocaml/toolchain:cocaml_off"],
             cocaml = False,
         ))
         platforms.append(struct(
             name = "ios_" + ocamlarch + "_cocaml",
             ocamlos = "darwin",
             ocamlarch = ocamlarch,
-            constraints = constraints + ["@obazl//ocaml/toolchain:cocaml_on"],
+            constraints = constraints + ["@obazl_rules_ocaml//ocaml/toolchain:cocaml_on"],
             cocaml = True,
         ))
 

@@ -1,18 +1,18 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl//ocaml/private:actions/library.bzl", "library_action")
-load("@obazl//ocaml/private:actions/ppx.bzl",     "ocaml_ppx_library_compile")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/library.bzl", "library_action")
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",     "ocaml_ppx_library_compile")
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      "ocaml_ppx_library_gendeps",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl//ocaml/private:actions/ocamlopt.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
+load("@obazl_rules_ocaml//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
@@ -20,7 +20,7 @@ load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -48,7 +48,7 @@ def _ocaml_library_parallel(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -244,6 +244,6 @@ ocaml_library = rule(
   ),
   provides = [OcamlLibraryProvider],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
 )

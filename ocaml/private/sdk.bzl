@@ -13,17 +13,17 @@
 # limitations under the License.
 
 # load(
-#     "@obazl//ocaml/private:ocaml_toolchain.bzl",
+#     "@obazl_rules_ocaml//ocaml/private:ocaml_toolchain.bzl",
 #     "declare_toolchains"
 # )
-load("@obazl//ocaml/private:ocaml_toolchains.bzl",
+load("@obazl_rules_ocaml//ocaml/private:ocaml_toolchains.bzl",
      "ocaml_toolchain")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK")
-load("@obazl//opam:opam.bzl",
+load("@obazl_rules_ocaml//opam:opam.bzl",
      "OPAMROOT",
      "opam_repo")
-load("@obazl//ocaml/private:common.bzl",
+load("@obazl_rules_ocaml//ocaml/private:common.bzl",
      "OCAML_VERSION",
      "OCAMLBUILD_VERSION",
      "OCAMLFIND_VERSION",
@@ -32,15 +32,15 @@ load("@obazl//ocaml/private:common.bzl",
      "executable_path")
 
 # load(
-#     "@obazl//ocaml/private:noocaml.bzl",
+#     "@obazl_rules_ocaml//ocaml/private:noocaml.bzl",
 #     "ocaml_register_noocaml",
 # )
 load(
-    "@obazl//ocaml/private:platforms.bzl",
+    "@obazl_rules_ocaml//ocaml/private:platforms.bzl",
     "generate_toolchain_names",
 )
 load(
-    "@obazl//ocaml/private:skylib/lib/versions.bzl",
+    "@obazl_rules_ocaml//ocaml/private:skylib/lib/versions.bzl",
     "versions",
 )
 
@@ -211,7 +211,7 @@ def _sdk_build_file(ctx, platform):
     sdkpath = _detect_installed_sdk_home(ctx)
     ctx.template(
         "BUILD.bazel",
-        Label("@obazl//ocaml/private:BUILD.sdk.tpl"),
+        Label("@obazl_rules_ocaml//ocaml/private:BUILD.sdk.tpl"),
         executable = False,
         substitutions = {
             "{sdkpath}": sdkpath
@@ -219,7 +219,7 @@ def _sdk_build_file(ctx, platform):
     )
     # ctx.template(
     #     "csdk/BUILD.bazel",
-    #     Label("@obazl//ocaml/private:BUILD.csdk.tpl"),
+    #     Label("@obazl_rules_ocaml//ocaml/private:BUILD.csdk.tpl"),
     #     executable = False,
     #     substitutions = {
     #         "{sdkpath}": sdkpath

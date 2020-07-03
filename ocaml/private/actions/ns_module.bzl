@@ -1,8 +1,8 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlModuleProvider",
      "PpxModuleProvider")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",
@@ -16,7 +16,7 @@ load("@obazl//ocaml/private:utils.bzl",
 
 def ns_module_action(ctx):
   # print("ns_module_action: %s" % ctx)
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 

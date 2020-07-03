@@ -1,8 +1,8 @@
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -10,7 +10,7 @@ load("@obazl//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -25,7 +25,7 @@ load("@obazl//ocaml/private:utils.bzl",
 
 ####  OCAML_PPX_PIPELINE IMPLEMENTATION
 def _ocaml_ppx_pipeline_impl(ctx):
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -136,5 +136,5 @@ ocaml_ppx_pipeline = rule(
   ),
   provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = True,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

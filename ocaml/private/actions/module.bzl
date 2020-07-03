@@ -1,6 +1,6 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@obazl//ocaml/private:providers.bzl", "PpxBinaryProvider")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl", "PpxBinaryProvider")
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
 )

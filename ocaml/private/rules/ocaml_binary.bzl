@@ -1,20 +1,20 @@
-load("@obazl//opam:opam.bzl",
+load("@obazl_rules_ocaml//opam:opam.bzl",
     "OPAMROOT")
-load("@obazl//ocaml/private:common.bzl",
+load("@obazl_rules_ocaml//ocaml/private:common.bzl",
      "OCAML_VERSION")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "compile_new_srcs")
-load("@obazl//ocaml/private:actions/ocaml.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ocaml.bzl",
      "ocaml_compile")
-load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -62,7 +62,7 @@ def _compile_without_ppx(ctx):
 
   srcs = copy_srcs_to_tmp(ctx)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   if ctx.attr.exe_name:
     outfilename = ctx.attr.exe_name
@@ -249,7 +249,7 @@ def _compile_without_ppx(ctx):
 
 ################################################################
 def _compile_with_ppx(ctx):
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -345,5 +345,5 @@ ocaml_binary = rule(
     message = attr.string()
   ),
   executable = True,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

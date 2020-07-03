@@ -1,12 +1,12 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlLibraryProvider",
      "PpxLibraryProvider",
      "OpamPkgInfo")
 
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -74,7 +74,7 @@ def library_action(ctx):
   srcs = copy_srcs_to_tmp(ctx)
   # return [DefaultInfo(files=depset(direct=srcs)),OcamlLibraryProvider()]
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 

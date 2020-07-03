@@ -1,9 +1,9 @@
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "WARNING_FLAGS"
 )
-load("@obazl//ocaml/private:actions/ocaml.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ocaml.bzl",
      "ocaml_compile")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      # "OcamlSDK",
      # "OpamPkgInfo",
      "PpxInfo")

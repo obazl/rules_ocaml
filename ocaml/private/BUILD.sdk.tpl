@@ -1,9 +1,9 @@
-load("@obazl//ocaml/private:ocaml_toolchains.bzl",
+load("@obazl_rules_ocaml//ocaml/private:ocaml_toolchains.bzl",
      "ocaml_toolchain")
-load("@obazl//ocaml/private:sdk.bzl",
+load("@obazl_rules_ocaml//ocaml/private:sdk.bzl",
      "ocaml_sdkpath",
      "ocaml_register_toolchains")
-# load("@obazl//ocaml/private:ocaml_toolchain.bzl",
+# load("@obazl_rules_ocaml//ocaml/private:ocaml_toolchain.bzl",
 #      "declare_toolchains")
 # "ocaml_sdk")
 
@@ -86,16 +86,16 @@ ocaml_toolchain(
 
 toolchain(
     name = "ocaml_toolchain_native_linux",
-    toolchain_type = "@obazl//ocaml:toolchain",
+    toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
     exec_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",
-        # "@obazl//:native"
+        # "@obazl_rules_ocaml//:native"
     ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",
-        # "@obazl//:native"
+        # "@obazl_rules_ocaml//:native"
     ],
     # target_compatible_with = constraints,
     toolchain = ":ocaml_toolchaininfo_native_provider_linux"
@@ -122,16 +122,16 @@ ocaml_toolchain(
 
 toolchain(
     name = "ocaml_toolchain_native_macos",
-    toolchain_type = "@obazl//ocaml:toolchain",
+    toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
     exec_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
-        # "@obazl//:native"
+        # "@obazl_rules_ocaml//:native"
     ],
     target_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
-        # "@obazl//:native"
+        # "@obazl_rules_ocaml//:native"
     ],
     # target_compatible_with = constraints,
     toolchain = ":ocaml_toolchaininfo_native_provider_macos"
@@ -139,7 +139,7 @@ toolchain(
 
 toolchain(
     name = "ocaml_toolchain_bytecode_macos",
-    toolchain_type = "@obazl//ocaml:toolchain",
+    toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
     exec_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",

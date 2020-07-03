@@ -19,12 +19,12 @@
 # anything has been declared.
 
 load(
-    "@obazl//ocaml/private:repositories.bzl",
+    "@obazl_rules_ocaml//ocaml/private:repositories.bzl",
     _ocaml_configure_tooling = "ocaml_configure_tooling",
     # _ocaml_repositories = "ocaml_repositories"
 )
 load(
-    "@obazl//ocaml/private:sdk.bzl",
+    "@obazl_rules_ocaml//ocaml/private:sdk.bzl",
     _ocaml_register_toolchains = "ocaml_register_toolchains",
     # _ocaml_download_sdk = "ocaml_download_sdk",
     _ocaml_home_sdk = "ocaml_home_sdk",

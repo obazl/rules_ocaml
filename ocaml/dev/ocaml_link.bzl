@@ -11,7 +11,7 @@ def _ocaml_library_dev_impl(ctx):
   else:
     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -134,6 +134,6 @@ ocaml_library_dev = rule(
   ),
   # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
 )

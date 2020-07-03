@@ -1,14 +1,14 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("@obazl//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl//ocaml/private:actions/ns_module.bzl", "ns_module_action")
-load("@obazl//ocaml/private:actions/module.bzl", "rename_module", "transform_module_action")
-# load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
+load("@obazl_rules_ocaml//ocaml/private:actions/ns_module.bzl", "ns_module_action")
+load("@obazl_rules_ocaml//ocaml/private:actions/module.bzl", "rename_module", "transform_module_action")
+# load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      # "apply_ppx",
      # "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -16,7 +16,7 @@ load("@obazl//ocaml/private:actions/module.bzl", "rename_module", "transform_mod
      # "ocaml_ppx_library_cmo",
      # "ocaml_ppx_library_compile",
      # "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "capitalize_initial_char",
      "get_all_deps",
      "get_opamroot",
@@ -36,7 +36,7 @@ def _ppx_module_impl(ctx):
 
   mydeps = get_all_deps(ctx.attr.deps)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
@@ -218,7 +218,7 @@ ppx_module = rule(
   ),
   provides = [DefaultInfo, PpxModuleProvider],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
 
 ################################################################
@@ -250,6 +250,6 @@ ppx_ns_module = rule(
   ),
   provides = [DefaultInfo, PpxModuleProvider],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
 

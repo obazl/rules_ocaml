@@ -1,19 +1,19 @@
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_compile")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      "ocaml_ppx_library_gendeps",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:actions/ocamlopt.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -38,7 +38,7 @@ def _ocaml_compile_with_ppx_impl(ctx):
   else:
     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -113,7 +113,7 @@ ocaml_compile_with_ppx = rule(
   ),
   # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
 )
 
@@ -124,7 +124,7 @@ def _ocaml_compile_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -323,6 +323,6 @@ ocaml_compile = rule(
   ),
   # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
 )

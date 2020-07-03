@@ -1,15 +1,15 @@
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_compile")
-load("@obazl//ocaml/private:actions/ppx.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      "ocaml_ppx_library_gendeps",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_link")
-load("@obazl//ocaml/private:actions/ocamlopt.bzl",
+load("@obazl_rules_ocaml//ocaml/private:actions/ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
-load("@obazl//ocaml/private:providers.bzl",
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
@@ -17,7 +17,7 @@ load("@obazl//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl//ocaml/private:utils.bzl",
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -42,7 +42,7 @@ def _ocaml_archive_batch(ctx):
   # print("ALL DEPS for target %s" % ctx.label.name)
   # print(mydeps)
 
-  tc = ctx.toolchains["@obazl//ocaml:toolchain"]
+  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -283,6 +283,6 @@ ocaml_archive = rule(
   ),
   provides = [OcamlArchiveProvider],
   executable = False,
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
   # outputs = { "build_dir": "_build_%{name}" },
 )

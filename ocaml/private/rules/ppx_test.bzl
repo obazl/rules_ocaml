@@ -1,5 +1,5 @@
-load("@obazl//ocaml/private:providers.bzl", "PpxBinaryProvider")
-load("@obazl//ocaml/private:utils.bzl", "OCAML_IMPL_FILETYPES")
+load("@obazl_rules_ocaml//ocaml/private:providers.bzl", "PpxBinaryProvider")
+load("@obazl_rules_ocaml//ocaml/private:utils.bzl", "OCAML_IMPL_FILETYPES")
 
 ##FIXME: handle expected failures
 
@@ -82,5 +82,5 @@ ppx_test = rule(
     mode = attr.string(default = "native"),
     message = attr.string()
   ),
-  toolchains = ["@obazl//ocaml:toolchain"],
+  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
