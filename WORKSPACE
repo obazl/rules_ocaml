@@ -15,7 +15,7 @@ http_archive(
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 bazel_skylib_workspace()
 
-load("@obazl//ocaml:deps.bzl", "ocaml_register_toolchains",
+load("@obazl_rules_ocaml//ocaml:deps.bzl", "ocaml_register_toolchains",
      # "ocaml_rules_dependencies"
 )
 
