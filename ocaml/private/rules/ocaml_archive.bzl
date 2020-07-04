@@ -171,7 +171,7 @@ def _ocaml_archive_batch(ctx):
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlLibrary",
     progress_message = "ocaml_archive({}): {}".format(
-        ctx.label.name, ctx.attr.message
+        ctx.label.name, ctx.attr.msg
       )
   )
 
@@ -264,7 +264,7 @@ ocaml_archive = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
-    message = attr.string(),
+    msg = attr.string(),
     # outputs = attr.output_list(
     #   # default = ["%{name}.pp.ml",
     #   #           "%{name}.pp.ml.d"],
