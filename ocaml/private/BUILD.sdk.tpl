@@ -3,9 +3,6 @@ load("@obazl_rules_ocaml//ocaml/private:ocaml_toolchains.bzl",
 load("@obazl_rules_ocaml//ocaml/private:sdk.bzl",
      "ocaml_sdkpath",
      "ocaml_register_toolchains")
-# load("@obazl_rules_ocaml//ocaml/private:ocaml_toolchain.bzl",
-#      "declare_toolchains")
-# "ocaml_sdk")
 
 OCAML_VERSION = "4.07.1"
 OCAMLBUILD_VERSION = "0.14.0"
