@@ -213,6 +213,26 @@ def _ocaml_archive_impl(ctx):
 
 ################################################################
 ocaml_archive = rule(
+  doc = """Generates an OCaml archive file (.cmxa) and a C archive file (.a).
+
+  Here is an example, from the 'digestif' library:
+
+ocaml_archive(
+    name = "common_archive",
+    msg = "digestif, common",
+    opts = ["-I", "src", "-open", "Digestif_by"],
+    deps = [
+        ":digestif_by",
+        ":digestif_bi",
+        ":digestif_conv",
+        ":digestif_eq",
+        ":digestif_hash",
+        ":digestif_mli", # this will be ignored, archives do not understand cmi files
+    ]
+)
+
+
+""",
   implementation = _ocaml_archive_impl,
   attrs = dict(
     archive_name = attr.string(),
@@ -223,6 +243,7 @@ ocaml_archive = rule(
       # allow_single_file = True
     ),
     srcs = attr.label_list(
+      doc = "OCaml source files",
       allow_files = OCAML_FILETYPES
     ),
     # src_root = attr.label(
