@@ -1,14 +1,14 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl_rules_ocaml//ocaml/private:actions/ns_module.bzl", "ns_module_action")
-load("@obazl_rules_ocaml//ocaml/private:actions/module.bzl", "rename_module", "transform_module_action")
-# load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
+load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/private/actions:ns_module.bzl", "ns_module_action")
+load("//ocaml/private/actions:module.bzl", "rename_module", "transform_module_action")
+# load("//ocaml/private/actions:ppx.bzl",
      # "apply_ppx",
      # "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -16,7 +16,7 @@ load("@obazl_rules_ocaml//ocaml/private:actions/module.bzl", "rename_module", "t
      # "ocaml_ppx_library_cmo",
      # "ocaml_ppx_library_compile",
      # "ocaml_ppx_library_link")
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "capitalize_initial_char",
      "get_all_deps",
      "get_opamroot",

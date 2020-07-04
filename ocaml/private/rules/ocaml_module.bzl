@@ -1,14 +1,14 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
+load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/private/actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -16,7 +16,7 @@ load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",

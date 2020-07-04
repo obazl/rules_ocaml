@@ -1,11 +1,11 @@
-load("@obazl_rules_ocaml//ocaml/private:common.bzl",
+load("//ocaml/private:common.bzl",
     "OCAML_VERSION")
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl_rules_ocaml//opam:opam.bzl",
+load("//opam:opam.bzl",
      "OPAMROOT")
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "strip_ml_extension",
      "OCAML_FILETYPES"
 )

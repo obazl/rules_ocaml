@@ -1,5 +1,5 @@
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl", "PpxBinaryProvider")
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl", "OCAML_IMPL_FILETYPES")
+load("//ocaml/private:providers.bzl", "PpxBinaryProvider")
+load("//ocaml/private:utils.bzl", "OCAML_IMPL_FILETYPES")
 
 ##FIXME: handle expected failures
 

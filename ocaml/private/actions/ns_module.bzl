@@ -1,8 +1,8 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
      "OcamlModuleProvider",
      "PpxModuleProvider")
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",

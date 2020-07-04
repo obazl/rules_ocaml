@@ -1,20 +1,20 @@
-load("@obazl_rules_ocaml//opam:opam.bzl",
-    "OPAMROOT")
-load("@obazl_rules_ocaml//ocaml/private:common.bzl",
+load("//opam:opam.bzl",
+     "OPAMROOT")
+load("//ocaml/private:common.bzl",
      "OCAML_VERSION")
-load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
+load("//ocaml/private/actions:ppx.bzl",
      "apply_ppx",
      "compile_new_srcs")
-load("@obazl_rules_ocaml//ocaml/private:actions/ocaml.bzl",
+load("//ocaml/private/actions:ocaml.bzl",
      "ocaml_compile")
-load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/private:providers.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",

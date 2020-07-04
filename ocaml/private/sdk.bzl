@@ -13,17 +13,17 @@
 # limitations under the License.
 
 # load(
-#     "@obazl_rules_ocaml//ocaml/private:ocaml_toolchain.bzl",
+#     "//ocaml/private:ocaml_toolchain.bzl",
 #     "declare_toolchains"
 # )
-load("@obazl_rules_ocaml//ocaml/private:ocaml_toolchains.bzl",
+load("//ocaml/private:ocaml_toolchains.bzl",
      "ocaml_toolchain")
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
      "OcamlSDK")
-load("@obazl_rules_ocaml//opam:opam.bzl",
+load("//opam:opam.bzl",
      "OPAMROOT",
      "opam_repo")
-load("@obazl_rules_ocaml//ocaml/private:common.bzl",
+load("//ocaml/private:common.bzl",
      "OCAML_VERSION",
      "OCAMLBUILD_VERSION",
      "OCAMLFIND_VERSION",
@@ -32,15 +32,15 @@ load("@obazl_rules_ocaml//ocaml/private:common.bzl",
      "executable_path")
 
 # load(
-#     "@obazl_rules_ocaml//ocaml/private:noocaml.bzl",
+#     "//ocaml/private:noocaml.bzl",
 #     "ocaml_register_noocaml",
 # )
 load(
-    "@obazl_rules_ocaml//ocaml/private:platforms.bzl",
+    "//ocaml/private:platforms.bzl",
     "generate_toolchain_names",
 )
 load(
-    "@obazl_rules_ocaml//ocaml/private:skylib/lib/versions.bzl",
+    "//ocaml/private:skylib/lib/versions.bzl",
     "versions",
 )
 
@@ -211,7 +211,7 @@ def _sdk_build_file(ctx, platform):
     sdkpath = _detect_installed_sdk_home(ctx)
     ctx.template(
         "BUILD.bazel",
-        Label("@obazl_rules_ocaml//ocaml/private:BUILD.sdk.tpl"),
+        Label("//ocaml/private:BUILD.sdk.tpl"),
         executable = False,
         substitutions = {
             "{sdkpath}": sdkpath
@@ -219,7 +219,7 @@ def _sdk_build_file(ctx, platform):
     )
     # ctx.template(
     #     "csdk/BUILD.bazel",
-    #     Label("@obazl_rules_ocaml//ocaml/private:BUILD.csdk.tpl"),
+    #     Label("//ocaml/private:BUILD.csdk.tpl"),
     #     executable = False,
     #     substitutions = {
     #         "{sdkpath}": sdkpath
@@ -361,7 +361,7 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
     # toolchain target defined in generated file ocaml_sdk/BUILD.bazel
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_macos")
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_linux")
-    native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
+    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
     # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
 
     # if noocaml:

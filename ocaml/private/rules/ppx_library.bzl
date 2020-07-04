@@ -1,12 +1,12 @@
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("@obazl_rules_ocaml//ocaml/private:actions/ocamlopt.bzl",
+load("//ocaml/private/actions:ocamlopt.bzl",
      "compile_native_with_ppx",
      "link_native")
-load("@obazl_rules_ocaml//ocaml/private:actions/library.bzl", "library_action")
-load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
+load("//ocaml/private/actions:library.bzl", "library_action")
+load("//ocaml/private/actions:ppx.bzl",
      "apply_ppx",
      # "ocaml_ppx_compile",
      # # "ocaml_ppx_apply",
@@ -14,7 +14,7 @@ load("@obazl_rules_ocaml//ocaml/private:actions/ppx.bzl",
      # "ocaml_ppx_library_cmo",
      # "ocaml_ppx_library_link"
 )
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",

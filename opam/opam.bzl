@@ -1,6 +1,6 @@
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private:providers.bzl",
     "OpamPkgInfo")
-load("@obazl_rules_ocaml//ocaml/private:common.bzl",
+load("//ocaml/private:common.bzl",
     "OCAML_VERSION")
 
 # The path to the root opam directory within external
