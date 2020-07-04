@@ -1,12 +1,12 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@obazl_rules_ocaml//ocaml/private:actions/batch.bzl", "copy_srcs_to_tmp")
-load("@obazl_rules_ocaml//ocaml/private:providers.bzl",
+load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/private:providers.bzl",
      "OcamlLibraryProvider",
      "PpxLibraryProvider",
      "OpamPkgInfo")
 
-load("@obazl_rules_ocaml//ocaml/private:utils.bzl",
+load("//ocaml/private:utils.bzl",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
