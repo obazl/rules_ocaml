@@ -75,14 +75,14 @@ ocaml_toolchain(
     visibility = ["//visibility:public"],
 )
 
-ocaml_toolchain(
-    name = "ocaml_toolchaininfo_bytecode_provider_linux",
-    # compiler = "ocamlc",
-    # opam_root= "...",
-    # sdk_path = "...",
-    # mode     = "bytecode",
-    visibility = ["//visibility:public"],
-)
+# ocaml_toolchain(
+#     name = "ocaml_toolchaininfo_bytecode_provider_linux",
+#     # compiler = "ocamlc",
+#     # opam_root= "...",
+#     # sdk_path = "...",
+#     # mode     = "bytecode",
+#     visibility = ["//visibility:public"],
+# )
 
 toolchain(
     name = "ocaml_toolchain_native_linux",
@@ -90,12 +90,12 @@ toolchain(
     exec_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",
-        # "@obazl_rules_ocaml//:native"
+        # "//:native"
     ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",
-        # "@obazl_rules_ocaml//:native"
+        # "//:native"
     ],
     # target_compatible_with = constraints,
     toolchain = ":ocaml_toolchaininfo_native_provider_linux"
@@ -111,14 +111,14 @@ ocaml_toolchain(
     visibility = ["//visibility:public"],
 )
 
-ocaml_toolchain(
-    name = "ocaml_toolchaininfo_bytecode_provider_macos",
-    # compiler = "ocamlc",
-    # opam_root= "...",
-    # sdk_path = "...",
-    # mode     = "bytecode",
-    visibility = ["//visibility:public"],
-)
+# ocaml_toolchain(
+#     name = "ocaml_toolchaininfo_bytecode_provider_macos",
+#     # compiler = "ocamlc",
+#     # opam_root= "...",
+#     # sdk_path = "...",
+#     # mode     = "bytecode",
+#     visibility = ["//visibility:public"],
+# )
 
 toolchain(
     name = "ocaml_toolchain_native_macos",
@@ -126,30 +126,30 @@ toolchain(
     exec_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
-        # "@obazl_rules_ocaml//:native"
+        # "//:native"
     ],
     target_compatible_with = [
         "@platforms//os:macos",
         "@platforms//cpu:x86_64",
-        # "@obazl_rules_ocaml//:native"
+        # "//:native"
     ],
     # target_compatible_with = constraints,
     toolchain = ":ocaml_toolchaininfo_native_provider_macos"
 )
 
-toolchain(
-    name = "ocaml_toolchain_bytecode_macos",
-    toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
-    exec_compatible_with = [
-        "@platforms//os:macos",
-        "@platforms//cpu:x86_64",
-        # "@platforms//mode:bytecode"
-    ],
-    target_compatible_with = [
-        "@platforms//os:macos",
-        "@platforms//cpu:x86_64",
-        # "@platforms//mode:bytecode"
-    ],
-    # target_compatible_with = constraints,
-    toolchain = ":ocaml_toolchaininfo_bytecode_provider_macos"
-)
+# toolchain(
+#     name = "ocaml_toolchain_bytecode_macos",
+#     toolchain_type = "//ocaml:toolchain",
+#     exec_compatible_with = [
+#         "@platforms//os:macos",
+#         "@platforms//cpu:x86_64",
+#         # "@platforms//mode:bytecode"
+#     ],
+#     target_compatible_with = [
+#         "@platforms//os:macos",
+#         "@platforms//cpu:x86_64",
+#         # "@platforms//mode:bytecode"
+#     ],
+#     # target_compatible_with = constraints,
+#     toolchain = ":ocaml_toolchaininfo_bytecode_provider_macos"
+# )
