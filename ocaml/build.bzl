@@ -8,36 +8,36 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice.
 """
 
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_archive.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_archive.bzl",
     _ocaml_archive = "ocaml_archive")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_binary.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_binary.bzl",
     _ocaml_binary = "ocaml_binary")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_interface.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_interface.bzl",
     _ocaml_interface = "ocaml_interface")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_deps.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_deps.bzl",
     _ocaml_deps = "ocaml_deps")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_library.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_library.bzl",
     _ocaml_library = "ocaml_library")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_module.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_module.bzl",
     _ocaml_module = "ocaml_module")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_ns_archive.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_ns_archive.bzl",
     _ocaml_ns_archive = "ocaml_ns_archive")
-load("@obazl_rules_ocaml//ocaml/private:rules/ocaml_ns_module.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_ns_module.bzl",
     _ocaml_ns_module = "ocaml_ns_module")
 
-load("@obazl_rules_ocaml//ocaml/private:rules/ppx_binary.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_binary.bzl",
      _ppx_binary = "ppx_binary")
-load("@obazl_rules_ocaml//ocaml/private:rules/ppx_module.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl",
      _ppx_ns_module = "ppx_ns_module")
-load("@obazl_rules_ocaml//ocaml/private:rules/ppx_library.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_library.bzl",
      _ppx_library = "ppx_library")
 
-load("@obazl_rules_ocaml//ocaml/private:rules/ppx_archive.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_archive.bzl",
      _ppx_archive = "ppx_archive")
-load("@obazl_rules_ocaml//ocaml/private:rules/ppx_module.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl",
      _ppx_module = "ppx_module")
 
-load("@obazl_rules_ocaml//ocaml/private:rules/ppx_test.bzl",
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_test.bzl",
      _ppx_test = "ppx_test")
 
 load("@obazl_rules_ocaml//ocaml/private:macros/ns_archive.bzl",
