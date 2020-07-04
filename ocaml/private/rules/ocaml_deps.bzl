@@ -39,12 +39,11 @@ def _ocaml_deps_impl(ctx):
 
   ordered_srcs = sorted(ctx.files.srcs)
 
-  depfile = ctx.actions.declare_file(ctx.label.name + ".depends")
+  depfile = ctx.actions.declare_file(ctx.attr.outfile)
   cmd = ""
   for src in [x for x in ctx.files.srcs if not x.path.endswith(".mli")]:
     # depfile = ctx.actions.declare_file(src.basename + ".depends")
     # deps.append(depfile)
-
     cmd = cmd + tc.ocamldep.path + " -modules -native -one-line -impl " + src.path + " >> " + depfile.path + ";\n"
 
   ctx.actions.run_shell(
@@ -59,7 +58,7 @@ def _ocaml_deps_impl(ctx):
       ctx.label.name, src.path
     )
   )
-  print(ordered_srcs)
+
   return [DefaultInfo(files = depset(direct = ordered_srcs + [depfile]))]
 
 ################################################################
@@ -73,71 +72,10 @@ ocaml_deps = rule(
       allow_files = OCAML_FILETYPES
     ),
     opts = attr.string_list(),
-    copts = attr.string_list(),
-    linkopts = attr.string_list(),
-    deps = attr.label_list(
-      doc = "Dependencies. Do not include preprocessor (PPX) deps."
-    ),
-    mode = attr.string(default = "native"), # or "bytecode"
-    message = attr.string()
+    outfile = attr.string(
+      mandatory = True
+    )
   ),
   executable = False,
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
-
-
-  # interface_inputs = []
-  # intf_out = ctx.actions.declare_file("hello_world_test.cmi")
-  # interface_outputs = [intf_out]
-  # for s in ctx.attr.srcs_intf:
-  #   interface_inputs.append(s.label.name)
-  #   # interface_outputs.append(s.files.to_list()[0])
-  # print("INTERFACE FILES:")
-  # print(interface_inputs)
-
-  # implementation_inputs = []
-  # impl_out = ctx.actions.declare_file("hello_world_test")
-  # implementation_outputs = [impl_out]
-  # for s in ctx.attr.srcs_impl:
-  #   implementation_inputs.append(s.label.name)
-  #   # implementation_outputs.append(s.files.to_list()[0])
-  # # print("IMPLEMENTATION FILES:")
-  # # print(implementation_inputs)
-
-  # ################ compile interface files ################
-  # command = " ".join([
-  #   opam_env_command,
-  #   ocamlfind, # .path,
-  #   "ocamlopt",
-  #   "-verbose",
-  #   # ocamlbuild_opts,
-  #   " ".join(ctx.attr.copts),
-  #   ppx,
-  #   lflags,
-  #   # pkgs,
-  #   "-linkpkg -package base -package ppxlib",
-  #   # "-c ",
-  #   "-linkall",
-  #   "-o hello_world_test.cmi",
-  #   # interface_outputs[0].basename,
-  #   # src_root,
-  #   " ".join(interface_inputs),
-  #   # "&& cp -L %s %s" % (intermediate_bin, ctx.outputs.executable.path)
-  # ])
-  # print("command: " + command)
-  # ctx.actions.run_shell(
-  #   inputs = ctx.files.srcs_intf,
-  #   # NOTE: here the tools attrib establishes the dependency of this
-  #   # action on the preprocessor target. Without it, the ppx will not
-  #   # be built.
-  #   tools = [ppx_dep],
-  #   # tools = [ocamlfind, ocamlbuild, opam],
-  #   outputs = interface_outputs,
-  #   command = command,
-  #   mnemonic = "Ocamlbuild",
-  #   progress_message = "Compiling OCaml interface files %s" % ctx.label.name,
-  #   # This is (unfortunately) not hermetic yet.
-  #     use_default_shell_env = True,
-  #   execution_requirements = {"local": "1"},
-  # )
-
