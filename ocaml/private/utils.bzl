@@ -4,9 +4,11 @@ load("//ocaml/private:providers.bzl",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
+     "OcamlNsModuleProvider",
      "OpamPkgInfo",
      "PpxArchiveProvider",
      "PpxBinaryProvider",
+     "PpxNsModuleProvider",
      "PpxModuleProvider")
 
 OCAML_FILETYPES = [
@@ -83,6 +85,7 @@ def get_all_deps(direct_deps):
   nopam_directs = []
   nopam_transitives = []
   for dep in direct_deps:
+    # print("GETALL: DEP: %s" % dep)
     if OpamPkgInfo in dep:
       op = dep[OpamPkgInfo]
       # print("OpamPkgInfo dep: %s" % op)
@@ -113,10 +116,19 @@ def get_all_deps(direct_deps):
       if mp.deps.opam:
         opam_transitives.append(mp.deps.opam)
       # opams = opams + d.opam_deps.to_list()
+    elif OcamlNsModuleProvider in dep:
+      nsmp = dep[OcamlNsModuleProvider]
+      # print("OcamlNsModuleProvider dep: %s" % nsmp)
+      # print("OcamlNsModuleProvider dep type: %s" % type(nsmp))
+      nopam_directs.append(nsmp.payload)
+      nopam_transitives.append(nsmp.deps.nopam)
+      if nsmp.deps.opam:
+        opam_transitives.append(nsmp.deps.opam)
+      # opams = opams + d.opam_deps.to_list()
     elif OcamlInterfaceProvider in dep:
       ip = dep[OcamlInterfaceProvider]
       # print("OcamlInterfaceProvider dep: %s" % ip)
-      nopam_directs.append(ip.interface)
+      nopam_directs.append(ip.payload)
       nopam_transitives.append(ip.deps.nopam)
       # opams = opams + d.opam_deps.to_list()
       # nopam_deps.append(d)
@@ -129,8 +141,8 @@ def get_all_deps(direct_deps):
       # print("CcInfo payload: %s" % dep[DefaultInfo])
       nopam_directs.append(struct( clib = dep[DefaultInfo]) )
     elif PpxArchiveProvider in dep:
-      # print("PROVIDER: PpxArchiveProvider")
       ap = dep[PpxArchiveProvider]
+      # print("PpxArchiveProvider: %s" % ap)
       # print(ap.deps)
       nopam_directs.append(ap.payload)
       nopam_transitives.append(ap.deps.nopam)
@@ -147,34 +159,26 @@ def get_all_deps(direct_deps):
       nopam_directs.append(pmp.payload)
       nopam_transitives.append(pmp.deps.nopam)
       opam_transitives.append(pmp.deps.opam)
+    elif PpxNsModuleProvider in dep:
+      pnmp = dep[PpxNsModuleProvider]
+      # print("OcamlInterfaceProvider dep: %s" % pmp)
+      nopam_directs.append(pnmp.payload)
+      nopam_transitives.append(pnmp.deps.nopam)
+      opam_transitives.append(pnmp.deps.opam)
       # opams = opams + d.opam_deps.to_list()
       # nopam_deps.append(d)
       # nopam_transitive_deps.append(d)
     else:
       fail("UNKNOWN DEP TYPE: %s" % dep)
 
-  # print("OPAM_D %s" % opam_directs)
-  # print("OPAM_T %s" % opam_transitives)
-  # ds = depset(opam_transitives)
-  # ot = ds.to_list()
-  # print("OT: %s" % ot)
-
   opam_depset = depset(
     direct     = opam_directs,
     transitive = opam_transitives
-    # transitive = [depset(opam_transitives)]
   )
-
-    # transitive = [depset([depset([Label("//alpha/beta:bar")])])]
-  # print("OPAM_DEPSET:")
-  # print(opam_depset)
 
   nopam_depset = depset(
     direct = nopam_directs,
     transitive = nopam_transitives
   )
-
-  # print("NOPAM_DEPSET:")
-  # print(nopam_depset)
 
   return struct( opam = opam_depset, nopam = nopam_depset )

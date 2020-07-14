@@ -22,77 +22,32 @@ load("//ocaml/private:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-# testing
-load("//ocaml/private/actions:ocamlopt.bzl",
-     "compile_native_with_ppx",
-     "link_native")
-
-# print("private/ocaml.bzl loading")
-
-################################################################
-# # for testing
-# def split_srcs(srcs):
-#   print("SPLIT_SRCS")
-#   print(srcs)
-#   intfs = []
-#   impls = []
-#   for s in srcs:
-#     if s.extension == "ml":
-#       impls.append(s)
-#     else:
-#       intfs.append(s)
-#   return intfs, impls
-
-# def _ocaml_ppx_binary_compile_test(ctx):
-#   print("TEST: _ocaml_ppx_binary_compile_impl")
-#   env = {"OPAMROOT": get_opamroot(),
-#          "PATH": get_sdkpath(ctx)}
-
-#   if ctx.attr.ppx:  # preprocessor:
-#     if PpxInfo in ctx.attr.preprocessor:
-#       new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
-#   else:
-#     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
-
-#   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-
-#   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
-
-#   outfiles_cmx = []
-#   outfiles_o = []
-#   outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
-#     ctx, env, tc, new_intf_srcs, new_impl_srcs
-#   )
-
-#   return [
-#     DefaultInfo(
-#       files = depset(direct = outfiles_o + outfiles_cmx)
-#     ),
-#     PpxBinaryProvider(
-#       payload = struct(
-#         name = ctx.label.name,
-#         modules = ctx.attr.deps
-#       ),
-#       deps = struct(
-#         opam = mydeps.opam,
-#         nopam = mydeps.nopam
-#       )
-#     )
-#       cmx=outfiles_cmx,
-#       o = outfiles_o
-#     )]
 
 #############################################
 ####  PPX_BINARY IMPLEMENTATION
 def _ppx_binary_impl(ctx):
 
-  # print("PPX BINARY ATTR.DEPS")
+  dep_labels = [dep.label for dep in ctx.attr.deps]
+  if Label("@opam//pkg:ppxlib.runner") in dep_labels:
+    if not "-predicates" in ctx.attr.opts:
+      print("""\n\nWARNING: target '{target}' depends on
+'@opam//pkg:ppxlib.runner' but lacks -predicates option. PPX binaries that depend on this
+usually pass \"-predicates\", \"ppx_driver\" to opts. Without this option, the binary may
+compile but may not work as intended.\n\n""".format(target = ctx.label.name))
+  else:
+    print("""\n\nWARNING: ppx_binary target '{target}'
+does not have a driver dependency.  Such targets usually depend on '@opam//pkg:ppxlib.runner'
+or a similar PPX driver. Without a driver, the target may compile but not work as intended.\n\n""".format(target = ctx.label.name))
+
+  # print("\n\nPPX BINARY ATTR.DEPS %s\n\n" % ctx.label.name)
   # print(ctx.attr.deps)
 
   mydeps = get_all_deps(ctx.attr.deps)
 
   # print("PPX BINARY OPAM DEPS")
   # print(mydeps.opam)
+  # print("PPX BINARY NOPAM DEPS")
+  # print(mydeps.nopam)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
@@ -100,27 +55,22 @@ def _ppx_binary_impl(ctx):
 
   outfilename = ctx.label.name
   outbinary = ctx.actions.declare_file(outfilename)
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   args = ctx.actions.args()
-  # we will pass ocamlfind as the exec arg, so we start args with ocamlopt
   args.add("ocamlopt")
-  args.add_all(ctx.attr.opts)
+  options = tc.opts + ctx.attr.opts
+  args.add_all(options)
+
   args.add("-o", outbinary)
 
   # for wrapper gen:
   # args.add("-w", "-24")
 
-  ## findlib says:
-  ## "If you want to create an executable, do not forget to add the -linkpkg switch."
-  # http://projects.camlcity.org/projects/dl/findlib-1.8.1/doc/QUICKSTART
-  # args.add("-linkpkg")
-  # args.add("-linkall")
-
   build_deps = []
   includes = []
 
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  # for dep in mydeps.opam.to_list():
+  #   print("MYDEP: %s" % dep.to_list()[0].name)
 
   for dep in ctx.attr.deps:
     # if OpamPkgInfo in dep:
@@ -129,11 +79,11 @@ def _ppx_binary_impl(ctx):
     # else:
       for g in dep[DefaultInfo].files.to_list():
         if g.path.endswith(".cmx"):
-          args.add(g)
+          # args.add(g)
           build_deps.append(g)
           includes.append(g.dirname)
         if g.path.endswith(".cmxa"):
-          args.add(g)
+          # args.add(g)
           build_deps.append(g)
           includes.append(g.dirname)
       # if PpxInfo in dep:
@@ -150,11 +100,20 @@ def _ppx_binary_impl(ctx):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
+  # non-ocamlfind-enabled deps:
+  args.add_all(build_deps)
+
+  # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=mydeps.opam.to_list()))
+  opam_deps = mydeps.opam.to_list()
+  if len(opam_deps) > 0:
+    # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
+    args.add("-linkpkg")
+    args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
+
   # for ocamlfind-enabled deps, use -package
   # args.add_joined("-package", build_deps, join_with=",")
 
-  # non-ocamlfind-enabled deps:
-
+  # driver shim source must come after lib deps!
   args.add_all(ctx.files.srcs)
 
   inputs = build_deps + ctx.files.srcs
@@ -174,6 +133,15 @@ def _ppx_binary_impl(ctx):
       )
   )
 
+  secondary_deps = []
+  for dep in ctx.attr.secondary_deps:
+    # print("SEC DEP: %s" % dep[OpamPkgInfo])
+    if OpamPkgInfo in dep:
+      secondary_deps.append(dep[OpamPkgInfo].pkg.to_list()[0].name)
+    #FIXME: also support non-opam secondary deps
+
+  # print("PPX-BINARY SECONDARY: %s" % secondary_deps)
+
   return [DefaultInfo(executable=outbinary,
                       files = depset(direct = [outbinary])),
           PpxBinaryProvider(
@@ -181,7 +149,8 @@ def _ppx_binary_impl(ctx):
             args = depset(direct = ctx.attr.args),
             deps = struct(
               opam = mydeps.opam,
-              nopam = mydeps.nopam
+              nopam = mydeps.nopam,
+              secondary = secondary_deps
             )
           )]
 
@@ -200,8 +169,13 @@ ppx_binary = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
+    # IMPLICIT: args = string list = runtime args, passed whenever the binary is used
     srcs = attr.label_list(
       allow_files = OCAML_IMPL_FILETYPES
+    ),
+    ppx_bin  = attr.label(
+      doc = "PPX binary (executable).",
+      providers = [PpxBinaryProvider]
     ),
     ppx  = attr.label(
       doc = "PPX binary (executable).",
@@ -212,6 +186,10 @@ ppx_binary = rule(
     linkall = attr.bool(default = True),
     deps = attr.label_list(
       providers = [[DefaultInfo], [PpxModuleProvider]]
+    ),
+    secondary_deps = attr.label_list(
+      doc = """List of deps needed to compile sources after transformation. Dune calls these 'runtime' deps.""",
+      # providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
     mode = attr.string(default = "native"),
     message = attr.string()

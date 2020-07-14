@@ -35,16 +35,22 @@ def _ocaml_deps_impl(ctx):
   args = ctx.actions.args()
   args.add_all(ctx.attr.opts)
 
+  args.add("-sort")
+
   deps = []
 
   ordered_srcs = sorted(ctx.files.srcs)
 
   depfile = ctx.actions.declare_file(ctx.attr.outfile)
-  cmd = ""
-  for src in [x for x in ctx.files.srcs if not x.path.endswith(".mli")]:
-    # depfile = ctx.actions.declare_file(src.basename + ".depends")
-    # deps.append(depfile)
-    cmd = cmd + tc.ocamldep.path + " -modules -native -one-line -impl " + src.path + " >> " + depfile.path + ";\n"
+  # cmd = ""
+  # for src in [x for x in ctx.files.srcs if not x.path.endswith(".mli")]:
+  #   # depfile = ctx.actions.declare_file(src.basename + ".depends")
+  #   # deps.append(depfile)
+  #   cmd = cmd + tc.ocamldep.path + " -modules -native -one-line -impl " + src.path + " >> " + depfile.path + ";\n"
+
+  depfile = ctx.actions.declare_file(ctx.attr.outfile)
+  files = [src.path for src in ctx.files.srcs]
+  cmd = tc.ocamldep.path + " -modules -all -native " + " ".join(files) + " > " + depfile.path
 
   ctx.actions.run_shell(
     env = env,
@@ -55,7 +61,7 @@ def _ocaml_deps_impl(ctx):
     inputs = ctx.files.srcs,
     outputs = [depfile],
     progress_message = "ocaml_deps({}): {}".format(
-      ctx.label.name, src.path
+      ctx.label.name, "foo"
     )
   )
 

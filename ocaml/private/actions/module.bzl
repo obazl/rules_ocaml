@@ -1,6 +1,10 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//ocaml/private:providers.bzl", "PpxBinaryProvider")
+load("//ocaml/private:providers.bzl",
+     "OcamlNsModuleProvider",
+     "PpxBinaryProvider",
+     "PpxNsModuleProvider")
 load("//ocaml/private:utils.bzl",
+     "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath"
 )
@@ -8,54 +12,49 @@ load("//ocaml/private:utils.bzl",
 TMPDIR = "_obazl/"
 
 ################################################################
-def rename_module(ctx, srcs, pfx):
+def rename_module(ctx, src):  # , pfx):
   """Rename implementation and interface (if given) using prefix.
 
-  Inputs: context, srcs: struct(intf: File, maybe impl: File), pfx: string
-  Outputs: struct(intf: declared File, impl: declared File)
+  Inputs: context, src
+  Outputs: outfile :: declared File
   """
 
-  if not pfx.endswith("__"):
-    print("WARNING: prefix '{pfx}' does not appear to be an OCaml module path segment prefix; did you mean '{pfx}__'?".format(pfx = pfx))
+  # if module name == ns, then output module name
+  # otherwise, outputp ns + "__" + module name
 
-  if pfx.find("/") > 0:
-    fail("ERROR: ns contains '/' : '%s'" % pfx)
+  parts = paths.split_extension(src.basename)
+  module = parts[0]
+  extension = parts[1]
+  print("RENAMING MODULE %s" % module)
+  ns = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns + ctx.attr.ns_sep
+  print("NS: %s" % ns)
+  if (module == ns):
+    out_filename = module + extension
+  else:
+    out_filename = ns + capitalize_initial_char(module) + extension
+  print("RENAMED MODULE %s" % out_filename)
+
+  # if pfx.find("/") > 0:
+  #   fail("ERROR: ns contains '/' : '%s'" % pfx)
 
   inputs  = []
   # outputs = []
   outputs = {}
-  if srcs.intf:
-    intf = srcs.intf.files.to_list()[0]
-    inputs.append(intf)
-    new_intf = ctx.actions.declare_file(pfx + intf.basename.capitalize())
-    # outputs.append(new_intf)
-    outputs["intf"] = new_intf
-    print("NEW INTF: %s" % new_intf)
-  inputs.append(srcs.impl)
-  new_impl = ctx.actions.declare_file(pfx + srcs.impl.basename.capitalize())
-  outputs["impl"] = new_impl
-  # print("NEW IMPL: %s" % new_impl)
+  inputs.append(src)
+  outfile = ctx.actions.declare_file(out_filename)
 
-  destdir = paths.normalize(new_impl.dirname)
+  destdir = paths.normalize(outfile.dirname)
   # print("DESTDIR: %s" % destdir)
 
   cmd = ""
-  dest = new_impl.path
+  dest = outfile.path
   # print("DEST: %s" % dest)
   # cmd = cmd + "touch {dest}; ".format(dest = bindir + "/" + tmpdir + src.path)
   cmd = cmd + "mkdir -vp {destdir} && cp -v {src} {dest} && ".format(
-    src = srcs.impl.path,
+    src = src.path,
     destdir = destdir,
     dest = dest
   )
-
-  if srcs.intf:
-    dest = new_intf.path
-    cmd = cmd + "mkdir -vp {destdir} && cp -v {src} {dest} && ".format(
-      src = srcs.impl.path,
-      destdir = destdir,
-      dest = dest
-    )
 
   cmd = cmd + " true;"
   # print("CMD: %s" % cmd)
@@ -65,73 +64,97 @@ def rename_module(ctx, srcs, pfx):
     # env = env,
     command = cmd,
     inputs = inputs,
-    outputs = outputs.values(),
-    progress_message = "ocaml_library_batch({}): renaming module {}".format(
-      ctx.label.name, srcs
+    outputs = [outfile],
+    progress_message = "rename_src_action ({}){}".format(
+      ctx.label.name, src
     )
   )
-  # print("RENAME result: %s" % outputs.values())
-  return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
+  return outfile
 
 ################################################################
 def to_libarg(lib):
   return "'library-name=\"{}\"'".format(lib)
 
-def transform_module_action(rule, ctx, srcs):
-  """Apply a PPX to module sources.
+################################################################
+def ppx_transform_action(rule, ctx, infile):
+  """Apply a PPX to source file.
 
-  Inputs: context, srcs:: struct(intf :: File, maybe impl :: File)
+  Inputs: rule, context, infile
   Outputs: struct(intf :: declared File, maybe impl :: declared File)
   """
 
-  inputs = [srcs.impl]
+  # print("PPX_TRANSFORM_ACTION: {rule} ({target}): {infile}".format(rule=rule, target=ctx.label.name, infile=infile))
 
-  pfx = ""
+  pfx = None
   module = ""
-  if ctx.attr.ns:
-    module = srcs.impl.basename.capitalize()
-    pfx = ctx.attr.ns
-    if not pfx.endswith("__"):
-      print("WARNING: ns '{pfx}' does not appear to be an OCaml module path segment prefix; did you mean '{pfx}__'?".format(pfx = pfx))
+  if (rule == "ocaml_module"):
+    if ctx.attr.ns_module:
+      pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns + ctx.attr.ns_sep
+  elif (rule == "ppx_module"):
+    if ctx.attr.ppx_ns_module:
+      pfx = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns + ctx.attr.ns_sep
+  elif (rule == "ocaml_interface"):
+    if ctx.attr.ns_module:
+      pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns + ctx.attr.ns_sep
+  else:
+    fail("ppx_transform_action called by rule other than ocaml_module or ppx_module: %s" % rule)
+
+  if pfx == None:
+    pfx = TMPDIR
+  else:
     if pfx.find("/") > 0:
       fail("ERROR: ns contains '/' : '%s'" % pfx)
-  else:
-    pfx = TMPDIR
-    module = srcs.impl.basename
 
-  new_impl = ctx.actions.declare_file(pfx + module)
+  module = infile.basename.capitalize()
+
+  outfile = ctx.actions.declare_file(pfx + module)
   outputs = {}
-  outputs["impl"] = new_impl
-  # print("NEW IMPL: %s" % new_impl)
+  outputs["impl"] = outfile
+  # print("NEW IMPL: %s" % outfile)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
   args = ctx.actions.args()
-  # args.add_all(ctx.attr.args)
 
-  if PpxBinaryProvider in ctx.attr.ppx:
-    args.add_all(ctx.attr.ppx[PpxBinaryProvider].args)
+  if ctx.attr.ppx_bin:
+    args.add_all(ctx.attr.ppx_bin[PpxBinaryProvider].args)
+    args.add_all(ctx.attr.ppx_bin_opts)
 
-  args.add("-o", new_impl)
-  args.add("-impl", srcs.impl)
+  args.add("-o", outfile)
+  if infile.path.endswith(".mli"):
+    args.add("-intf", infile)
+  if infile.path.endswith(".ml"):
+    args.add("-impl", infile)
+
   # args.add("-corrected-suffix", ".ppx-corrected")
-  args.add("-dump-ast")
+  # args.add("-dump-ast")
 
-  ppx = ctx.attr.ppx.files.to_list()[0]
+
+  ppx = ctx.attr.ppx_bin.files.to_list()[0]
+  # print("PPX: %s" % ppx)
+  # if ctx.attr.ppx:
+  #   for item in ctx.attr.ppx_bin.items():
+  #     pkg = item[0].label.name
+  #     print("PKG: {}".format(pkg))
+  #     args.add("-package", pkg)
+  #     if item[1]:
+  #       ppxargs = ",".join(item[1].split(" "))
+  #       print("PPXARGS: {}".format(ppxargs))
+  #       args.add("-ppxopt", pkg + "," + ppxargs)
 
   ctx.actions.run(
     env = env,
-    executable = ppx,
+    executable = ppx, # item[0],
     arguments = [args],
-    inputs = inputs,
-    outputs = outputs.values(),
-    tools = [ppx],
+    inputs = [infile] + [ppx],
+    outputs = [outfile], #outputs.values(),
+    tools = [ppx], # [item[0]],
     mnemonic = "OcamlPpxModule",
-    progress_message = "transform_module of {rule}({target}){msg}".format(
+    progress_message = "ppx_transform_action of {rule}({target}){msg}".format(
       rule=rule, target=ctx.label.name, msg = "" if not ctx.attr.msg else ", msg: " + ctx.attr.msg
     )
   )
-  # print("TRANSFORM result: %s" % outputs.values())
-  return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
-
+  # print("TRANSFORM result: %s" % outfile)
+  # return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
+  return outfile

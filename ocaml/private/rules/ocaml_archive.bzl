@@ -3,6 +3,7 @@ load("//ocaml/private:providers.bzl",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
+     "OcamlNsModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
@@ -142,10 +143,8 @@ def _ocaml_archive_batch(ctx):
   # else:
   # args.add("-impl", src_file)
 
-  # if "-a" in ctx.attr.opts:
+  ## since we're building an archive, we need all members on command line
   args.add_all(build_deps)
-  # print("DEPS")
-  # print(build_deps)
 
   args.add_all(ctx.files.srcs)
 
@@ -154,7 +153,7 @@ def _ocaml_archive_batch(ctx):
   # args.add("-plugin")
   # args.add("migrate_parsetree_driver_main.cmxs")
 
-  inputs_arg = inputs_arg + ctx.files.srcs
+  inputs_arg = inputs_arg + build_deps + ctx.files.srcs
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
@@ -277,7 +276,8 @@ ocaml_archive(
     # lib = attr.bool(default = False)
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
-                   [OcamlInterfaceProvider], [OcamlModuleProvider],
+                   [OcamlInterfaceProvider],
+                   [OcamlModuleProvider], [OcamlNsModuleProvider],
                    [OcamlLibraryProvider], [OcamlArchiveProvider],
                    [CcInfo]],
     ),

@@ -3,7 +3,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
-     "OcamlModuleProvider")
+     "OcamlNsModuleProvider")
 load("//ocaml/private/actions:ns_module.bzl", "ns_module_action")
 load("//ocaml/private/actions:ppx.bzl",
      "apply_ppx",
@@ -56,6 +56,10 @@ ocaml_ns_module = rule(
     ),
     module_name = attr.string(),
     ns = attr.string(),
+    ns_sep = attr.string(
+      doc = "Namespace separator.  Default: '__'",
+      default = "__"
+    ),
     submodules = attr.label_list(
       allow_files = OCAML_FILETYPES
     ),
@@ -78,7 +82,7 @@ ocaml_ns_module = rule(
     msg = attr.string(),
     _rule = attr.string(default = "ocaml_ns_module")
   ),
-  provides = [DefaultInfo, OcamlModuleProvider],
+  provides = [DefaultInfo, OcamlNsModuleProvider],
   executable = False,
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

@@ -1,17 +1,12 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/private:providers.bzl",
-     "OcamlModuleProvider",
-     "PpxModuleProvider")
+     "OcamlNsModuleProvider",
+     "PpxNsModuleProvider",
+)
 load("//ocaml/private:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",
-     # "get_src_root",
-     # "strip_ml_extension",
-     # "OCAML_FILETYPES",
-     # "OCAML_IMPL_FILETYPES",
-     # "OCAML_INTF_FILETYPES",
-     # "WARNING_FLAGS"
 )
 
 def ns_module_action(ctx):
@@ -22,18 +17,25 @@ def ns_module_action(ctx):
 
   ## generate content: one alias per submodule
   aliases = []
-  pfx = capitalize_initial_char(ctx.attr.ns)
+  ## declare ns module file, as input to compile action
+  ns_module_name = ctx.attr.ns
+  # print("NS_MODULE_NAME %s" % ns_module_name)
+  pfx = capitalize_initial_char(ctx.attr.ns) + ctx.attr.ns_sep
   for sm in ctx.files.submodules:
+    sm_parts = paths.split_extension(sm.basename)
+    module = sm_parts[0]
+    # print("NS MODULE %s" % module)
+    if (module == ns_module_name):
+      ns_module_name = ns_module_name + ctx.attr.ns_sep
+    else:
       alias = "module {sm} = {pfx}{sm}".format(
-          sm=capitalize_initial_char(paths.split_extension(sm.basename)[0]),
-          pfx = pfx
+        sm=capitalize_initial_char(module),
+        pfx = pfx
       )
       aliases.append(alias)
-      # print("ALIASES: %s" % aliases)
 
-  ## declare ns module file, as input to compile action
-  module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
-  module_src = ctx.actions.declare_file(module_fname)
+  # module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
+  module_src = ctx.actions.declare_file(ns_module_name + ".ml")
   # print("NS MODULE SRC: %s" % module_src)
 
   ## action: generate ns module file with alias content
@@ -43,11 +45,11 @@ def ns_module_action(ctx):
   )
 
   ## now declare compilation outputs. compiling always produces 3 files:
-  obj_cmi_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".cmi"
+  obj_cmi_fname = ns_module_name + ".cmi"
   obj_cmi = ctx.actions.declare_file(obj_cmi_fname)
-  obj_cmx_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".cmx"
+  obj_cmx_fname = ns_module_name + ".cmx"
   obj_cmx = ctx.actions.declare_file(obj_cmx_fname)
-  obj_o_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".o"
+  obj_o_fname = ns_module_name + ".o"
   obj_o = ctx.actions.declare_file(obj_o_fname)
 
   ## action: compile ns module
@@ -73,8 +75,9 @@ def ns_module_action(ctx):
 
   provider = None
   if ctx.attr._rule == "ocaml_ns_module":
-      provider = OcamlModuleProvider(
-          module = struct(
+      provider = OcamlNsModuleProvider(
+          payload = struct(
+              ns  = ctx.attr.ns,  # ns_module_name,
               cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o
@@ -85,8 +88,9 @@ def ns_module_action(ctx):
           )
       )
   else:
-      provider = PpxModuleProvider(
+      provider = PpxNsModuleProvider(
           payload = struct(
+              ns  = ctx.attr.ns,
               cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o

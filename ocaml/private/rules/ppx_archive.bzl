@@ -209,7 +209,10 @@ def _ppx_archive_impl(ctx):
   # if we don't do this, Bazel will not make them accessible, and we
   # will get 'Error: Unbound module'. So we accumulate them in
   # build_deps, then add them to inputs_arg we pass to the run action.
+  # actually they do not need to also be added to command args
+  # BUT, their dirs do need to be added to the include (-I) path
   build_deps = []
+  includes   = []
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:
@@ -219,12 +222,10 @@ def _ppx_archive_impl(ctx):
         # if g.path.endswith(".cmi"):
         #   build_deps.append(g)
         if g.path.endswith(".cmx"):
-          # args.add("-I", g.dirname)
-          args.add(g)
+          includes.append(g.dirname)
           build_deps.append(g)
         if g.path.endswith(".cmxa"):
-          # args.add("-I", g.dirname)
-          args.add(g)
+          includes.append(g.dirname)
           build_deps.append(g)
           # if g.path.endswith(".o"):
           #   build_deps.append(g)
@@ -234,10 +235,13 @@ def _ppx_archive_impl(ctx):
           # else:
           #   args.add(g) # dep[DefaultInfo].files)
 
-  # args.add_all(build_deps)
+  # for an archive we need all deps on the command line:
+  args.add_all(build_deps)
 
   # print("DEPS")
   # print(build_deps)
+
+  args.add_all(includes, before_each="-I", uniquify = True)
 
   args.add_all(ctx.files.srcs)
 

@@ -163,7 +163,7 @@ OcamlLibraryProvider = provider(
 OcamlInterfaceProvider = provider(
     doc = "OCaml interface provider.",
     fields = {
-        "interface": """A struct with the following fields:
+        "payload": """A struct with the following fields:
             cmi: .cmi file produced by the target
         """,
         "deps"   : """A pair of depsets:
@@ -177,6 +177,22 @@ OcamlModuleProvider = provider(
     doc = "OCaml module provider.",
     fields = {
         "payload": """A struct with the following fields:
+            cmi: .cmi file produced by the target
+            cm : .cmx/cmo file produced by the target
+            o  : .o file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+OcamlNsModuleProvider = provider(
+    doc = "OCaml module provider.",
+    fields = {
+        "payload": """A struct with the following fields:
+            ns : namespace
             cmi: .cmi file produced by the target
             cm : .cmx/cmo file produced by the target
             o  : .o file produced by the target
@@ -212,9 +228,10 @@ PpxBinaryProvider = provider(
     fields = {
         "payload": "Executable file produced by the target.",
         "args"   : "Args to be passed when binary is invoked",
-        "deps"   : """A pair of depsets:
+        "deps"   : """A triple of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
+            secondary: needed when transformed source is compiled
         """
     }
 )
@@ -239,6 +256,22 @@ PpxModuleProvider = provider(
         "payload": """A struct with the following fields:
             cmi: .cmi file produced by the target
             cm: .cmx or .cmo file produced by the target
+            o  : .o file produced by the target
+        """,
+        "deps"   : """A pair of depsets:
+            opam : direct and transitive opam deps (Labels) of target
+            nopam: direct and transitive non-opam deps (Files) of target
+        """
+    }
+)
+
+PpxNsModuleProvider = provider(
+    doc = "OCaml PPX NS module provider.",
+    fields = {
+        "payload": """A struct with the following fields:
+            ns : namespace
+            cmi: .cmi file produced by the target
+            cm : .cmx or .cmo file produced by the target
             o  : .o file produced by the target
         """,
         "deps"   : """A pair of depsets:

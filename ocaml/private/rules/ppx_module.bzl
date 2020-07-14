@@ -3,11 +3,13 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
+     "OcamlInterfaceProvider",
      "PpxBinaryProvider",
+     "PpxNsModuleProvider",
      "PpxModuleProvider")
 load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/private/actions:ns_module.bzl", "ns_module_action")
-load("//ocaml/private/actions:module.bzl", "rename_module", "transform_module_action")
+load("//ocaml/private/actions:module.bzl", "rename_module", "ppx_transform_action")
 # load("//ocaml/private/actions:ppx.bzl",
      # "apply_ppx",
      # "ocaml_ppx_compile",
@@ -40,33 +42,43 @@ def _ppx_module_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  srcs = None
-  impl_src_file = get_target_file(ctx.attr.impl)
-  if ctx.attr.ppx:
-    srcs = transform_module_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
-  elif ctx.attr.ns:
-    srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
-  else:
-    srcs = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
+  # if ctx.attr.ppx_ns_module:
+  #   print("CTX.ATTR.PPX_NS_MODULE: %s" % ctx.attr.ppx_ns_module)
+  #   print(" PpxNsModuleProvider: %s" % ctx.attr.ppx_ns_module[PpxNsModuleProvider])
 
-  # srcs now contains declared output files, and we no longer need ns or ppx
+  secondary_deps = None
+  outfile = None
+  if ctx.attr.ppx_bin:
+    ## this will also handle ns
+    outfile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
+    # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
+    secondary_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.secondary
+  elif ctx.attr.ppx_ns_module:
+    outfile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
+    # srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
+  else:
+    outfile = ctx.attr.impl
+    # srcs = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
+
+  # print("OUTFILE: %s" % outfile)
+  # srcs now contains output files we need to declare, and we no longer need ns or ppx
   # srcs :: struct( impl :: declared File, maybe intf :: File )
-  # print("SRCS: %s" % srcs)
+  # Note that we need to declare the cmi output even if we do not have an intf input.
 
   obj = {}
 
-  if srcs.intf:
-    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.intf.basename, ".cmi"))
-  else:
-    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.impl.basename, ".cmi"))
+  # if ctx.attr.intf:
+  #   obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.intf.basename, ".cmi"))
+  # else:
 
-  obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(srcs.impl.basename, ".cmx"))
-  obj["o"]           = ctx.actions.declare_file(paths.replace_extension(srcs.impl.basename, ".o"))
+  if not ctx.attr.intf:
+    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".cmi"))
+    # obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(ctx.file.impl.basename, ".cmi"))
 
-  # if srcs.intf:
-  #   out_cmi = compile_interface(ctx, srcs.intf)
-
-  # out_module = compile_module(ctx, srcs)
+  obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".cmx"))
+  obj["o"]           = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".o"))
+  # obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(ctx.file.impl.basename, ".cmx"))
+  # obj["o"]           = ctx.actions.declare_file(paths.replace_extension(ctx.file.impl.basename, ".o"))
 
   # # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
@@ -76,10 +88,13 @@ def _ppx_module_impl(ctx):
   options = tc.opts + ctx.attr.opts
   args.add_all(options)
 
-  if ctx.attr.ns:
+  if ctx.attr.ppx_ns_module:
     args.add("-no-alias-deps")
     args.add("-opaque")
-    args.add("-open", capitalize_initial_char(ctx.attr.ns))
+    ns_cm = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cm
+    ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
+    args.add("-open", ns_mod)
+    # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
 
   args.add("-c")
   args.add("-o", obj["cm"])
@@ -87,9 +102,9 @@ def _ppx_module_impl(ctx):
   build_deps = []
   includes = []
 
-  ## transitive opam deps
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  args.add("-I", outfile.dirname)
 
+  ## transitive opam deps
   linkpkg_flag = False
   ##FIXME:  use mydeps.nopam
   for dep in ctx.attr.deps:
@@ -105,20 +120,25 @@ def _ppx_module_impl(ctx):
         if g.path.endswith(".cmxa"):
           build_deps.append(g)
           includes.append(g.dirname)
-
-  if linkpkg_flag:
-    args.add("-linkpkg")
-
   args.add_all(includes, before_each="-I", uniquify = True)
 
-  # non-ocamlfind-enabled deps:
+  # non-ocamlfind-enabled deps: we need to add to action inputs, but not to command args
   args.add_all(build_deps)
 
-  args.add(srcs.impl)
+  if secondary_deps:
+    args.add_all([dep for dep in secondary_deps], before_each="-package")
 
-  inputs = build_deps + [srcs.impl]
+  inputs = build_deps + [outfile] # [ctx.file.impl] #  [srcs.impl]
   # print("INPUTS:")
   # print(inputs)
+
+  # if linkpkg_flag:
+  args.add("-linkpkg")
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+
+  args.add("-impl", outfile)
+  # args.add(srcs.impl)
+
 
   ctx.actions.run(
     env = env,
@@ -127,24 +147,11 @@ def _ppx_module_impl(ctx):
     inputs = inputs,
     outputs = obj.values(),
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt] + ctx.files.data,
-    mnemonic = "OcamlPPXBinary",
+    mnemonic = "PpxModule",
     progress_message = "ppx_module({}), {}".format(
       ctx.label.name, ctx.attr.msg
       )
   )
-
-  # return [DefaultInfo(files = depset(direct = [obj_cm, obj_cmi])),
-  #         PpxModuleProvider(
-  #           payload = struct(
-  #             cmi = obj_cmi,
-  #             cm = obj_cm,
-  #             # o   = obj_o
-  #           ),
-  #           deps = struct(
-  #             opam = mydeps.opam,
-  #             nopam = mydeps.nopam
-  #           )
-  #         )]
 
   # print("srcs.impl: %s" % srcs.impl)
   # testing:
@@ -152,7 +159,7 @@ def _ppx_module_impl(ctx):
     DefaultInfo(files = depset(direct = obj.values())),
     PpxModuleProvider(
       payload = struct(
-        cmi = obj["cmi"],
+        cmi = obj["cmi"] if "cmi" in obj else None,
         cm  = obj["cm"],
         o   = obj["o"]
       ),
@@ -185,16 +192,33 @@ ppx_module = rule(
     ns   = attr.string(
       doc = "Namespace string; will be used as module name prefix."
     ),
+    ns_sep = attr.string(
+      doc = "Namespace separator.  Default: '__'",
+      default = "__"
+    ),
+    ppx_ns_module = attr.label(
+      doc = "Label of a ppx_ns_module target. Used to derive namespace, output name, -open arg, etc.",
+    ),
     impl = attr.label(
       mandatory = True,  # use ocaml_interface for isolated .mli files
+      doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
     intf = attr.label(
-      allow_single_file = OCAML_INTF_FILETYPES
+      doc = "Single label of a target providing a single .cmi file (not a .mli source file). Optional",
+      allow_single_file = [".cmi"],
+      providers = [OcamlInterfaceProvider],
     ),
-    ppx  = attr.label(
+    ppx = attr.label_keyed_string_dict(
+      doc = """Dictionary of one entry. Key is a ppx target, val string is arguments.""",
+      providers = [PpxBinaryProvider]
+    ),
+    ppx_bin  = attr.label(
       doc = "PPX binary (executable).",
       providers = [PpxBinaryProvider]
+    ),
+    ppx_bin_opts  = attr.string_list(
+      doc = "Options to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
     ),
     args  = attr.string_list(
       doc = "PPX cmd args.",
@@ -232,6 +256,10 @@ ppx_ns_module = rule(
     ),
     module_name = attr.string(),
     ns = attr.string(),
+    ns_sep = attr.string(
+      doc = "Namespace separator.  Default: '__'",
+      default = "__"
+    ),
     submodules = attr.label_list(
       allow_files = OCAML_FILETYPES
     ),
@@ -248,7 +276,7 @@ ppx_ns_module = rule(
     msg = attr.string(),
     _rule = attr.string(default = "ppx_ns_module")
   ),
-  provides = [DefaultInfo, PpxModuleProvider],
+  provides = [DefaultInfo, PpxNsModuleProvider],
   executable = False,
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

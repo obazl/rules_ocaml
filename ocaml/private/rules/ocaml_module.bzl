@@ -2,12 +2,15 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/private:providers.bzl",
      "OcamlSDK",
+     "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
+     "OcamlNsModuleProvider",
      "OcamlModuleProvider",
      "OpamPkgInfo",
-     "PpxInfo")
+     "PpxBinaryProvider")
 load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/private/actions:module.bzl", "rename_module", "ppx_transform_action")
 load("//ocaml/private/actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
@@ -17,6 +20,7 @@ load("//ocaml/private/actions:ppx.bzl",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
 load("//ocaml/private:utils.bzl",
+     "capitalize_initial_char",
      "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
@@ -31,6 +35,8 @@ load("//ocaml/private:utils.bzl",
 ################################################################
 def _compile_interface(ctx):
 
+  mydeps = get_all_deps(ctx.attr.deps)
+
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -39,13 +45,20 @@ def _compile_interface(ctx):
   obj_cmi = ctx.actions.declare_file(cmifname)
 
   args = ctx.actions.args()
-  # args.add("-c")
+  args.add(tc.compiler.basename)
+  args.add_all(ctx.attr.opts)
+
+  args.add("-I", paths.dirname(ctx.file.intf.path))
+
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+
   args.add("-o", obj_cmi)
   args.add(ctx.file.intf)
 
+
   ctx.actions.run(
     env = env,
-    executable = tc.ocamlopt,
+    executable = tc.ocamlfind,
     arguments = [args],
     inputs = [ctx.file.intf],
     outputs = [obj_cmi],
@@ -69,96 +82,122 @@ def _compile_implementation(ctx):
   # print("SRCS: %s" % srcs)
   # impl_file = srcs[0]
 
-  impl_file = ctx.file.impl
-
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
+  secondary_deps = None
+  if ctx.attr.ppx_bin:
+    secondary_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.secondary
+    ## this will also handle ns
+    outfile = ppx_transform_action("ocaml_module", ctx, ctx.file.impl)
+    # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
+  elif ctx.attr.ns:
+    outfile = rename_module(ctx, ctx.attr.impl, ctx.attr.ns)
+    # srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
+  else:
+    outfile = ctx.file.impl
+    # srcs = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
+
+  # cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
+  cmxfname = paths.replace_extension(outfile.basename, tc.objext)
+  obj_cmx = ctx.actions.declare_file(cmxfname)
+  ofname = paths.replace_extension(outfile.basename, ".o")
+  obj_o = ctx.actions.declare_file(ofname)
+  # cmxfname = paths.replace_extension(ctx.file.impl.basename, tc.objext)
+  # obj_cmx = ctx.actions.declare_file(cmxfname)
+  # ofname = paths.replace_extension(ctx.file.impl.basename, ".o")
+  # obj_o = ctx.actions.declare_file(ofname)
+
   args = ctx.actions.args()
-  # we will pass ocamlfind as the exec arg, so we start args with ocamlopt
-  args.add("ocamlopt")
-
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
-
-  args.add("-no-alias-deps")
-  args.add("-opaque")
-
+  args.add(tc.compiler.basename)
   args.add_all(ctx.attr.opts)
   # modules are always compile-only
   args.add("-c")
 
-  # for wrapper gen:
-  # args.add("-w", "-24")
+  # if ctx.attr.ns:
+  #   args.add("-open", ctx.attr.ns)
+  if ctx.attr.ns_module:
+    args.add("-no-alias-deps")
+    args.add("-opaque")
+    ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
+    ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
+    args.add("-open", ns_mod)
+    # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
+
+  args.add("-no-alias-deps")
+  args.add("-opaque")
+  ## transitive opam deps
+  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  args.add("-linkpkg")
+
+  if secondary_deps:
+    args.add_all([dep for dep in secondary_deps], before_each="-package")
+
+  inputs = []
+  if ctx.attr.intf:
+    # print("INTF: %s" % ctx.attr.intf[OcamlInterfaceProvider])
+    inputs.append(ctx.file.intf)
+    args.add("-I", ctx.file.intf.dirname)
+  args.add("-I", obj_cmx.dirname)
+
+  # if ctx.attr.ppx_libs:
+  #   for item in ctx.attr.ppx.items():
+  #     pkg = item[0].label.name
+  #     print("PKG: {}".format(pkg))
+  #     # args.add("-package", pkg)
+  #     if item[1]:
+  #       ppxargs = ",".join(item[1].split(" "))
+  #       print("PPXARGS: {}".format(ppxargs))
+  #       args.add("-ppxopt", pkg + "," + ppxargs)
+
+  # args.add("-ppxopt", "ppx_jane,-annotated-ignores,-check-doc-comments,-dump-ast,--cookie,\'library-name=\"async_kernel\"\',-corrected-suffix,.ppx-corrected")
+
 
   args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
+  # we need to enumerate all build deps so we can add them to the
+  # action inputs, and add a -I arg for them (we do not need to list
+  # them as command line inputs, just the dirs where they can be found).
   build_deps = []
   includes   = []
+
+  # intf_dep = None
 
   # print("XXXX DEPS for %s" % ctx.label.name)
   for dep in ctx.attr.deps:
     # print(dep)
-    if OpamPkgInfo in dep:
-      g = dep[OpamPkgInfo].pkg.to_list()[0]
-      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-    else:
+    # if OpamPkgInfo in dep:
+    #   g = dep[OpamPkgInfo].pkg.to_list()[0]
+    #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
+    # else:
       for g in dep[DefaultInfo].files.to_list():
         # print(g)
         if g.path.endswith(".o"):
           build_deps.append(g)
           includes.append(g.dirname)
+        # if g.path.endswith(".cmi"):
+        #   intf_dep = g
+        # #   build_deps.append(g)
+        # #   includes.append(g.dirname)
         if g.path.endswith(".cmx"):
           build_deps.append(g)
           includes.append(g.dirname)
         if g.path.endswith(".cmxa"):
           build_deps.append(g)
           includes.append(g.dirname)
-      # if PpxInfo in dep:
-      #   print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-      #   build_deps.append(dep[PpxInfo].cmxa)
-      #   build_deps.append(dep[PpxInfo].a)
-      # else:
-      #   print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-      #   for g in dep[DefaultInfo].files.to_list():
-      #     print(g)
-      #     if g.path.endswith(".cmx"):
-      #       build_deps.append(g)
-      #       args.add("-I", g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
-  # for ocamlfind-enabled deps, use -package
-  # args.add_joined("-package", build_deps, join_with=",")
-
-  # non-ocamlfind-enabled deps:
-  args.add_all(build_deps)
-
-  # impl_file = ctx.file.impl
-  # cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
-  cmxfname = paths.replace_extension(impl_file.basename, tc.objext)
-  obj_cmx = ctx.actions.declare_file(cmxfname)
-  ofname = paths.replace_extension(impl_file.basename, ".o")
-  obj_o = ctx.actions.declare_file(ofname)
-
-  ## Sibling arg can be used to ensure output will go to same
-  ## dir as input.
-  # if file is in same package as BUILD.bazel:
-  #   obj_cmx = ctx.actions.declare_file(outfilename, sibling=ctx.file.impl)
-  # else:
-
-  # args.add("-open", "Digestif_by")
   args.add("-o", obj_cmx)
 
-  args.add(impl_file)
+  args.add(outfile)
 
-  inputs = build_deps + [impl_file]  # ctx.files.impl
+  inputs = inputs + build_deps + [outfile] #  [ctx.file.impl]  # ctx.files.impl
   # print("INPUTS:")
   # print(inputs)
 
-  # print("CTX.BIN_DIR (root): %s" % ctx.bin_dir.path)
-  # print("CTX.BUILD_FILE_PATH: %s" % ctx.build_file_path)
-  cwd = paths.dirname(ctx.build_file_path)
+  # cwd = paths.dirname(ctx.build_file_path)
   # print("CWD: %s" % cwd)
 
   ctx.actions.run(
@@ -168,9 +207,9 @@ def _compile_implementation(ctx):
     inputs = inputs,
     outputs = [obj_cmx, obj_o],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
-    mnemonic = "OcamlPPXBinary",
-    progress_message = "ocaml_module({}), {}".format(
-      ctx.label.name, ctx.attr.message
+    mnemonic = "OcamlModule",
+    progress_message = "ocaml_module({}), compiling impl {}".format(
+      ctx.label.name, ctx.attr.msg
       )
   )
 
@@ -183,11 +222,9 @@ def _ocaml_module_impl(ctx):
 
   rintf = []
   rimpl = []
-  if ctx.file.intf:
-    rintf = _compile_interface(ctx)
 
   if ctx.file.impl:
-    rimpl, deps = _compile_implementation(ctx)
+    rimpl, deps = _compile_implementation(ctx) # , rintf)
 
   module_provider = OcamlModuleProvider(
     payload = struct(
@@ -196,23 +233,12 @@ def _ocaml_module_impl(ctx):
       o   = rimpl[1] if rimpl else None,
     ),
     deps = deps
-    # deps = struct(
-    #   opam  = mydeps.opam,
-    #   nopam = mydeps.nopam
-    # )
   )
-  # print("MODULE PROVIDER for {mod}: {mp}".format(mod=ctx.label.name, mp=module_provider))
 
   return [
     DefaultInfo(files = depset(direct = rimpl)),
     module_provider
   ]
-
-# (library
-#  (name deriving_hello)
-#  (libraries base ppxlib)
-#  (preprocess (pps ppxlib.metaquot))
-#  (kind ppx_deriver))
 
 #############################################
 ########## DECL:  OCAML_MODULE  ################
@@ -222,24 +248,50 @@ ocaml_module = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
-    opts = attr.string_list(),
-    linkopts = attr.string_list(),
-    linkall = attr.bool(default = True),
-    # srcs = attr.label_list(),
+    ns   = attr.string(
+      doc = "Namespace string; will be used as module name prefix."
+    ),
+    ns_sep = attr.string(
+      doc = "Namespace separator.  Default: '__'",
+      default = "__"
+    ),
+    ns_module = attr.label(
+      doc = "Label of a ppx_ns_module target. Used to derive namespace, output name, -open arg, etc.",
+    ),
     impl = attr.label(
+      mandatory = True,
+      doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
     intf = attr.label(
-      allow_single_file = OCAML_INTF_FILETYPES
+      doc = "Single label of a target providing a single .cmi file (not a .mli source file). Optional",
+      allow_single_file = [".cmi"],
+      providers = [OcamlInterfaceProvider],
     ),
+    ppx_bin  = attr.label(
+      doc = "PPX binary (executable).",
+      providers = [PpxBinaryProvider]
+    ),
+    ppx_bin_opts  = attr.string_list(
+      doc = "Options to pass to PPX binary.",
+    ),
+    ppx = attr.label_keyed_string_dict(
+      doc = """Dictionary of one entry. Key is a ppx target, val string is arguments."""
+    ),
+    opts = attr.string_list(),
+    linkopts = attr.string_list(),
+    linkall = attr.bool(default = True),
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
-                   [OcamlLibraryProvider], [OcamlModuleProvider],
+                   [OcamlArchiveProvider],
+                   [OcamlInterfaceProvider],
+                   [OcamlLibraryProvider],
+                   [OcamlModuleProvider],
                    # [OcamlInterfaceProvider]]
                    [CcInfo]],
     ),
     mode = attr.string(default = "native"),
-    message = attr.string(),
+    msg = attr.string(),
   ),
   provides = [OcamlModuleProvider],
   # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
