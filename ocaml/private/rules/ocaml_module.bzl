@@ -71,9 +71,12 @@ def _ocaml_module_impl(ctx):
   # ofname = paths.replace_extension(ctx.file.impl.basename, ".o")
   # obj_o = ctx.actions.declare_file(ofname)
 
+  ################################################################
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
-  args.add_all(ctx.attr.opts)
+  options = tc.opts + ctx.attr.opts
+  args.add_all(options)
+
   # modules are always compile-only
   args.add("-c")
 
