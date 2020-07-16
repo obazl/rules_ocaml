@@ -138,6 +138,10 @@ def _ocaml_module_impl(ctx):
   args.add(outfile)
 
   inputs = inputs + build_deps + [outfile] #  [ctx.file.impl]  # ctx.files.impl
+
+  if ctx.attr.ns_module:
+    inputs.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
+
   # print("INPUTS:")
   # print(inputs)
 
