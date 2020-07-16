@@ -63,45 +63,19 @@ or a similar PPX driver. Without a driver, the target may compile but not work a
 
   args.add("-o", outbinary)
 
-  # for wrapper gen:
-  # args.add("-w", "-24")
-
   build_deps = []
   includes = []
 
-  # for dep in mydeps.opam.to_list():
-  #   print("MYDEP: %s" % dep.to_list()[0].name)
-
   for dep in ctx.attr.deps:
-    # if OpamPkgInfo in dep:
-    #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-    #   # build_deps.append(dep[OpamPkgInfo].pkg)
-    # else:
-      for g in dep[DefaultInfo].files.to_list():
-        if g.path.endswith(".cmx"):
-          # args.add(g)
-          build_deps.append(g)
-          includes.append(g.dirname)
-        if g.path.endswith(".cmxa"):
-          # args.add(g)
-          build_deps.append(g)
-          includes.append(g.dirname)
-      # if PpxInfo in dep:
-      #   print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-      #   build_deps.append(dep[PpxInfo].cmxa)
-      #   build_deps.append(dep[PpxInfo].a)
-      # else:
-      #   print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-      #   for g in dep[DefaultInfo].files.to_list():
-      #     print(g)
-      #     if g.path.endswith(".cmx"):
-      #       build_deps.append(g)
-      #       args.add("-I", g.dirname)
+    for g in dep[DefaultInfo].files.to_list():
+      if g.path.endswith(".cmx"):
+        build_deps.append(g)
+        includes.append(g.dirname)
+      if g.path.endswith(".cmxa"):
+        build_deps.append(g)
+        includes.append(g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
-
-  # non-ocamlfind-enabled deps:
-  args.add_all(build_deps)
 
   # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=mydeps.opam.to_list()))
   opam_deps = mydeps.opam.to_list()

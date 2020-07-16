@@ -25,14 +25,14 @@ def rename_module(ctx, src):  # , pfx):
   parts = paths.split_extension(src.basename)
   module = parts[0]
   extension = parts[1]
-  print("RENAMING MODULE %s" % module)
+  # print("RENAMING MODULE %s" % module)
   ns = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns + ctx.attr.ns_sep
-  print("NS: %s" % ns)
+  # print("NS: %s" % ns)
   if (module == ns):
     out_filename = module + extension
   else:
     out_filename = ns + capitalize_initial_char(module) + extension
-  print("RENAMED MODULE %s" % out_filename)
+  # print("RENAMED MODULE %s" % out_filename)
 
   # if pfx.find("/") > 0:
   #   fail("ERROR: ns contains '/' : '%s'" % pfx)
@@ -86,7 +86,6 @@ def ppx_transform_action(rule, ctx, infile):
   # print("PPX_TRANSFORM_ACTION: {rule} ({target}): {infile}".format(rule=rule, target=ctx.label.name, infile=infile))
 
   pfx = None
-  module = ""
   if (rule == "ocaml_module"):
     if ctx.attr.ns_module:
       pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns + ctx.attr.ns_sep
@@ -141,10 +140,6 @@ def ppx_transform_action(rule, ctx, infile):
     args.add("-intf", infile)
   if infile.path.endswith(".ml"):
     args.add("-impl", infile)
-
-  # args.add("-corrected-suffix", ".ppx-corrected")
-  # args.add("-dump-ast")
-
 
   ppx = ctx.attr.ppx_bin.files.to_list()[0]
   # print("PPX: %s" % ppx)

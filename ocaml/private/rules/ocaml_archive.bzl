@@ -148,25 +148,16 @@ def _ocaml_archive_batch(ctx):
 
   args.add_all(ctx.files.srcs)
 
-  # args.add("-passrest")
-  # args.add("-package", "ocaml-migrate-parsetree.driver-main")
-  # args.add("-plugin")
-  # args.add("migrate_parsetree_driver_main.cmxs")
-
   inputs_arg = inputs_arg + build_deps + ctx.files.srcs
   # print("INPUT_ARGS:")
   # print(inputs_arg)
-
-  outputs_arg = obj_files  # + build_deps
-  # print("OUTPUTS_ARG:")
-  # print(outputs_arg)
 
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
     inputs = inputs_arg,
-    outputs = outputs_arg,
+    outputs = obj_files,
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlLibrary",
     progress_message = "ocaml_archive({}): {}".format(
@@ -191,7 +182,7 @@ def _ocaml_archive_batch(ctx):
   return [
     DefaultInfo(
       files = depset(
-        direct = outputs_arg # obj_files
+        direct = obj_files
       )),
     ap
   ]

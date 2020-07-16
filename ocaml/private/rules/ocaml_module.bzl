@@ -33,45 +33,8 @@ load("//ocaml/private:utils.bzl",
 )
 
 ################################################################
-def _compile_interface(ctx):
-
-  mydeps = get_all_deps(ctx.attr.deps)
-
-  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
-
-  cmifname = ctx.file.intf.basename.rstrip("mli") + "cmi"
-  obj_cmi = ctx.actions.declare_file(cmifname)
-
-  args = ctx.actions.args()
-  args.add(tc.compiler.basename)
-  args.add_all(ctx.attr.opts)
-
-  args.add("-I", paths.dirname(ctx.file.intf.path))
-
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-
-  args.add("-o", obj_cmi)
-  args.add(ctx.file.intf)
-
-
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = [ctx.file.intf],
-    outputs = [obj_cmi],
-    tools = [tc.ocamlopt],
-    mnemonic = "OcamlModuleInterface",
-    progress_message = "ocaml_module({}), compiling interface {}".format(
-      ctx.label.name, ctx.attr.message
-      )
-  )
-  return [obj_cmi]
-
-################################################################
-def _compile_implementation(ctx):
+########## RULE:  OCAML_MODULE  ################
+def _ocaml_module_impl(ctx):
 
   mydeps = get_all_deps(ctx.attr.deps)
   # print("ALL DEPS for target %s" % ctx.label.name)
@@ -91,13 +54,10 @@ def _compile_implementation(ctx):
     secondary_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.secondary
     ## this will also handle ns
     outfile = ppx_transform_action("ocaml_module", ctx, ctx.file.impl)
-    # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
   elif ctx.attr.ns:
     outfile = rename_module(ctx, ctx.attr.impl, ctx.attr.ns)
-    # srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
   else:
     outfile = ctx.file.impl
-    # srcs = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
 
   # cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
   cmxfname = paths.replace_extension(outfile.basename, tc.objext)
@@ -127,9 +87,6 @@ def _compile_implementation(ctx):
 
   args.add("-no-alias-deps")
   args.add("-opaque")
-  ## transitive opam deps
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-  args.add("-linkpkg")
 
   if secondary_deps:
     args.add_all([dep for dep in secondary_deps], before_each="-package")
@@ -172,7 +129,6 @@ def _compile_implementation(ctx):
     #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
     # else:
       for g in dep[DefaultInfo].files.to_list():
-        # print(g)
         if g.path.endswith(".o"):
           build_deps.append(g)
           includes.append(g.dirname)
@@ -213,30 +169,20 @@ def _compile_implementation(ctx):
       )
   )
 
-  return [obj_cmx, obj_o], struct( opam = mydeps.opam, nopam = mydeps.nopam )
-  # return [DefaultInfo(files = depset(direct = [obj_cmx, obj_o]))]
-# OutputGroupInfo(bin = depset([bin_output]))]
-
-########## RULE:  OCAML_MODULE  ################
-def _ocaml_module_impl(ctx):
-
-  rintf = []
-  rimpl = []
-
-  if ctx.file.impl:
-    rimpl, deps = _compile_implementation(ctx) # , rintf)
-
   module_provider = OcamlModuleProvider(
     payload = struct(
-      cmi = rintf,
-      cmx = rimpl[0] if rimpl else None,
-      o   = rimpl[1] if rimpl else None,
+      # cmi = ctx.file.cmi if ctx.file.cmi else None,
+      cmx = obj_cmx,
+      o   = obj_o
     ),
-    deps = deps
+    deps = struct(
+      opam = mydeps.opam,
+      nopam = mydeps.nopam
+    )
   )
 
   return [
-    DefaultInfo(files = depset(direct = rimpl)),
+    DefaultInfo(files = depset(direct = [obj_cmx])),
     module_provider
   ]
 

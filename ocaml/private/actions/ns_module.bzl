@@ -10,7 +10,8 @@ load("//ocaml/private:utils.bzl",
 )
 
 def ns_module_action(ctx):
-  # print("ns_module_action: %s" % ctx)
+  # print("ns_module_action: %s" % ctx.label.name)
+
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -78,7 +79,7 @@ def ns_module_action(ctx):
   if ctx.attr._rule == "ocaml_ns_module":
       provider = OcamlNsModuleProvider(
           payload = struct(
-              ns  = ctx.attr.ns,  # ns_module_name,
+              ns  = ctx.attr.ns,
               cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o

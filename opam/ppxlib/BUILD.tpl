@@ -26,7 +26,6 @@ ppx_module(
     impl = "ppxlib_driver_standalone_runner.ml",
     opts = ["-linkall",
             "-linkpkg",
-            # "-verbose"
             "-predicates", "ppx_driver"],
     deps = ["@opam//pkg:base",
             "@opam//pkg:ppxlib"],
