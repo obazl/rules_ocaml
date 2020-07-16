@@ -86,7 +86,8 @@ def _ocaml_archive_batch(ctx):
   includes = []
   inputs_arg = []  # for the run action inputs
 
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  # args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   for dep in ctx.attr.deps:
     if OpamPkgInfo in dep:

@@ -89,7 +89,7 @@ def _ocaml_interface_impl(ctx):
 
   # args.add("-linkpkg")
   # args.add("-linkall")
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   if secondary_deps:
     args.add_all([dep for dep in secondary_deps], before_each="-package")

@@ -77,15 +77,28 @@ or a similar PPX driver. Without a driver, the target may compile but not work a
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
-  # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=mydeps.opam.to_list()))
   opam_deps = mydeps.opam.to_list()
+  # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=opam_deps))
+
+  # opam_labels = [dep.to_list()[0].name for dep in opam_deps]
+  opam_labels = [dep.pkg.to_list()[0].name for dep in opam_deps]
   if len(opam_deps) > 0:
     # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
     args.add("-linkpkg")
-    args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
+    for dep in opam_deps:
+      # print("OPAM DEP: %s" % dep.pkg.to_list()[0].name)
+      # if (dep.pkg.to_list()[0].name != "ppx_deriving.api"):
+      #   if (dep.pkg.to_list()[0].name != "ppx_deriving.eq"):
+      args.add("-package", dep.pkg.to_list()[0].name)
+      # args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
+  # print("OPAM LABELS: %s" % opam_labels)
 
-  # for ocamlfind-enabled deps, use -package
-  # args.add_joined("-package", build_deps, join_with=",")
+  # args.add("-absname")
+
+  # non-ocamlfind-enabled deps:
+  # for dep in build_deps:
+  #   print("BUILD DEP: %s" % dep)
+  args.add_all(build_deps)
 
   # driver shim source must come after lib deps!
   args.add_all(ctx.files.srcs)

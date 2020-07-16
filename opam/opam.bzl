@@ -9,6 +9,14 @@ OPAMROOT = "OPAMROOT"
 # print("private/ocaml.bzl loading")
 
 # Set up OPAM
+def is_ppx_driver(repository_ctx, pkg):
+    query_result = repository_ctx.execute(["ocamlfind", "printppx", pkg]).stdout.strip()
+    # print("IS PPX DRIVER? {pkg} : {ppx}".format( pkg = pkg, ppx = len(query_result)))
+    if len(query_result) == 0:
+        return False
+    else:
+        return True
+
 def _opam_repo_impl(repository_ctx):
     # print("_opam_binary_impl")
 
@@ -23,9 +31,10 @@ def _opam_repo_impl(repository_ctx):
 
     ocamlfind_packages = []
     for p in packages:
-      ocamlfind_packages.append(
-        "ocamlfind_package(name = \"{pkg}\")".format( pkg = p )
-      )
+        ppx = is_ppx_driver(repository_ctx, p)
+        ocamlfind_packages.append(
+            "ocamlfind_package(name = \"{pkg}\", ppx_driver={ppx})".format( pkg = p, ppx = ppx )
+        )
     # print("ocamlfind pkgs:")
     # for p in ocamlfind_packages:
     #   print(p)
@@ -107,9 +116,18 @@ opam_repo = repository_rule(
 def _ocamlfind_package_impl(ctx):
   ## client should do:
   ## dep[OpamPkgInfo].pkg.to_list()[0].name)
-  return [OpamPkgInfo(pkg = depset(direct = [ctx.label]))]
+  return [OpamPkgInfo(
+      pkg = depset(direct = [ctx.label]),
+      ppx_driver = ctx.attr.ppx_driver
+  )]
 
 ocamlfind_package = rule(
     implementation = _ocamlfind_package_impl,
+    attrs = dict(
+        ppx_driver = attr.bool(
+            doc = "True if META contains ppx(-ppx_driver...) or ppxopt(-ppx_driver...), indicating that ocamlfind will generate a -ppx/--as-ppx arg if this lib is listed as a dependency.",
+            default = False
+        )
+    ),
     provides = [OpamPkgInfo]
 )

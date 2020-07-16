@@ -80,17 +80,20 @@ def get_all_deps(direct_deps):
   # a. add the info struct as direct dep
   # b. iterate over the deps of the direct dep, adding them to transitive
 
+  defaults = []
+
   opam_directs = []
   opam_transitives = []
   nopam_directs = []
   nopam_transitives = []
   for dep in direct_deps:
+    defaults.append(dep[DefaultInfo])
     # print("GETALL: DEP: %s" % dep)
     if OpamPkgInfo in dep:
       op = dep[OpamPkgInfo]
       # print("OpamPkgInfo dep: %s" % op)
       # print("OpamPkgInfo type: %s" % type(op))
-      opam_directs.append(op.pkg)
+      opam_directs.append(op)
       # opam_transitives.append(op.pkg)
     elif OcamlArchiveProvider in dep:
       ap = dep[OcamlArchiveProvider]
