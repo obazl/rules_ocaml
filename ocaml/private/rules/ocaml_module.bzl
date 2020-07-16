@@ -125,6 +125,14 @@ def _ocaml_module_impl(ctx):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
+  args.add_all(build_deps)
+
+  ## transitive opam deps - filter out ppx_driver-based libs
+  args.add("-linkpkg")
+  for dep in mydeps.opam.to_list():
+    if not dep.ppx_driver:
+        args.add("-package", dep.pkg.to_list()[0].name)
+
   args.add("-o", obj_cmx)
 
   args.add(outfile)

@@ -142,7 +142,8 @@ def _ppx_module_impl(ctx):
   args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   args.add("-impl", outfile)
-  # args.add(srcs.impl)
+  args.add("-linkpkg")
+  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
 
   ctx.actions.run(
