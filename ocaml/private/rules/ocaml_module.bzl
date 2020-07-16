@@ -103,52 +103,25 @@ def _ocaml_module_impl(ctx):
     args.add("-I", ctx.file.cmi.dirname)
   args.add("-I", obj_cmx.dirname)
 
-  # if ctx.attr.ppx_libs:
-  #   for item in ctx.attr.ppx.items():
-  #     pkg = item[0].label.name
-  #     print("PKG: {}".format(pkg))
-  #     # args.add("-package", pkg)
-  #     if item[1]:
-  #       ppxargs = ",".join(item[1].split(" "))
-  #       print("PPXARGS: {}".format(ppxargs))
-  #       args.add("-ppxopt", pkg + "," + ppxargs)
-
-  # args.add("-ppxopt", "ppx_jane,-annotated-ignores,-check-doc-comments,-dump-ast,--cookie,\'library-name=\"async_kernel\"\',-corrected-suffix,.ppx-corrected")
-
-
-  args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-
   # we need to enumerate all build deps so we can add them to the
   # action inputs, and add a -I arg for them (we do not need to list
   # them as command line inputs, just the dirs where they can be found).
   build_deps = []
   includes   = []
 
-  # intf_dep = None
-
-  # print("XXXX DEPS for %s" % ctx.label.name)
   for dep in ctx.attr.deps:
-    # print(dep)
-    # if OpamPkgInfo in dep:
-    #   g = dep[OpamPkgInfo].pkg.to_list()[0]
-    #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-    # else:
-      for g in dep[DefaultInfo].files.to_list():
-        if g.path.endswith(".o"):
-          build_deps.append(g)
-          includes.append(g.dirname)
-        # if g.path.endswith(".cmi"):
-        #   intf_dep = g
-        # #   build_deps.append(g)
-        # #   includes.append(g.dirname)
-        if g.path.endswith(".cmx"):
-          build_deps.append(g)
-          includes.append(g.dirname)
-        if g.path.endswith(".cmxa"):
-          build_deps.append(g)
-          includes.append(g.dirname)
-        if g.path.endswith(".cmxs"):
-          includes.append(g.dirname)
+    for g in dep[DefaultInfo].files.to_list():
+      if g.path.endswith(".o"):
+        build_deps.append(g)
+        includes.append(g.dirname)
+      if g.path.endswith(".cmx"):
+        build_deps.append(g)
+        includes.append(g.dirname)
+      if g.path.endswith(".cmxa"):
+        build_deps.append(g)
+        includes.append(g.dirname)
+      if g.path.endswith(".cmxs"):
+        includes.append(g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
