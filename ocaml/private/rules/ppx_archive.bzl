@@ -36,8 +36,21 @@ load("//ocaml/private:utils.bzl",
 #### one action, which will compile them (presumably in sequence) and
 #### then link.
 def _ppx_archive_impl(ctx):
+
   ## this is essentially the same as ocaml_library, but it returns a
   ## ppx provider. should unify them?
+
+  # print("_PPX_ARCHIVE_IMPL: %s" % ctx.label.name)
+  if len(ctx.attr.deps) == 1:
+    if PpxArchiveProvider in ctx.attr.deps[0]:
+      ## used to redirect/wrap a ppx_module in another location
+      ## e.g. src/ppx/register_event redirects to src/lib/ppx_register_event
+      redirect = ctx.attr.deps[0]
+      # print("PPX ARCHIVE REDIRECT: %s" % redirect)
+      return [
+        redirect[DefaultInfo],
+        redirect[PpxArchiveProvider]
+      ]
 
   mydeps = get_all_deps(ctx.attr.deps)
 

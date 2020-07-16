@@ -36,6 +36,17 @@ load("//ocaml/private:utils.bzl",
 ####  OCAML_PPX_MODULE IMPLEMENTATION
 def _ppx_module_impl(ctx):
 
+  if not ctx.attr.impl:
+    if len(ctx.attr.deps) == 1:
+      ## used to redirect/wrap a ppx_module in another location
+      ## e.g. src/ppx/register_event redirects to src/lib/ppx_register_event
+      redirect = ctx.attr.deps[0]
+      # print("PPX MODULE REDIRECT: %s" % redirect)
+      return [
+        redirect[DefaultInfo],
+        redirect[PpxModuleProvider]
+      ]
+
   mydeps = get_all_deps(ctx.attr.deps)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
