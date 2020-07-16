@@ -175,13 +175,16 @@ def get_all_deps(direct_deps):
       fail("UNKNOWN DEP TYPE: %s" % dep)
 
   opam_depset = depset(
+    order      = "postorder",
     direct     = opam_directs,
     transitive = opam_transitives
   )
 
   nopam_depset = depset(
+    order      = "postorder",
     direct = nopam_directs,
     transitive = nopam_transitives
   )
 
-  return struct( opam = opam_depset, nopam = nopam_depset )
+  return struct( default = defaults,
+                 opam = opam_depset, nopam = nopam_depset )
