@@ -8,7 +8,9 @@ load("//ocaml/private:providers.bzl",
      "OcamlNsModuleProvider",
      "OcamlModuleProvider",
      "OpamPkgInfo",
-     "PpxBinaryProvider")
+     "PpxArchiveProvider",
+     "PpxBinaryProvider",
+     "PpxModuleProvider")
 load("//ocaml/private/actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/private/actions:module.bzl", "rename_module", "ppx_transform_action")
 load("//ocaml/private/actions:ppx.bzl",
@@ -233,7 +235,8 @@ ocaml_module = rule(
                    [OcamlInterfaceProvider],
                    [OcamlLibraryProvider],
                    [OcamlModuleProvider],
-                   # [OcamlInterfaceProvider]]
+                   [PpxArchiveProvider],
+                   [PpxModuleProvider],
                    [CcInfo]],
     ),
     mode = attr.string(default = "native"),

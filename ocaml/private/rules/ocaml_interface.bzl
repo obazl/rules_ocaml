@@ -7,6 +7,7 @@ load("//ocaml/private:providers.bzl",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider",
      "OpamPkgInfo",
+     "PpxArchiveProvider",
      "PpxBinaryProvider")
 load("//ocaml/private/actions:module.bzl",
      "rename_module",
@@ -203,7 +204,8 @@ ocaml_interface = rule(
       providers = [[OpamPkgInfo],
                    [OcamlArchiveProvider],
                    [OcamlLibraryProvider],
-                   [OcamlModuleProvider]], # [OcamlInterfaceProvider]]
+                   [PpxArchiveProvider],
+                   [OcamlModuleProvider]]
     ),
     mode = attr.string(default = "native"),
     msg = attr.string(),
