@@ -154,19 +154,14 @@ def _ppx_archive_impl(ctx):
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
-  outputs_arg = [obj_cmxa, obj_a]
   # print("OUTPUTS_ARG:")
   # print(outputs_arg)
-
-  # print("ARGS: ")
-  # print(args)
-
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
     inputs = inputs_arg,
-    outputs = outputs_arg,
+    outputs = obj.values(), # outputs_arg,
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPpxLibrary",
     progress_message = "ppx_archive({}): {}".format(
@@ -176,12 +171,13 @@ def _ppx_archive_impl(ctx):
 
   return [
     DefaultInfo(
-      files = depset(direct = [obj_cmxa, obj_a])
+      files = depset(direct = obj.values()) # [obj_cmxa, obj_a])
     ),
     PpxArchiveProvider(
       payload = struct(
-        cmxa = obj_cmxa,
-        a    = obj_a
+        cmxa = obj["cmxa"] if "cmxa" in obj else None,
+        cmxs = obj["cmxs"] if "cmxs" in obj else None,
+        a    = obj["a"] if "a" in obj else None
         # cmi  : .cmi file produced by the target
         # cm   : .cmx or .cmo file produced by the target
         # o    : .o file produced by the target

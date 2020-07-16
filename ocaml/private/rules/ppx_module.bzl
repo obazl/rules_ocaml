@@ -155,7 +155,7 @@ def _ppx_module_impl(ctx):
     executable = tc.ocamlfind,
     arguments = [args],
     inputs = inputs,
-    outputs = obj.values(),
+    outputs = [obj_cm, obj_o],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt] + ctx.files.data,
     mnemonic = "PpxModule",
     progress_message = "ppx_module({}), {}".format(
@@ -166,12 +166,12 @@ def _ppx_module_impl(ctx):
   # print("srcs.impl: %s" % srcs.impl)
   # testing:
   return [
-    DefaultInfo(files = depset(direct = obj.values())),
+    DefaultInfo(files = depset(direct = [obj_cm, obj_o])),
     PpxModuleProvider(
       payload = struct(
         cmi = obj["cmi"] if "cmi" in obj else None,
-        cm  = obj["cm"],
-        o   = obj["o"]
+        cm  = obj_cm,
+        o   = obj_o
       ),
       deps = struct(
         opam  = mydeps.opam,
