@@ -25,7 +25,8 @@ def ns_module_action(ctx):
     sm_parts = paths.split_extension(sm.basename)
     module = sm_parts[0]
     # print("NS MODULE %s" % module)
-    if (module == ns_module_name):
+    if (module.lower() == ns_module_name.lower()):
+      # print("NS MATCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
       ns_module_name = ns_module_name + ctx.attr.ns_sep
     else:
       alias = "module {sm} = {pfx}{sm}".format(

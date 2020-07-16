@@ -169,6 +169,9 @@ ocaml_interface = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
+    module_name   = attr.string(
+      doc = "Module name."
+    ),
     ns   = attr.string(
       doc = "Namespace string; will be used as module name prefix."
     ),

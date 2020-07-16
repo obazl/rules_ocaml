@@ -105,12 +105,27 @@ def ppx_transform_action(rule, ctx, infile):
     if pfx.find("/") > 0:
       fail("ERROR: ns contains '/' : '%s'" % pfx)
 
-  module = infile.basename.capitalize()
+  # print("PFX: %s" % pfx)
+  # print("INFILE: %s" % infile.basename)
+  outfilename = None
+  parts = paths.split_extension(infile.basename.capitalize())
+  if ctx.attr.module_name:
+    module = ctx.attr.module_name
+  else:
+    module = parts[0]
+    # print("INFILE MODULE %s" % module)
 
-  outfile = ctx.actions.declare_file(pfx + module)
+  if (pfx.lower().startswith(module.lower())):
+    # print("NS INFILE MATCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    outfilename = module
+  else:
+    outfilename = pfx + module
+  outfilename = outfilename + parts[1]
+
+  # print("RESOLVED OUTFILE: %s" % outfilename)
+  outfile = ctx.actions.declare_file(outfilename)
   outputs = {}
   outputs["impl"] = outfile
-  # print("NEW IMPL: %s" % outfile)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}

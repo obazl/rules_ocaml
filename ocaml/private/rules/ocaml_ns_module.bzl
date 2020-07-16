@@ -61,6 +61,7 @@ ocaml_ns_module = rule(
       default = "__"
     ),
     submodules = attr.label_list(
+      doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
       allow_files = OCAML_FILETYPES
     ),
     opts = attr.string_list(
