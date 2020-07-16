@@ -27,20 +27,24 @@ load("//ocaml/private:utils.bzl",
 ####  PPX_BINARY IMPLEMENTATION
 def _ppx_binary_impl(ctx):
 
-  dep_labels = [dep.label for dep in ctx.attr.deps]
-  if Label("@opam//pkg:ppxlib.runner") in dep_labels:
-    if not "-predicates" in ctx.attr.opts:
-      print("""\n\nWARNING: target '{target}' depends on
-'@opam//pkg:ppxlib.runner' but lacks -predicates option. PPX binaries that depend on this
-usually pass \"-predicates\", \"ppx_driver\" to opts. Without this option, the binary may
-compile but may not work as intended.\n\n""".format(target = ctx.label.name))
-  else:
-    print("""\n\nWARNING: ppx_binary target '{target}'
-does not have a driver dependency.  Such targets usually depend on '@opam//pkg:ppxlib.runner'
-or a similar PPX driver. Without a driver, the target may compile but not work as intended.\n\n""".format(target = ctx.label.name))
+#   dep_labels = [dep.label for dep in ctx.attr.deps]
+#   if Label("@opam//pkg:ppxlib.runner") in dep_labels:
+#     if not "-predicates" in ctx.attr.opts:
+#       print("""\n\nWARNING: target '{target}' depends on
+# '@opam//pkg:ppxlib.runner' but lacks -predicates option. PPX binaries that depend on this
+# usually pass \"-predicates\", \"ppx_driver\" to opts. Without this option, the binary may
+# compile but may not work as intended.\n\n""".format(target = ctx.label.name))
+#   else:
+#     print("""\n\nWARNING: ppx_binary target '{target}'
+# does not have a driver dependency.  Such targets usually depend on '@opam//pkg:ppxlib.runner'
+# or a similar PPX driver. Without a driver, the target may compile but not work as intended.\n\n""".format(target = ctx.label.name))
 
-  # print("\n\nPPX BINARY ATTR.DEPS %s\n\n" % ctx.label.name)
-  # print(ctx.attr.deps)
+  # print("PPX BINARY: %s" % ctx.label.name)
+  # for src in ctx.attr.srcs:
+    # print("PPX BIN SRC: %s" % src)
+    # print("PPX BIN SRC type: %s" % type(src))
+    # if PpxModuleProvider in src:
+      # print("PPX MODULE PROVIDER: %s" % src[PpxModuleProvider])
 
   mydeps = get_all_deps(ctx.attr.deps)
 
