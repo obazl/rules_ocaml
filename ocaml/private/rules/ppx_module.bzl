@@ -128,7 +128,12 @@ def _ppx_module_impl(ctx):
   if secondary_deps:
     args.add_all([dep for dep in secondary_deps], before_each="-package")
 
-  inputs = build_deps + [outfile] # [ctx.file.impl] #  [srcs.impl]
+  inputs = inputs + build_deps + [infile] # [ctx.file.impl] #  [srcs.impl]
+  if ctx.attr.cmi:
+    # print("CMI: %s" % ctx.attr.cmi[OcamlInterfaceProvider])
+    inputs.append(ctx.file.cmi)
+    args.add("-I", ctx.file.cmi.dirname)
+
   # print("INPUTS:")
   # print(inputs)
 
@@ -204,7 +209,7 @@ ppx_module = rule(
       doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
-    intf = attr.label(
+    cmi = attr.label(
       doc = "Single label of a target providing a single .cmi file (not a .mli source file). Optional",
       allow_single_file = [".cmi"],
       providers = [OcamlInterfaceProvider],

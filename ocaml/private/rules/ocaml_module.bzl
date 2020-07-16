@@ -97,10 +97,10 @@ def _ocaml_module_impl(ctx):
     args.add_all([dep for dep in secondary_deps], before_each="-package")
 
   inputs = []
-  if ctx.attr.intf:
-    # print("INTF: %s" % ctx.attr.intf[OcamlInterfaceProvider])
-    inputs.append(ctx.file.intf)
-    args.add("-I", ctx.file.intf.dirname)
+  if ctx.attr.cmi:
+    # print("CMI: %s" % ctx.attr.cmi[OcamlInterfaceProvider])
+    inputs.append(ctx.file.cmi)
+    args.add("-I", ctx.file.cmi.dirname)
   args.add("-I", obj_cmx.dirname)
 
   # if ctx.attr.ppx_libs:
@@ -214,7 +214,7 @@ ocaml_module = rule(
       doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
-    intf = attr.label(
+    cmi = attr.label(
       doc = "Single label of a target providing a single .cmi file (not a .mli source file). Optional",
       allow_single_file = [".cmi"],
       providers = [OcamlInterfaceProvider],
