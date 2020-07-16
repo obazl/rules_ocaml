@@ -57,15 +57,23 @@ def _ppx_archive_impl(ctx):
   if "-linkpkg" in ctx.attr.opts:
     fail("-linkpkg option not supported for ppx_archive rule")
 
+  obj = {}
   if ctx.attr.archive_name:
-    outfile_cmxa_name = ctx.attr.archive_name + ".cmxa"
-    outfile_a_name    = ctx.attr.archive_name + ".a"
+    if ctx.attr.linkshared:
+      obj["cmxs"] = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxs")
+    else:
+      obj["cmxa"] = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxa")
+      obj["a"]    = ctx.actions.declare_file(ctx.attr.archive_name + ".a")
   else:
-    outfile_cmxa_name = ctx.label.name + ".cmxa"
-    outfile_a_name    = ctx.label.name + ".a"
+    if ctx.attr.linkshared:
+      obj["cmxs"] = ctx.actions.declare_file(ctx.label.name + ".cmxs")
+    else:
+      obj["cmxa"] = ctx.actions.declare_file(ctx.label.name + ".cmxa")
+      obj["a"]    = ctx.actions.declare_file(ctx.label.name + ".a")
 
-  obj_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
-  obj_a    = ctx.actions.declare_file(outfile_a_name)
+  # print("PPX_ARCHIVE OBJS: %s" % obj)
+  # obj_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
+  # obj_a    = ctx.actions.declare_file(outfile_a_name)
 
   args = ctx.actions.args()
   args.add("ocamlopt")
@@ -75,12 +83,15 @@ def _ppx_archive_impl(ctx):
   if ctx.attr.linkall:
     args.add("-linkall")
 
-  # a ppx_archive is always cmxa
-  args.add("-a")
-  # if "-a" in ctx.attr.opts:
-  # args.add("-open")
-  # args.add("Ppx_snarky__Wrapper")
-  args.add("-o", obj_cmxa)
+  # NOTE: we do not put .a on the command line, since putting -o
+  # foo.cmxa or -o foo.cmxs will automatically produce foo.a.
+  # But we do add it to the Bazel outputs.
+  if ctx.attr.linkshared:
+    args.add("-shared")
+    args.add("-o", obj["cmxs"])
+  else:
+    args.add("-a")
+    args.add("-o", obj["cmxa"])
 
   ## We insert -I for each non-opam dep; since this would usually
   ## result in duplicates, we accumulate them first, then dedup.
@@ -199,6 +210,7 @@ ppx_archive = rule(
     srcs = attr.label_list(
       allow_files = OCAML_FILETYPES
     ),
+    linkshared = attr.bool(default = False),
     # src_root = attr.label(
     #   allow_single_file = True,
     #   mandatory = True,

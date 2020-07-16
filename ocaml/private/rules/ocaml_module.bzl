@@ -147,6 +147,8 @@ def _ocaml_module_impl(ctx):
         if g.path.endswith(".cmxa"):
           build_deps.append(g)
           includes.append(g.dirname)
+        if g.path.endswith(".cmxs"):
+          includes.append(g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
