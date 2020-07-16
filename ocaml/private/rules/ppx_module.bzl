@@ -47,40 +47,41 @@ def _ppx_module_impl(ctx):
   #   print(" PpxNsModuleProvider: %s" % ctx.attr.ppx_ns_module[PpxNsModuleProvider])
 
   secondary_deps = None
-  outfile = None
+  infile = None
+  obj = {}
   if ctx.attr.ppx_bin:
     ## this will also handle ns
-    outfile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
+    infile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
+    obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
+    obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
     # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
     secondary_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.secondary
   elif ctx.attr.ppx_ns_module:
-    outfile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
+    infile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
+    obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
+    obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
+    outfile = paths.replace_extension(infile.basename, ".cmx")
     # srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
   else:
-    outfile = ctx.attr.impl
-    # srcs = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
+    if ctx.attr.impl:
+      infile = ctx.file.impl
+      obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
+      obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
+      if ctx.attr.module_name:
+        outfile = ctx.attr.module_name + ".cmx"
+      else:
+        outfile = paths.replace_extension(infile.basename, ".cmx")
 
-  # print("OUTFILE: %s" % outfile)
+  # print("SECONDARY DEPS: %s" % secondary_deps)
+
+  # print("CTX.ATTR.IMPL: %s" % ctx.attr.impl)
+  # print("CTX.ATTR.MODULE_NAME: %s" % ctx.attr.module_name)
+  # print("INFILE: %s" % infile)
   # srcs now contains output files we need to declare, and we no longer need ns or ppx
   # srcs :: struct( impl :: declared File, maybe intf :: File )
   # Note that we need to declare the cmi output even if we do not have an intf input.
 
   obj = {}
-
-  # if ctx.attr.intf:
-  #   obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(srcs.intf.basename, ".cmi"))
-  # else:
-
-  if not ctx.attr.intf:
-    obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".cmi"))
-    # obj["cmi"]       = ctx.actions.declare_file(paths.replace_extension(ctx.file.impl.basename, ".cmi"))
-
-  obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".cmx"))
-  obj["o"]           = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".o"))
-  # obj["cm"]          = ctx.actions.declare_file(paths.replace_extension(ctx.file.impl.basename, ".cmx"))
-  # obj["o"]           = ctx.actions.declare_file(paths.replace_extension(ctx.file.impl.basename, ".o"))
-
-  # # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
@@ -88,21 +89,24 @@ def _ppx_module_impl(ctx):
   options = tc.opts + ctx.attr.opts
   args.add_all(options)
 
+  inputs = []
+
   if ctx.attr.ppx_ns_module:
     args.add("-no-alias-deps")
     args.add("-opaque")
     ns_cm = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cm
+    inputs.append(ns_cm)
     ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
     args.add("-open", ns_mod)
     # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
 
   args.add("-c")
-  args.add("-o", obj["cm"])
+  args.add("-o", obj_cm)
 
   build_deps = []
   includes = []
 
-  args.add("-I", outfile.dirname)
+  args.add("-I", obj_cm.dirname)
 
   ## transitive opam deps
   linkpkg_flag = False
