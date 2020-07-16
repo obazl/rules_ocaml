@@ -69,7 +69,7 @@ def ns_module_action(ctx):
       outputs = [obj_cmx, obj_o, obj_cmi],
       tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
       mnemonic = "NsModuleAction",
-      progress_message = "ns_module_action for rule {rule}{msg}".format(
+      progress_message = "ns_module_action for {rule}({target}){msg}".format(
           rule = ctx.attr._rule, target = ctx.label.name,
           msg = ": " + ctx.attr.msg if ctx.attr.msg else ""
       )
