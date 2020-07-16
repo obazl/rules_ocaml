@@ -36,3 +36,5 @@ try-import user.bazelrc
 ## For queries:
 # query --override_repository=digestif=/path/to/local/digestif
 
+# When enabled, the `bazel-out` symlink won’t be created if a different name is given to `--symlink_prefix`.
+# build --experimental_no_product_name_out_symlink`
