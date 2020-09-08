@@ -36,6 +36,7 @@ load("//ocaml/private:utils.bzl",
 ####  OCAML_PPX_MODULE IMPLEMENTATION
 def _ppx_module_impl(ctx):
 
+  # FIXME: use alias?
   if not ctx.attr.impl:
     if len(ctx.attr.deps) == 1:
       ## used to redirect/wrap a ppx_module in another location
@@ -53,23 +54,21 @@ def _ppx_module_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  # if ctx.attr.ppx_ns_module:
-  #   print("CTX.ATTR.PPX_NS_MODULE: %s" % ctx.attr.ppx_ns_module)
-  #   print(" PpxNsModuleProvider: %s" % ctx.attr.ppx_ns_module[PpxNsModuleProvider])
-
-  secondary_deps = None
+  output_deps = None
   infile = None
   obj = {}
   if ctx.attr.ppx_bin:
     ## this will also handle ns
     infile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
     obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
+    obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
     obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
     # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
-    secondary_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.secondary
+    output_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.transform
   elif ctx.attr.ppx_ns_module:
     infile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
     obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
+    obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
     obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
     outfile = paths.replace_extension(infile.basename, ".cmx")
     # srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
@@ -83,7 +82,7 @@ def _ppx_module_impl(ctx):
       else:
         outfile = paths.replace_extension(infile.basename, ".cmx")
 
-  # print("SECONDARY DEPS: %s" % secondary_deps)
+  # print("TRANSFORM DEPS: %s" % output_deps)
 
   # print("CTX.ATTR.IMPL: %s" % ctx.attr.impl)
   # print("CTX.ATTR.MODULE_NAME: %s" % ctx.attr.module_name)
@@ -120,34 +119,42 @@ def _ppx_module_impl(ctx):
   args.add("-I", obj_cm.dirname)
 
   ## transitive opam deps
-  linkpkg_flag = False
+  # linkpkg_flag = False
+  # for dep in ctx.attr.deps:
+  #   for g in dep[DefaultInfo].files.to_list():
+  #     if g.path.endswith(".cmx"):
+  #       build_deps.append(g)
+  #       includes.append(g.dirname)
+  #     if g.path.endswith(".cmxa"):
+  #       build_deps.append(g)
+  #       includes.append(g.dirname)
   ##FIXME:  use mydeps.nopam
-  for dep in ctx.attr.deps:
-    # if OpamPkgInfo in dep:
-    #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-    #   linkpkg_flag = True
-    #   # build_deps.append(dep[OpamPkgInfo].pkg)
-    # else:
-      for g in dep[DefaultInfo].files.to_list():
-        if g.path.endswith(".cmx"):
-          build_deps.append(g)
-          includes.append(g.dirname)
-        if g.path.endswith(".cmxa"):
-          build_deps.append(g)
-          includes.append(g.dirname)
+  # print("NOPAMS: %s" % mydeps.nopam)
+  for dep in mydeps.nopam.to_list():
+    # print("DEP:  %s" % dep)
+    if hasattr(dep, "cm"):
+      build_deps.append(dep.cm)
+      includes.append(dep.cm.dirname)
+    elif hasattr(dep, "cmxa"):
+      build_deps.append(dep.cmxa)
+      includes.append(dep.cmxa.dirname)
+
   args.add_all(includes, before_each="-I", uniquify = True)
 
   # non-ocamlfind-enabled deps: we need to add to action inputs, but not to command args
   args.add_all(build_deps)
 
-  if secondary_deps:
-    args.add_all([dep for dep in secondary_deps], before_each="-package")
+  if output_deps:
+    args.add_all([dep for dep in output_deps], before_each="-package")
 
   inputs = inputs + build_deps + [infile] # [ctx.file.impl] #  [srcs.impl]
   if ctx.attr.cmi:
     # print("CMI: %s" % ctx.attr.cmi[OcamlInterfaceProvider])
     inputs.append(ctx.file.cmi)
     args.add("-I", ctx.file.cmi.dirname)
+    obj_cmi = ctx.file.cmi
+  # else:
+  #   outputs.append cmi file
 
   # print("INPUTS:")
   # print(inputs)
@@ -164,7 +171,7 @@ def _ppx_module_impl(ctx):
     executable = tc.ocamlfind,
     arguments = [args],
     inputs = inputs,
-    outputs = [obj_cm, obj_o],
+    outputs = [obj_cm, obj_cmi, obj_o],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt] + ctx.files.data,
     mnemonic = "PpxModule",
     progress_message = "ppx_module({}), {}".format(
@@ -175,10 +182,10 @@ def _ppx_module_impl(ctx):
   # print("srcs.impl: %s" % srcs.impl)
   # testing:
   return [
-    DefaultInfo(files = depset(direct = [obj_cm, obj_o])),
+    DefaultInfo(files = depset(direct = [obj_cm, obj_cmi, obj_o])),
     PpxModuleProvider(
       payload = struct(
-        cmi = obj["cmi"] if "cmi" in obj else None,
+        cmi = obj_cmi,  #obj["cmi"] if "cmi" in obj else None,
         cm  = obj_cm,
         o   = obj_o
       ),
@@ -208,6 +215,7 @@ ppx_module = rule(
     module_name = attr.string(
       doc = "Allows user to specify a module name different than the target name."
     ),
+    ##FIXME: ns replaced by ppx_ns_module?
     ns   = attr.string(
       doc = "Namespace string; will be used as module name prefix."
     ),
@@ -251,7 +259,11 @@ ppx_module = rule(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
     ),
     linkopts = attr.string_list(),
-    linkall = attr.bool(default = True),
+    # linkall = attr.bool(default = True),
+    alwayslink = attr.bool(
+      doc = "If true (default), use OCaml -linkall switch",
+      default = True,
+    ),
     # srcs = attr.label_list(),
     deps = attr.label_list(
       # providers = [OpamPkgInfo]
@@ -290,7 +302,11 @@ ppx_ns_module = rule(
       ]
     ),
     linkopts = attr.string_list(),
-    linkall = attr.bool(default = True),
+    alwayslink = attr.bool(
+      doc = "If true (default), use OCaml -linkall switch",
+      default = True,
+    ),
+    # linkall = attr.bool(default = True),
     mode = attr.string(default = "native"),
     msg = attr.string(),
     _rule = attr.string(default = "ppx_ns_module")

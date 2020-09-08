@@ -20,13 +20,13 @@ stardoc(
 )
 
 stardoc(
-    name = "ocaml_binary_docs",
-    input = "ocaml_binary.bzl",
+    name = "ocaml_executable_docs",
+    input = "ocaml_executable.bzl",
     deps  = ["//ocaml/private/actions",
              "//ocaml/private/actions:skylib_paths",
              "//opam:opam"],
-    symbol_names = ["ocaml_binary"],
-    out = "ocaml_binary_doc.md",
+    symbol_names = ["ocaml_executable"],
+    out = "ocaml_executable_doc.md",
 )
 
 stardoc(
@@ -38,7 +38,7 @@ stardoc(
              "//opam:opam"],
     symbol_names = [
         "ocaml_archive",
-        "ocaml_binary",
+        "ocaml_executable",
         "ocaml_interface",
         "ocaml_library",
         "ocaml_module",
@@ -56,7 +56,7 @@ stardoc(
              "//opam:opam"],
     symbol_names = [
         "ppx_archive",
-        "ppx_binary",
+        "ppx_executable",
         "ppx_library",
         "ppx_module",
         "ppx_test"

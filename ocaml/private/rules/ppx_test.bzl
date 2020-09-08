@@ -58,7 +58,7 @@ def _ppx_test_impl(ctx):
 #################################################
 ######### DECL:  PPX_TEST  ################
 ## A ppx_test rule builds and runs a ppx executable on an input file.
-## Just like ppx_binary, but with an additional parameter to specify
+## Just like ppx_executable, but with an additional parameter to specify
 ## the file to preprocess.
 
 ppx_test = rule(

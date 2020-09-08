@@ -20,10 +20,8 @@ load("//ocaml/private:ocaml_toolchains.bzl",
      "ocaml_toolchain")
 load("//ocaml/private:providers.bzl",
      "OcamlSDK")
-load("//opam:opam.bzl",
-     "OPAMROOT",
-     "opam_repo")
 load("//ocaml/private:common.bzl",
+     "OCAML_SDK", # = "ocaml"
      "OCAML_VERSION",
      "OCAMLBUILD_VERSION",
      "OCAMLFIND_VERSION",
@@ -45,8 +43,6 @@ load(
 )
 
 # print("private/sdk.bzl loading")
-
-OCAML_SDK = "ocaml"
 
 def _ocaml_home_sdk_impl(ctx):
     # print("_ocaml_home_sdk_impl")
@@ -199,7 +195,11 @@ def _symlink_sdk(ctx): # , opamroot, switch):
         fail("Environment var OPAMROOT must be set (try `$ export OPAMROOT=~/.opam'un).")
     if "OPAM_SWITCH_PREFIX" in ctx.os.environ:
         ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"], "switch")
-        ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml", "csdk")
+        ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml", "csdk/ocaml")
+        # ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml/caml", "csdk/include")
+        ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "csdk/ctypes/api")
+        # ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "lib/ctypes/api")
+        # ctx.symlink(ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/integers", "csdk/integers/api")
     else:
         fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
     # ctx.symlink(opamroot + "/" + switch, "switch")
@@ -207,7 +207,7 @@ def _symlink_sdk(ctx): # , opamroot, switch):
 
 def _sdk_build_file(ctx, platform):
     # print("_sdk_build_file")
-    ctx.file("ROOT")
+    # ctx.file("ROOT")
     sdkpath = _detect_installed_sdk_home(ctx)
     ctx.template(
         "BUILD.bazel",
@@ -217,9 +217,47 @@ def _sdk_build_file(ctx, platform):
             "{sdkpath}": sdkpath
         },
     )
+    # deps = ["@ocaml//csdk"]
+    ctx.template(
+        "csdk/BUILD.bazel",
+        Label("//ocaml/private:BUILD.csdk.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+
     # ctx.template(
-    #     "csdk/BUILD.bazel",
-    #     Label("//ocaml/private:BUILD.csdk.tpl"),
+    #     "csdk/ocaml/include/BUILD.bazel",
+    #     Label("//ocaml/private:BUILD.csdk.include.tpl"),
+    #     executable = False,
+    #     substitutions = {
+    #         "{sdkpath}": sdkpath
+    #     },
+    # )
+
+    # deps = ["@ocaml//csdk/lib/ctypes"]
+    ctx.template(
+        "csdk/ctypes/BUILD.bazel",
+        Label("//ocaml/private:BUILD.ctypes.csdk.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+
+    # ctx.template(
+    #     "lib/ctypes/BUILD.bazel",
+    #     Label("//ocaml/private:BUILD.ctypes.ocaml.tpl"),
+    #     executable = False,
+    #     substitutions = {
+    #         "{sdkpath}": sdkpath
+    #     },
+    # )
+
+    # ctx.template(
+    #     "csdk/lib/integers/BUILD.bazel",
+    #     Label("//ocaml/private:BUILD.integers.tpl"),
     #     executable = False,
     #     substitutions = {
     #         "{sdkpath}": sdkpath
@@ -340,8 +378,6 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
     if len(sdk_rules) == 0 and OCAML_SDK in existing_rules:
         # may be local_repository in bazel_tests.
         sdk_rules.append(existing_rules[OCAML_SDK])
-
-    opam_repo(name="opam")
 
     # if installation and len(sdk_rules) > 0:
     #     fail("installation set after ocaml sdk rule declared ({})".format(", ".join([r["name"] for r in sdk_rules])))

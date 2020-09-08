@@ -72,7 +72,11 @@ ocaml_ns_module = rule(
       ]
     ),
     linkopts = attr.string_list(),
-    linkall = attr.bool(default = True),
+    # linkall = attr.bool(default = True),
+    alwayslink = attr.bool(
+      doc = "If true (default), use OCaml -linkall switch. Default: False",
+      default = False,
+    ),
     # impl = attr.label(
     #   allow_single_file = OCAML_IMPL_FILETYPES
     # ),

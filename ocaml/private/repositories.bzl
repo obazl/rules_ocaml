@@ -18,6 +18,8 @@ load("//ocaml/private:common.bzl", "MINIMUM_BAZEL_VERSION")
 load("//ocaml/private:skylib/lib/versions.bzl", "versions")
 
 load("//ocaml/private:sdk.bzl", "ocaml_home_sdk")
+load("//opam:opam.bzl", "opam_repo")
+load("//obazl:obazl.bzl", "obazl_repo")
 
 # load("//ocaml/private:noocaml.bzl", "DEFAULT_NOOCAML", "ocaml_register_noocaml")
 # load("//proto:ocamlocaml.bzl", "ocamlocaml_special_proto")
@@ -27,7 +29,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # print("private/repositories.bzl loading")
 
 def ocaml_configure_tooling(is_rules_ocaml = False):
-    """Declares workspaces the Ocaml rules depend on. Workspaces that use
+    """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
     rules_ocaml should call this.
 
     See https://github.com/bazelbuild/rules_ocaml/blob/master/ocaml/workspace.rst#overriding-dependencies
@@ -102,6 +104,10 @@ def ocaml_configure_tooling(is_rules_ocaml = False):
     # opam_repo(name="opam")
     # this is a repo rule, it writes BUILD.bazel in external/ocaml dir
     ocaml_home_sdk("ocaml")
+
+    opam_repo(name="opam")
+
+    obazl_repo(name="obazl")
 
     # print("ocaml_configure_tooling done")
 

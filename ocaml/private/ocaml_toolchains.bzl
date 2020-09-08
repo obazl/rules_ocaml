@@ -3,8 +3,6 @@ load("//ocaml/private:common.bzl",
 load("//ocaml/private:providers.bzl",
      "OpamPkgInfo",
      "PpxInfo")
-load("//opam:opam.bzl",
-     "OPAMROOT")
 load("//ocaml/private:utils.bzl",
      "strip_ml_extension",
      "OCAML_FILETYPES"
@@ -49,11 +47,13 @@ _ocaml_tools_attrs = {
   ),
   "_opts": attr.string_list(
     default = [
+      "-g", # Record debugging information for exception backtrace
       "-strict-formats", # Reject invalid formats accepted by legacy implementationsg
       "-short-paths", # use shortest path printing type names in inferred interfaces, error, warning msgs
       "-strict-sequence", # Left-hand part of a sequence must have type unit
-      # "-no-alias-deps",
-      # "-opaque"
+      # "-keep-locs",  #  Keep locations in .cmi files (default)
+      # "-no-alias-deps",  #  Do not record dependencies for module aliases
+      # "-opaque" # Does not generate cross-module optimization information (reduces necessary recompilation on module change)
     ]
   ),
   "_ocamlfind": attr.label(

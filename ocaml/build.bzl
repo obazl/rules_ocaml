@@ -10,8 +10,10 @@ may change without notice.
 
 load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_archive.bzl",
     _ocaml_archive = "ocaml_archive")
-load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_binary.bzl",
-    _ocaml_binary = "ocaml_binary")
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_executable.bzl",
+    _ocaml_executable = "ocaml_executable")
+load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_import.bzl",
+    _ocaml_import = "ocaml_import")
 load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_interface.bzl",
     _ocaml_interface = "ocaml_interface")
 load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_deps.bzl",
@@ -25,8 +27,8 @@ load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_ns_archive.bzl",
 load("@obazl_rules_ocaml//ocaml/private/rules:ocaml_ns_module.bzl",
     _ocaml_ns_module = "ocaml_ns_module")
 
-load("@obazl_rules_ocaml//ocaml/private/rules:ppx_binary.bzl",
-     _ppx_binary = "ppx_binary")
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_executable.bzl",
+     _ppx_executable = "ppx_executable")
 load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl",
      _ppx_ns_module = "ppx_ns_module")
 load("@obazl_rules_ocaml//ocaml/private/rules:ppx_library.bzl",
@@ -50,8 +52,9 @@ load("@obazl_rules_ocaml//ocaml/private:macros/preproc.bzl",
 )
 
 ocaml_archive = _ocaml_archive
-ocaml_binary = _ocaml_binary
+ocaml_executable = _ocaml_executable
 ocaml_deps = _ocaml_deps
+ocaml_import = _ocaml_import
 ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
@@ -59,7 +62,7 @@ ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns_module  = _ocaml_ns_module
 
 ppx_archive = _ppx_archive
-ppx_binary = _ppx_binary
+ppx_executable = _ppx_executable
 ppx_library = _ppx_library
 ppx_module = _ppx_module
 ppx_test = _ppx_test

@@ -40,7 +40,7 @@ def library_action(ctx):
     if ctx.attr._rule == "ocaml_library":
         provider = OcamlLibraryProvider(
             payload = struct(
-                name = ctx.label.name,
+                library = ctx.label.name,
                 modules = ctx.attr.deps
             ),
             deps = struct(

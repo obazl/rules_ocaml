@@ -98,7 +98,7 @@ def get_all_deps(direct_deps):
     elif OcamlArchiveProvider in dep:
       ap = dep[OcamlArchiveProvider]
       # print("OcamlArchiveProvider: %s" % ap)
-      nopam_directs.append(ap.archive)
+      nopam_directs.append(ap.payload)
       nopam_transitives.append(ap.deps.nopam)
       if ap.deps.opam:
         opam_transitives.append(ap.deps.opam)

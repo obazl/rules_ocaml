@@ -24,10 +24,17 @@ load("//ocaml/private:utils.bzl",
 )
 
 #############################################
-####  PPX_BINARY IMPLEMENTATION
-def _ppx_binary_impl(ctx):
+####  PPX_EXECUTABLE IMPLEMENTATION
+def _ppx_executable_impl(ctx):
 
-#   dep_labels = [dep.label for dep in ctx.attr.deps]
+  debug = False
+  # if (ctx.label.name == "vector_ffi_bindings.cm_"):
+  #     debug = True
+
+  if debug:
+      print("PPX_EXECUTABLE TARGET: %s" % ctx.label.name)
+
+#   dep_labels = [dep.label for dep in ctx.attr.build_deps]
 #   if Label("@opam//pkg:ppxlib.runner") in dep_labels:
 #     if not "-predicates" in ctx.attr.opts:
 #       print("""\n\nWARNING: target '{target}' depends on
@@ -35,7 +42,7 @@ def _ppx_binary_impl(ctx):
 # usually pass \"-predicates\", \"ppx_driver\" to opts. Without this option, the binary may
 # compile but may not work as intended.\n\n""".format(target = ctx.label.name))
 #   else:
-#     print("""\n\nWARNING: ppx_binary target '{target}'
+#     print("""\n\nWARNING: ppx_executable target '{target}'
 # does not have a driver dependency.  Such targets usually depend on '@opam//pkg:ppxlib.runner'
 # or a similar PPX driver. Without a driver, the target may compile but not work as intended.\n\n""".format(target = ctx.label.name))
 
@@ -46,7 +53,7 @@ def _ppx_binary_impl(ctx):
     # if PpxModuleProvider in src:
       # print("PPX MODULE PROVIDER: %s" % src[PpxModuleProvider])
 
-  mydeps = get_all_deps(ctx.attr.deps)
+  mydeps = get_all_deps(ctx.attr.build_deps)
 
   # print("PPX BINARY OPAM DEPS")
   # print(mydeps.opam)
@@ -69,15 +76,28 @@ def _ppx_binary_impl(ctx):
 
   build_deps = []
   includes = []
+  input_deps = []
 
-  for dep in ctx.attr.deps:
-    for g in dep[DefaultInfo].files.to_list():
-      if g.path.endswith(".cmx"):
-        build_deps.append(g)
-        includes.append(g.dirname)
-      if g.path.endswith(".cmxa"):
-        build_deps.append(g)
-        includes.append(g.dirname)
+  # print("NOPAMS: %s" % mydeps.nopam)
+  # we need to add the archive components to inputs, the archive is not enough
+  # without these we get "implementation not found"
+  for dep in mydeps.nopam.to_list():
+    # print("DEP:  %s" % dep)
+    if hasattr(dep, "cm"):
+      # build_deps.append(dep.cm)
+      input_deps.append(dep.cm)
+      includes.append(dep.cm.dirname)
+    if hasattr(dep, "cmxa"):
+      build_deps.append(dep.cmxa)
+      includes.append(dep.cmxa.dirname)
+  # for dep in ctx.attr.build_deps:
+  #   for g in dep[DefaultInfo].files.to_list():
+  #     if g.path.endswith(".cmx"):
+  #       build_deps.append(g)
+  #       includes.append(g.dirname)
+  #     if g.path.endswith(".cmxa"):
+  #       build_deps.append(g)
+  #       includes.append(g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -102,36 +122,51 @@ def _ppx_binary_impl(ctx):
   # non-ocamlfind-enabled deps:
   # for dep in build_deps:
   #   print("BUILD DEP: %s" % dep)
+
+  # WARNING: don't add build_deps to command line.  For namespaced
+  # modules, they may contain both a .cmx and a .cmxa with the same
+  # name, which define the same module, which will make the compiler
+  # barf.
+  # OTOH, if we do not list them, they will not be found when the ppx is used.
   args.add_all(build_deps)
 
   # driver shim source must come after lib deps!
   args.add_all(ctx.files.srcs)
 
-  inputs = build_deps + ctx.files.srcs
-  # print("INPUTS:")
-  # print(inputs)
+  dep_graph = build_deps + input_deps + ctx.files.srcs
+  # print("DEP_GRAPH:")
+  # print(dep_graph)
 
+  output_deps = []
+  for dep in ctx.attr.output_deps:
+    # print("SEC DEP: %s" % dep[OpamPkgInfo])
+    if OpamPkgInfo in dep:
+        output_dep = dep[OpamPkgInfo].pkg.to_list()[0]
+        output_deps.append(output_dep.name)
+        ## opam deps are just strings, we feed them to ocamlfind, which finds the file.
+        ## this means we cannot add them to the dep_graph.
+        ## this makes sense, the exe we build does not depend on these,
+        ## it's the subsequent transform that depends on them.
+    else:
+        dep_graph.append(dep)
+    #FIXME: also support non-opam transform deps
+
+  print("DEP_GRAPH: %s" % dep_graph)
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
-    inputs = inputs,
+    inputs = dep_graph,
     outputs = [outbinary],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPPXBinary",
-    progress_message = "ppx_binary({}), {}".format(
+    progress_message = "ppx_executable({}), {}".format(
       ctx.label.name, ctx.attr.message
       )
   )
 
-  secondary_deps = []
-  for dep in ctx.attr.secondary_deps:
-    # print("SEC DEP: %s" % dep[OpamPkgInfo])
-    if OpamPkgInfo in dep:
-      secondary_deps.append(dep[OpamPkgInfo].pkg.to_list()[0].name)
-    #FIXME: also support non-opam secondary deps
 
-  # print("PPX-BINARY SECONDARY: %s" % secondary_deps)
+  # print("PPX_EXECUTABLE TRANSFORM: %s" % output_deps)
 
   return [DefaultInfo(executable=outbinary,
                       files = depset(direct = [outbinary])),
@@ -141,7 +176,8 @@ def _ppx_binary_impl(ctx):
             deps = struct(
               opam = mydeps.opam,
               nopam = mydeps.nopam,
-              secondary = secondary_deps
+              ## these are labels of opam deps to be used later:
+              transform = output_deps
             )
           )]
 
@@ -152,10 +188,10 @@ def _ppx_binary_impl(ctx):
 #  (kind ppx_deriver))
 
 #############################################
-########## DECL:  PPX_BINARY  ################
-ppx_binary = rule(
-  implementation = _ppx_binary_impl,
-  # implementation = _ppx_binary_compile_test,
+########## DECL:  PPX_EXECUTABLE  ################
+ppx_executable = rule(
+  implementation = _ppx_executable_impl,
+  # implementation = _ppx_executable_compile_test,
   attrs = dict(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
@@ -175,12 +211,13 @@ ppx_binary = rule(
     opts = attr.string_list(),
     linkopts = attr.string_list(),
     linkall = attr.bool(default = True),
-    deps = attr.label_list(
+    build_deps = attr.label_list(
+      doc = "Deps needed to build this ppx executable.",
       providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
-    secondary_deps = attr.label_list(
-      doc = """List of deps needed to compile sources after transformation. Dune calls these 'runtime' deps.""",
-      # providers = [[DefaultInfo], [PpxModuleProvider]]
+    output_deps = attr.label_list(
+      doc = """List of deps needed to compile output of this ppx transformer. Dune calls these 'runtime' deps.""",
+      providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
     mode = attr.string(default = "native"),
     message = attr.string()

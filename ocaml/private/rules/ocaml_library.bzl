@@ -16,6 +16,7 @@ load("//ocaml/private:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
+     "OcamlNsModuleProvider",
      "OcamlModuleProvider",
      "OcamlSDK",
      "OpamPkgInfo",
@@ -227,8 +228,11 @@ ocaml_library = rule(
     # lib = attr.bool(default = False)
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
-                   [OcamlArchiveProvider], [OcamlLibraryProvider],
-                   [OcamlModuleProvider], [OcamlInterfaceProvider],
+                   [OcamlArchiveProvider],
+                   [OcamlInterfaceProvider],
+                   [OcamlLibraryProvider],
+                   [OcamlModuleProvider],
+                   [OcamlNsModuleProvider],
                    [CcInfo]]
     ),
     mode = attr.string(default = "native"),

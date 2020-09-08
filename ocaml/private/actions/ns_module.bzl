@@ -9,6 +9,11 @@ load("//ocaml/private:utils.bzl",
      "get_sdkpath",
 )
 
+# NOTE: Submodules are Bazel dependencies, but they are not OCaml
+# deps. They are added to the dep graph, which means they must exist
+# and if they change a rebuild of the ns module will be triggered,,
+# but they are not used by OCaml to build the ns module.  So we do not
+# need to check for transitive deps.
 def ns_module_action(ctx):
   # print("ns_module_action: %s" % ctx.label.name)
 
@@ -22,7 +27,10 @@ def ns_module_action(ctx):
   ns_module_name = ctx.attr.ns
   # print("NS_MODULE_NAME %s" % ns_module_name)
   pfx = capitalize_initial_char(ctx.attr.ns) + ctx.attr.ns_sep
+  inputs = []
   for sm in ctx.files.submodules:
+    # add submodules to dep graph, bazel will ensure they exist
+    inputs.append(sm)
     sm_parts = paths.split_extension(sm.basename)
     module = sm_parts[0]
     # print("NS MODULE %s" % module)
@@ -38,6 +46,7 @@ def ns_module_action(ctx):
 
   # module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
   module_src = ctx.actions.declare_file(ns_module_name + ".ml")
+  inputs.append(module_src)
   # print("NS MODULE SRC: %s" % module_src)
 
   ## action: generate ns module file with alias content
@@ -58,14 +67,19 @@ def ns_module_action(ctx):
   args = ctx.actions.args()
   args.add("ocamlopt")
   args.add_all(ctx.attr.opts)
+  if ctx.attr.alwayslink:
+    args.add("-linkall")
+  args.add("-w", "-49") # Error (warning 49): no cmi file was found in path for module <m>
   args.add("-c")
+  args.add("-no-alias-deps")
+  args.add("-opaque")
   args.add("-o", obj_cmx)
   args.add(module_src.path)
   ctx.actions.run(
       env = env,
       executable = tc.ocamlfind,
       arguments = [args],
-      inputs = [module_src],
+      inputs = inputs, # [module_src],
       outputs = [obj_cmx, obj_o, obj_cmi],
       tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
       mnemonic = "NsModuleAction",
@@ -80,7 +94,7 @@ def ns_module_action(ctx):
       provider = OcamlNsModuleProvider(
           payload = struct(
               ns  = ctx.attr.ns,
-              cmi = obj_cmi,
+              # cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o
           ),
@@ -93,7 +107,7 @@ def ns_module_action(ctx):
       provider = PpxNsModuleProvider(
           payload = struct(
               ns  = ctx.attr.ns,
-              cmi = obj_cmi,
+              # cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o
           ),
@@ -104,7 +118,7 @@ def ns_module_action(ctx):
       )
 
   return [
-      DefaultInfo(files = depset(direct = [obj_cmx, obj_cmi, obj_o])),
+      DefaultInfo(files = depset(direct = [obj_cmx, obj_o])), # obj_cmi])),
       provider
   ]
 # OutputGroupInfo(bin = depset([bin_output]))]

@@ -3,8 +3,8 @@ load("//ocaml/private:providers.bzl",
 load("//ocaml/private:common.bzl",
     "OCAML_VERSION")
 
-# The path to the root opam directory within external
-OPAMROOT = "OPAMROOT"
+# # The path to the root opam directory within external
+# OPAMROOT = "OPAMROOT"
 
 # print("private/ocaml.bzl loading")
 
@@ -60,30 +60,83 @@ def _opam_repo_impl(repository_ctx):
         executable = False,
         substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
     )
+#     repository_ctx.file(
+#         "sdk/lib/integers/BUILD.bazel",
+#         content = """load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_import")
 
-    repository_ctx.template(
-        "ppx/BUILD.bazel",
-        Label("@obazl_rules_ocaml//opam:ppx/BUILD.tpl"),
-        executable = False,
-    )
-    repository_ctx.file(
-        "ppx/ppx_inline_test_lib_runtime_exit.ml",
-        content = "(* GENERATED FILE - DO NOT EDIT *)\nlet () = Ppx_inline_test_lib.Runtime.exit ();;",
-        executable = False,
-    )
+#     # repository_ctx.template(
+#     #     "ppx/BUILD.bazel",
+#     #     Label("@obazl_rules_ocaml//opam:ppx/BUILD.tpl"),
+#     #     executable = False,
+#     # )
+#     # repository_ctx.file(
+#     #     "ppx/ppx_inline_test_lib_runtime_exit.ml",
+#     #     content = "(* GENERATED FILE - DO NOT EDIT *)\nlet () = Ppx_inline_test_lib.Runtime.exit ();;",
+#     #     executable = False,
+#     # )
 
-    repository_ctx.template(
-        "ppxlib/BUILD.bazel",
-        Label("@obazl_rules_ocaml//opam:ppxlib/BUILD.tpl"),
-        executable = False,
-        # substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
-        # substitutions = {"{pkg}": "ppxlib.metaquot"}
-    )
-    repository_ctx.file(
-        "ppxlib/ppxlib_driver_standalone_runner.ml",
-        content = "(* GENERATED FILE - DO NOT EDIT *)\nlet () = Ppxlib.Driver.standalone ()",
-        executable = False,
-    )
+#     # repository_ctx.template(
+#     #     "ppxlib/BUILD.bazel",
+#     #     Label("@obazl_rules_ocaml//opam:ppxlib/BUILD.tpl"),
+#     #     executable = False,
+#     #     # substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
+#     #     # substitutions = {"{pkg}": "ppxlib.metaquot"}
+#     # )
+#     # repository_ctx.file(
+#     #     "ppxlib/ppxlib_driver_standalone_runner.ml",
+#     #     content = "(* GENERATED FILE - DO NOT EDIT *)\nlet () = Ppxlib.Driver.standalone ()",
+#     #     executable = False,
+#     # )
+
+# ocaml_import(
+#     name = \"integers\",
+#     cmxa = "integers.cmxa",
+#     visibility = [\"//visibility:public\"],
+# )
+# """,
+#         executable = False,
+#     )
+
+#     repository_ctx.file(
+#         "sdk/lib/ocaml/BUILD.bazel",
+#         content = """load("@rules_cc//cc:defs.bzl", "cc_library")
+
+# cc_library(
+#     name = \"csdk\",
+#     hdrs = glob([\"caml/*.h\"]),
+#     visibility = [\"//visibility:public\"],
+# )
+# """,
+#         executable = False,
+#     )
+
+#     repository_ctx.file(
+#         "sdk/lib/ctypes/BUILD.bazel",
+#         content = """load("@rules_cc//cc:defs.bzl", "cc_library")
+# load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_import")
+
+# cc_library(
+#     name = \"cc\",
+#     hdrs = glob([\"*.h\"]),
+#     visibility = [\"//visibility:public\"],
+# )
+
+# ocaml_import(
+#     name = \"ctypes\",
+#     cmxa = \"ctypes.cmxa",
+#     deps = ["@opam//sdk/lib/integers"],
+#     visibility = [\"//visibility:public\"],
+# )
+
+# ocaml_import(
+#     name = \"stubs\",
+#     cmxa = \"cstubs.cmxa",
+#     deps = [":ctypes"],
+#     visibility = [\"//visibility:public\"],
+# )
+# """,
+#         executable = False,
+#     )
 
 
 def _opam_download_impl(repository_ctx):

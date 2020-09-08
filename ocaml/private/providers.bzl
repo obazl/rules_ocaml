@@ -133,16 +133,18 @@ OpamPkgInfo = provider(
 OcamlArchiveProvider = provider(
     doc = "OCaml library provider. A library is a collection of modules.",
     fields = {
-        "archive": """A struct with the following fields:
-            name: Name of archive
-            cma : .cma file produced by the target
-            cmxa: .cmxa file produced by the target
-            cmxs: .cmxs file produced by the target
+        "payload": """A struct with the following fields:
+            archive: Name of archive
+            cmxa: .cmxa file produced by the target (native compiler)
+            cma : .cma file produced by the target (bytecode compiler)
+            cmxs: .cmxs file produced by the target  (shared object)
             a   : .a file produced by the target
+            modules: list of cmx files archived
         """,
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
+            cclib: c/c++ lib deps
         """
     }
 )
@@ -151,12 +153,13 @@ OcamlLibraryProvider = provider(
     doc = "OCaml library provider. A library is a collection of modules.",
     fields = {
         "payload": """A struct with the following fields:
-            name: Name of library
+            library: Name of library
             modules : vector of modules in lib
         """,
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
+            cclib: c/c++ lib deps
         """
     }
 )
@@ -185,6 +188,7 @@ OcamlModuleProvider = provider(
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
+            cclib: c/c++ lib deps
         """
     }
 )
@@ -232,7 +236,7 @@ PpxBinaryProvider = provider(
         "deps"   : """A triple of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
-            secondary: needed when transformed source is compiled
+            transform: output deps; needed when transformed source is compiled
         """
     }
 )

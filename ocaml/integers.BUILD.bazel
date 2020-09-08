@@ -1,0 +1,33 @@
+load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_import")
+
+    # repository_ctx.template(
+    #     "ppx/BUILD.bazel",
+    #     Label("@obazl_rules_ocaml//opam:ppx/BUILD.tpl"),
+    #     executable = False,
+    # )
+    # repository_ctx.file(
+    #     "ppx/ppx_inline_test_lib_runtime_exit.ml",
+    #     content = "(* GENERATED FILE - DO NOT EDIT *)
+let () = Ppx_inline_test_lib.Runtime.exit ();;",
+    #     executable = False,
+    # )
+
+    # repository_ctx.template(
+    #     "ppxlib/BUILD.bazel",
+    #     Label("@obazl_rules_ocaml//opam:ppxlib/BUILD.tpl"),
+    #     executable = False,
+    #     # substitutions = { "{ocamlfind_packages}": ocamlfind_pkgs }
+    #     # substitutions = {"{pkg}": "ppxlib.metaquot"}
+    # )
+    # repository_ctx.file(
+    #     "ppxlib/ppxlib_driver_standalone_runner.ml",
+    #     content = "(* GENERATED FILE - DO NOT EDIT *)
+let () = Ppxlib.Driver.standalone ()",
+    #     executable = False,
+    # )
+
+ocaml_import(
+    name = "integers",
+    cmxa = "integers.cmxa",
+    visibility = ["//visibility:public"],
+)

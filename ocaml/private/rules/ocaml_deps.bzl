@@ -1,5 +1,3 @@
-load("//opam:opam.bzl",
-    "OPAMROOT")
 load("//ocaml/private:common.bzl",
      "OCAML_VERSION")
 load("//ocaml/private/actions:ppx.bzl",

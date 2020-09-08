@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+OCAML_SDK = "ocaml"
 OCAML_VERSION = "4.07.1"
 OCAMLBUILD_VERSION = "0.14.0"
 OCAMLFIND_VERSION = "1.8.0"

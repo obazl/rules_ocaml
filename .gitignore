@@ -1,6 +1,7 @@
 .bazel
 bazel-*
 user.bazelrc
+obsolete
 
 *.annot
 *.cmo
