@@ -53,10 +53,11 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_executable_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "vector_ffi_bindings.cm_"):
-  #     debug = True
+  if (ctx.label.name == "election"):
+      debug = True
 
-  # print("EXECUTABLE TARGET: %s" % ctx.label.name)
+  if debug:
+      print("EXECUTABLE TARGET: %s" % ctx.label.name)
 
   mydeps = get_all_deps("ocaml_executable", ctx) # ctx.attr.deps)
   # print("ALL DEPS for %s" % ctx.label.name)
@@ -87,7 +88,8 @@ def _ocaml_executable_impl(ctx):
   ## deps are the same for all sources (.mli, .ml)
   ## we need to accumulate them so we can add them to the action inputs arg,
   ## in order to  register the dependency with Bazel.
-  build_deps = []
+  dep_graph = []
+  # build_deps = []
   includes = []
   args.add("-linkpkg")  ## an ocamlfind parameter
   # print("OPAM_DEPS: %s" % mydeps.opam)
@@ -104,43 +106,97 @@ def _ocaml_executable_impl(ctx):
   # for dep in mydeps.nopam.to_list():  # ctx.attr.deps:
   #   print("################ NOPAM_DEP ################ :\n\t\t %s" % dep)
   #   # if hasattr(dep, "clib"):
-  #   #   build_deps = build_deps + dep.clib.files.to_list()
+  #   #   dep_graph = dep_graph + dep.clib.files.to_list()
 
   #   #   ##FIXME:
   #   #   # args.add("-cclib", "-lrakia")
 
   #   if hasattr(dep, "cmxa"):    ## composited lib
   #     # print("ARCHIVE DEP: %s" % dep)
-  #     build_deps.append(dep.cmxa)
+  #     dep_graph.append(dep.cmxa)
   #     includes.append(dep.cmxa.dirname)
 
   #   if hasattr(dep, "cm"):    ## composited lib
-  #     build_deps.append(dep.cm)
+  #     dep_graph.append(dep.cm)
   #     includes.append(dep.cm.dirname)
   #     args.add(dep.cm)
 
-  # for dep in mydeps.nopam.to_list():
-  #   # print("NOPAM DEP: %s" % dep)
-  #   if dep.basename.endswith(".cmx"):
-  #     includes.append(dep.dirname)
-  #     args.add(dep)
-  #     build_deps.append(dep)
-    # elif dep.basename.endswith(".cmxa"):
+  dso_deps = []
+
+  for dep in mydeps.nopam.to_list():
+    if debug:
+        print("NOPAM DEP: %s" % dep)
+    if dep.extension == "cmx":
+      includes.append(dep.dirname)
+      args.add(dep.basename)
+      dep_graph.append(dep)
+    elif dep.extension == "cmxa":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        # build_deps.append(dep)
+        # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
+        #     if g.path.endswith("cmx":
+        #         includes.append(g.dirname)
+        #         build_deps.append(g)
+        #         dep_graph.append(g)
+    elif dep.extension == "o":
+        if debug:
+            print("NOPAM .o DEP: %s" % dep)
+        # build_deps.append(dep)
+        dep_graph.append(dep)
+    elif dep.extension == "a":
+        if debug:
+            print("NOPAM .a DEP: %s" % dep)
+        # build_deps.append(dep)
+        dep_graph.append(dep)
+    elif dep.extension == "so":
+        if debug:
+            print("NOPAM .so DEP: %s" % dep)
+        dso_deps.append(dep)
+    elif dep.extension == "dylib":
+        if debug:
+            print("NOPAM .dylib DEP: %s" % dep)
+        dso_deps.append(dep)
+    else:
+        if debug:
+            print("NOMAP DEP not .cmx, ,cmxa, .o, .so: %s" % dep.path)
+
+  for dso in dso_deps:
+      if debug:
+          print("DSO: %s" % dso)
+      if dso.extension == "so":
+          libname = dso.basename[:-3]
+          libname = libname[3:]
+          if debug:
+              print("LIBNAME: %s" % libname)
+          args.add("-ccopt", "-L" + dso.dirname)
+          args.add("-cclib", "-l" + libname)
+          # cclib_deps.append(dso)
+      elif dso.extension == "dylib":
+          libname = dso.basename[:-6]
+          libname = libname[3:]
+          if debug:
+              print("LIBNAME: %s" % libname)
+          args.add("-ccopt", "-L" + dso.dirname)
+          args.add("-cclib", "-l" + libname)
+          includes.append(dso.dirname)
+
+
+    # elif dep.extension == "cmxa":
     #   includes.append(dep.dirname)
     #   args.add(dep)
-    #   build_deps.append(dep)
+    #   dep_graph.append(dep)
 
-  input_deps = []
-  for dep in ctx.attr.deps:
-    for g in dep[DefaultInfo].files.to_list():
-        if g.basename.endswith(".cmx"):
-            includes.append(g.dirname)
-            args.add(g)
-            build_deps.append(g)
-        elif g.basename.endswith(".cmxa"):
-            input_deps.append(g)
-            args.add(g)
-            build_deps.append(g)
+  # for dep in ctx.attr.deps:
+  #   for g in dep[DefaultInfo].files.to_list():
+  #       # if g.extension == "cmx":
+  #       #     includes.append(g.dirname)
+  #       #     args.add(g)
+  #       #     dep_graph.append(g)
+  #       if g.extension == "cmxa":
+  #           dep_graph.append(g)
+  #           args.add(g)
+  #           dep_graph.append(g)
 
   # for dep in ctx.attr.deps:
   #   # if OcamlArchiveProvider in dep:
@@ -148,13 +204,13 @@ def _ocaml_executable_impl(ctx):
   #   #   print("DEP OCAML ARCHIVE: %s" % payload)
   #   #   includes.append(payload.cmxa.dirname)
   #   #   args.add(payload.cmxa.basename)
-  #   #   build_deps.append(payload.cmxa)
+  #   #   dep_graph.append(payload.cmxa)
   #   if OcamlArchiveProvider in dep:
   #     # print("$$$$$$$$$$$$$$$$ OCamlArchiveProvider: %s" % dep)
   #     payload = dep[OcamlArchiveProvider].payload
   #     includes.append(payload.cmxa.dirname)
   #     args.add(payload.cmxa.basename)
-  #     build_deps.append(payload.cmxa)
+  #     dep_graph.append(payload.cmxa)
   #     for module in dep[OcamlArchiveProvider].deps.nopam.to_list():
   #       # print("LIBDEP: %s" % module)
   #       # for libModule in dep[OcamlArchiveProvider].payload.modules:
@@ -166,20 +222,20 @@ def _ocaml_executable_impl(ctx):
   #     # print("DEP OCAML MODULE: %s" % payload)
   #     includes.append(payload.cm.dirname)
   #     args.add(payload.cm.basename)
-  #     build_deps.append(payload.cm)
+  #     dep_graph.append(payload.cm)
     # else:
     #   for g in dep[DefaultInfo].files.to_list():
     #     # print("    PATH: %s" % g.path)
     #     # exclude cmi deps, archives do not know what to do with them
     #     # if g.path.endswith(".cmi"):
-    #     #   build_deps.append(g)
+    #     #   dep_graph.append(g)
     #     includes.append(g.dirname)
     #     # if g.path.endswith(".cmx"):
     #     #   args.add(g)
-    #     #   build_deps.append(g)
+    #     #   dep_graph.append(g)
     #     # if g.path.endswith(".cmxa"):
     #     #   args.add(g)
-    #     #   build_deps.append(g)
+    #     #   dep_graph.append(g)
 
   cclib_deps = []
   for dep in ctx.attr.cc_deps.items():
@@ -226,7 +282,7 @@ def _ocaml_executable_impl(ctx):
   #     ##FIXME:  if linkstatic
   #     if depfile.extension == "a":
   #       cclib_deps.append(depfile)
-  #       build_deps.append(depfile)
+  #       dep_graph.append(depfile)
   #       args.add(depfile)
   #       ## -dllib is for bytecode only
   #       # args.add("-dllib", "lrakia")
@@ -304,8 +360,8 @@ def _ocaml_executable_impl(ctx):
       files = ctx.files.data,
     )
 
-  input_deps = input_deps + build_deps + cclib_deps #  srcs_ml + outs_cmi
-  # print("BUILD DEPS: %s" % build_deps)
+  dep_graph = dep_graph + cclib_deps #  srcs_ml + outs_cmi
+  # print("DEP_GRAPH: %s" % dep_graph)
 
   # then compile implementation files and produce executable
   # if srcs_ml:
@@ -313,7 +369,7 @@ def _ocaml_executable_impl(ctx):
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
-    inputs = input_deps,
+    inputs = dep_graph,
     outputs = [outbinary],
     # tools = build_deps,
       progress_message = "ocaml_executable({}): compiling implementations {}".format(
@@ -370,6 +426,10 @@ ocaml_executable = rule(
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
+    ),
+    cc_linkstatic = attr.bool(
+      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+      default = True
     ),
     mode = attr.string(default = "native"), # or "bytecode"
     message = attr.string()

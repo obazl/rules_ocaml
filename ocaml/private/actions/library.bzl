@@ -6,8 +6,9 @@ load("//ocaml/private:providers.bzl",
      "PpxLibraryProvider",
      "OpamPkgInfo")
 
+load("//ocaml/private:deps.bzl", "get_all_deps")
 load("//ocaml/private:utils.bzl",
-     "get_all_deps",
+     # "get_all_deps",
      "get_opamroot",
      "get_sdkpath",
 )

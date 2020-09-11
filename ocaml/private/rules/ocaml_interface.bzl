@@ -39,8 +39,8 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_interface_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "snarky_cpp_string.cmi"):
-      debug = True
+  # if (ctx.label.name == "snarky_cpp_string.cmi"):
+  #     debug = True
 
   if debug:
       print("OCAML INTERFACE TARGET: %s" % ctx.label.name)

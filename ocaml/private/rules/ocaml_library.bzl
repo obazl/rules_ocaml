@@ -21,8 +21,9 @@ load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
+# load("//ocaml/private:deps.bzl", "get_all_deps")
 load("//ocaml/private:utils.bzl",
-     "get_all_deps",
+     # "xget_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",

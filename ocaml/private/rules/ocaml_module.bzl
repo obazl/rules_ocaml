@@ -41,8 +41,8 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_module_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "libsnark.cm_"):
-      debug = True
+  # if (ctx.label.name == "camlsnark_c"):
+  #     debug = True
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
@@ -107,12 +107,15 @@ def _ocaml_module_impl(ctx):
   # modules are always compile-only
   args.add("-c")
 
+  includes   = []
+
   # if ctx.attr.ns:
   #   args.add("-open", ctx.attr.ns)
   if ctx.attr.ns_module:
     args.add("-no-alias-deps")
     args.add("-opaque")
     ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
+    includes.append(ns_cm.dirname)
     ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
     args.add("-open", ns_mod)
     # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
@@ -123,7 +126,6 @@ def _ocaml_module_impl(ctx):
   if output_deps:
     args.add_all([dep for dep in output_deps], before_each="-package")
 
-  includes   = []
   for datum in ctx.attr.data:
     dep_graph.extend(datum.files.to_list())
   if ctx.attr.cmi:
@@ -143,13 +145,17 @@ def _ocaml_module_impl(ctx):
   #depends on local async_kernel but a dep depends on opam asyn.
   async = False
 
+  cclib_deps = []
   for dep in mydeps.nopam.to_list():
       if debug:
           print("NOPAM DEP: %s" % dep)
-      if dep.basename.endswith(".cmx"):
+          print("NOPAM EXTENSION: %s" % dep.extension)
+      if dep.extension == "cmx":
+        if debug:
+              print("CMX DEP: %s" % dep)
         build_deps.append(dep)
         includes.append(dep.dirname)
-      elif dep.basename.endswith(".cmxa"):
+      elif dep.extension == "cmxa":
           if debug:
               print("CMXA DEP: %s" % dep)
           build_deps.append(dep)
@@ -157,7 +163,28 @@ def _ocaml_module_impl(ctx):
           # for h in dep[OcamlModuleProvider].deps.nopam.to_list():
           #     if h.path.endswith(".cmx"):
           #         includes.append(h.dirname)
-      elif dep.path.endswith(".cmxs"):
+      elif dep.extension == "a":
+          if debug:
+              print("ADDING STATIC LIB: %s" % dep)
+          cclib_deps.append(dep)
+          args.add(dep)
+          includes.append(dep.dirname)
+      elif dep.extension == "so":
+          if debug:
+              print("ADDING DSO FILE: %s" % dep)
+          libname = dep.basename[:-3]
+          libname = libname[3:]
+          args.add("-cclib", "-l" + libname)
+          cclib_deps.append(dep)
+      elif dep.extension == "dylib":
+          if debug:
+              print("ADDING DYLIB: %s" % dep)
+          libname = dep.basename[:-6]
+          libname = libname[3:]
+          args.add("-cclib", "-l" + libname)
+          includes.append(dep.dirname)
+          cclib_deps.append(dep)
+      elif dep.extension == ".cmxs":
         includes.append(dep.dirname)
 
   # print("BUILD DEPS: %s" % build_deps)
@@ -167,25 +194,25 @@ def _ocaml_module_impl(ctx):
     #   args.add(dep)
     #   build_deps.append(dep)
 
-  for dep in ctx.attr.deps:
-    if debug:
-        print("ATTR DEP: %s" % dep)
-    for g in dep[DefaultInfo].files.to_list():
-        if debug:
-            print("ATTR DEP FILE: %s" % g)
-        dep_graph.append(g)
-  #     if g.path.endswith(".cmx"):
-  #       build_deps.append(g)
-  #       includes.append(g.dirname)
-  #     elif g.path.endswith(".cmxa"):
-  #       build_deps.append(g)
-  #       includes.append(g.dirname)
-  #       ## expose cmi files of deps for linking
-  #       for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
-  #         if h.path.endswith(".cmx"):
-  #           includes.append(h.dirname)
-  #     elif g.path.endswith(".cmxs"):
-  #       includes.append(g.dirname)
+  # for dep in ctx.attr.deps:
+  #   if debug:
+  #       print("ATTR DEP: %s" % dep)
+  #   for g in dep[DefaultInfo].files.to_list():
+  #       if debug:
+  #           print("ATTR DEP FILE: %s" % g)
+  #       dep_graph.append(g)
+  #       if g.path.endswith(".cmx"):
+  #           build_deps.append(g)
+  #           includes.append(g.dirname)
+  #       elif g.path.endswith(".cmxa"):
+  #           build_deps.append(g)
+  #           includes.append(g.dirname)
+  #           ## expose cmi files of deps for linking
+  #           for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
+  #               if h.path.endswith(".cmx"):
+  #                   includes.append(h.dirname)
+  #       elif g.path.endswith(".cmxs"):
+  #           includes.append(g.dirname)
 
     # print("DEP:  %s" % dep)
     # if dep.name == "async":
@@ -197,38 +224,37 @@ def _ocaml_module_impl(ctx):
     #   build_deps.append(dep.cmxa)
     #   includes.append(dep.cmxa.dirname)
 
-  cclib_deps = []
-  for dep in ctx.attr.cc_deps.items():
-    if debug:
-        print("CCLIB DEP: ")
-        print(dep)
-    if dep[1] == "static":
-        if debug:
-            print("STATIC lib: %s:" % dep[0])
-        for depfile in dep[0].files.to_list():
-            if (depfile.extension == "a"):
-                cclib_deps.append(depfile)
-                args.add(depfile)
-                includes.append(depfile.dirname)
-    elif dep[1] == "dynamic":
-        if debug:
-            print("DYNAMIC lib: %s" % dep[0])
-        for depfile in dep[0].files.to_list():
-            print("DEPFILE extension: %s" % depfile.extension)
-            if (depfile.extension == "so"):
-                libname = depfile.basename[:-3]
-                libname = libname[3:]
-                print("SOLIBNAME: %s" % depfile.basename)
-                print("SO PARAM: -l%s" % libname)
-                args.add("-cclib", "-l" + libname)
-                cclib_deps.append(depfile)
-            elif (depfile.extension == "dylib"):
-                libname = depfile.basename[:6]
-                libname = libname[3:]
-                print("DYLIBNAME: %s:" % libname)
-                args.add("-cclib", "-l" + libname)
-                includes.append(depfile.dirname)
-                cclib_deps.append(depfile)
+  # for dep in ctx.attr.cc_deps.items():
+  #   if debug:
+  #       print("CCLIB DEP: ")
+  #       print(dep)
+  #   if dep[1] == "static":
+  #       if debug:
+  #           print("STATIC lib: %s:" % dep[0])
+  #       for depfile in dep[0].files.to_list():
+  #           if (depfile.extension == "a"):
+  #               cclib_deps.append(depfile)
+  #               args.add(depfile)
+  #               includes.append(depfile.dirname)
+  #   elif dep[1] == "dynamic":
+  #       if debug:
+  #           print("DYNAMIC lib: %s" % dep[0])
+  #       for depfile in dep[0].files.to_list():
+  #           print("DEPFILE extension: %s" % depfile.extension)
+  #           if (depfile.extension == "so"):
+  #               libname = depfile.basename[:-3]
+  #               libname = libname[3:]
+  #               print("SOLIBNAME: %s" % depfile.basename)
+  #               print("SO PARAM: -l%s" % libname)
+  #               args.add("-cclib", "-l" + libname)
+  #               cclib_deps.append(depfile)
+  #           elif (depfile.extension == "dylib"):
+  #               libname = depfile.basename[:-6]
+  #               libname = libname[3:]
+  #               print("DYLIBNAME: %s:" % libname)
+  #               args.add("-cclib", "-l" + libname)
+  #               includes.append(depfile.dirname)
+  #               cclib_deps.append(depfile)
 
     # for depfile in dep[0].files.to_list():
     #   # print("CCLIB DEP FILE: %s" % depfile)
@@ -325,7 +351,8 @@ def _ocaml_module_impl(ctx):
   defaultInfo = DefaultInfo(
     # payload
       files = depset(
-        direct = [obj_cmx, obj_o, obj_cmi],
+          order = "postorder",
+          direct = [obj_cmx, obj_o, obj_cmi],
         # transitive = depset(mydeps.nopam.to_list())
       )
   )
@@ -406,6 +433,10 @@ ocaml_module = rule(
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
+    ),
+    cc_linkstatic = attr.bool(
+      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+      default = False  ## false on macos, true on linux?
     ),
     mode = attr.string(default = "native"),
     msg = attr.string(),

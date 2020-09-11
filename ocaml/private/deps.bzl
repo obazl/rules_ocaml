@@ -36,9 +36,14 @@ def get_all_deps(rule, ctx):
   # a. add the info struct as direct dep
   # b. iterate over the deps of the direct dep, adding them to transitive
 
+  debug = False
+  if (ctx.label.name == "election"):
+      debug = True
+
   direct_deps = ctx.attr.deps
 
-  # print("\n\n\t\t\t\t\tGET_ALL_DEPS {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
+  if debug:
+      print("\n\n\t\t\t\t\tGET_ALL_DEPS {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
 
   defaults = []
 
@@ -86,7 +91,8 @@ def get_all_deps(rule, ctx):
       if rule == "ocaml_archive":
           # print("\n\n XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \n\n")
           ## this includes both direct deps (submods) and indirect deps!
-          nopam_directs.extend(dep_provider.deps.nopam.to_list())
+          # nopam_directs.extend(dep_provider.deps.nopam.to_list())
+          nopam_transitives.append(dep_provider.deps.nopam)
       elif rule == "ocaml_executable":
           # print("\n\n XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \n\n")
           # print("payload: %s" % dep_provider.payload)
@@ -186,22 +192,55 @@ def get_all_deps(rule, ctx):
       fail("UNKNOWN DEP TYPE: %s" % dep)
 
   if hasattr(ctx.attr, "cc_deps"):
-      print("TARGET: %s" % ctx.label.name)
-      print("CC_DEPS: %s" % ctx.attr.cc_deps)
+      if debug:
+          print("DEPSET TARGET: %s" % ctx.label.name)
+          print("DEPSET CC_DEPS: %s" % ctx.attr.cc_deps)
       for cc_dep in ctx.attr.cc_deps.items():
-          print("CC_DEP TYPE: %s" % cc_dep[1])
+          if debug:
+              print("CC_DEP TYPE: %s" % cc_dep[1])
           for depfile in cc_dep[0].files.to_list():
-              print("CC_DEP FILE: %s" % depfile)
+              if debug:
+                  print("CC_DEP FILE: %s" % depfile)
           if cc_dep[1] == "static":
+              if debug:
+                  print("DEPSET STATIC")
               for depfile in cc_dep[0].files.to_list():
                   if (depfile.extension == "a"):
                       nopam_directs.append(depfile)
           elif cc_dep[1] == "dynamic":
+              if debug:
+                  print("DEPSET STATIC")
               for depfile in cc_dep[0].files.to_list():
                   if (depfile.extension == "so"):
+                      if debug:
+                          print("DEPSET DSO")
                       nopam_directs.append(depfile)
                   elif (depfile.extension == "dylib"):
+                      if debug:
+                          print("DEPSET DYLIB")
                       nopam_directs.append(depfile)
+          else:
+              ## any other value treated as "default"
+              if debug:
+                  print("DEPSET DEFAULT")
+              if ctx.attr.cc_linkstatic:
+                  if debug:
+                      print("DEPSET LINKSTATIC")
+                  for depfile in cc_dep[0].files.to_list():
+                      if (depfile.extension == "a"):
+                          nopam_directs.append(depfile)
+              else:
+                  if debug:
+                      print("DEPSET LINKDYNAMIC")
+                  for depfile in cc_dep[0].files.to_list():
+                      if (depfile.extension == "so"):
+                          if debug:
+                              print("DEPSET SO")
+                          nopam_directs.append(depfile)
+                      elif (depfile.extension == "dylib"):
+                          if debug:
+                              print("DEPSET DYLIB")
+                          nopam_directs.append(depfile)
 
   opam_depset = depset(
     # order      = "preorder",
@@ -214,7 +253,7 @@ def get_all_deps(rule, ctx):
   # print("\n\n\t\t\t NOPAM TRANSITIVES: %s\n\n" % nopam_transitives)
 
   nopam_depset = depset(
-    order      = "preorder",
+    order      = "postorder",
     direct = nopam_directs,
     transitive = nopam_transitives
   )

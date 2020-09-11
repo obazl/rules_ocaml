@@ -11,8 +11,9 @@ load("//ocaml/private/actions:ppx.bzl",
      "ocaml_ppx_library_cmo",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
+load("//ocaml/private:deps.bzl", "get_all_deps")
 load("//ocaml/private:utils.bzl",
-     "get_all_deps",
+     "xget_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -53,7 +54,7 @@ def _ppx_executable_impl(ctx):
     # if PpxModuleProvider in src:
       # print("PPX MODULE PROVIDER: %s" % src[PpxModuleProvider])
 
-  mydeps = get_all_deps(ctx.attr.build_deps)
+  mydeps = xget_all_deps(ctx.attr.build_deps)
 
   # print("PPX BINARY OPAM DEPS")
   # print(mydeps.opam)
@@ -151,7 +152,7 @@ def _ppx_executable_impl(ctx):
         dep_graph.append(dep)
     #FIXME: also support non-opam transform deps
 
-  print("DEP_GRAPH: %s" % dep_graph)
+  # print("DEP_GRAPH: %s" % dep_graph)
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,

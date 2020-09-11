@@ -20,7 +20,7 @@ load("//ocaml/private/actions:module.bzl", "rename_module", "ppx_transform_actio
      # "ocaml_ppx_library_link")
 load("//ocaml/private:utils.bzl",
      "capitalize_initial_char",
-     "get_all_deps",
+     "xget_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -48,7 +48,7 @@ def _ppx_module_impl(ctx):
         redirect[PpxModuleProvider]
       ]
 
-  mydeps = get_all_deps(ctx.attr.deps)
+  mydeps = xget_all_deps(ctx.attr.deps)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),

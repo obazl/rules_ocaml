@@ -67,7 +67,7 @@ def split_srcs(srcs):
   return intfs, impls
 
 ################################################################
-def get_all_deps(direct_deps):
+def xget_all_deps(direct_deps):
   """Obtain the deps for a target and its transitive dependencies.
 
   Args:

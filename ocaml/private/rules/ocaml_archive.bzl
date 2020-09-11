@@ -29,8 +29,8 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_archive_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "snarky_libsnark_bindings"):
-      debug = True
+  # if (ctx.label.name == "snarky_backendless"):
+  #     debug = True
 
   if debug:
       print("ARCHIVE TARGET: %s" % ctx.label.name)
@@ -123,7 +123,7 @@ def _ocaml_archive_impl(ctx):
     elif dep.basename.endswith(".cmxa"):
         includes.append(dep.dirname)
         dep_graph.append(dep)
-        # build_deps.append(dep)
+        build_deps.append(dep)
         # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
         #     if g.path.endswith(".cmx"):
         #         includes.append(g.dirname)
@@ -157,16 +157,16 @@ def _ocaml_archive_impl(ctx):
           includes.append(dso.dirname)
 
   ## this does not eliminate dups:
-  for dep in ctx.attr.deps:
-      for g in dep[DefaultInfo].files.to_list():
-        if g.path.endswith(".cmxa"):
-          for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
-            if h.path.endswith(".cmx"):
-              includes.append(h.dirname)
-              # build_deps.append(h)
-              dep_graph.append(h)
-        else:
-          dep_graph.append(g)
+  # for dep in ctx.attr.deps:
+  #     for g in dep[DefaultInfo].files.to_list():
+  #       if g.path.endswith(".cmxa"):
+  #         for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
+  #           if h.path.endswith(".cmx"):
+  #             includes.append(h.dirname)
+  #             # build_deps.append(h)
+  #             dep_graph.append(h)
+  #       else:
+  #         dep_graph.append(g)
   #       includes.append(g.dirname)
   #       # if g.path.endswith(".cmi"):
   #       #   build_deps.append(g)
@@ -311,7 +311,8 @@ def _ocaml_archive_impl(ctx):
   return [
     DefaultInfo(
       files = depset(
-        direct = obj_files,
+          order = "postorder",
+          direct = obj_files,
         # transitive = [depset(build_deps + cclib_deps)]
       )),
     archiveProvider,
@@ -397,6 +398,10 @@ ocaml_archive(
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
+    ),
+    cc_linkstatic = attr.bool(
+      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+      default = True
     ),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(
