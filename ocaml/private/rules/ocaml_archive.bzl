@@ -115,42 +115,46 @@ def _ocaml_archive_impl(ctx):
   for dep in mydeps.nopam.to_list():
     if debug:
         print("NOPAM DEP: %s" % dep)
-    if dep.basename.endswith(".cmx"):
-        # if (not dep.basename.endswith(".o")) and (not dep.basename.endswith(".a")) and (not dep.basename.endswith(".cmxa")):
+    if dep.extension == "cmx":
+        # if (not dep.extension == ".o") and (not dep.extension == ".a") and (not dep.extension == ".cmxa"):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
-    elif dep.basename.endswith(".cmxa"):
+    elif dep.extension == "cmxa":
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
         # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
-        #     if g.path.endswith(".cmx"):
+        #     if g.path.endswith(".cmx":
         #         includes.append(g.dirname)
         #         build_deps.append(g)
         #         dep_graph.append(g)
-    elif dep.basename.endswith(".o"):
+    elif dep.extension == "o":
         build_deps.append(dep)
         dep_graph.append(dep)
-    elif dep.basename.endswith(".a"):
+    elif dep.extension == "a":
         build_deps.append(dep)
         dep_graph.append(dep)
-    elif dep.basename.endswith(".so"):
+    elif dep.extension == "so":
+        dso_deps.append(dep)
+    elif dep.extension == "dylib":
         dso_deps.append(dep)
     else:
         if debug:
             print("NOMAP DEP not .cmx, ,cmxa, .o, .so: %s" % dep.path)
 
   for dso in dso_deps:
-      if (dso.extension == "so"):
+      if dso.extension == "so":
+          dep_graph.append(dso)
           libname = dso.basename[:-3]
           libname = libname[3:]
           # print("LIBNAME: %s" % libname)
           args.add("-ccopt", "-L" + dso.dirname)
           args.add("-cclib", "-l" + libname)
           # cclib_deps.append(dso)
-      elif (dso.extension == "dylib"):
-          libname = dso.basename[:6]
+      elif dso.extension == "dylib":
+          dep_graph.append(dso)
+          libname = dso.basename[:-6]
           libname = libname[3:]
           args.add("-ccopt", "-L" + dso.dirname)
           args.add("-cclib", "-l" + libname)
@@ -401,7 +405,7 @@ ocaml_archive(
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = True
+      default = False
     ),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(

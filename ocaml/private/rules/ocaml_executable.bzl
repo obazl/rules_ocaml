@@ -429,7 +429,7 @@ ocaml_executable = rule(
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = True
+      default = False
     ),
     mode = attr.string(default = "native"), # or "bytecode"
     message = attr.string()
