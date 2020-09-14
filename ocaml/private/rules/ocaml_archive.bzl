@@ -136,29 +136,31 @@ def _ocaml_archive_impl(ctx):
         build_deps.append(dep)
         dep_graph.append(dep)
     elif dep.extension == "so":
-        dso_deps.append(dep)
+        if debug:
+            print("NOPAM .so DEP: %s" % dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-3]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # dso_deps.append(dep)
     elif dep.extension == "dylib":
-        dso_deps.append(dep)
+        if debug:
+            print("NOPAM .dylib DEP: %s" % dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-6]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # includes.append(dep.dirname)
+        # dso_deps.append(dep)
     else:
         if debug:
-            print("NOMAP DEP not .cmx, ,cmxa, .o, .so: %s" % dep.path)
-
-  for dso in dso_deps:
-      if dso.extension == "so":
-          dep_graph.append(dso)
-          libname = dso.basename[:-3]
-          libname = libname[3:]
-          # print("LIBNAME: %s" % libname)
-          args.add("-ccopt", "-L" + dso.dirname)
-          args.add("-cclib", "-l" + libname)
-          # cclib_deps.append(dso)
-      elif dso.extension == "dylib":
-          dep_graph.append(dso)
-          libname = dso.basename[:-6]
-          libname = libname[3:]
-          args.add("-ccopt", "-L" + dso.dirname)
-          args.add("-cclib", "-l" + libname)
-          includes.append(dso.dirname)
+            print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
 
   ## this does not eliminate dups:
   # for dep in ctx.attr.deps:
@@ -405,7 +407,7 @@ ocaml_archive(
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = False
+      default = True # False
     ),
     mode = attr.string(default = "native"),
     _sdkpath = attr.label(

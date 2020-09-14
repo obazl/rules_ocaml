@@ -41,8 +41,8 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_module_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "camlsnark_c"):
-  #     debug = True
+  if (ctx.label.name == "libsnark.cm_"):
+      debug = True
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
@@ -163,17 +163,27 @@ def _ocaml_module_impl(ctx):
           # for h in dep[OcamlModuleProvider].deps.nopam.to_list():
           #     if h.path.endswith(".cmx"):
           #         includes.append(h.dirname)
+      elif dep.extension == "o":
+        if debug:
+            print("NOPAM .o DEP: %s" % dep)
+        dep_graph.append(dep)
+        args.add(dep)
       elif dep.extension == "a":
-          if debug:
-              print("ADDING STATIC LIB: %s" % dep)
-          cclib_deps.append(dep)
-          args.add(dep)
-          includes.append(dep.dirname)
+        if debug:
+            print("NOPAM .a DEP: %s" % dep)
+        dep_graph.append(dep)
+        # args.add(dep)
+      elif dep.extension == "lo":
+        if debug:
+            print("NOPAM .lo DEP: %s" % dep)
+        dep_graph.append(dep)
+        args.add("-ccopt", "-l" + dep.path)
       elif dep.extension == "so":
           if debug:
               print("ADDING DSO FILE: %s" % dep)
           libname = dep.basename[:-3]
           libname = libname[3:]
+          args.add("-ccopt", "-L" + dep.dirname)
           args.add("-cclib", "-l" + libname)
           cclib_deps.append(dep)
       elif dep.extension == "dylib":
@@ -181,6 +191,7 @@ def _ocaml_module_impl(ctx):
               print("ADDING DYLIB: %s" % dep)
           libname = dep.basename[:-6]
           libname = libname[3:]
+          args.add("-ccopt", "-L" + dep.dirname)
           args.add("-cclib", "-l" + libname)
           includes.append(dep.dirname)
           cclib_deps.append(dep)
@@ -434,9 +445,10 @@ ocaml_module = rule(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
     ),
+    ## FIXME: call this cc_deps_default_type or some such
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = False  ## false on macos, true on linux?
+      default = True # False  ## false on macos, true on linux?
     ),
     mode = attr.string(default = "native"),
     msg = attr.string(),

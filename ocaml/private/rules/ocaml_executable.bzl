@@ -82,6 +82,7 @@ def _ocaml_executable_impl(ctx):
   args.add("ocamlopt")
   args.add_all(ctx.attr.opts)
 
+
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
   args.add_all(ctx.attr.linkopts)
 
@@ -142,44 +143,57 @@ def _ocaml_executable_impl(ctx):
     elif dep.extension == "o":
         if debug:
             print("NOPAM .o DEP: %s" % dep)
-        # build_deps.append(dep)
         dep_graph.append(dep)
+        args.add(dep)
     elif dep.extension == "a":
         if debug:
             print("NOPAM .a DEP: %s" % dep)
-        # build_deps.append(dep)
         dep_graph.append(dep)
+        args.add(dep)
+    elif dep.extension == "lo":
+        if debug:
+          print("NOPAM .lo DEP: %s" % dep)
+        dep_graph.append(dep)
+        args.add("-ccopt", "-l" + dep.path)
+        # libname = dep.basename[:-2]
+        # libname = libname[3:]
+        # if debug:
+        #   print("LIBNAME: %s" % libname)
+        # args.add("-ccopt", "-L" + dep.dirname)
+        # args.add("-cclib", "-l" + libname)
     elif dep.extension == "so":
         if debug:
             print("NOPAM .so DEP: %s" % dep)
-        dso_deps.append(dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-3]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # dso_deps.append(dep)
     elif dep.extension == "dylib":
         if debug:
             print("NOPAM .dylib DEP: %s" % dep)
-        dso_deps.append(dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-6]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # includes.append(dep.dirname)
+        # dso_deps.append(dep)
     else:
         if debug:
-            print("NOMAP DEP not .cmx, ,cmxa, .o, .so: %s" % dep.path)
+            print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
 
-  for dso in dso_deps:
-      if debug:
-          print("DSO: %s" % dso)
-      if dso.extension == "so":
-          libname = dso.basename[:-3]
-          libname = libname[3:]
-          if debug:
-              print("LIBNAME: %s" % libname)
-          args.add("-ccopt", "-L" + dso.dirname)
-          args.add("-cclib", "-l" + libname)
-          # cclib_deps.append(dso)
-      elif dso.extension == "dylib":
-          libname = dso.basename[:-6]
-          libname = libname[3:]
-          if debug:
-              print("LIBNAME: %s" % libname)
-          args.add("-ccopt", "-L" + dso.dirname)
-          args.add("-cclib", "-l" + libname)
-          includes.append(dso.dirname)
+  # for dso in dso_deps:
+  #     if debug:
+  #         print("DSO: %s" % dso)
+  #     if dso.extension == "so":
+  #         # cclib_deps.append(dso)
+  #     elif dso.extension == "dylib":
 
 
     # elif dep.extension == "cmxa":
@@ -429,7 +443,7 @@ ocaml_executable = rule(
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = False
+      default = True # False
     ),
     mode = attr.string(default = "native"), # or "bytecode"
     message = attr.string()

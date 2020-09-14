@@ -229,6 +229,8 @@ def get_all_deps(rule, ctx):
                   for depfile in cc_dep[0].files.to_list():
                       if (depfile.extension == "a"):
                           nopam_directs.append(depfile)
+                      elif (depfile.extension == "lo"):
+                          nopam_directs.append(depfile)
               else:
                   if debug:
                       print("DEPSET LINKDYNAMIC")
