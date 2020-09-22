@@ -39,7 +39,7 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_interface_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "snarky_cpp_string.cmi"):
+  # if (ctx.label.name == "vector.cmi"):
   #     debug = True
 
   if debug:
@@ -53,19 +53,21 @@ def _ocaml_interface_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  outfile = None
+  dep_graph = []
+
+  intf_file = None
   output_deps = None
-  if ctx.attr.ppx_bin:
-    # output_deps = [dep for dep in ctx.attr.ppx_bin[PpxBinaryProvider].deps.transform]
-    output_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.transform
+  if ctx.attr.ppx_exe:
+    # output_deps = [dep for dep in ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform]
+    output_deps = ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform
     # print("INTERFACE ppx: %s" % output_deps)
-    outfile = ppx_transform_action("ocaml_interface", ctx, ctx.file.intf)
+    intf_file = ppx_transform_action("ocaml_interface", ctx, ctx.file.intf)
   elif ctx.attr.ns_module:
-    outfile = rename_ocaml_module(ctx, ctx.file.intf) #, ctx.attr.ns)
-    # outfile = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
+    intf_file = rename_ocaml_module(ctx, ctx.file.intf) #, ctx.attr.ns)
+    # intf_file = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
   else:
-    outfile = ctx.file.intf
-    # outfile = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
+    intf_file = ctx.file.intf
+    # intf_file = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
 
 
   # elif ctx.attr.ppx_libs:
@@ -74,7 +76,7 @@ def _ocaml_interface_impl(ctx):
   #       args.add("-package", item[0].label.name)
 
   # cmifname = ctx.file.intf.basename.rstrip("mli") + "cmi"
-  cmifname = outfile.basename.rstrip("mli") + "cmi"
+  cmifname = intf_file.basename.rstrip("mli") + "cmi"
   obj_cmi = ctx.actions.declare_file(cmifname)
 
   args = ctx.actions.args()
@@ -91,6 +93,9 @@ def _ocaml_interface_impl(ctx):
     ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
     ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
     args.add("-open", ns_mod)
+    dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
+    dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cmi)
+
     # capitalize_initial_char(ctx.attr.ns_module[PpxNsModuleProvider].payload.ns))
 
   # if ctx.attr.ns:
@@ -107,7 +112,6 @@ def _ocaml_interface_impl(ctx):
   build_deps = []
   dso_deps = []
   includes   = []
-  dep_graph = []
 
   intf_dep = None
 
@@ -119,6 +123,9 @@ def _ocaml_interface_impl(ctx):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
+    if dep.basename.endswith(".cmi"):
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
     elif dep.basename.endswith(".cmxa"):
         includes.append(dep.dirname)
         dep_graph.append(dep)
@@ -178,9 +185,9 @@ def _ocaml_interface_impl(ctx):
   args.add("-o", obj_cmi)
 
   # args.add(ctx.file.intf)
-  args.add("-intf", outfile)
+  args.add("-intf", intf_file)
 
-  dep_graph.append(outfile) #] + build_deps
+  dep_graph.append(intf_file) #] + build_deps
   if ctx.attr.ns_module:
     dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
 
@@ -192,13 +199,17 @@ def _ocaml_interface_impl(ctx):
     outputs = [obj_cmi],
     tools = [tc.ocamlopt],
     mnemonic = "OcamlModuleInterface",
-    progress_message = "ocaml_interface({}), {}".format(
-      ctx.label.name, ctx.attr.msg
+    progress_message = "ocaml_interface {}".format(
+        # ctx.label.name,
+        ctx.attr.msg
       )
   )
 
+  if debug:
+      print("IF OUT: %s" % obj_cmi)
+
   interface_provider = OcamlInterfaceProvider(
-    payload = struct(cmi = obj_cmi),
+    payload = struct(cmi = obj_cmi, mli = intf_file),
     deps = struct(
       opam  = mydeps.opam,
       nopam = mydeps.nopam
@@ -241,17 +252,21 @@ ocaml_interface = rule(
     intf = attr.label(
       allow_single_file = OCAML_INTF_FILETYPES
     ),
-    ppx_bin  = attr.label(
+    ppx_exe  = attr.label(
       doc = "PPX binary (executable).",
       allow_single_file = True,
       providers = [PpxBinaryProvider]
     ),
-    ppx_bin_opts  = attr.string_list(
+    ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
     ),
-    ppx = attr.label_keyed_string_dict(
-      doc = """Dictionary of one entry. Key is a ppx target, val string is arguments."""
+    ppx_deps  = attr.label_list(
+        doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        allow_files = True,
     ),
+    # ppx = attr.label_keyed_string_dict(
+    #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments."""
+    # ),
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
                    [OcamlArchiveProvider],

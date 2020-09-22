@@ -90,9 +90,12 @@ def _ocaml_archive_impl(ctx):
   ## cmxa file, so downstream targets that depend only on cmxa will
   ## not rebuilt. So we need the dependency to be on both the cmxa and
   ## the associated object files.
-  for src in ctx.files.srcs:
-    if src.path.endswith(".ml"):
-      obj_files.append(ctx.actions.declare_file(src.basename.rstrip(".ml") + ".o"))
+
+  # currently we do not support direct dep on source files
+  # for src in ctx.files.srcs:
+  #   if src.path.endswith(".ml"):
+  #     obj_files.append(ctx.actions.declare_file(src.basename.rstrip(".ml") + ".o"))
+
     # elif src is archive:
     #   emit archive unchanged
 
@@ -114,27 +117,28 @@ def _ocaml_archive_impl(ctx):
 
   for dep in mydeps.nopam.to_list():
     if debug:
-        print("NOPAM DEP: %s" % dep)
+          print("\nNOPAM DEP: %s\n\n" % dep)
     if dep.extension == "cmx":
-        # if (not dep.extension == ".o") and (not dep.extension == ".a") and (not dep.extension == ".cmxa"):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
-    elif dep.extension == "cmxa":
-        includes.append(dep.dirname)
+    elif dep.extension == "cmi":
         dep_graph.append(dep)
-        build_deps.append(dep)
-        # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
-        #     if g.path.endswith(".cmx":
-        #         includes.append(g.dirname)
-        #         build_deps.append(g)
-        #         dep_graph.append(g)
+        includes.append(dep.dirname)
+    elif dep.extension == "mli":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
     elif dep.extension == "o":
+        # build_deps.append(dep)
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "cmxa":
         build_deps.append(dep)
         dep_graph.append(dep)
+        includes.append(dep.dirname)
     elif dep.extension == "a":
-        build_deps.append(dep)
         dep_graph.append(dep)
+        # build_deps.append(dep)
     elif dep.extension == "so":
         if debug:
             print("NOPAM .so DEP: %s" % dep)
@@ -279,9 +283,9 @@ def _ocaml_archive_impl(ctx):
   ## since we're building an archive, we need all members on command line
   args.add_all(build_deps)
   args.add_all(cclib_deps)
-  args.add_all(ctx.files.srcs)
+  # args.add_all(ctx.files.srcs)
 
-  dep_graph = dep_graph + build_deps + cclib_deps + ctx.files.srcs
+  dep_graph = dep_graph + build_deps + cclib_deps  #  + ctx.files.srcs
   if debug:
       print("INPUT_ARGS:")
       print(dep_graph)
@@ -317,7 +321,7 @@ def _ocaml_archive_impl(ctx):
   return [
     DefaultInfo(
       files = depset(
-          order = "postorder",
+          order = "preorder",
           direct = obj_files,
         # transitive = [depset(build_deps + cclib_deps)]
       )),
@@ -356,10 +360,10 @@ ocaml_archive(
       cfg = "exec",
       # allow_single_file = True
     ),
-    srcs = attr.label_list(
-      doc = "OCaml source files",
-      allow_files = OCAML_FILETYPES
-    ),
+    # srcs = attr.label_list(
+    #   doc = "OCaml source files",
+    #   allow_files = OCAML_FILETYPES
+    # ),
     # src_root = attr.label(
     #   allow_single_file = True,
     #   mandatory = True,

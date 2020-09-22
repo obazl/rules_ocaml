@@ -101,7 +101,9 @@ def _ocaml_executable_impl(ctx):
   #   args.add("-package", dep.pkg.to_list()[0].name)
 
   args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-  args.add("-absname")
+
+  # for debugging:
+  # args.add("-absname")
 
   # print("NOPAM_DEPS for {bin}: {deps}".format(bin=ctx.label.name, deps=mydeps.nopam))
   # for dep in mydeps.nopam.to_list():  # ctx.attr.deps:
@@ -129,8 +131,11 @@ def _ocaml_executable_impl(ctx):
         print("NOPAM DEP: %s" % dep)
     if dep.extension == "cmx":
       includes.append(dep.dirname)
-      args.add(dep.basename)
+      args.add(dep) # .basename)
       dep_graph.append(dep)
+    # if dep.extension == "cmi":
+    #   includes.append(dep.dirname)
+    #   dep_graph.append(dep)
     elif dep.extension == "cmxa":
         includes.append(dep.dirname)
         dep_graph.append(dep)
@@ -143,8 +148,8 @@ def _ocaml_executable_impl(ctx):
     elif dep.extension == "o":
         if debug:
             print("NOPAM .o DEP: %s" % dep)
+        includes.append(dep.dirname)
         dep_graph.append(dep)
-        args.add(dep)
     elif dep.extension == "a":
         if debug:
             print("NOPAM .a DEP: %s" % dep)

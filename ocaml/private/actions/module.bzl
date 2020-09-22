@@ -203,12 +203,12 @@ def ppx_transform_action(rule, ctx, infile):
 
   args = ctx.actions.args()
 
-  if ctx.attr.ppx_bin:
-    args.add_all(ctx.attr.ppx_bin[PpxBinaryProvider].args)
-    args.add_all(ctx.attr.ppx_bin_opts)
+  if ctx.attr.ppx_exe:
+    args.add_all(ctx.attr.ppx_exe[PpxBinaryProvider].args)
+    args.add_all(ctx.attr.ppx_args)
     if hasattr(ctx.attr, "ppx_format"):
       if ctx.attr.ppx_format == "binary":
-        #FIXME: also check ppx_bin_opts for -dump-ast
+        #FIXME: also check ppx_args for -dump-ast
         args.add("-dump-ast")
 
   args.add("-o", outfile)
@@ -217,10 +217,10 @@ def ppx_transform_action(rule, ctx, infile):
   if infile.path.endswith(".ml"):
     args.add("-impl", infile)
 
-  ppx = ctx.attr.ppx_bin.files.to_list()[0]
+  ppx = ctx.attr.ppx_exe.files.to_list()[0]
   # print("PPX: %s" % ppx)
   # if ctx.attr.ppx:
-  #   for item in ctx.attr.ppx_bin.items():
+  #   for item in ctx.attr.ppx_exe.items():
   #     pkg = item[0].label.name
   #     print("PKG: {}".format(pkg))
   #     args.add("-package", pkg)
@@ -229,16 +229,24 @@ def ppx_transform_action(rule, ctx, infile):
   #       print("PPXARGS: {}".format(ppxargs))
   #       args.add("-ppxopt", pkg + "," + ppxargs)
 
+  dep_graph = [infile, ppx]
+  if ctx.attr.ppx_deps:
+      for dep in ctx.files.ppx_deps:
+          # includes.append(dep.dirname)
+          dep_graph.append(dep)
+
   ctx.actions.run(
     env = env,
     executable = ppx, # item[0],
     arguments = [args],
-    inputs = [infile] + [ppx],
+    inputs = dep_graph,
     outputs = [outfile], #outputs.values(),
     tools = [ppx], # [item[0]],
     mnemonic = "OcamlPpxModule",
-    progress_message = "ppx_transform_action of {rule}({target}){msg}".format(
-      rule=rule, target=ctx.label.name, msg = "" if not ctx.attr.msg else ", msg: " + ctx.attr.msg
+    progress_message = "ppx_transform_action of {rule}{msg}".format(
+        rule=rule,
+        # target=ctx.label.name,
+        msg = "" if not ctx.attr.msg else ", msg: " + ctx.attr.msg
     )
   )
   # print("TRANSFORM result: %s" % outfile)

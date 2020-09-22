@@ -88,9 +88,19 @@ def _ppx_executable_impl(ctx):
       # build_deps.append(dep.cm)
       input_deps.append(dep.cm)
       includes.append(dep.cm.dirname)
+    if hasattr(dep, "o"):
+      input_deps.append(dep.o)
+      includes.append(dep.o.dirname)
+    if hasattr(dep, "cmi"):
+      # build_deps.append(dep.cm)
+      input_deps.append(dep.cmi)
+      includes.append(dep.cmi.dirname)
     if hasattr(dep, "cmxa"):
       build_deps.append(dep.cmxa)
       includes.append(dep.cmxa.dirname)
+    if hasattr(dep, "a"):
+      input_deps.append(dep.a)
+      includes.append(dep.a.dirname)
   # for dep in ctx.attr.build_deps:
   #   for g in dep[DefaultInfo].files.to_list():
   #     if g.path.endswith(".cmx"):

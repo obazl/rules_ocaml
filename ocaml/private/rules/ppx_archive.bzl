@@ -124,11 +124,9 @@ def _ppx_archive_impl(ctx):
   # enough to add libs to the command line (by adding to args). They
   # must also be added to the 'inputs' parameter of the Bazel action;
   # if we don't do this, Bazel will not make them accessible, and we
-  # will get 'Error: Unbound module'. So we accumulate them in
-  # build_deps, then add them to inputs_arg we pass to the run action.
-  # actually they do not need to also be added to command args
-  # BUT, their dirs do need to be added to the include (-I) path
+  # will get 'Error: Unbound module'.  We use dep_graph to accum them.
   build_deps = []
+  dep_graph  = []
   includes   = []
 
   for dep in ctx.attr.deps:
@@ -141,16 +139,17 @@ def _ppx_archive_impl(ctx):
         if g.path.endswith(".cmx"):
           includes.append(g.dirname)
           build_deps.append(g)
+          dep_graph.append(g)
+        if g.path.endswith(".cmi"):
+          includes.append(g.dirname)
+          dep_graph.append(g)
+        if g.path.endswith(".o"):
+          includes.append(g.dirname)
+          dep_graph.append(g)
         if g.path.endswith(".cmxa"):
           includes.append(g.dirname)
           build_deps.append(g)
-          # if g.path.endswith(".o"):
-          #   build_deps.append(g)
-          # if g.path.endswith(".cmxa"):
-          #   build_deps.append(g)
-          #   args.add(g) # dep[DefaultInfo].files)
-          # else:
-          #   args.add(g) # dep[DefaultInfo].files)
+          dep_graph.append(g)
 
   # for an archive we need all deps on the command line:
   args.add_all(build_deps)
@@ -163,6 +162,7 @@ def _ppx_archive_impl(ctx):
   args.add_all(ctx.files.srcs)
 
   inputs_arg = ctx.files.srcs + build_deps
+  dep_graph.extend(ctx.files.srcs)
 
   # print("INPUT_ARGS:")
   # print(inputs_arg)
@@ -173,7 +173,7 @@ def _ppx_archive_impl(ctx):
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
-    inputs = inputs_arg,
+    inputs = dep_graph,
     outputs = obj.values(), # outputs_arg,
     tools = [tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlPpxLibrary",

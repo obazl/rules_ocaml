@@ -18,8 +18,7 @@ def is_ppx_driver(repository_ctx, pkg):
         return True
 
 def _opam_repo_impl(repository_ctx):
-    # print("_opam_binary_impl")
-
+    print("_opam_binary_impl")
     opamroot = repository_ctx.execute(["opam", "var", "prefix"]).stdout.strip()
     # print("opamroot: " + opamroot)
 
@@ -31,6 +30,7 @@ def _opam_repo_impl(repository_ctx):
 
     ocamlfind_packages = []
     for p in packages:
+        ## WARNING: this is slow
         ppx = is_ppx_driver(repository_ctx, p)
         ocamlfind_packages.append(
             "ocamlfind_package(name = \"{pkg}\", ppx_driver={ppx})".format( pkg = p, ppx = ppx )
@@ -139,30 +139,31 @@ def _opam_repo_impl(repository_ctx):
 #     )
 
 
-def _opam_download_impl(repository_ctx):
-    # print("_opam_download_impl")
-    os_name = repository_ctx.os.name.lower()
-    if os_name.find("windows") != -1:
-        fail("Windows is not supported yet, sorry!")
-    elif os_name.startswith("mac os"):
-        repository_ctx.download(
-            "https://github.com/ocaml/opam/releases/download/2.0.0-beta4/opam-2.0.0-beta4-x86_64-darwin",
-            "opam",
-            "d23c06f4f03de89e34b9d26ebb99229a725059abaf6242ae3b9e9bf946b445e1",
-            executable = True,
-        )
-    else:
-        repository_ctx.download(
-            "https://github.com/ocaml/opam/releases/download/2.0.0-beta4/opam-2.0.0-beta4-x86_64-linux",
-            "opam",
-            "3de4b78a263d4c1e46760c26bdc2b02fdbce980a9fc9141385058c2b0174708c",
-            executable = True,
-        )
-    repository_ctx.file("WORKSPACE", "", False)
-    repository_ctx.file("BUILD.bazel", "exports_files([\"opam\"])", False)
+# def _opam_download_impl(repository_ctx):
+#     # print("_opam_download_impl")
+#     os_name = repository_ctx.os.name.lower()
+#     if os_name.find("windows") != -1:
+#         fail("Windows is not supported yet, sorry!")
+#     elif os_name.startswith("mac os"):
+#         repository_ctx.download(
+#             "https://github.com/ocaml/opam/releases/download/2.0.0-beta4/opam-2.0.0-beta4-x86_64-darwin",
+#             "opam",
+#             "d23c06f4f03de89e34b9d26ebb99229a725059abaf6242ae3b9e9bf946b445e1",
+#             executable = True,
+#         )
+#     else:
+#         repository_ctx.download(
+#             "https://github.com/ocaml/opam/releases/download/2.0.0-beta4/opam-2.0.0-beta4-x86_64-linux",
+#             "opam",
+#             "3de4b78a263d4c1e46760c26bdc2b02fdbce980a9fc9141385058c2b0174708c",
+#             executable = True,
+#         )
+#     repository_ctx.file("WORKSPACE", "", False)
+#     repository_ctx.file("BUILD.bazel", "exports_files([\"opam\"])", False)
 
 opam_repo = repository_rule(
     implementation = _opam_repo_impl,
+    local = True,
     attrs = {}
 )
 

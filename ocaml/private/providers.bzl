@@ -169,6 +169,7 @@ OcamlInterfaceProvider = provider(
     fields = {
         "payload": """A struct with the following fields:
             cmi: .cmi file produced by the target
+            ml:  .ml source file. without the source file, the cmi file will be ignored!
         """,
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target

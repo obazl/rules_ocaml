@@ -171,17 +171,19 @@ def xget_all_deps(direct_deps):
       # opams = opams + d.opam_deps.to_list()
       # nopam_deps.append(d)
       # nopam_transitive_deps.append(d)
-    else:
-      fail("UNKNOWN DEP TYPE: %s" % dep)
+    # else:
+    #   # e.g. a file used with [%%import ]
+    #   nopam_directs.extend(dep[DefaultInfo])
+
 
   opam_depset = depset(
-    order      = "postorder",
+    order      = "preorder",
     direct     = opam_directs,
     transitive = opam_transitives
   )
 
   nopam_depset = depset(
-    order      = "postorder",
+    order      = "preorder",
     direct = nopam_directs,
     transitive = nopam_transitives
   )

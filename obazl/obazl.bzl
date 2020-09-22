@@ -31,5 +31,6 @@ def _obazl_repo_impl(repository_ctx):
 
 obazl_repo = repository_rule(
     implementation = _obazl_repo_impl,
+    local = True,
     attrs = {}
 )

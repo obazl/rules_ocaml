@@ -37,8 +37,8 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  if (ctx.label.name == "election"):
-      debug = True
+  # if (ctx.label.name == "election"):
+  #     debug = True
 
   direct_deps = ctx.attr.deps
 
@@ -93,6 +93,10 @@ def get_all_deps(rule, ctx):
           ## this includes both direct deps (submods) and indirect deps!
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
           nopam_transitives.append(dep_provider.deps.nopam)
+          if hasattr(dep_provider.payload, "mli"):
+              if dep_provider.payload.mli != None:
+                  # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % dep_provider.payload.mli)
+                  nopam_directs.append(dep_provider.payload.mli)
       elif rule == "ocaml_executable":
           # print("\n\n XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \n\n")
           # print("payload: %s" % dep_provider.payload)
@@ -125,6 +129,12 @@ def get_all_deps(rule, ctx):
       # opams = opams + d.opam_deps.to_list()
 
       nopam_directs.append(dep_provider.payload.cm)
+      if hasattr(dep_provider.payload, "mli"):
+          if dep_provider.payload.mli != None:
+              # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % dep_provider.payload.mli)
+              nopam_directs.append(dep_provider.payload.mli)
+      nopam_directs.append(dep_provider.payload.cmi)
+      nopam_directs.append(dep_provider.payload.o)
       if dep_provider.deps.nopam:
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
           nopam_transitives.append(dep_provider.deps.nopam)
@@ -139,6 +149,8 @@ def get_all_deps(rule, ctx):
       # opams = opams + d.opam_deps.to_list()
 
       nopam_directs.append(dep_provider.payload.cm)
+      nopam_directs.append(dep_provider.payload.cmi)
+      nopam_directs.append(dep_provider.payload.o)
       if dep_provider.deps.nopam:
           # nopam_directs.append(dep_provider.payload)
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
@@ -149,7 +161,8 @@ def get_all_deps(rule, ctx):
     elif OcamlInterfaceProvider in dep:
       ip = dep[OcamlInterfaceProvider]
       # print("OcamlInterfaceProvider dep: %s" % ip)
-      nopam_directs.append(ip.payload)
+      nopam_directs.append(ip.payload.cmi)
+      nopam_directs.append(ip.payload.mli)
       nopam_transitives.append(ip.deps.nopam)
       # opams = opams + d.opam_deps.to_list()
       # nopam_deps.append(d)
@@ -176,13 +189,18 @@ def get_all_deps(rule, ctx):
     elif PpxModuleProvider in dep:
       pmp = dep[PpxModuleProvider]
       # print("OcamlInterfaceProvider dep: %s" % pmp)
-      nopam_directs.append(pmp.payload)
+      nopam_directs.append(pmp.payload.cm)
+      nopam_directs.append(pmp.payload.cmi)
+      nopam_directs.append(pmp.payload.o)
       nopam_transitives.append(pmp.deps.nopam)
       opam_transitives.append(pmp.deps.opam)
     elif PpxNsModuleProvider in dep:
       pnmp = dep[PpxNsModuleProvider]
       # print("OcamlInterfaceProvider dep: %s" % pmp)
-      nopam_directs.append(pnmp.payload)
+      # nopam_directs.append(pnmp.payload)
+      nopam_directs.append(pnmp.payload.cm)
+      nopam_directs.append(pnmp.payload.cmi)
+      nopam_directs.append(pnmp.payload.o)
       nopam_transitives.append(pnmp.deps.nopam)
       opam_transitives.append(pnmp.deps.opam)
       # opams = opams + d.opam_deps.to_list()
@@ -190,6 +208,35 @@ def get_all_deps(rule, ctx):
       # nopam_transitive_deps.append(d)
     else:
       fail("UNKNOWN DEP TYPE: %s" % dep)
+
+  if hasattr(ctx.attr, "cmi"):
+      if ctx.attr.cmi != None:
+          dep_provider = ctx.attr.cmi[OcamlInterfaceProvider]
+          nopam_directs.append(dep_provider.payload.cmi)
+          nopam_directs.append(dep_provider.payload.mli)
+          if dep_provider.deps.nopam:
+              # nopam_directs.append(dep_provider.payload)
+              # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+              # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+              nopam_transitives.append(dep_provider.deps.nopam)
+              # opam_directs.append(None)
+          if dep_provider.deps.opam:
+              opam_transitives.append(dep_provider.deps.opam)
+
+  if hasattr(ctx.attr, "ns_module"):
+      if ctx.attr.ns_module != None:
+          dep_provider = ctx.attr.ns_module[OcamlNsModuleProvider]
+          nopam_directs.append(dep_provider.payload.cm)
+          nopam_directs.append(dep_provider.payload.cmi)
+          nopam_directs.append(dep_provider.payload.o)
+          if dep_provider.deps.nopam:
+              # nopam_directs.append(dep_provider.payload)
+              # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+              # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+              nopam_transitives.append(dep_provider.deps.nopam)
+              # opam_directs.append(None)
+          if dep_provider.deps.opam:
+              opam_transitives.append(dep_provider.deps.opam)
 
   if hasattr(ctx.attr, "cc_deps"):
       if debug:

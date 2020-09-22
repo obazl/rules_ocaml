@@ -57,14 +57,14 @@ def _ppx_module_impl(ctx):
   output_deps = None
   infile = None
   obj = {}
-  if ctx.attr.ppx_bin:
+  if ctx.attr.ppx_exe:
     ## this will also handle ns
     infile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
     obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
     obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
     obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
     # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
-    output_deps = ctx.attr.ppx_bin[PpxBinaryProvider].deps.transform
+    output_deps = ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform
   elif ctx.attr.ppx_ns_module:
     infile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
     obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
@@ -106,6 +106,7 @@ def _ppx_module_impl(ctx):
     args.add("-opaque")
     ns_cm = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cm
     inputs.append(ns_cm)
+    inputs.append(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cmi)
     ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
     args.add("-open", ns_mod)
     # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
@@ -116,7 +117,7 @@ def _ppx_module_impl(ctx):
   build_deps = []
   includes = []
 
-  args.add("-I", obj_cm.dirname)
+  includes.append(obj_cm.dirname)
 
   ## transitive opam deps
   # linkpkg_flag = False
@@ -135,9 +136,22 @@ def _ppx_module_impl(ctx):
     if hasattr(dep, "cm"):
       build_deps.append(dep.cm)
       includes.append(dep.cm.dirname)
+      inputs.append(dep.cm)
+    if hasattr(dep, "cmi"):
+        ## if cmi is not in the depgraph then even if it is on the search path we get e.g.
+        ## Error: The module Token is an alias for module Ppx_optcomp__Token, which is missing
+        includes.append(dep.cmi.dirname)
+        inputs.append(dep.cmi)
+    # if hasattr(dep, "o"):
+    #     includes.append(dep.o.dirname)
+    #     inputs.append(dep.o)
     elif hasattr(dep, "cmxa"):
       build_deps.append(dep.cmxa)
       includes.append(dep.cmxa.dirname)
+    else:
+      build_deps.append(dep)
+      includes.append(dep.dirname)
+      inputs.append(dep)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -172,7 +186,7 @@ def _ppx_module_impl(ctx):
     arguments = [args],
     inputs = inputs,
     outputs = [obj_cm, obj_cmi, obj_o],
-    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt] + ctx.files.data,
+    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt], # + ctx.files.data,
     mnemonic = "PpxModule",
     progress_message = "ppx_module({}), {}".format(
       ctx.label.name, ctx.attr.msg
@@ -236,24 +250,28 @@ ppx_module = rule(
       allow_single_file = [".cmi"],
       providers = [OcamlInterfaceProvider],
     ),
-    ppx = attr.label_keyed_string_dict(
-      doc = """Dictionary of one entry. Key is a ppx target, val string is arguments.""",
-      providers = [PpxBinaryProvider]
-    ),
-    ppx_bin  = attr.label(
+    # ppx = attr.label_keyed_string_dict(
+    #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments.""",
+    #   providers = [PpxBinaryProvider]
+    # ),
+    ppx_exe  = attr.label(
       doc = "PPX binary (executable).",
       providers = [PpxBinaryProvider]
     ),
-    ppx_bin_opts  = attr.string_list(
-      doc = "Options to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
+    ppx_args  = attr.string_list(
+      doc = "Arguments to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
     ),
-    args  = attr.string_list(
-      doc = "PPX cmd args.",
+    ppx_deps  = attr.label_list(
+        doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        allow_files = True,
     ),
-    data  = attr.label_list(
-      doc = "PPX data deps, e.g. headers",
-      allow_files = True
-    ),
+    # args  = attr.string_list(
+    #   doc = "PPX cmd args.",
+    # ),
+    # data  = attr.label_list(
+    #   doc = "PPX data deps, e.g. headers",
+    #   allow_files = True
+    # ),
     opts = attr.string_list(),
     warnings                = attr.string(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
@@ -266,6 +284,7 @@ ppx_module = rule(
     ),
     # srcs = attr.label_list(),
     deps = attr.label_list(
+        allow_files = True
       # providers = [OpamPkgInfo]
     ),
     mode = attr.string(default = "native"),
@@ -275,44 +294,3 @@ ppx_module = rule(
   executable = False,
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
-
-################################################################
-################################################################
-##########  PPX_NS_MODULE  ################
-ppx_ns_module = rule(
-  implementation = ns_module_action,
-  attrs = dict(
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
-    ),
-    module_name = attr.string(),
-    ns = attr.string(),
-    ns_sep = attr.string(
-      doc = "Namespace separator.  Default: '__'",
-      default = "__"
-    ),
-    submodules = attr.label_list(
-      allow_files = OCAML_FILETYPES
-    ),
-    opts = attr.string_list(
-      default = [
-        "-w", "-49", # ignore Warning 49: no cmi file was found in path for module x
-        "-no-alias-deps", # lazy linking
-        "-opaque"         #  do not generate cross-module optimization information
-      ]
-    ),
-    linkopts = attr.string_list(),
-    alwayslink = attr.bool(
-      doc = "If true (default), use OCaml -linkall switch",
-      default = True,
-    ),
-    # linkall = attr.bool(default = True),
-    mode = attr.string(default = "native"),
-    msg = attr.string(),
-    _rule = attr.string(default = "ppx_ns_module")
-  ),
-  provides = [DefaultInfo, PpxNsModuleProvider],
-  executable = False,
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-)
-

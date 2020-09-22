@@ -83,8 +83,9 @@ def ns_module_action(ctx):
       outputs = [obj_cmx, obj_o, obj_cmi],
       tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
       mnemonic = "NsModuleAction",
-      progress_message = "ns_module_action for {rule}({target}){msg}".format(
-          rule = ctx.attr._rule, target = ctx.label.name,
+      progress_message = "ns_module_action for {rule}{msg}".format(
+          rule = ctx.attr._rule,
+          # target = ctx.label.name,
           msg = ": " + ctx.attr.msg if ctx.attr.msg else ""
       )
   )
@@ -94,7 +95,8 @@ def ns_module_action(ctx):
       provider = OcamlNsModuleProvider(
           payload = struct(
               ns  = ctx.attr.ns,
-              # cmi = obj_cmi,
+              # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
+              cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o
           ),
@@ -107,7 +109,7 @@ def ns_module_action(ctx):
       provider = PpxNsModuleProvider(
           payload = struct(
               ns  = ctx.attr.ns,
-              # cmi = obj_cmi,
+              cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o
           ),
