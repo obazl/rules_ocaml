@@ -41,9 +41,9 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_module_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "interval_union"):
-  if (ctx.label.name == "pedersen.cm_"):
-      debug = True
+  # if (ctx.label.name == "snark0.cm_"):
+  # # if (ctx.label.name == "versioned_module_bad_missing_to_latest"):
+  #     debug = True
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
@@ -62,19 +62,35 @@ def _ocaml_module_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  output_deps = None
+  entailed_deps = None
 
   dep_graph = []
 
-  if ctx.attr.ppx_exe:
-    output_deps = ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform
+  # ppx = None
+
+  # if ctx.attr.ppx:
+  #   for key in ctx.attr.ppx.keys():
+  #         # print("KEY LABEL: %s" % key.label[PpxBinaryProvider])
+  #         if debug:
+  #             print("PPX KEY: %s" % key)
+  #             if PpxBinaryProvider in key:
+  #                 ppx = key
+  #                 # print("PPX EXE[0] : %s" % ppx[0])
+  #                 print("PPX EXE: %s" % key[PpxBinaryProvider])
+  #                 print("PPX VAL: %s" % ctx.attr.ppx[key])
+
+  if ctx.attr.ppx:
+    # print("PPX EXE2: %s" % ppx[PpxBinaryProvider])
+    # if not ppx:
+    ppx = ctx.attr.ppx
+    entailed_deps = ppx[PpxBinaryProvider].deps.x
     ## this will also handle ns
     outfile = ppx_transform_action("ocaml_module", ctx, ctx.file.impl)
-    # print("PPX DEP: %s" % ctx.attr.ppx_exe)
-    # print("PPX DEP DEFAULT PROVIDER: %s" % ctx.attr.ppx_exe[DefaultInfo])
-    # print("PPX DEP PROVIDER: %s" % ctx.attr.ppx_exe[PpxBinaryProvider])
-    # print("PPX DEP FILE: %s" % ctx.file.ppx_exe)
-    dep_graph.append(ctx.file.ppx_exe)
+    # print("PPX DEP: %s" % ctx.attr.ppx)
+    # print("PPX DEP DEFAULT PROVIDER: %s" % ctx.attr.ppx[DefaultInfo])
+    # print("PPX DEP PROVIDER: %s" % ctx.attr.ppx[PpxBinaryProvider])
+    # print("PPX DEP FILE: %s" % ctx.file.ppx)
+    dep_graph.append(ctx.file.ppx)
   elif ctx.attr.ns_module:
     # rename this module to put it in the namespace
     outfile = rename_ocaml_module(ctx, ctx.file.impl) #, ctx.attr.ns)
@@ -86,9 +102,12 @@ def _ocaml_module_impl(ctx):
   cmxfname = paths.replace_extension(outfile.basename, tc.objext)
   obj_cmx = ctx.actions.declare_file(cmxfname)
   obj_cmi = None
-  if ctx.attr.cmi:
-    obj_cmi = ctx.attr.cmi[OcamlInterfaceProvider].payload.cmi
-    # obj_cmi = ctx.attr.cmi.files.to_list()[0]
+  if ctx.attr.intf:
+    obj_cmi = ctx.attr.intf[OcamlInterfaceProvider].payload.cmi
+    if debug:
+        print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+        print("CMI: %s" % obj_cmi)
+    # obj_cmi = ctx.attr.intf.files.to_list()[0]
   else:
     cmifname = paths.replace_extension(outfile.basename, ".cmi")
     obj_cmi = ctx.actions.declare_file(cmifname)
@@ -103,6 +122,7 @@ def _ocaml_module_impl(ctx):
   ################################################################
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
+  # args.add("-w", ctx.attr.warnings)
   options = tc.opts + ctx.attr.opts
   args.add_all(options)
   if ctx.attr.alwayslink:
@@ -138,18 +158,25 @@ def _ocaml_module_impl(ctx):
     args.add("-open", ns_mod)
     # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
 
-  args.add("-no-alias-deps")
-  args.add("-opaque")
+  # args.add("-no-alias-deps")
+  # args.add("-opaque")
 
-  if output_deps:
-    args.add_all([dep for dep in output_deps], before_each="-package")
+  opam_deps = []
+  if entailed_deps:
+    for x_dep in entailed_deps.to_list():
+        if OpamPkgInfo in x_dep:
+            for x in x_dep[OpamPkgInfo].pkg.to_list():
+                opam_deps.append(x.name)
 
   for datum in ctx.attr.data:
     dep_graph.extend(datum.files.to_list())
-  if ctx.attr.cmi:
-    provider = ctx.attr.cmi[OcamlInterfaceProvider]
+
+  if ctx.attr.intf:
+    provider = ctx.attr.intf[OcamlInterfaceProvider]
     if debug:
-        print("CMI ATTR: %s" % provider)
+        print("CMI: %s" % provider.payload.cmi)
+        print("MLI: %s" % provider.payload.mli)
+        print("CMI PROVIDER: %s" % provider)
     dep_graph.append(provider.payload.cmi)
     dep_graph.append(provider.payload.mli)
     # args.add("-I", ctx.file.cmi.dirname)
@@ -157,23 +184,32 @@ def _ocaml_module_impl(ctx):
     includes.append(provider.payload.mli.dirname)
     # cmi inputs have deps too!
     for dep in provider.deps.nopam.to_list():
-        # print("XXXXXXXXXXXXXXXX: %s" % dep)
+        # if debug:
+        #     print("XXXXXXXXXXXXXXXX: %s" % dep)
         if dep.extension == "cmx":
             build_deps.append(dep)
             includes.append(dep.dirname)
+        elif dep.extension == "cmi":
+            dep_graph.append(dep)
+            includes.append(dep.dirname)
+        elif dep.extension == "mli":
+            dep_graph.append(dep)
+            includes.append(dep.dirname)
+
   # args.add("-I", obj_cmx.dirname)
   includes.append(obj_cmx.dirname)
 
   for dep in mydeps.nopam.to_list():
-      if debug:
-          print("\nNOPAM DEP: %s\n\n" % dep)
+      # if debug:
+      #     print("\nNOPAM DEP: %s\n\n" % dep)
       if dep.extension == "cmx":
         dep_graph.append(dep)
         build_deps.append(dep)
         includes.append(dep.dirname)
       elif dep.extension == "cmi":
         dep_graph.append(dep)
-        # includes.append(dep.dirname)
+        includes.append(dep.dirname)
+      ## cmi ignored if mli not present!
       elif dep.extension == "mli":
         dep_graph.append(dep)
         includes.append(dep.dirname)
@@ -184,6 +220,7 @@ def _ocaml_module_impl(ctx):
           build_deps.append(dep)
           dep_graph.append(dep)
           includes.append(dep.dirname)
+      ## cc deps
       elif dep.extension == "a":
         dep_graph.append(dep)
         # args.add(dep)
@@ -212,43 +249,7 @@ def _ocaml_module_impl(ctx):
       elif dep.extension == ".cmxs":
         includes.append(dep.dirname)
 
-  # print("BUILD DEPS: %s" % build_deps)
-
-    # if not dep.basename.endswith(".o"):
-    #   includes.append(dep.dirname)
-    #   args.add(dep)
-    #   build_deps.append(dep)
-
-  # for dep in ctx.attr.deps:
-  #   if debug:
-  #       print("ATTR DEP: %s" % dep)
-  #   for g in dep[DefaultInfo].files.to_list():
-  #       if debug:
-  #           print("ATTR DEP FILE: %s" % g)
-  #       dep_graph.append(g)
-  #       if g.path.endswith(".cmx"):
-  #           build_deps.append(g)
-  #           includes.append(g.dirname)
-  #       elif g.path.endswith(".cmxa"):
-  #           build_deps.append(g)
-  #           includes.append(g.dirname)
-  #           ## expose cmi files of deps for linking
-  #           for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
-  #               if h.path.endswith(".cmx"):
-  #                   includes.append(h.dirname)
-  #       elif g.path.endswith(".cmxs"):
-  #           includes.append(g.dirname)
-
-    # print("DEP:  %s" % dep)
-    # if dep.name == "async":
-    #   async = True
-    # if hasattr(dep, "cm"):
-    #   build_deps.append(dep.cm)
-    #   includes.append(dep.cm.dirname)
-    # elif hasattr(dep, "cmxa"):
-    #   build_deps.append(dep.cmxa)
-    #   includes.append(dep.cmxa.dirname)
-
+  ####  TODO:  transitive cc_deps
   # for dep in ctx.attr.cc_deps.items():
   #   if debug:
   #       print("CCLIB DEP: ")
@@ -313,15 +314,23 @@ def _ocaml_module_impl(ctx):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
+  ## opam_deps already includes x_deps, now add transitive opam deps
   ## transitive opam deps - filter out ppx_driver-based libs
-  args.add("-linkpkg")
+  # deps.extend(mydeps.opam.to_list())
   for dep in mydeps.opam.to_list():
-    if not dep.ppx_driver:
-      if dep.pkg.to_list()[0].name == "async":
-        if async:
-          args.add("-package", dep.pkg.to_list()[0].name)
-      else:
-          args.add("-package", dep.pkg.to_list()[0].name)
+      for x in dep.pkg.to_list():
+          opam_deps.append(x.name)
+
+  if len(opam_deps) > 0:
+      args.add("-linkpkg")
+      for dep in opam_deps:  # mydeps.opam.to_list():
+          args.add("-package", dep)
+          # if not dep.ppx_driver:
+          #     if dep.pkg.to_list()[0].name == "async":
+          #         if async:
+          #             args.add("-package", dep.pkg.to_list()[0].name)
+          #         else:
+          #             args.add("-package", dep.pkg.to_list()[0].name)
 
   args.add_all(build_deps)
   # args.add_all(cclib_deps)
@@ -349,20 +358,20 @@ def _ocaml_module_impl(ctx):
   # if we have an input cmi, we will add it to our Provider output,
   # but it is not an output of the action:
   dep_mli = None
-  if ctx.attr.cmi:
-      dep_mli = ctx.attr.cmi[OcamlInterfaceProvider].payload.mli
+  if ctx.attr.intf:
+      dep_mli = ctx.attr.intf[OcamlInterfaceProvider].payload.mli
   else:
     outputs.append(obj_cmi)
 
-  if debug:
-      print("\n\t\t================ INPUTS ================\n\n")
-      for dep in dep_graph:
-          print("\nINPUT: %s\n\n" % dep)
+  # if debug:
+  #     print("\n\t\t================ INPUTS ================\n\n")
+  #     for dep in dep_graph:
+  #         print("\nINPUT: %s\n\n" % dep)
 
-  if debug:
-      print("\n\t\t================ OUTPUS ================\n\n")
-      for dep in outputs:
-          print("\nOUTPUT: %s\n\n" % dep)
+  # if debug:
+  #     print("\n\t\t================ OUTPUS ================\n\n")
+  #     for dep in outputs:
+  #         print("\nOUTPUT: %s\n\n" % dep)
 
   ctx.actions.run(
     env = env,
@@ -382,7 +391,7 @@ def _ocaml_module_impl(ctx):
           # if we have an incoming cmi, its in the nopam deps
           # otherwise, we create it so it goes here(?)
           # what about the mli?
-          cmi = obj_cmi,  # ctx.file.cmi if ctx.file.cmi else None,
+          cmi = obj_cmi,  # ctx.file.intf if ctx.file.intf else None,
           mli = dep_mli,
           cm  = obj_cmx,
           o   = obj_o
@@ -395,10 +404,10 @@ def _ocaml_module_impl(ctx):
 
   if debug:
       print("\n\n================ OCAML MODULE PROVIDER PAYLOAD ================\n\n")
-      print("\CMI: %s\n\n" % module_provider.payload.cmi)
-      print("\MLI: %s\n\n" % module_provider.payload.mli)
-      print("\CM:  %s\n\n" % module_provider.payload.cm)
-      print("\O:   %s\n\n" % module_provider.payload.o)
+      print("CMI: %s\n\n" % module_provider.payload.cmi)
+      print("MLI: %s\n\n" % module_provider.payload.mli)
+      print("CM:  %s\n\n" % module_provider.payload.cm)
+      print("O:   %s\n\n" % module_provider.payload.o)
 
   defaultInfo = DefaultInfo(
     # payload
@@ -424,6 +433,9 @@ ocaml_module = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
+    doc = attr.string(
+        doc = "Docstring for module"
+    ),
     module_name   = attr.string(
       doc = "Module name."
     ),
@@ -443,8 +455,8 @@ ocaml_module = rule(
       doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
-    cmi = attr.label(
-      doc = "Single label of a target providing a single .cmi file (not a .mli source file). Optional",
+    intf = attr.label(
+      doc = "Single label of a target providing a single .cmi or .mli file. Optional. Currently only supports .cmi input.",
       allow_single_file = [".cmi"],
       providers = [OcamlInterfaceProvider],
     ),
@@ -452,8 +464,8 @@ ocaml_module = rule(
       doc = "If true, use OCaml -linkall switch. Default: False",
       default = False,
     ),
-    ##FIXME: ppx_exe => ppx?
-    ppx_exe  = attr.label(
+    ##FIXME: ppx => ppx?
+    ppx  = attr.label(
       doc = "PPX binary (executable).",
       allow_single_file = True,
       providers = [PpxBinaryProvider]
@@ -461,18 +473,23 @@ ocaml_module = rule(
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
     ),
+    ppx_x = attr.label_keyed_string_dict(
+        doc = "Experimental",
+    ),
+    ## FIXME: rename to ppx_runtime_deps
     ppx_deps  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,
     ),
-    ppx_format = attr.string(
+    ppx_output_format = attr.string(
+      doc = "Format of output of PPX transform, binary (default) or text",
       values = ["binary", "text"],
       default = "binary"
     ),
     ##FIXME: ppx => ppx_libs
-    ppx = attr.label_keyed_string_dict(
-      doc = """Dictionary of one entry. Key is a ppx target, val string is arguments."""
-    ),
+    # ppx = attr.label_keyed_string_dict(
+    #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments."""
+    # ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
     data = attr.label_list(

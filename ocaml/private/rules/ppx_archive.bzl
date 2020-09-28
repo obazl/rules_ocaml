@@ -15,8 +15,9 @@ load("//ocaml/private/actions:ppx.bzl",
      # "ocaml_ppx_library_cmo",
      # "ocaml_ppx_library_link"
 )
+load("//ocaml/private:deps.bzl", "get_all_deps")
 load("//ocaml/private:utils.bzl",
-     "xget_all_deps",
+     # "xget_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -52,7 +53,7 @@ def _ppx_archive_impl(ctx):
         redirect[PpxArchiveProvider]
       ]
 
-  mydeps = xget_all_deps(ctx.attr.deps)
+  mydeps = get_all_deps("ppx_archive", ctx)
 
   # print("PPX ARCHIVE MYDEPS")
   # print(mydeps.opam)

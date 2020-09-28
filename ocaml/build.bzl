@@ -41,7 +41,11 @@ load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl",
 load("@obazl_rules_ocaml//ocaml/private/rules:ppx_ns_module.bzl",
      _ppx_ns_module = "ppx_ns_module")
 load("@obazl_rules_ocaml//ocaml/private/rules:ppx_test.bzl",
-     _ppx_test = "ppx_test")
+     _ppx_test = "ppx_test",
+     _ppx_diff_test = "ppx_diff_test",
+     _ppx_fail_test = "ppx_fail_test")
+load("@obazl_rules_ocaml//ocaml/private/rules:ppx_transform.bzl",
+     _ppx_transform = "ppx_transform")
 
 load("@obazl_rules_ocaml//ocaml/private:macros/preproc.bzl",
      _ocaml_preproc = "ocaml_preproc",
@@ -64,6 +68,9 @@ ppx_executable = _ppx_executable
 ppx_library = _ppx_library
 ppx_module = _ppx_module
 ppx_test = _ppx_test
+ppx_diff_test = _ppx_diff_test
+ppx_fail_test = _ppx_fail_test
+ppx_transform = _ppx_transform
 ppx_ns_module = _ppx_ns_module
 
 # macros

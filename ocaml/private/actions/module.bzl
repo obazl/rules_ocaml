@@ -150,9 +150,9 @@ def ppx_transform_action(rule, ctx, infile):
   if (rule == "ocaml_module"):
     if ctx.attr.ns_module:
       pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
-  elif (rule == "ppx_module"):
-    if ctx.attr.ppx_ns_module:
-      pfx = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns
+  # elif (rule == "ppx_module"):
+  #   if ctx.attr.ppx_ns_module:
+  #     pfx = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns
   elif (rule == "ocaml_interface"):
     if ctx.attr.ns_module:
       pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
@@ -203,11 +203,26 @@ def ppx_transform_action(rule, ctx, infile):
 
   args = ctx.actions.args()
 
-  if ctx.attr.ppx_exe:
-    args.add_all(ctx.attr.ppx_exe[PpxBinaryProvider].args)
+  # ppx = None
+
+  # if hasattr(ctx.attr, "ppx"):
+  #     if ctx.attr.ppx:
+  #         for key in ctx.attr.ppx.keys():
+  #             # print("KEY LABEL: %s" % key.label[PpxBinaryProvider])
+  #             if PpxBinaryProvider in key:
+  #                 ppx = key
+  #                 # # print("PPX EXE[0] : %s" % ppx[0])
+  #                 #       print("PPX EXE: %s" % key[PpxBinaryProvider])
+  #                 #       print("PPX VAL: %s" % ctx.attr.ppx[key])
+  # elif ctx.attr.ppx:
+  #     ppx = ctx.attr.ppx
+
+  # print("PPX: %s" % ppx)
+  if ctx.attr.ppx:
+    args.add_all(ctx.attr.ppx[PpxBinaryProvider].args)
     args.add_all(ctx.attr.ppx_args)
-    if hasattr(ctx.attr, "ppx_format"):
-      if ctx.attr.ppx_format == "binary":
+    if hasattr(ctx.attr, "ppx_output_format"):
+      if ctx.attr.ppx_output_format == "binary":
         #FIXME: also check ppx_args for -dump-ast
         args.add("-dump-ast")
 
@@ -217,10 +232,10 @@ def ppx_transform_action(rule, ctx, infile):
   if infile.path.endswith(".ml"):
     args.add("-impl", infile)
 
-  ppx = ctx.attr.ppx_exe.files.to_list()[0]
+  ppx = ctx.attr.ppx.files.to_list()[0]
   # print("PPX: %s" % ppx)
   # if ctx.attr.ppx:
-  #   for item in ctx.attr.ppx_exe.items():
+  #   for item in ctx.attr.ppx.items():
   #     pkg = item[0].label.name
   #     print("PKG: {}".format(pkg))
   #     args.add("-package", pkg)
@@ -229,7 +244,7 @@ def ppx_transform_action(rule, ctx, infile):
   #       print("PPXARGS: {}".format(ppxargs))
   #       args.add("-ppxopt", pkg + "," + ppxargs)
 
-  dep_graph = [infile, ppx]
+  dep_graph = [infile] # , ppx]
   if ctx.attr.ppx_deps:
       for dep in ctx.files.ppx_deps:
           # includes.append(dep.dirname)
@@ -249,6 +264,7 @@ def ppx_transform_action(rule, ctx, infile):
         msg = "" if not ctx.attr.msg else ", msg: " + ctx.attr.msg
     )
   )
+
   # print("TRANSFORM result: %s" % outfile)
   # return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
   return outfile

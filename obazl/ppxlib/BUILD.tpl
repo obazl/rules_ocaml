@@ -1,5 +1,5 @@
-# load("@obazl_rules_ocaml//ocaml/private/rules:ppx_executable.bzl", "ppx_executable")
-load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl", "ppx_module")
+load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_module")
+# load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl", "ppx_module")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -19,7 +19,7 @@ package(default_visibility = ["//visibility:public"])
 #     ],
 # )
 
-ppx_module(
+ocaml_module(
     name = "driver_standalone_runner",
     doc  = "To be listed last in the deps attrib of a ppx_executable.",
     msg  = "Compiling //ppxlib:driver_standalone_runner",

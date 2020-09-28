@@ -66,7 +66,7 @@ def _ocaml_archive_impl(ctx):
       obj_a = ctx.actions.declare_file(ctx.label.name + ".a")
 
   args = ctx.actions.args()
-  args.add("ocamlopt")
+  args.add(tc.compiler.basename)
   args.add("-w", ctx.attr.warnings)
   options = tc.opts + ctx.attr.opts
   # if ctx.attr.nocopts:

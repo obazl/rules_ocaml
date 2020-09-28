@@ -39,8 +39,8 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_interface_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "vector.cmi"):
-  #     debug = True
+  if (ctx.label.name == "versioned_sig_good.cmi"):
+      debug = True
 
   if debug:
       print("OCAML INTERFACE TARGET: %s" % ctx.label.name)
@@ -56,11 +56,9 @@ def _ocaml_interface_impl(ctx):
   dep_graph = []
 
   intf_file = None
-  output_deps = None
-  if ctx.attr.ppx_exe:
-    # output_deps = [dep for dep in ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform]
-    output_deps = ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform
-    # print("INTERFACE ppx: %s" % output_deps)
+  opam_deps = []
+
+  if ctx.attr.ppx:
     intf_file = ppx_transform_action("ocaml_interface", ctx, ctx.file.intf)
   elif ctx.attr.ns_module:
     intf_file = rename_ocaml_module(ctx, ctx.file.intf) #, ctx.attr.ns)
@@ -104,10 +102,24 @@ def _ocaml_interface_impl(ctx):
 
   # args.add("-linkpkg")
   # args.add("-linkall")
-  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
-  if output_deps:
-    args.add_all([dep for dep in output_deps], before_each="-package")
+  if ctx.attr.ppx:
+    x_deps = ctx.attr.ppx[PpxBinaryProvider].deps.x
+    for x_dep in x_deps.to_list():
+        if OpamPkgInfo in x_dep:
+            for x in x_dep[OpamPkgInfo].pkg.to_list():
+                opam_deps.append(x.name)
+        # else:
+        #     ## FIXME: support nopam x_deps
+
+  for dep in mydeps.opam.to_list():
+      for x in dep.pkg.to_list():
+          opam_deps.append(x.name)
+
+  if len(opam_deps) > 0:
+      args.add("-linkpkg")
+      for dep in opam_deps:  # mydeps.opam.to_list():
+          args.add("-package", dep)
 
   build_deps = []
   dso_deps = []
@@ -124,6 +136,9 @@ def _ocaml_interface_impl(ctx):
         dep_graph.append(dep)
         build_deps.append(dep)
     if dep.basename.endswith(".cmi"):
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+    if dep.basename.endswith(".mli"):
         includes.append(dep.dirname)
         dep_graph.append(dep)
     elif dep.basename.endswith(".cmxa"):
@@ -252,7 +267,7 @@ ocaml_interface = rule(
     intf = attr.label(
       allow_single_file = OCAML_INTF_FILETYPES
     ),
-    ppx_exe  = attr.label(
+    ppx  = attr.label(
       doc = "PPX binary (executable).",
       allow_single_file = True,
       providers = [PpxBinaryProvider]

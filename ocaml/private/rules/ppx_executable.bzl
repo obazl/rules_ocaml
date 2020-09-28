@@ -1,6 +1,8 @@
 load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
+     "OcamlArchiveProvider",
+     "OcamlModuleProvider",
      "PpxBinaryProvider",
      "PpxModuleProvider")
 load("//ocaml/private/actions:ppx.bzl",
@@ -13,7 +15,6 @@ load("//ocaml/private/actions:ppx.bzl",
      "ocaml_ppx_library_link")
 load("//ocaml/private:deps.bzl", "get_all_deps")
 load("//ocaml/private:utils.bzl",
-     "xget_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -30,12 +31,14 @@ def _ppx_executable_impl(ctx):
 
   debug = False
   # if (ctx.label.name == "vector_ffi_bindings.cm_"):
+  # if (ctx.label.name == "ppx_exe"):
+  # # if (ctx.label.name == "ppxlib_metaquot"):
   #     debug = True
 
   if debug:
-      print("PPX_EXECUTABLE TARGET: %s" % ctx.label.name)
+      print("\n\n\tPPX_EXECUTABLE TARGET: %s\n\n" % ctx.label.name)
 
-#   dep_labels = [dep.label for dep in ctx.attr.build_deps]
+ #   dep_labels = [dep.label for dep in ctx.attr.deps]
 #   if Label("@opam//pkg:ppxlib.runner") in dep_labels:
 #     if not "-predicates" in ctx.attr.opts:
 #       print("""\n\nWARNING: target '{target}' depends on
@@ -54,12 +57,8 @@ def _ppx_executable_impl(ctx):
     # if PpxModuleProvider in src:
       # print("PPX MODULE PROVIDER: %s" % src[PpxModuleProvider])
 
-  mydeps = xget_all_deps(ctx.attr.build_deps)
-
-  # print("PPX BINARY OPAM DEPS")
-  # print(mydeps.opam)
-  # print("PPX BINARY NOPAM DEPS")
-  # print(mydeps.nopam)
+  mydeps = get_all_deps("ppx_executable", ctx)
+  dep_graph = []
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
@@ -71,36 +70,45 @@ def _ppx_executable_impl(ctx):
   args = ctx.actions.args()
   args.add("ocamlopt")
   options = tc.opts + ctx.attr.opts
+  if "-predicates" not in options:
+      print("\n\n\tWARNING: did you forget a -predicates option for your ppx_executable?\n\n")
+  if "-linkall" not in options:
+      print("\n\n\tWARNING: did you forget the -linkall option for your ppx_executable?\n\n")
+
   args.add_all(options)
 
   args.add("-o", outbinary)
 
   build_deps = []
   includes = []
-  input_deps = []
 
   # print("NOPAMS: %s" % mydeps.nopam)
   # we need to add the archive components to inputs, the archive is not enough
   # without these we get "implementation not found"
   for dep in mydeps.nopam.to_list():
-    # print("DEP:  %s" % dep)
-    if hasattr(dep, "cm"):
-      # build_deps.append(dep.cm)
-      input_deps.append(dep.cm)
-      includes.append(dep.cm.dirname)
-    if hasattr(dep, "o"):
-      input_deps.append(dep.o)
-      includes.append(dep.o.dirname)
-    if hasattr(dep, "cmi"):
-      # build_deps.append(dep.cm)
-      input_deps.append(dep.cmi)
-      includes.append(dep.cmi.dirname)
-    if hasattr(dep, "cmxa"):
-      build_deps.append(dep.cmxa)
-      includes.append(dep.cmxa.dirname)
-    if hasattr(dep, "a"):
-      input_deps.append(dep.a)
-      includes.append(dep.a.dirname)
+    if debug:
+        # print("DEPGRAPH:  %s" % dep_graph)
+        print("DEP:  %s" % dep)
+    if dep.extension == "cmx":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+      build_deps.append(dep)
+    if dep.extension == "o":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+    if dep.extension == "cmi":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+    if dep.extension == "mli":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+    if dep.extension == "cmxa":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+      build_deps.append(dep)
+    if dep.extension == "a":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
   # for dep in ctx.attr.build_deps:
   #   for g in dep[DefaultInfo].files.to_list():
   #     if g.path.endswith(".cmx"):
@@ -113,53 +121,118 @@ def _ppx_executable_impl(ctx):
   args.add_all(includes, before_each="-I", uniquify = True)
 
   opam_deps = mydeps.opam.to_list()
-  # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=opam_deps))
-
-  # opam_labels = [dep.to_list()[0].name for dep in opam_deps]
-  opam_labels = [dep.pkg.to_list()[0].name for dep in opam_deps]
   if len(opam_deps) > 0:
     # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
     args.add("-linkpkg")
     for dep in opam_deps:
-      # print("OPAM DEP: %s" % dep.pkg.to_list()[0].name)
-      # if (dep.pkg.to_list()[0].name != "ppx_deriving.api"):
-      #   if (dep.pkg.to_list()[0].name != "ppx_deriving.eq"):
-      args.add("-package", dep.pkg.to_list()[0].name)
-      # args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
-  # print("OPAM LABELS: %s" % opam_labels)
-
-  # args.add("-absname")
-
-  # non-ocamlfind-enabled deps:
-  # for dep in build_deps:
-  #   print("BUILD DEP: %s" % dep)
+        args.add("-package", dep.pkg.to_list()[0].name)
+        # args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
 
   # WARNING: don't add build_deps to command line.  For namespaced
   # modules, they may contain both a .cmx and a .cmxa with the same
   # name, which define the same module, which will make the compiler
   # barf.
   # OTOH, if we do not list them, they will not be found when the ppx is used.
+
+    # if not dep.ppx_driver:
+    #   if dep.pkg.to_list()[0].name == "async":
+    #     if async:
+    #       args.add("-package", dep.pkg.to_list()[0].name)
+    #   else:
+    #       args.add("-package", dep.pkg.to_list()[0].name)
+  # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=opam_deps))
+
+  # opam_labels = [dep.to_list()[0].name for dep in opam_deps]
+  # opam_labels = [dep.pkg.to_list()[0].name for dep in opam_deps]
+  # if len(opam_deps) > 0:
+  #   # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
+  #   args.add("-linkpkg")
+  #   for dep in opam_deps:
+  #     # print("OPAM DEP: %s" % dep.pkg.to_list()[0].name)
+  #     # if (dep.pkg.to_list()[0].name != "ppx_deriving.api"):
+  #     #   if (dep.pkg.to_list()[0].name != "ppx_deriving.eq"):
+  #     args.add("-package", dep.pkg.to_list()[0].name)
+  #     args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
+  # print("OPAM LABELS: %s" % opam_labels)
+
+  # args.add("-absname")
+
+  # non-ocamlfind-enabled deps:
+ # for dep in build_deps:
+  #   print("BUILD DEP: %s" % dep)
+
+  if debug:
+      print("DEP_GRAPH:")
+      print(dep_graph)
+
+  entailing_opam_deps = []
+  entailing_nopam_deps = []
+  entailed_deps = []
+  for x_dep in ctx.attr.x_deps:
+    if debug:
+        print("DEP X_DEP: %s" % x_dep)
+        # ed = ctx.attr.deps[key]
+        # if OpamPkgInfo in ed:
+        #     if debug:
+        #         print("is OPAM")
+        #     output_dep = ed[OpamPkgInfo].pkg.to_list()[0]
+        #     entailed_deps.append(output_dep)
+        # # else:
+        # #     entailed_deps.append(ctx.attr.deps[key].name)
+    if OpamPkgInfo in x_dep:
+        if debug:
+            print("is OPAM: %s" % x_dep)
+        entailed_deps.append(x_dep)
+        # output_dep = x_dep[OpamPkgInfo].pkg.to_list()[0]
+        # entailing_opam_deps.append(output_dep.name)
+    # else:
+    #     if debug:
+    #         print("is NOPAM: %s" % key)
+    #     if OcamlArchiveProvider in key:
+    #         archive = key[OcamlArchiveProvider]
+    #         if debug:
+    #             print("OCAML ARCHIVE: %s" % archive)
+    #             print(" PAYLOAD: %s" % archive.payload)
+    #         # build_deps.append(archive.payload.cmxa)
+    #         # build_deps.append(archive.payload.a)
+    #         dep_graph.append(archive.payload.cmxa)
+    #         dep_graph.append(archive.payload.a)
+    #         for dep in archive.deps.opam.to_list():
+    #             if debug:
+    #                 print("OCAML A OPAM DEP: %s" % dep)
+    #             # entailing_opam_deps.append(dep)
+    #         for dep in archive.deps.nopam.to_list():
+    #             if debug:
+    #                 print("OCAML A NOPAM DEP: %s" % dep)
+    #     elif OcamlModuleProvider in key:
+    #         dep = key[OcamlModuleProvider]
+    #         if debug:
+    #             print("OCAML MODULE: %s" % dep)
+    #     for f in key.files.to_list():
+    #         print("XXXXXXXXXXXXXXXX UNKOWN PROVIDER: %s" % key)
+
+  # if len(entailing_opam_deps) > 0:
+  #     args.add("-linkpkg")
+  #     for dep in entailing_opam_deps:
+  #         args.add("-package", dep)
+
   args.add_all(build_deps)
-
   # driver shim source must come after lib deps!
-  args.add_all(ctx.files.srcs)
+  for src in ctx.files.srcs:
+      if src.extension == "cmx":
+          args.add(src)
+      elif src.extension == "ml":
+          args.add(src)
 
-  dep_graph = build_deps + input_deps + ctx.files.srcs
-  # print("DEP_GRAPH:")
-  # print(dep_graph)
+  dep_graph.extend(build_deps)
+  dep_graph.extend(ctx.files.srcs)
 
-  output_deps = []
-  for dep in ctx.attr.output_deps:
-    # print("SEC DEP: %s" % dep[OpamPkgInfo])
-    if OpamPkgInfo in dep:
-        output_dep = dep[OpamPkgInfo].pkg.to_list()[0]
-        output_deps.append(output_dep.name)
         ## opam deps are just strings, we feed them to ocamlfind, which finds the file.
         ## this means we cannot add them to the dep_graph.
         ## this makes sense, the exe we build does not depend on these,
         ## it's the subsequent transform that depends on them.
-    else:
-        dep_graph.append(dep)
+    # else:
+    #     dep_graph.append(dep)
     #FIXME: also support non-opam transform deps
 
   # print("DEP_GRAPH: %s" % dep_graph)
@@ -177,7 +250,7 @@ def _ppx_executable_impl(ctx):
   )
 
 
-  # print("PPX_EXECUTABLE TRANSFORM: %s" % output_deps)
+  # print("PPX_EXECUTABLE TRANSFORM: %s" % entailed_deps)
 
   return [DefaultInfo(executable=outbinary,
                       files = depset(direct = [outbinary])),
@@ -185,10 +258,10 @@ def _ppx_executable_impl(ctx):
             payload=outbinary,
             args = depset(direct = ctx.attr.args),
             deps = struct(
-              opam = mydeps.opam,
-              nopam = mydeps.nopam,
-              ## these are labels of opam deps to be used later:
-              transform = output_deps
+                opam = mydeps.opam,
+                nopam = mydeps.nopam,
+                ## FIXME: support both opam and nopam x_deps
+                x = depset(direct = entailed_deps)
             )
           )]
 
@@ -217,18 +290,19 @@ ppx_executable = rule(
     ),
     ppx  = attr.label(
       doc = "PPX binary (executable).",
-      providers = [PpxBinaryProvider]
+      providers = [PpxBinaryProvider],
+      mandatory = False,
     ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
     linkall = attr.bool(default = True),
-    build_deps = attr.label_list(
+    deps = attr.label_list(
       doc = "Deps needed to build this ppx executable.",
       providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
-    output_deps = attr.label_list(
-      doc = """List of deps needed to compile output of this ppx transformer. Dune calls these 'runtime' deps.""",
-      providers = [[DefaultInfo], [PpxModuleProvider]]
+    x_deps = attr.label_list(
+      doc = """(Entailed) eXtension Dependencies.""",
+      # providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
     mode = attr.string(default = "native"),
     message = attr.string()

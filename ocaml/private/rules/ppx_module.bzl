@@ -55,11 +55,14 @@ def _ppx_module_impl(ctx):
          "PATH": get_sdkpath(ctx)}
 
   output_deps = None
+  dep_graph = []
   infile = None
   obj = {}
   if ctx.attr.ppx_exe:
     ## this will also handle ns
     infile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
+    dep_graph.append(infile)
+    print("PPX INFILE: %s" % infile)
     obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
     obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
     obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
@@ -99,14 +102,12 @@ def _ppx_module_impl(ctx):
   options = tc.opts + ctx.attr.opts
   args.add_all(options)
 
-  inputs = []
-
   if ctx.attr.ppx_ns_module:
     args.add("-no-alias-deps")
     args.add("-opaque")
     ns_cm = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cm
-    inputs.append(ns_cm)
-    inputs.append(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cmi)
+    dep_graph.append(ns_cm)
+    dep_graph.append(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cmi)
     ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
     args.add("-open", ns_mod)
     # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
@@ -136,22 +137,22 @@ def _ppx_module_impl(ctx):
     if hasattr(dep, "cm"):
       build_deps.append(dep.cm)
       includes.append(dep.cm.dirname)
-      inputs.append(dep.cm)
+      dep_graph.append(dep.cm)
     if hasattr(dep, "cmi"):
         ## if cmi is not in the depgraph then even if it is on the search path we get e.g.
         ## Error: The module Token is an alias for module Ppx_optcomp__Token, which is missing
         includes.append(dep.cmi.dirname)
-        inputs.append(dep.cmi)
+        dep_graph.append(dep.cmi)
     # if hasattr(dep, "o"):
     #     includes.append(dep.o.dirname)
-    #     inputs.append(dep.o)
+    #     dep_graph.append(dep.o)
     elif hasattr(dep, "cmxa"):
       build_deps.append(dep.cmxa)
       includes.append(dep.cmxa.dirname)
     else:
       build_deps.append(dep)
       includes.append(dep.dirname)
-      inputs.append(dep)
+      dep_graph.append(dep)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -161,17 +162,17 @@ def _ppx_module_impl(ctx):
   if output_deps:
     args.add_all([dep for dep in output_deps], before_each="-package")
 
-  inputs = inputs + build_deps + [infile] # [ctx.file.impl] #  [srcs.impl]
+  dep_graph.extend(build_deps) ##  + [infile] # [ctx.file.impl] #  [srcs.impl]
   if ctx.attr.cmi:
     # print("CMI: %s" % ctx.attr.cmi[OcamlInterfaceProvider])
-    inputs.append(ctx.file.cmi)
+    dep_graph.append(ctx.file.cmi)
     args.add("-I", ctx.file.cmi.dirname)
     obj_cmi = ctx.file.cmi
   # else:
   #   outputs.append cmi file
 
-  # print("INPUTS:")
-  # print(inputs)
+  print("INPUTS:")
+  print(dep_graph)
 
   # print("OUTPUTS: %s" % obj_cm)
 
@@ -184,13 +185,11 @@ def _ppx_module_impl(ctx):
     env = env,
     executable = tc.ocamlfind,
     arguments = [args],
-    inputs = inputs,
+    inputs = dep_graph,
     outputs = [obj_cm, obj_cmi, obj_o],
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt], # + ctx.files.data,
     mnemonic = "PpxModule",
-    progress_message = "ppx_module({}), {}".format(
-      ctx.label.name, ctx.attr.msg
-      )
+    progress_message = "compiling ppx_module"
   )
 
   # print("srcs.impl: %s" % srcs.impl)

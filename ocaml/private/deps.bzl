@@ -37,28 +37,35 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  # if (ctx.label.name == "election"):
+  # if (ctx.label.name == "ppx_exe"):
+  # # if (ctx.label.name == "ppxlib_metaquot"):
   #     debug = True
 
   direct_deps = ctx.attr.deps
 
   if debug:
-      print("\n\n\t\t\t\t\tGET_ALL_DEPS {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
+      print("GET_ALL_DEPS {rule}({target})".format(rule=rule, target=ctx.label.name))
 
   defaults = []
 
   # payload lists
   opam_directs = []
+  entailed_opam_directs = []
   nopam_directs = []
+  entailed_nopam_directs = []
+
   # depset lists
   opam_transitives = []
+  entailed_opam_transtivies = []
   nopam_transitives = []
+  entailed_nopam_transtivies = []
 
+  if debug:
+      print("DIRECT_DEPS: %s" % direct_deps)
   for dep in direct_deps:
     # print()
-    # print("XXXX TARGET DEP: %s" % dep)
-    # print(" TARGET DEP.label: %s" % dep.label)
-    # print(" TARGET DEP.files: %s" % dep.files)
+    if debug:
+        print(" DIRECT DEP: %s" % dep)
 
     # print(" Target dir: %s" % dir(dep))
 
@@ -175,10 +182,10 @@ def get_all_deps(rule, ctx):
       nopam_directs.append(struct( clib = dep[DefaultInfo]) )
     elif PpxArchiveProvider in dep:
       ap = dep[PpxArchiveProvider]
-      # print("PpxArchiveProvider: %s" % ap)
-      # print(ap.deps)
+      print("PpxArchiveProvider: %s" % ap)
+      print(ap.deps)
       nopam_directs.append(ap.payload)
-      nopam_transitives.append(ap.deps.nopam)
+      # nopam_transitives.append(ap.deps.nopam)
       opam_transitives.append(ap.deps.opam)
     elif PpxBinaryProvider in dep:
       bp = dep[PpxBinaryProvider]
@@ -292,20 +299,21 @@ def get_all_deps(rule, ctx):
                           nopam_directs.append(depfile)
 
   opam_depset = depset(
-    # order      = "preorder",
+    order      = "postorder",
     direct     = opam_directs,
     transitive = opam_transitives
   )
-
-  # print("\n\n\t\tGET_ALL_DEPS {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
-  # print("\n\n\t\t\t NOPAM DIRECTS: %s\n\n" % nopam_directs)
-  # print("\n\n\t\t\t NOPAM TRANSITIVES: %s\n\n" % nopam_transitives)
 
   nopam_depset = depset(
     order      = "postorder",
     direct = nopam_directs,
     transitive = nopam_transitives
   )
+
+  if debug:
+      print("\n\n\t\tGET_ALL_DEPS result {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
+      print("\n\t\t\t OPAM DEPSET: %s\n\n"  % opam_depset)
+      print("\n\t\t\t NOPAM DEPSET: %s\n\n" % nopam_depset)
 
   # print("\n\n\t\t\t NOPAM DEPSET FILES: %s\n\n" % nopam_depset.to_list())
 

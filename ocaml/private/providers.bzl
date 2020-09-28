@@ -237,7 +237,7 @@ PpxBinaryProvider = provider(
         "deps"   : """A triple of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
-            transform: output deps; needed when transformed source is compiled
+            x    : extension output deps; needed when transformed source is compiled
         """
     }
 )

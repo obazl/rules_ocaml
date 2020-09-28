@@ -80,12 +80,15 @@ def _ocaml_import_impl(ctx):
 ocaml_import = rule(
   implementation = _ocaml_import_impl,
   attrs = dict(
+    cmx = attr.label(
+      allow_single_file = True
+    ),
     cmxa = attr.label(
       allow_single_file = True
     ),
     deps = attr.label_list(
-      providers = [[OpamPkgInfo],
-                   [OcamlArchiveProvider]],
+      # providers = [[OpamPkgInfo],
+      #              [OcamlArchiveProvider]],
     ),
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
@@ -93,7 +96,7 @@ ocaml_import = rule(
     msg = attr.string(),
     _rule = attr.string(default = "ocaml_import")
   ),
-  provides = [OcamlArchiveProvider],
+  # provides = [OcamlArchiveProvider],
   executable = False,
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
