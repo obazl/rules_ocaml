@@ -235,7 +235,7 @@ def _ppx_diff_test_impl(ctx):
   # cookies are legacy, do we need this?
   cookies = ""
   for key in ctx.attr.cookies:
-      print("key: %s" % key)
+      # print("key: %s" % key)
       cookies = cookies + "-cookie '" + key + "=\"" + ctx.attr.cookies[key] + "\"'"
 
   inparam = ""
@@ -246,8 +246,8 @@ def _ppx_diff_test_impl(ctx):
       inparam = "--intf " + ctx.file.src.short_path
       outfile = ctx.file.src.basename + ".pp.mli"
 
-  print("INPARAM: %s" % inparam)
-  print("OUTFILE: %s" % outfile)
+  # print("INPARAM: %s" % inparam)
+  # print("OUTFILE: %s" % outfile)
 
   verbose = ""
   if ctx.attr.verbose:
@@ -265,8 +265,8 @@ def _ppx_diff_test_impl(ctx):
                       verbose)]
   )
 
-  print("Script:")
-  print(script)
+  # print("Script:")
+  # print(script)
 
   ctx.actions.write(
       output = ctx.outputs.executable,
