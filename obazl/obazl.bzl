@@ -1,5 +1,7 @@
 def _obazl_repo_impl(repository_ctx):
 
+    repository_ctx.report_progress("Bootstrapping OBazl...")
+
     repository_ctx.file("WORKSPACE", "", False)
     repository_ctx.template(
         "BUILD.bazel",

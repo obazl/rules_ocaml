@@ -19,8 +19,14 @@
 # anything has been declared.
 
 load(
+    "@obazl_rules_ocaml//opam:opam.bzl",
+    _opam_configure = "opam_configure",
+    # _ocaml_repositories = "ocaml_repositories"
+)
+
+load(
     "@obazl_rules_ocaml//ocaml/private:repositories.bzl",
-    _ocaml_configure_tooling = "ocaml_configure_tooling",
+    _ocaml_configure = "ocaml_configure",
     # _ocaml_repositories = "ocaml_repositories"
 )
 load(
@@ -32,7 +38,9 @@ load(
     # _ocaml_wrap_sdk = "ocaml_wrap_sdk",
 )
 
-ocaml_configure_tooling = _ocaml_configure_tooling
+opam_configure = _opam_configure
+
+ocaml_configure = _ocaml_configure
 # ocaml_repositories = _ocaml_repositories
 ocaml_register_toolchains = _ocaml_register_toolchains
 # ocaml_download_sdk = _ocaml_download_sdk

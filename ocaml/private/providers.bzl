@@ -178,6 +178,20 @@ OcamlInterfaceProvider = provider(
     }
 )
 
+OcamlImportProvider = provider(
+    doc = "OCaml import provider.",
+    fields = {
+        "payload": """A struct with the following fields:
+            cmx: .cmx file produced by the target
+            cma: .cma file produced by the target
+            cmxa: .cmxa file produced by the target
+            cmxs: .cmxs file produced by the target
+        """,
+            # ml:  .ml source file. without the source file, the cmi file will be ignored!
+        "indirect"   : "A depset of indirect deps."
+    }
+)
+
 OcamlModuleProvider = provider(
     doc = "OCaml module provider.",
     fields = {

@@ -66,13 +66,6 @@ _ocaml_home_sdk = repository_rule(
     configure = True
 )
 
-def ocaml_home_sdk(name, **kwargs):
-    # print("ocaml_home_sdk: " + name)
-    # print(kwargs)
-    _ocaml_home_sdk(name = name, **kwargs)
-    # print("ocaml_home_sdk done")
-    # _register_toolchains(name)
-
 def _ocaml_project_sdk_impl(repository_ctx):
     print("repository_ctx.attr.version: " + repository_ctx.attr.version)
     # if repository_ctx.attr.version:
@@ -408,3 +401,10 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
     #     )
 
 # print("private/sdk.bzl loaded")
+
+def ocaml_home_sdk(name, **kwargs):
+    # print("ocaml_home_sdk: " + name)
+    # print(kwargs)
+    _ocaml_home_sdk(name = name, **kwargs)
+    # print("ocaml_home_sdk done")
+    # _register_toolchains(name)

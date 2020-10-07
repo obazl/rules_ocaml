@@ -3,6 +3,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
+     "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlNsModuleProvider",
@@ -42,7 +43,7 @@ def _ocaml_module_impl(ctx):
 
   debug = False
   # if (ctx.label.name == "snark0.cm_"):
-  # # if (ctx.label.name == "versioned_module_bad_missing_to_latest"):
+  # if ctx.label.name == "RefList":
   #     debug = True
 
   if debug:
@@ -65,6 +66,7 @@ def _ocaml_module_impl(ctx):
   entailed_deps = None
 
   dep_graph = []
+  outputs   = []
 
   # ppx = None
 
@@ -100,17 +102,31 @@ def _ocaml_module_impl(ctx):
 
   # cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
   cmxfname = paths.replace_extension(outfile.basename, tc.objext)
+  # print("CMX FNAME: %s" % cmxfname)
   obj_cmx = ctx.actions.declare_file(cmxfname)
+  # print("OBJ_CMX: %s" % obj_cmx)
   obj_cmi = None
+  obj_cmt = None
   if ctx.attr.intf:
-    obj_cmi = ctx.attr.intf[OcamlInterfaceProvider].payload.cmi
-    if debug:
-        print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-        print("CMI: %s" % obj_cmi)
-    # obj_cmi = ctx.attr.intf.files.to_list()[0]
+    if ctx.file.intf.extension == "mli":
+        cmifname = paths.replace_extension(ctx.file.intf.basename, ".cmi")
+        obj_cmi = ctx.actions.declare_file(cmifname)
+    elif ctx.file.intf.extension == "cmi":
+        obj_cmi = ctx.attr.intf[OcamlInterfaceProvider].payload.cmi
+        if "-bin-annot" in ctx.attr.opts:
+            if hasattr(ctx.attr.intf[OcamlInterfaceProvider].payload, "cmt"):
+                obj_cmt = ctx.attr.intf[OcamlInterfaceProvider].payload.cmt
+
+        if debug:
+            print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+            print("CMI: %s" % obj_cmi)
+            # obj_cmi = ctx.attr.intf.files.to_list()[0]
   else:
     cmifname = paths.replace_extension(outfile.basename, ".cmi")
     obj_cmi = ctx.actions.declare_file(cmifname)
+    if "-bin-annot" in ctx.attr.opts:
+        obj_cmt = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".cmt"))
+        outputs.append(obj_cmt)
 
   ofname = paths.replace_extension(outfile.basename, ".o")
   obj_o = ctx.actions.declare_file(ofname)
@@ -124,7 +140,8 @@ def _ocaml_module_impl(ctx):
   args.add(tc.compiler.basename)
   # args.add("-w", ctx.attr.warnings)
   options = tc.opts + ctx.attr.opts
-  args.add_all(options)
+  # args.add_all(options)
+  args.add_all(ctx.attr.opts)
   if ctx.attr.alwayslink:
     args.add("-linkall")
 
@@ -172,29 +189,34 @@ def _ocaml_module_impl(ctx):
     dep_graph.extend(datum.files.to_list())
 
   if ctx.attr.intf:
-    provider = ctx.attr.intf[OcamlInterfaceProvider]
-    if debug:
-        print("CMI: %s" % provider.payload.cmi)
-        print("MLI: %s" % provider.payload.mli)
-        print("CMI PROVIDER: %s" % provider)
-    dep_graph.append(provider.payload.cmi)
-    dep_graph.append(provider.payload.mli)
-    # args.add("-I", ctx.file.cmi.dirname)
-    includes.append(provider.payload.cmi.dirname)
-    includes.append(provider.payload.mli.dirname)
-    # cmi inputs have deps too!
-    for dep in provider.deps.nopam.to_list():
-        # if debug:
-        #     print("XXXXXXXXXXXXXXXX: %s" % dep)
-        if dep.extension == "cmx":
-            build_deps.append(dep)
-            includes.append(dep.dirname)
-        elif dep.extension == "cmi":
-            dep_graph.append(dep)
-            includes.append(dep.dirname)
-        elif dep.extension == "mli":
-            dep_graph.append(dep)
-            includes.append(dep.dirname)
+    if ctx.file.intf.extension == "mli":
+        # args.add(ctx.file.intf.path)
+        # args.add("-intf", ctx.file.intf.path)
+        dep_graph.append(ctx.file.intf)
+    else:
+        provider = ctx.attr.intf[OcamlInterfaceProvider]
+        if debug:
+            print("CMI: %s" % provider.payload.cmi)
+            print("MLI: %s" % provider.payload.mli)
+            print("CMI PROVIDER: %s" % provider)
+        dep_graph.append(provider.payload.cmi)
+        dep_graph.append(provider.payload.mli)
+        # args.add("-I", ctx.file.cmi.dirname)
+        includes.append(provider.payload.cmi.dirname)
+        includes.append(provider.payload.mli.dirname)
+        # cmi inputs have deps too!
+        for dep in provider.deps.nopam.to_list():
+            # if debug:
+            #     print("XXXXXXXXXXXXXXXX: %s" % dep)
+            if dep.extension == "cmx":
+                # build_deps.append(dep)
+                includes.append(dep.dirname)
+            elif dep.extension == "cmi":
+                dep_graph.append(dep)
+                includes.append(dep.dirname)
+            elif dep.extension == "mli":
+                dep_graph.append(dep)
+                # includes.append(dep.dirname)
 
   # args.add("-I", obj_cmx.dirname)
   includes.append(obj_cmx.dirname)
@@ -204,11 +226,11 @@ def _ocaml_module_impl(ctx):
       #     print("\nNOPAM DEP: %s\n\n" % dep)
       if dep.extension == "cmx":
         dep_graph.append(dep)
-        build_deps.append(dep)
+        # build_deps.append(dep)
         includes.append(dep.dirname)
       elif dep.extension == "cmi":
         dep_graph.append(dep)
-        includes.append(dep.dirname)
+        # includes.append(dep.dirname)
       ## cmi ignored if mli not present!
       elif dep.extension == "mli":
         dep_graph.append(dep)
@@ -219,7 +241,7 @@ def _ocaml_module_impl(ctx):
       elif dep.extension == "cmxa":
           build_deps.append(dep)
           dep_graph.append(dep)
-          includes.append(dep.dirname)
+          # includes.append(dep.dirname)
       ## cc deps
       elif dep.extension == "a":
         dep_graph.append(dep)
@@ -322,7 +344,7 @@ def _ocaml_module_impl(ctx):
           opam_deps.append(x.name)
 
   if len(opam_deps) > 0:
-      args.add("-linkpkg")
+      # args.add("-linkpkg")
       for dep in opam_deps:  # mydeps.opam.to_list():
           args.add("-package", dep)
           # if not dep.ppx_driver:
@@ -335,9 +357,14 @@ def _ocaml_module_impl(ctx):
   args.add_all(build_deps)
   # args.add_all(cclib_deps)
 
+  # according the the User Manual, -o is for executables and archives, not modules?
   args.add("-o", obj_cmx)
 
-  args.add("-impl", outfile)
+  if ctx.attr.intf:
+    if ctx.file.intf.extension == "mli":
+        args.add(ctx.file.intf.path)
+  args.add(outfile)
+  # args.add("-impl", outfile)
 
   # dep_graph = dep_graph + build_deps + cclib_deps + [outfile] #  [ctx.file.impl]  # ctx.files.impl
   dep_graph.extend(build_deps)
@@ -353,25 +380,30 @@ def _ocaml_module_impl(ctx):
   # cwd = paths.dirname(ctx.build_file_path)
   # print("CWD: %s" % cwd)
 
-  outputs = [obj_cmx, obj_o]
+  outputs.append(obj_cmx)
+  outputs.append(obj_o)
 
   # if we have an input cmi, we will add it to our Provider output,
   # but it is not an output of the action:
   dep_mli = None
   if ctx.attr.intf:
-      dep_mli = ctx.attr.intf[OcamlInterfaceProvider].payload.mli
+      if ctx.file.intf.extension == "cmi":
+          dep_mli = ctx.attr.intf[OcamlInterfaceProvider].payload.mli
+      else:
+          dep_mli = ctx.file.intf
+          outputs.append(obj_cmi)
   else:
     outputs.append(obj_cmi)
 
-  # if debug:
-  #     print("\n\t\t================ INPUTS ================\n\n")
-  #     for dep in dep_graph:
-  #         print("\nINPUT: %s\n\n" % dep)
+  if debug:
+      print("\n\t\t================ INPUTS (DEP_GRAPH) ================\n\n")
+      for dep in dep_graph:
+          print("\nINPUT: %s\n\n" % dep)
 
-  # if debug:
-  #     print("\n\t\t================ OUTPUS ================\n\n")
-  #     for dep in outputs:
-  #         print("\nOUTPUT: %s\n\n" % dep)
+  if debug:
+      print("\n\t\t================ OUTPUTS ================\n\n")
+      for dep in outputs:
+          print("\nOUTPUT: %s\n\n" % dep)
 
   ctx.actions.run(
     env = env,
@@ -394,6 +426,7 @@ def _ocaml_module_impl(ctx):
           cmi = obj_cmi,  # ctx.file.intf if ctx.file.intf else None,
           mli = dep_mli,
           cm  = obj_cmx,
+          cmt = obj_cmt,
           o   = obj_o
       ),
     deps = struct(
@@ -407,13 +440,16 @@ def _ocaml_module_impl(ctx):
       print("CMI: %s\n\n" % module_provider.payload.cmi)
       print("MLI: %s\n\n" % module_provider.payload.mli)
       print("CM:  %s\n\n" % module_provider.payload.cm)
+      print("CMT:  %s\n\n" % module_provider.payload.cmt)
       print("O:   %s\n\n" % module_provider.payload.o)
 
+  directs = [obj_cmx, obj_o, obj_cmi]
+  if obj_cmt: directs.append(obj_cmt)
   defaultInfo = DefaultInfo(
     # payload
       files = depset(
           order = "postorder",
-          direct = [obj_cmx, obj_o, obj_cmi],
+          direct = directs
         # transitive = depset(mydeps.nopam.to_list())
       )
   )
@@ -457,8 +493,8 @@ ocaml_module = rule(
     ),
     intf = attr.label(
       doc = "Single label of a target providing a single .cmi or .mli file. Optional. Currently only supports .cmi input.",
-      allow_single_file = [".cmi"],
-      providers = [OcamlInterfaceProvider],
+      allow_single_file = [".cmi", ".mli"],
+      # providers = [[DefaultInfo], [OcamlInterfaceProvider]],
     ),
     alwayslink = attr.bool(
       doc = "If true, use OCaml -linkall switch. Default: False",
@@ -498,6 +534,7 @@ ocaml_module = rule(
       providers = [[OpamPkgInfo],
                    [OcamlArchiveProvider],
                    [OcamlInterfaceProvider],
+                   [OcamlImportProvider],
                    [OcamlLibraryProvider],
                    [OcamlModuleProvider],
                    [PpxArchiveProvider],

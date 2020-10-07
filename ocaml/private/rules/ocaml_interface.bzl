@@ -39,8 +39,8 @@ load("//ocaml/private:utils.bzl",
 def _ocaml_interface_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "versioned_sig_good.cmi"):
-      debug = True
+  # if (ctx.label.name == "IO.cmi"):
+  #     debug = True
 
   if debug:
       print("OCAML INTERFACE TARGET: %s" % ctx.label.name)
@@ -80,8 +80,9 @@ def _ocaml_interface_impl(ctx):
   args = ctx.actions.args()
   # args.add(tc.compiler.basename)
   args.add("ocamlc")
-  options = tc.opts + ctx.attr.opts
-  args.add_all(options)
+  # options = tc.opts + ctx.attr.opts
+  # args.add_all(options)
+  args.add_all(ctx.attr.opts)
 
   args.add("-c") # interfaces always compile-only?
 
@@ -130,18 +131,19 @@ def _ocaml_interface_impl(ctx):
   for dep in mydeps.nopam.to_list():
     if debug:
         print("NOPAM DEP: %s" % dep)
-    if dep.basename.endswith(".cmx"):
-        # if (not dep.basename.endswith(".o")) and (not dep.basename.endswith(".a")) and (not dep.basename.endswith(".cmxa")):
+        print("NOPAM DEP ext: %s" % dep.extension)
+    if dep.extension == "cmx":
         includes.append(dep.dirname)
         dep_graph.append(dep)
-        build_deps.append(dep)
-    if dep.basename.endswith(".cmi"):
+        # ocamlc chokes on cmx when building cmi
+        # build_deps.append(dep)
+    elif dep.extension == "cmi":
         includes.append(dep.dirname)
         dep_graph.append(dep)
-    if dep.basename.endswith(".mli"):
+    elif dep.extension == "mli":
         includes.append(dep.dirname)
         dep_graph.append(dep)
-    elif dep.basename.endswith(".cmxa"):
+    elif dep.extension == "cmxa":
         includes.append(dep.dirname)
         dep_graph.append(dep)
         # build_deps.append(dep)
@@ -150,13 +152,15 @@ def _ocaml_interface_impl(ctx):
         #         includes.append(g.dirname)
         #         build_deps.append(g)
         #         dep_graph.append(g)
-    elif dep.basename.endswith(".o"):
-        build_deps.append(dep)
+    elif dep.extension == "o":
+        # build_deps.append(dep)
+        includes.append(dep.dirname)
         dep_graph.append(dep)
-    elif dep.basename.endswith(".a"):
-        build_deps.append(dep)
+    elif dep.extension == "a":
+        # build_deps.append(dep)
+        includes.append(dep.dirname)
         dep_graph.append(dep)
-    elif dep.basename.endswith(".so"):
+    elif dep.extension == "so":
         dso_deps.append(dep)
     else:
         if debug:
@@ -195,7 +199,7 @@ def _ocaml_interface_impl(ctx):
               includes.append(g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
-  # args.add_all(build_deps)
+  args.add_all(build_deps)
 
   args.add("-o", obj_cmi)
 

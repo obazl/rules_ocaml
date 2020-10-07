@@ -2,6 +2,7 @@ load("//ocaml/private:providers.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
+     "OcamlImportProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider",
@@ -38,7 +39,7 @@ def get_all_deps(rule, ctx):
 
   debug = False
   # if (ctx.label.name == "ppx_exe"):
-  # # if (ctx.label.name == "ppxlib_metaquot"):
+  # if (ctx.label.name == "good_version_syntax.cm_"):
   #     debug = True
 
   direct_deps = ctx.attr.deps
@@ -66,7 +67,8 @@ def get_all_deps(rule, ctx):
     # print()
     if debug:
         print(" DIRECT DEP: %s" % dep)
-
+        print(" DIRECT DEP files: %s" % dep.files)
+        print(" DIRECT DEP DefaultInfo: %s" % dep[DefaultInfo])
     # print(" Target dir: %s" % dir(dep))
 
     # for d in dir(dep):
@@ -96,7 +98,6 @@ def get_all_deps(rule, ctx):
           opam_transitives.append(dep_provider.deps.opam)
 
       if rule == "ocaml_archive":
-          # print("\n\n XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \n\n")
           ## this includes both direct deps (submods) and indirect deps!
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
           nopam_transitives.append(dep_provider.deps.nopam)
@@ -105,7 +106,6 @@ def get_all_deps(rule, ctx):
                   # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % dep_provider.payload.mli)
                   nopam_directs.append(dep_provider.payload.mli)
       elif rule == "ocaml_executable":
-          # print("\n\n XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \n\n")
           # print("payload: %s" % dep_provider.payload)
           ## this includes both direct deps (submods) and indirect deps!
           # nopam_directs.append(dep_provider.payload.cmxa)
@@ -171,14 +171,27 @@ def get_all_deps(rule, ctx):
       nopam_directs.append(ip.payload.cmi)
       nopam_directs.append(ip.payload.mli)
       nopam_transitives.append(ip.deps.nopam)
-      # opams = opams + d.opam_deps.to_list()
-      # nopam_deps.append(d)
-      # nopam_transitive_deps.append(d)
+
+    elif OcamlImportProvider in dep:
+      provider = dep[OcamlImportProvider]
+      # print("OcamlImportProvider dep: %s" % provider)
+      if provider.payload.cmx:
+          nopam_directs.append(provider.payload.cmx.files.to_list()[0])
+      if provider.payload.cma:
+          nopam_directs.append(provider.payload.cma.files.to_list()[0])
+      if provider.payload.cmxa:
+          nopam_directs.append(provider.payload.cmxa.files.to_list()[0])
+      if provider.payload.cmxs:
+          nopam_directs.append(provider.payload.cmxs.files.to_list()[0])
+      # nopam_directs.append(provider.payload.ml)
+
+      nopam_transitives.append(provider.indirect)
 
     elif CcInfo in dep:
       cp = dep[CcInfo]
-      # print("CcInfo dep: %s" % cp)
-      # print("CcInfo payload: %s" % dep[DefaultInfo])
+      if debug:
+          print("CcInfo dep: %s" % cp)
+          print("CcInfo payload: %s" % dep[DefaultInfo])
       nopam_directs.append(struct( clib = dep[DefaultInfo]) )
     elif PpxArchiveProvider in dep:
       ap = dep[PpxArchiveProvider]

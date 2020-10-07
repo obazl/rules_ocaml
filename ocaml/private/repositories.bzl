@@ -18,7 +18,7 @@ load("//ocaml/private:common.bzl", "MINIMUM_BAZEL_VERSION")
 load("//ocaml/private:skylib/lib/versions.bzl", "versions")
 
 load("//ocaml/private:sdk.bzl", "ocaml_home_sdk")
-load("//opam:opam.bzl", "opam_repo")
+# load("//opam:opam.bzl", "opam_repo")
 load("//obazl:obazl.bzl", "obazl_repo")
 
 # load("//ocaml/private:noocaml.bzl", "DEFAULT_NOOCAML", "ocaml_register_noocaml")
@@ -28,7 +28,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # print("private/repositories.bzl loading")
 
-def ocaml_configure_tooling(is_rules_ocaml = False):
+def ocaml_configure(is_rules_ocaml = False):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
     rules_ocaml should call this.
 
@@ -43,7 +43,7 @@ def ocaml_configure_tooling(is_rules_ocaml = False):
     for information on choosing different versions of these repositories
     in your own project.
     """
-    # print("ocaml_configure_tooling")
+    # print("ocaml_configure")
     if getattr(native, "bazel_version", None):
         versions.check(MINIMUM_BAZEL_VERSION, bazel_version = native.bazel_version)
 
@@ -101,15 +101,15 @@ def ocaml_configure_tooling(is_rules_ocaml = False):
     #     is_rules_ocaml = is_rules_ocaml,
     # )
 
-    # opam_repo(name="opam")
-    # this is a repo rule, it writes BUILD.bazel in external/ocaml dir
+    # these are repo rules, they write BUILD.bazel in external dirs
+
     ocaml_home_sdk("ocaml")
 
-    opam_repo(name="opam")
+    # opam_repo(name="opam")
 
     obazl_repo(name="obazl")
 
-    # print("ocaml_configure_tooling done")
+    # print("ocaml_configure done")
 
 def _maybe(repo_rule, name, **kwargs):
     if name not in native.existing_rules():
