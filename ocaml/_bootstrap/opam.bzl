@@ -172,8 +172,8 @@ def opam_configure(hermetic = False,
                    opam = None,
                    # switch = None,
                    pkgs = None):
-    print("OPAM CONFIG:")
-    print(opam)
+    # print("OPAM CONFIG:")
+    # print(opam)
     # if hermetic:
     #     if not opam:
     #         fail("Hermetic builds require a list of OPAM deps.")
