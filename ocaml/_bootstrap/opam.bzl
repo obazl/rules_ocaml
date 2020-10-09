@@ -52,11 +52,11 @@ def _opam_repo_impl(repo_ctx):
         fail("Could not find opam executable.")
 
     opamroot = repo_ctx.execute(["opam", "var", "root"]).stdout.strip()
-    print("OPAMROOT: %s" % opamroot)
+    # print("OPAMROOT: %s" % opamroot)
     opamswitch = repo_ctx.execute(["opam", "var", "switch"]).stdout.strip()
-    print("OPAMSWITCH: %s" % opamswitch)
+    # print("OPAMSWITCH: %s" % opamswitch)
 
-    print("repo_ctx.name: %s" % repo_ctx.name)
+    # print("repo_ctx.name: %s" % repo_ctx.name)
     # print("repo_ctx.os.environ:")
     # print(repo_ctx.os.environ)
 

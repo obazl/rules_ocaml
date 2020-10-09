@@ -47,8 +47,8 @@ def ocaml_configure(is_rules_ocaml = False,
     for information on choosing different versions of these repositories
     in your own project.
     """
-    print("ocaml_configure: opam")
-    print(opam)
+    # print("ocaml_configure: opam")
+    # print(opam)
 
     # if getattr(native, "bazel_version", None):
     #     versions.check(MINIMUM_BAZEL_VERSION, bazel_version = native.bazel_version)
