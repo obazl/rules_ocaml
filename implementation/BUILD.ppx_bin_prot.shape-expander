@@ -1,0 +1,34 @@
+## BUILD.bazel for /Users/gar/coda/gitfork/src/lib/blake2/dune
+load("@obazl_rules_ocaml//ocaml:rules.bzl",
+     "ocaml_archive",
+     "ocaml_interface",
+     "ocaml_module",
+     "ocaml_ns_module",
+     "ppx_binary",
+     "ppx_module",
+     "ppx_ns_module")
+
+INTF_OPTS = ["-verbose"]
+IMPL_OPTS = ["-verbose"]
+
+DEPS = ["@opam//pkg:base",
+        "@opam//pkg:ppxlib",
+        "@opam//pkg:ppx_here.expander",
+]
+
+ocaml_interface(
+    name = "bin_shape_expand_cmi", intf="bin_shape_expand.mli",
+    # ppx_bin = ":ppxlib.Metaquot",
+    opts = INTF_OPTS,
+    deps = DEPS
+)
+
+ppx_module(
+    name = "shape-expander", impl="bin_shape_expand.ml",
+    module_name = "bin_shape_expand",
+    cmi=":bin_shape_expand_cmi",
+    # ppx_bin = ":ppxlib.Metaquot",
+    opts = IMPL_OPTS,
+    deps = DEPS,
+    visibility = ["//visibility:public"]
+)

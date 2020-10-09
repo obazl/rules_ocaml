@@ -1,4 +1,4 @@
-load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_module")
+load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_module")
 # load("@obazl_rules_ocaml//ocaml/private/rules:ppx_module.bzl", "ppx_module")
 
 package(default_visibility = ["//visibility:public"])
