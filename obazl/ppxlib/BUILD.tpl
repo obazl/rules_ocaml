@@ -23,7 +23,7 @@ ocaml_module(
     name = "driver_standalone_runner",
     doc  = "To be listed last in the deps attrib of a ppx_executable.",
     msg  = "Compiling //ppxlib:driver_standalone_runner",
-    impl = "ppxlib_driver_standalone_runner.ml",
+    src  = "ppxlib_driver_standalone_runner.ml",
     opts = ["-linkall",
             "-linkpkg",
             "-predicates", "ppx_driver"],

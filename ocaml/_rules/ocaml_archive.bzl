@@ -354,6 +354,7 @@ ocaml_archive(
   implementation = _ocaml_archive_impl,
   attrs = dict(
     archive_name = attr.string(),
+    doc = attr.string(),
     preprocessor = attr.label(
       providers = [PpxInfo],
       executable = True,

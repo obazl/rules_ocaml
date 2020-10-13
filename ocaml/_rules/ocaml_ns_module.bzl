@@ -65,11 +65,11 @@ ocaml_ns_module = rule(
       allow_files = OCAML_FILETYPES
     ),
     opts = attr.string_list(
-      default = [
-        "-w", "-49", # ignore Warning 49: no cmi file was found in path for module x
-        "-no-alias-deps", # lazy linking
-        "-opaque"         #  do not generate cross-module optimization information
-      ]
+      # default = [
+      #   "-w", "-49", # ignore Warning 49: no cmi file was found in path for module x
+      #   "-no-alias-deps", # lazy linking
+      #   "-opaque"         #  do not generate cross-module optimization information
+      # ]
     ),
     linkopts = attr.string_list(),
     # linkall = attr.bool(default = True),

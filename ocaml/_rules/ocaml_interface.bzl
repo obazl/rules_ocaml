@@ -59,13 +59,13 @@ def _ocaml_interface_impl(ctx):
   opam_deps = []
 
   if ctx.attr.ppx:
-    intf_file = ppx_transform_action("ocaml_interface", ctx, ctx.file.intf)
+    intf_file = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
   elif ctx.attr.ns_module:
-    intf_file = rename_ocaml_module(ctx, ctx.file.intf) #, ctx.attr.ns)
-    # intf_file = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
+    intf_file = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
+    # intf_file = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.src), ctx.attr.ns)
   else:
-    intf_file = ctx.file.intf
-    # intf_file = struct(impl = impl_src_file, intf = ctx.attr.intf if ctx.attr.intf else None)
+    intf_file = ctx.file.src
+    # intf_file = struct(impl = impl_src_file, intf = ctx.attr.src if ctx.attr.src else None)
 
 
   # elif ctx.attr.ppx_libs:
@@ -73,7 +73,7 @@ def _ocaml_interface_impl(ctx):
   #     if item[0].label.workspace_name == "opam":
   #       args.add("-package", item[0].label.name)
 
-  # cmifname = ctx.file.intf.basename.rstrip("mli") + "cmi"
+  # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
   cmifname = intf_file.basename.rstrip("mli") + "cmi"
   obj_cmi = ctx.actions.declare_file(cmifname)
 
@@ -203,7 +203,7 @@ def _ocaml_interface_impl(ctx):
 
   args.add("-o", obj_cmi)
 
-  # args.add(ctx.file.intf)
+  # args.add(ctx.file.src)
   args.add("-intf", intf_file)
 
   dep_graph.append(intf_file) #] + build_deps
@@ -268,7 +268,7 @@ ocaml_interface = rule(
     opts = attr.string_list(),
     linkopts = attr.string_list(),
     linkall = attr.bool(default = True),
-    intf = attr.label(
+    src = attr.label(
       allow_single_file = OCAML_INTF_FILETYPES
     ),
     ppx  = attr.label(

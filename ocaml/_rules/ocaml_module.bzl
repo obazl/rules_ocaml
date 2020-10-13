@@ -87,7 +87,7 @@ def _ocaml_module_impl(ctx):
     ppx = ctx.attr.ppx
     entailed_deps = ppx[PpxBinaryProvider].deps.x
     ## this will also handle ns
-    outfile = ppx_transform_action("ocaml_module", ctx, ctx.file.impl)
+    outfile = ppx_transform_action("ocaml_module", ctx, ctx.file.src)
     # print("PPX DEP: %s" % ctx.attr.ppx)
     # print("PPX DEP DEFAULT PROVIDER: %s" % ctx.attr.ppx[DefaultInfo])
     # print("PPX DEP PROVIDER: %s" % ctx.attr.ppx[PpxBinaryProvider])
@@ -95,12 +95,12 @@ def _ocaml_module_impl(ctx):
     dep_graph.append(ctx.file.ppx)
   elif ctx.attr.ns_module:
     # rename this module to put it in the namespace
-    outfile = rename_ocaml_module(ctx, ctx.file.impl) #, ctx.attr.ns)
+    outfile = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
     # e.g. vector.ml -> Camlsnark_c_bindings__Vector.ml
   else:
-    outfile = ctx.file.impl
+    outfile = ctx.file.src
 
-  # cmxfname = ctx.file.impl.basename.rstrip("ml") + "cmx"
+  # cmxfname = ctx.file.src.basename.rstrip("ml") + "cmx"
   cmxfname = paths.replace_extension(outfile.basename, tc.objext)
   # print("CMX FNAME: %s" % cmxfname)
   obj_cmx = ctx.actions.declare_file(cmxfname)
@@ -130,9 +130,9 @@ def _ocaml_module_impl(ctx):
 
   ofname = paths.replace_extension(outfile.basename, ".o")
   obj_o = ctx.actions.declare_file(ofname)
-  # cmxfname = paths.replace_extension(ctx.file.impl.basename, tc.objext)
+  # cmxfname = paths.replace_extension(ctx.file.src.basename, tc.objext)
   # obj_cmx = ctx.actions.declare_file(cmxfname)
-  # ofname = paths.replace_extension(ctx.file.impl.basename, ".o")
+  # ofname = paths.replace_extension(ctx.file.src.basename, ".o")
   # obj_o = ctx.actions.declare_file(ofname)
 
   ################################################################
@@ -164,8 +164,8 @@ def _ocaml_module_impl(ctx):
   # if ctx.attr.ns:
   #   args.add("-open", ctx.attr.ns)
   if ctx.attr.ns_module:
-    args.add("-no-alias-deps")
-    args.add("-opaque")
+    # args.add("-no-alias-deps")
+    # args.add("-opaque")
     ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
     ## NOTE: dep_graph and includes covered by mydeps.nopam
     # dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
@@ -366,7 +366,7 @@ def _ocaml_module_impl(ctx):
   args.add(outfile)
   # args.add("-impl", outfile)
 
-  # dep_graph = dep_graph + build_deps + cclib_deps + [outfile] #  [ctx.file.impl]  # ctx.files.impl
+  # dep_graph = dep_graph + build_deps + cclib_deps + [outfile] #  [ctx.file.src]  # ctx.files.src
   dep_graph.extend(build_deps)
   dep_graph.extend(cclib_deps)
   dep_graph.append(outfile)
@@ -413,7 +413,7 @@ def _ocaml_module_impl(ctx):
     outputs = outputs,
     tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
     mnemonic = "OcamlModule",
-    progress_message = "ocaml_module({}), compiling impl {}".format(
+    progress_message = "ocaml_module({}), compiling src {}".format(
       ctx.label.name, ctx.attr.msg
       )
   )
@@ -486,7 +486,7 @@ ocaml_module = rule(
         doc = "Label of an ocaml_ns_module target. Used to derive namespace, output name, -open arg, etc.",
         default = None
     ),
-    impl = attr.label(
+    src = attr.label(
       mandatory = True,
       doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
