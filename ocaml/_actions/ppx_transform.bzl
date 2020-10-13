@@ -56,7 +56,7 @@ def ppx_transform_action(rule, ctx, infile):
       if pfx.lower() == module.lower():
         outfilename = module
       else:
-        outfilename = pfx.capitalize() + ctx.attr.ns_sep + module
+        outfilename = capitalize_initial_char(pfx) + ctx.attr.ns_sep + module
 
   # print("PFX: %s" % pfx)
 
