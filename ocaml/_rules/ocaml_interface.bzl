@@ -9,9 +9,8 @@ load("//implementation:providers.bzl",
      "OpamPkgInfo",
      "PpxArchiveProvider",
      "PpxBinaryProvider")
-load("//ocaml/_actions:module.bzl",
-     "rename_ocaml_module",
-     "ppx_transform_action")
+load("//ocaml/_actions:module.bzl", "rename_ocaml_module")
+load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
 load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",

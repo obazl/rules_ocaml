@@ -9,7 +9,8 @@ load("//implementation:providers.bzl",
      "PpxModuleProvider")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
-load("//ocaml/_actions:module.bzl", "rename_module", "ppx_transform_action")
+load("//ocaml/_actions:module.bzl", "rename_module")
+load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
 # load("//ocaml/_actions:ppx.bzl",
      # "apply_ppx",
      # "ocaml_ppx_compile",

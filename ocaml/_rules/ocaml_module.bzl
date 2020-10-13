@@ -12,16 +12,18 @@ load("//implementation:providers.bzl",
      "PpxArchiveProvider",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
-load("//ocaml/_actions:module.bzl", "rename_ocaml_module", "ppx_transform_action")
-load("//ocaml/_actions:ppx.bzl",
-     "apply_ppx",
-     "ocaml_ppx_compile",
-     # "ocaml_ppx_apply",
-     "ocaml_ppx_library_gendeps",
-     "ocaml_ppx_library_cmo",
-     "ocaml_ppx_library_compile",
-     "ocaml_ppx_library_link")
+# load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/_actions:module.bzl", "rename_ocaml_module")
+load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
+
+# load("//ocaml/_actions:ppx.bzl",
+#      "apply_ppx",
+#      "ocaml_ppx_compile",
+#      # "ocaml_ppx_apply",
+#      "ocaml_ppx_library_gendeps",
+#      "ocaml_ppx_library_cmo",
+#      "ocaml_ppx_library_compile",
+#      "ocaml_ppx_library_link")
 
 load("//implementation:deps.bzl", "get_all_deps")
 
