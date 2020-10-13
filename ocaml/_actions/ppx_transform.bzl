@@ -38,7 +38,7 @@ def ppx_transform_action(rule, ctx, infile):
 
   # print("INFILE: %s" % infile.basename)
   outfilename = None
-  parts = paths.split_extension(infile.basename.capitalize())
+  parts = paths.split_extension(capitalize-initial-char(infile.basename)) # .capitalize())
   if ctx.attr.module_name:
     module = ctx.attr.module_name
   else:
