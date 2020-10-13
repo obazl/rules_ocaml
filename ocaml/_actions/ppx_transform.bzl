@@ -46,7 +46,7 @@ def ppx_transform_action(rule, ctx, infile):
 
   # print("INFILE MODULE %s" % module)
 
-  if pfx == None:
+  if pfx == None: ## no ns_module
     # pfx = TMPDIR
     outfilename = TMPDIR + module
   else:
@@ -66,12 +66,13 @@ def ppx_transform_action(rule, ctx, infile):
   #   outfilename = module
   # else:
   #   outfilename = pfx + module
-  outfilename = outfilename + parts[1]
+
+  outfilename = outfilename + parts[1]  ## add extension from infile
 
   # print("RESOLVED OUTFILE: %s" % outfilename)
   outfile = ctx.actions.declare_file(outfilename)
-  outputs = {}
-  outputs["impl"] = outfile
+  outputs = {"impl": outfile}
+  # outputs["impl"] = outfile
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -107,7 +108,8 @@ def ppx_transform_action(rule, ctx, infile):
   if infile.path.endswith(".ml"):
     args.add("-impl", infile)
 
-  ppx = ctx.attr.ppx.files.to_list()[0]
+  ppx = ctx.file.ppx
+  # ppx = ctx.attr.ppx.files.to_list()[0]
   # print("PPX: %s" % ppx)
   # if ctx.attr.ppx:
   #   for item in ctx.attr.ppx.items():
@@ -120,8 +122,8 @@ def ppx_transform_action(rule, ctx, infile):
   #       args.add("-ppxopt", pkg + "," + ppxargs)
 
   dep_graph = [infile] # , ppx]
-  if ctx.attr.ppx_deps:
-      for dep in ctx.files.ppx_deps:
+  if ctx.attr.ppx_runtime_deps:
+      for dep in ctx.files.ppx_runtime_deps:
           # includes.append(dep.dirname)
           dep_graph.append(dep)
 

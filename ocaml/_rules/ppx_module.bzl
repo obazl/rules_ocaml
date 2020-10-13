@@ -37,17 +37,17 @@ load("//implementation:utils.bzl",
 ####  OCAML_PPX_MODULE IMPLEMENTATION
 def _ppx_module_impl(ctx):
 
-  # FIXME: use alias?
-  if not ctx.attr.impl:
-    if len(ctx.attr.deps) == 1:
-      ## used to redirect/wrap a ppx_module in another location
-      ## e.g. src/ppx/register_event redirects to src/lib/ppx_register_event
-      redirect = ctx.attr.deps[0]
-      # print("PPX MODULE REDIRECT: %s" % redirect)
-      return [
-        redirect[DefaultInfo],
-        redirect[PpxModuleProvider]
-      ]
+  # FIXME: use alias?  import?
+  # if not ctx.attr.impl:
+  #   if len(ctx.attr.deps) == 1:
+  #     ## used to redirect/wrap a ppx_module in another location
+  #     ## e.g. src/ppx/register_event redirects to src/lib/ppx_register_event
+  #     redirect = ctx.attr.deps[0]
+  #     # print("PPX MODULE REDIRECT: %s" % redirect)
+  #     return [
+  #       redirect[DefaultInfo],
+  #       redirect[PpxModuleProvider]
+  #     ]
 
   mydeps = xget_all_deps(ctx.attr.deps)
 
@@ -55,7 +55,7 @@ def _ppx_module_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  output_deps = None
+  x_deps = None
   dep_graph = []
   infile = None
   obj = {}
@@ -86,7 +86,7 @@ def _ppx_module_impl(ctx):
       else:
         outfile = paths.replace_extension(infile.basename, ".cmx")
 
-  # print("TRANSFORM DEPS: %s" % output_deps)
+  # print("TRANSFORM DEPS: %s" % x_deps)
 
   # print("CTX.ATTR.IMPL: %s" % ctx.attr.impl)
   # print("CTX.ATTR.MODULE_NAME: %s" % ctx.attr.module_name)
@@ -160,9 +160,6 @@ def _ppx_module_impl(ctx):
   # non-ocamlfind-enabled deps: we need to add to action inputs, but not to command args
   args.add_all(build_deps)
 
-  if output_deps:
-    args.add_all([dep for dep in output_deps], before_each="-package")
-
   dep_graph.extend(build_deps) ##  + [infile] # [ctx.file.impl] #  [srcs.impl]
   if ctx.attr.cmi:
     # print("CMI: %s" % ctx.attr.cmi[OcamlInterfaceProvider])
@@ -179,6 +176,8 @@ def _ppx_module_impl(ctx):
 
   args.add("-linkpkg")
   args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  if x_deps:
+    args.add_all([dep for dep in x_deps], before_each="-package")
 
   args.add("-impl", infile)
 

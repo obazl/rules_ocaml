@@ -61,7 +61,7 @@ def _ocaml_module_impl(ctx):
          "PATH": get_sdkpath(ctx)}
 
   xsrc   = None
-  x_deps = None
+  ppx_x_deps = None
 
   dep_graph = []
   outputs   = []
@@ -70,7 +70,7 @@ def _ocaml_module_impl(ctx):
     # print("PPX EXE2: %s" % ppx[PpxExecutableProvider])
     # if not ppx:
     ppx = ctx.attr.ppx
-    x_deps = ppx[PpxExecutableProvider].deps.x
+    ppx_x_deps = ppx[PpxExecutableProvider].deps.x_deps
     ## this will also handle ns
     xsrc = ppx_transform_action("ocaml_module", ctx, ctx.file.src)
     # print("PPX DEP: %s" % ctx.attr.ppx)
@@ -99,19 +99,20 @@ def _ocaml_module_impl(ctx):
     elif ctx.file.intf.extension == "cmi":
         obj_cmi = ctx.attr.intf[OcamlInterfaceProvider].payload.cmi
         dep_graph.append(ctx.file.intf)
-        # dep_graph.append(ctx.attr.intf[OcamlInterfaceProvider].payload.mli)
+        dep_graph.append(ctx.attr.intf[OcamlInterfaceProvider].payload.mli)
         if "-bin-annot" in ctx.attr.opts:
             if hasattr(ctx.attr.intf[OcamlInterfaceProvider].payload, "cmt"):
                 obj_cmt = ctx.attr.intf[OcamlInterfaceProvider].payload.cmt
 
         if debug:
-            print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-            print("CMI: %s" % obj_cmi)
+            print("Incoming .cmi: %s" % obj_cmi)
             # obj_cmi = ctx.attr.intf.files.to_list()[0]
   else:
+    ## compiler will infer and emit .cmi from .ml src
     cmifname = paths.replace_extension(xsrc.basename, ".cmi")
     obj_cmi = ctx.actions.declare_file(cmifname)
     if "-bin-annot" in ctx.attr.opts:
+        ## FIXME: only do this if no cmi intf provided
         obj_cmt = ctx.actions.declare_file(paths.replace_extension(xsrc.basename, ".cmt"))
         outputs.append(obj_cmt)
 
@@ -126,7 +127,7 @@ def _ocaml_module_impl(ctx):
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
   # args.add("-w", ctx.attr.warnings)
-  options = tc.opts + ctx.attr.opts
+  # options = tc.opts + ctx.attr.opts
   # args.add_all(options)
   args.add_all(ctx.attr.opts)
   if ctx.attr.alwayslink:
@@ -165,12 +166,17 @@ def _ocaml_module_impl(ctx):
   # args.add("-no-alias-deps")
   # args.add("-opaque")
 
+  # later we will add opam deps to CL using -package
   opam_deps = []
-  if x_deps:
-    for x_dep in x_deps.to_list():
+  nopam_deps = []
+  if ppx_x_deps:
+    for x_dep in ppx_x_deps.to_list():
         if OpamPkgInfo in x_dep:
             for x in x_dep[OpamPkgInfo].pkg.to_list():
                 opam_deps.append(x.name)
+        else: ## this is a non-opam dep
+            for x in x_dep[DefaultInfo].to_list():
+                nopam_deps.append(x.name)
 
   for datum in ctx.attr.data:
     dep_graph.extend(datum.files.to_list())
@@ -208,6 +214,7 @@ def _ocaml_module_impl(ctx):
   # args.add("-I", obj_cmx.dirname)
   includes.append(obj_cmx.dirname)
 
+  # nopam deps must be added to dep_graph, but need not be added to CL?
   for dep in mydeps.nopam.to_list():
       # if debug:
       #     print("\nNOPAM DEP: %s\n\n" % dep)
@@ -323,7 +330,7 @@ def _ocaml_module_impl(ctx):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
-  ## opam_deps already includes x_deps, now add transitive opam deps
+  ## opam_deps already includes ppx_x_deps, now add transitive opam deps
   ## transitive opam deps - filter out ppx_driver-based libs
   # deps.extend(mydeps.opam.to_list())
   for dep in mydeps.opam.to_list():
@@ -376,7 +383,7 @@ def _ocaml_module_impl(ctx):
   if ctx.attr.intf:
       if ctx.file.intf.extension == "cmi":
           dep_mli = ctx.attr.intf[OcamlInterfaceProvider].payload.mli
-      else:
+      elif ctx.file.intf.extension == "mli":
           dep_mli = ctx.file.intf
           outputs.append(obj_cmi)
   else:
@@ -431,6 +438,7 @@ def _ocaml_module_impl(ctx):
       print("O:   %s\n\n" % module_provider.payload.o)
 
   directs = [obj_cmx, obj_o, obj_cmi]
+  if dep_mli: directs.append(dep_mli)
   if obj_cmt: directs.append(obj_cmt)
   defaultInfo = DefaultInfo(
     # payload
@@ -441,7 +449,8 @@ def _ocaml_module_impl(ctx):
       )
   )
 
-  # print("\n\n\t\t\tOCAML_MODULE DEFAULTINFO: %s\n\n" % defaultInfo)
+  if debug:
+      print("\n\n\t\t\tOCAML_MODULE DEFAULTINFO: %s\n\n" % defaultInfo)
 
   return [
     defaultInfo,
@@ -499,9 +508,15 @@ ocaml_module = rule(
     # ppx_x = attr.label_keyed_string_dict(
     #     doc = "Experimental",
     # ),
-    ## FIXME: rename to ppx_runtime_deps
     ppx_runtime_deps  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        allow_files = True,
+    ),
+    x_deps  = attr.label_list(
+        ## NOTE: these are not ppx_x_deps, that would imply they are
+        ## runtime deps of the ppx used to transform the input to this
+        ## rule. Rather, they only apply when this rule is used to build a ppx module.
+        doc = "PPX 'runtime' dependencies. Only for ppx modules. Needed to compile sources transformed by this PPX lib. DEPRECATED. Will be replace by ppx_module rule.",
         allow_files = True,
     ),
     ppx_output_format = attr.string(

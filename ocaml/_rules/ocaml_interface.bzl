@@ -54,17 +54,17 @@ def _ocaml_interface_impl(ctx):
 
   dep_graph = []
 
-  intf_file = None
+  xsrc = None
   opam_deps = []
 
   if ctx.attr.ppx:
-    intf_file = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
+    xsrc = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
   elif ctx.attr.ns_module:
-    intf_file = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
-    # intf_file = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.src), ctx.attr.ns)
+    xsrc = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
+    # xsrc = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.src), ctx.attr.ns)
   else:
-    intf_file = ctx.file.src
-    # intf_file = struct(impl = impl_src_file, intf = ctx.attr.src if ctx.attr.src else None)
+    xsrc = ctx.file.src
+    # xsrc = struct(impl = impl_src_file, intf = ctx.attr.src if ctx.attr.src else None)
 
 
   # elif ctx.attr.ppx_libs:
@@ -73,7 +73,7 @@ def _ocaml_interface_impl(ctx):
   #       args.add("-package", item[0].label.name)
 
   # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
-  cmifname = intf_file.basename.rstrip("mli") + "cmi"
+  cmifname = xsrc.basename.rstrip("mli") + "cmi"
   obj_cmi = ctx.actions.declare_file(cmifname)
 
   args = ctx.actions.args()
@@ -203,9 +203,9 @@ def _ocaml_interface_impl(ctx):
   args.add("-o", obj_cmi)
 
   # args.add(ctx.file.src)
-  args.add("-intf", intf_file)
+  args.add("-intf", xsrc)
 
-  dep_graph.append(intf_file) #] + build_deps
+  dep_graph.append(xsrc) #] + build_deps
   if ctx.attr.ns_module:
     dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
 
@@ -217,7 +217,7 @@ def _ocaml_interface_impl(ctx):
     outputs = [obj_cmi],
     tools = [tc.ocamlopt],
     mnemonic = "OcamlModuleInterface",
-    progress_message = "ocaml_interface {}".format(
+    progress_message = "ocaml_interface compile {}".format(
         # ctx.label.name,
         ctx.attr.msg
       )
@@ -227,7 +227,7 @@ def _ocaml_interface_impl(ctx):
       print("IF OUT: %s" % obj_cmi)
 
   interface_provider = OcamlInterfaceProvider(
-    payload = struct(cmi = obj_cmi, mli = intf_file),
+    payload = struct(cmi = obj_cmi, mli = xsrc),
     deps = struct(
       opam  = mydeps.opam,
       nopam = mydeps.nopam
