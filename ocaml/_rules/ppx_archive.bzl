@@ -2,7 +2,7 @@ load("//implementation:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxArchiveProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      "PpxModuleProvider")
 # load("//implementation/actions:ocamlopt.bzl",
 #      "compile_native_with_ppx",
@@ -210,7 +210,7 @@ ppx_archive = rule(
   attrs = dict(
     archive_name = attr.string(),
     preprocessor = attr.label(
-      providers = [PpxBinaryProvider],
+      providers = [PpxExecutableProvider],
       executable = True,
       cfg = "exec",
       # allow_single_file = True

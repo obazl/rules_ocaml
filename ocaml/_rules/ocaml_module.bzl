@@ -10,7 +10,7 @@ load("//implementation:providers.bzl",
      "OcamlModuleProvider",
      "OpamPkgInfo",
      "PpxArchiveProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      "PpxModuleProvider")
 # load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/_actions:module.bzl", "rename_ocaml_module")
@@ -60,21 +60,22 @@ def _ocaml_module_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
+  xsrc   = None
   x_deps = None
 
   dep_graph = []
   outputs   = []
 
   if ctx.attr.ppx:
-    # print("PPX EXE2: %s" % ppx[PpxBinaryProvider])
+    # print("PPX EXE2: %s" % ppx[PpxExecutableProvider])
     # if not ppx:
     ppx = ctx.attr.ppx
-    x_deps = ppx[PpxBinaryProvider].deps.x
+    x_deps = ppx[PpxExecutableProvider].deps.x
     ## this will also handle ns
     xsrc = ppx_transform_action("ocaml_module", ctx, ctx.file.src)
     # print("PPX DEP: %s" % ctx.attr.ppx)
     # print("PPX DEP DEFAULT PROVIDER: %s" % ctx.attr.ppx[DefaultInfo])
-    # print("PPX DEP PROVIDER: %s" % ctx.attr.ppx[PpxBinaryProvider])
+    # print("PPX DEP PROVIDER: %s" % ctx.attr.ppx[PpxExecutableProvider])
     # print("PPX DEP FILE: %s" % ctx.file.ppx)
     dep_graph.append(ctx.file.ppx)
   elif ctx.attr.ns_module:
@@ -490,16 +491,16 @@ ocaml_module = rule(
     ppx  = attr.label(
       doc = "PPX binary (executable).",
       allow_single_file = True,
-      providers = [PpxBinaryProvider]
+      providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
     ),
-    ppx_x = attr.label_keyed_string_dict(
-        doc = "Experimental",
-    ),
+    # ppx_x = attr.label_keyed_string_dict(
+    #     doc = "Experimental",
+    # ),
     ## FIXME: rename to ppx_runtime_deps
-    ppx_deps  = attr.label_list(
+    ppx_runtime_deps  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,
     ),

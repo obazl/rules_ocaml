@@ -4,7 +4,7 @@ load("//implementation:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "OcamlInterfaceProvider",
-     "PpxBinaryProvider",
+     # "PpxExecutableProvider",
      "PpxNsModuleProvider",
      "PpxModuleProvider")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")

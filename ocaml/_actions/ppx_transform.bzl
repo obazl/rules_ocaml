@@ -1,7 +1,7 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//implementation:providers.bzl",
      "OcamlNsModuleProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      "PpxNsModuleProvider")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
@@ -83,18 +83,18 @@ def ppx_transform_action(rule, ctx, infile):
   # if hasattr(ctx.attr, "ppx"):
   #     if ctx.attr.ppx:
   #         for key in ctx.attr.ppx.keys():
-  #             # print("KEY LABEL: %s" % key.label[PpxBinaryProvider])
-  #             if PpxBinaryProvider in key:
+  #             # print("KEY LABEL: %s" % key.label[PpxExecutableProvider])
+  #             if PpxExecutableProvider in key:
   #                 ppx = key
   #                 # # print("PPX EXE[0] : %s" % ppx[0])
-  #                 #       print("PPX EXE: %s" % key[PpxBinaryProvider])
+  #                 #       print("PPX EXE: %s" % key[PpxExecutableProvider])
   #                 #       print("PPX VAL: %s" % ctx.attr.ppx[key])
   # elif ctx.attr.ppx:
   #     ppx = ctx.attr.ppx
 
   # print("PPX: %s" % ppx)
   if ctx.attr.ppx:
-    args.add_all(ctx.attr.ppx[PpxBinaryProvider].args)
+    args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
     args.add_all(ctx.attr.ppx_args)
     if hasattr(ctx.attr, "ppx_output_format"):
       if ctx.attr.ppx_output_format == "binary":

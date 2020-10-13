@@ -4,7 +4,7 @@ load("//implementation:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "OcamlInterfaceProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      "PpxNsModuleProvider",
      "PpxModuleProvider")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
@@ -68,7 +68,7 @@ def _ppx_module_impl(ctx):
     obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
     obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
     # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
-    output_deps = ctx.attr.ppx_exe[PpxBinaryProvider].deps.transform
+    x_deps = ctx.attr.ppx_exe[PpxExecutableProvider].deps.x_deps
   elif ctx.attr.ppx_ns_module:
     infile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
     obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
@@ -252,11 +252,11 @@ ppx_module = rule(
     ),
     # ppx = attr.label_keyed_string_dict(
     #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments.""",
-    #   providers = [PpxBinaryProvider]
+    #   providers = [PpxExecutableProvider]
     # ),
     ppx_exe  = attr.label(
       doc = "PPX binary (executable).",
-      providers = [PpxBinaryProvider]
+      providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
       doc = "Arguments to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"

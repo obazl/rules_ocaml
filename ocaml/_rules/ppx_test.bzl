@@ -1,4 +1,4 @@
-load("//implementation:providers.bzl", "PpxBinaryProvider")
+load("//implementation:providers.bzl", "PpxExecutableProvider")
 load("//implementation:utils.bzl", "OCAML_IMPL_FILETYPES")
 # load("ppx_transform.bzl", "ppx_transform_impl")
 # load("ocaml_module.bzl", "ocaml_module")
@@ -77,7 +77,7 @@ ppx_test = rule(
     ),
     ppx = attr.label(
         mandatory = True,
-        providers = [[DefaultInfo], [PpxBinaryProvider]],
+        providers = [[DefaultInfo], [PpxExecutableProvider]],
         executable = True,
         cfg = "host",
         allow_single_file = True
@@ -170,7 +170,7 @@ ppx_fail_test = rule(
     ),
     ppx = attr.label(
         mandatory = True,
-        providers = [[DefaultInfo], [PpxBinaryProvider]],
+        providers = [[DefaultInfo], [PpxExecutableProvider]],
         executable = True,
         cfg = "host",
         allow_single_file = True
@@ -289,7 +289,7 @@ ppx_diff_test = rule(
     ),
     ppx = attr.label(
         mandatory = True,
-        providers = [[DefaultInfo], [PpxBinaryProvider]],
+        providers = [[DefaultInfo], [PpxExecutableProvider]],
         executable = True,
         cfg = "host",
         allow_single_file = True

@@ -3,7 +3,7 @@ load("//implementation:providers.bzl",
      "OpamPkgInfo",
      "OcamlArchiveProvider",
      "OcamlModuleProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      "PpxModuleProvider")
 # load("//ocaml/_actions:ppx.bzl",
 #      # "apply_ppx",
@@ -254,7 +254,7 @@ def _ppx_executable_impl(ctx):
 
   return [DefaultInfo(executable=outbinary,
                       files = depset(direct = [outbinary])),
-          PpxBinaryProvider(
+          PpxExecutableProvider(
             payload=outbinary,
             args = depset(direct = ctx.attr.args),
             deps = struct(
@@ -286,11 +286,11 @@ ppx_executable = rule(
     ),
     ppx_bin  = attr.label(
       doc = "PPX binary (executable).",
-      providers = [PpxBinaryProvider]
+      providers = [PpxExecutableProvider]
     ),
     ppx  = attr.label(
       doc = "PPX binary (executable).",
-      providers = [PpxBinaryProvider],
+      providers = [PpxExecutableProvider],
       mandatory = False,
     ),
     opts = attr.string_list(),
@@ -307,7 +307,7 @@ ppx_executable = rule(
     mode = attr.string(default = "native"),
     message = attr.string()
   ),
-  provides = [DefaultInfo, PpxBinaryProvider],
+  provides = [DefaultInfo, PpxExecutableProvider],
   executable = True,
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

@@ -243,7 +243,7 @@ PpxArchiveProvider = provider(
     }
 )
 
-PpxBinaryProvider = provider(
+PpxExecutableProvider = provider(
     doc = "OCaml PPX binary provider.",
     fields = {
         "payload": "Executable file produced by the target.",
@@ -251,7 +251,7 @@ PpxBinaryProvider = provider(
         "deps"   : """A triple of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
-            x    : extension output deps; needed when transformed source is compiled
+            x_deps : extension output deps; needed when transformed source is compiled
         """
     }
 )

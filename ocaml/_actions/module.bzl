@@ -1,7 +1,7 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//implementation:providers.bzl",
      "OcamlNsModuleProvider",
-     "PpxBinaryProvider",
+     # "PpxExecutableProvider",
      "PpxNsModuleProvider")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",

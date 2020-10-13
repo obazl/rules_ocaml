@@ -7,7 +7,7 @@ load("//implementation:providers.bzl",
      # "OcamlModuleProvider",
      "OpamPkgInfo",
      # "PpxArchiveProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      # "PpxModuleProvider"
      )
 load("//implementation:deps.bzl", "get_all_deps")
@@ -157,7 +157,7 @@ ppx_transform = rule(
     ),
     ppx = attr.label(
         mandatory = True,
-        providers = [[DefaultInfo], [PpxBinaryProvider]],
+        providers = [[DefaultInfo], [PpxExecutableProvider]],
         executable = True,
         cfg = "host",
         allow_single_file = True

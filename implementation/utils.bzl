@@ -7,7 +7,7 @@ load("//implementation:providers.bzl",
      "OcamlNsModuleProvider",
      "OpamPkgInfo",
      "PpxArchiveProvider",
-     "PpxBinaryProvider",
+     "PpxExecutableProvider",
      "PpxNsModuleProvider",
      "PpxModuleProvider")
 
@@ -150,9 +150,9 @@ def xget_all_deps(direct_deps):
       nopam_directs.append(ap.payload)
       nopam_transitives.append(ap.deps.nopam)
       opam_transitives.append(ap.deps.opam)
-    elif PpxBinaryProvider in dep:
-      bp = dep[PpxBinaryProvider]
-      # print("PpxBinaryProvider: %s" % bp)
+    elif PpxExecutableProvider in dep:
+      bp = dep[PpxExecutableProvider]
+      # print("PpxExecutableProvider: %s" % bp)
       nopam_directs.append(bp.payload)
       nopam_transitives.append(bp.deps.nopam)
       opam_transitives.append(bp.deps.opam)

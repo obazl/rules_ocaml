@@ -8,7 +8,7 @@ load("//implementation:providers.bzl",
      "OcamlNsModuleProvider",
      "OpamPkgInfo",
      "PpxArchiveProvider",
-     "PpxBinaryProvider")
+     "PpxExecutableProvider")
 load("//ocaml/_actions:module.bzl", "rename_ocaml_module")
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
 load("//ocaml/_actions:ppx.bzl",
@@ -104,7 +104,7 @@ def _ocaml_interface_impl(ctx):
   # args.add("-linkall")
 
   if ctx.attr.ppx:
-    x_deps = ctx.attr.ppx[PpxBinaryProvider].deps.x
+    x_deps = ctx.attr.ppx[PpxExecutableProvider].deps.x
     for x_dep in x_deps.to_list():
         if OpamPkgInfo in x_dep:
             for x in x_dep[OpamPkgInfo].pkg.to_list():
@@ -273,12 +273,12 @@ ocaml_interface = rule(
     ppx  = attr.label(
       doc = "PPX binary (executable).",
       allow_single_file = True,
-      providers = [PpxBinaryProvider]
+      providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
     ),
-    ppx_deps  = attr.label_list(
+    ppx_runtime_deps  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,
     ),
