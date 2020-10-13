@@ -7,10 +7,10 @@ load("//implementation:providers.bzl",
      "PpxBinaryProvider",
      "PpxNsModuleProvider",
      "PpxModuleProvider")
-load("//implementation/actions:batch.bzl", "copy_srcs_to_tmp")
-load("//implementation/actions:ns_module.bzl", "ns_module_action")
-load("//implementation/actions:module.bzl", "rename_module", "ppx_transform_action")
-# load("//implementation/actions:ppx.bzl",
+load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
+load("//ocaml/_actions:module.bzl", "rename_module", "ppx_transform_action")
+# load("//ocaml/_actions:ppx.bzl",
      # "apply_ppx",
      # "ocaml_ppx_compile",
      # "ocaml_ppx_apply",

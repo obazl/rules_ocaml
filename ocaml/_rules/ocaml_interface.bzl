@@ -9,10 +9,10 @@ load("//implementation:providers.bzl",
      "OpamPkgInfo",
      "PpxArchiveProvider",
      "PpxBinaryProvider")
-load("//implementation/actions:module.bzl",
+load("//ocaml/_actions:module.bzl",
      "rename_ocaml_module",
      "ppx_transform_action")
-load("//implementation/actions:ppx.bzl",
+load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -39,8 +39,8 @@ load("//implementation:utils.bzl",
 def _ocaml_interface_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "IO.cmi"):
-  #     debug = True
+  if (ctx.label.name == "Filter_cmi"):
+      debug = True
 
   if debug:
       print("OCAML INTERFACE TARGET: %s" % ctx.label.name)

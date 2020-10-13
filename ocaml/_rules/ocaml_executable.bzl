@@ -1,11 +1,11 @@
 load("//implementation:common.bzl",
      "OCAML_VERSION")
-load("//implementation/actions:ppx.bzl",
+load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
      "compile_new_srcs")
-load("//implementation/actions:ocaml.bzl",
-     "ocaml_compile")
-load("//implementation/actions:batch.bzl", "copy_srcs_to_tmp")
+# load("//ocaml/_actions:ocaml.bzl",
+#      "ocaml_compile")
+load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//implementation:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",

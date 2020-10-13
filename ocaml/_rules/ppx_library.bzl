@@ -2,18 +2,18 @@ load("//implementation:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "PpxInfo")
-load("//implementation/actions:ocamlopt.bzl",
-     "compile_native_with_ppx",
-     "link_native")
-load("//implementation/actions:library.bzl", "library_action")
-load("//implementation/actions:ppx.bzl",
-     "apply_ppx",
-     # "ocaml_ppx_compile",
-     # # "ocaml_ppx_apply",
-     # "ocaml_ppx_library_gendeps",
-     # "ocaml_ppx_library_cmo",
-     # "ocaml_ppx_library_link"
-)
+# load("//implementation/actions:ocamlopt.bzl",
+#      "compile_native_with_ppx",
+#      "link_native")
+load("//ocaml/_actions:library.bzl", "library_action")
+load("//ocaml/_actions:ppx.bzl",
+     "apply_ppx")
+#      # "ocaml_ppx_compile",
+#      # # "ocaml_ppx_apply",
+#      # "ocaml_ppx_library_gendeps",
+#      # "ocaml_ppx_library_cmo",
+#      # "ocaml_ppx_library_link"
+# )
 load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
@@ -30,99 +30,99 @@ load("//implementation:utils.bzl",
 
 ################################################################
 #### compile after preprocessing:
-def _ppx_library_with_ppx_impl(ctx):
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+# def _ppx_library_with_ppx_impl(ctx):
+#   env = {"OPAMROOT": get_opamroot(),
+#          "PATH": get_sdkpath(ctx)}
 
-  if ctx.attr.preprocessor:
-    if PpxInfo in ctx.attr.preprocessor:
-      new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
-  else:
-    new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
+#   if ctx.attr.preprocessor:
+#     if PpxInfo in ctx.attr.preprocessor:
+#       new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
+#   else:
+#     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
 
-  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+#   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+#   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
-  #################################################
-  outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
-    ctx, env, tc, new_intf_srcs, new_impl_srcs
-  )
+#   #################################################
+#   outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
+#     ctx, env, tc, new_intf_srcs, new_impl_srcs
+#   )
 
-  # #################################################
-  # ## 5. Link .cmxa
-  # outfiles_cmi, outfiles_cmx, outfiles_o = link_native(
-  #   ctx, env, tc, new_intf_srcs, new_impl_srcs
-  # )
+#   # #################################################
+#   # ## 5. Link .cmxa
+#   # outfiles_cmi, outfiles_cmx, outfiles_o = link_native(
+#   #   ctx, env, tc, new_intf_srcs, new_impl_srcs
+#   # )
 
-  outfile_cmxa_name = ctx.label.name + ".cmxa"
-  outfile_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
-  outfile_a_name = ctx.label.name + ".a"
-  outfile_a = ctx.actions.declare_file(outfile_a_name)
-  args = ctx.actions.args()
-  # args.add("ocamlopt")
-  args.add("-w", WARNING_FLAGS)
-  args.add("-strict-sequence")
-  args.add("-strict-formats")
-  args.add("-short-paths")
-  args.add("-keep-locs")
-  args.add("-g")
-  args.add("-a")
+#   outfile_cmxa_name = ctx.label.name + ".cmxa"
+#   outfile_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
+#   outfile_a_name = ctx.label.name + ".a"
+#   outfile_a = ctx.actions.declare_file(outfile_a_name)
+#   args = ctx.actions.args()
+#   # args.add("ocamlopt")
+#   args.add("-w", WARNING_FLAGS)
+#   args.add("-strict-sequence")
+#   args.add("-strict-formats")
+#   args.add("-short-paths")
+#   args.add("-keep-locs")
+#   args.add("-g")
+#   args.add("-a")
 
-  # args.add("-linkpkg")
-  # args.add_all([dep[OpamPkgInfo].pkg for dep in ctx.attr.deps],
-  #              before_each ="-package")
-  # for dep in ctx.attr.deps:
-  #   if OpamPkgInfo in dep:
-  #     args.add("-package", dep[OpamPkgInfo].pkg)
-  #   else:
-  #     args.add(dep[PpxInfo].cmx)
+#   # args.add("-linkpkg")
+#   # args.add_all([dep[OpamPkgInfo].pkg for dep in ctx.attr.deps],
+#   #              before_each ="-package")
+#   # for dep in ctx.attr.deps:
+#   #   if OpamPkgInfo in dep:
+#   #     args.add("-package", dep[OpamPkgInfo].pkg)
+#   #   else:
+#   #     args.add(dep[PpxInfo].cmx)
 
-  args.add("-o", outfile_cmxa)
+#   args.add("-o", outfile_cmxa)
 
-  args.add("-linkall")
-  args.add_all(outfiles_cmx)
-  # args.add_all(outfiles_o)
-  #################################################
-  # ppx_library_link(ctx,
-  #                        env = env,
-  #                        pgm = tc.ocamlopt,
-  #                        # pgm = tc.ocamlfind,
-  #                        args = [args],
-  #                        inputs = outfiles_cmx + outfiles_o,
-  #                        outputs = [outfile_cmxa, outfile_a],
-  #                        tools = [tc.ocamlfind, tc.ocamlc],
-  #                        msg = ctx.attr.msg
-  # )
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlopt,
-    arguments = [args],
-    inputs = outfiles_cmx + outfiles_o,
-    outputs = [outfile_cmxa, outfile_a],
-    tools = [tc.ocamlfind, tc.ocamlc],
-    mnemonic = "OcamlPPXLibrary",
-    progress_message = "ppx_library({}): {}".format(
-      ctx.label.name,
-      ctx.attr.msg,
-      )
-  )
+#   args.add("-linkall")
+#   args.add_all(outfiles_cmx)
+#   # args.add_all(outfiles_o)
+#   #################################################
+#   # ppx_library_link(ctx,
+#   #                        env = env,
+#   #                        pgm = tc.ocamlopt,
+#   #                        # pgm = tc.ocamlfind,
+#   #                        args = [args],
+#   #                        inputs = outfiles_cmx + outfiles_o,
+#   #                        outputs = [outfile_cmxa, outfile_a],
+#   #                        tools = [tc.ocamlfind, tc.ocamlc],
+#   #                        msg = ctx.attr.msg
+#   # )
+#   ctx.actions.run(
+#     env = env,
+#     executable = tc.ocamlopt,
+#     arguments = [args],
+#     inputs = outfiles_cmx + outfiles_o,
+#     outputs = [outfile_cmxa, outfile_a],
+#     tools = [tc.ocamlfind, tc.ocamlc],
+#     mnemonic = "OcamlPPXLibrary",
+#     progress_message = "ppx_library({}): {}".format(
+#       ctx.label.name,
+#       ctx.attr.msg,
+#       )
+#   )
 
-  return [
-    DefaultInfo(
-    files = depset(direct = [#outfile_ppml,
-                             #outfile_cmo,
-                             # outfile_o,
-                             # outfile_cmx,
-                             outfile_a,
-                             outfile_cmxa
-    ])),
-    PpxInfo(ppx=outfile_cmxa,
-            # cmo=outfile_cmo,
-            # cmx=outfile_cmx,
-            cmxa=outfile_cmxa,
-            a=outfile_a
-    )]
+#   return [
+#     DefaultInfo(
+#     files = depset(direct = [#outfile_ppml,
+#                              #outfile_cmo,
+#                              # outfile_o,
+#                              # outfile_cmx,
+#                              outfile_a,
+#                              outfile_cmxa
+#     ])),
+#     PpxInfo(ppx=outfile_cmxa,
+#             # cmo=outfile_cmo,
+#             # cmx=outfile_cmx,
+#             cmxa=outfile_cmxa,
+#             a=outfile_a
+#     )]
 
 #### just compile, no preprocessing:
 def _ppx_library_impl(ctx):

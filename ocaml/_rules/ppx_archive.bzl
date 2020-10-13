@@ -4,17 +4,17 @@ load("//implementation:providers.bzl",
      "PpxArchiveProvider",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("//implementation/actions:ocamlopt.bzl",
-     "compile_native_with_ppx",
-     "link_native")
-load("//implementation/actions:ppx.bzl",
-     "apply_ppx",
-     # "ocaml_ppx_compile",
-     # # "ocaml_ppx_apply",
-     # "ocaml_ppx_library_gendeps",
-     # "ocaml_ppx_library_cmo",
-     # "ocaml_ppx_library_link"
-)
+# load("//implementation/actions:ocamlopt.bzl",
+#      "compile_native_with_ppx",
+#      "link_native")
+# load("//implementation/actions:ppx.bzl",
+#      "apply_ppx",
+#      # "ocaml_ppx_compile",
+#      # # "ocaml_ppx_apply",
+#      # "ocaml_ppx_library_gendeps",
+#      # "ocaml_ppx_library_cmo",
+#      # "ocaml_ppx_library_link"
+# )
 load("//implementation:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      # "xget_all_deps",

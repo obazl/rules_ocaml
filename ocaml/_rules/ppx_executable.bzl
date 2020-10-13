@@ -5,14 +5,14 @@ load("//implementation:providers.bzl",
      "OcamlModuleProvider",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("//implementation/actions:ppx.bzl",
-     "apply_ppx",
-     "ocaml_ppx_compile",
-     # "ocaml_ppx_apply",
-     "ocaml_ppx_library_gendeps",
-     "ocaml_ppx_library_cmo",
-     "ocaml_ppx_library_compile",
-     "ocaml_ppx_library_link")
+# load("//ocaml/_actions:ppx.bzl",
+#      # "apply_ppx",
+#      "ocaml_ppx_compile",
+#      # "ocaml_ppx_apply",
+#      "ocaml_ppx_library_gendeps",
+#      "ocaml_ppx_library_cmo",
+#      "ocaml_ppx_library_compile",
+#      "ocaml_ppx_library_link")
 load("//implementation:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      "get_opamroot",

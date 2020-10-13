@@ -4,8 +4,8 @@ load("//implementation:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",
      "OcamlNsModuleProvider")
-load("//implementation/actions:ns_module.bzl", "ns_module_action")
-load("//implementation/actions:ppx.bzl",
+load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
+load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -25,9 +25,9 @@ load("//implementation:utils.bzl",
      "WARNING_FLAGS"
 )
 # testing
-load("//implementation/actions:ocamlopt.bzl",
-     "compile_native_with_ppx",
-     "link_native")
+# load("//implementation/actions:ocamlopt.bzl",
+#      "compile_native_with_ppx",
+#      "link_native")
 
 # print("implementation/ocaml.bzl loading")
 

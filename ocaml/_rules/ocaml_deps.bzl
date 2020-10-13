@@ -1,10 +1,10 @@
 load("//implementation:common.bzl",
      "OCAML_VERSION")
-load("//implementation/actions:ppx.bzl",
-     "apply_ppx",
-     "compile_new_srcs")
-load("//implementation/actions:ocaml.bzl",
-     "ocaml_compile")
+# load("//ocaml/_actions:ppx.bzl",
+#      "apply_ppx",
+#      "compile_new_srcs")
+# load("//ocaml/_actions:ocaml.bzl",
+#      "ocaml_compile")
 load("//implementation:providers.bzl",
      "OcamlSDK",
      "OpamPkgInfo",

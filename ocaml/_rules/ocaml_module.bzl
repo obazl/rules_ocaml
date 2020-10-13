@@ -12,9 +12,9 @@ load("//implementation:providers.bzl",
      "PpxArchiveProvider",
      "PpxBinaryProvider",
      "PpxModuleProvider")
-load("//implementation/actions:batch.bzl", "copy_srcs_to_tmp")
-load("//implementation/actions:module.bzl", "rename_ocaml_module", "ppx_transform_action")
-load("//implementation/actions:ppx.bzl",
+load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
+load("//ocaml/_actions:module.bzl", "rename_ocaml_module", "ppx_transform_action")
+load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
      # "ocaml_ppx_apply",
@@ -43,8 +43,8 @@ def _ocaml_module_impl(ctx):
 
   debug = False
   # if (ctx.label.name == "snark0.cm_"):
-  # if ctx.label.name == "RefList":
-  #     debug = True
+  if ctx.label.name == "Filter":
+      debug = True
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
@@ -54,40 +54,22 @@ def _ocaml_module_impl(ctx):
   #     print("ALL DEPS for target %s:" % ctx.label.name)
   #     print(mydeps)
 
-      # print("IMPL: %s" % ctx.file.impl.path)
-  # srcs = copy_srcs_to_tmp(ctx)
-  # print("SRCS: %s" % srcs)
-  # impl_file = srcs[0]
-
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  entailed_deps = None
+  x_deps = None
 
   dep_graph = []
   outputs   = []
-
-  # ppx = None
-
-  # if ctx.attr.ppx:
-  #   for key in ctx.attr.ppx.keys():
-  #         # print("KEY LABEL: %s" % key.label[PpxBinaryProvider])
-  #         if debug:
-  #             print("PPX KEY: %s" % key)
-  #             if PpxBinaryProvider in key:
-  #                 ppx = key
-  #                 # print("PPX EXE[0] : %s" % ppx[0])
-  #                 print("PPX EXE: %s" % key[PpxBinaryProvider])
-  #                 print("PPX VAL: %s" % ctx.attr.ppx[key])
 
   if ctx.attr.ppx:
     # print("PPX EXE2: %s" % ppx[PpxBinaryProvider])
     # if not ppx:
     ppx = ctx.attr.ppx
-    entailed_deps = ppx[PpxBinaryProvider].deps.x
+    x_deps = ppx[PpxBinaryProvider].deps.x
     ## this will also handle ns
-    outfile = ppx_transform_action("ocaml_module", ctx, ctx.file.src)
+    xsrc = ppx_transform_action("ocaml_module", ctx, ctx.file.src)
     # print("PPX DEP: %s" % ctx.attr.ppx)
     # print("PPX DEP DEFAULT PROVIDER: %s" % ctx.attr.ppx[DefaultInfo])
     # print("PPX DEP PROVIDER: %s" % ctx.attr.ppx[PpxBinaryProvider])
@@ -95,13 +77,13 @@ def _ocaml_module_impl(ctx):
     dep_graph.append(ctx.file.ppx)
   elif ctx.attr.ns_module:
     # rename this module to put it in the namespace
-    outfile = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
+    xsrc = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
     # e.g. vector.ml -> Camlsnark_c_bindings__Vector.ml
   else:
-    outfile = ctx.file.src
+    xsrc = ctx.file.src
 
   # cmxfname = ctx.file.src.basename.rstrip("ml") + "cmx"
-  cmxfname = paths.replace_extension(outfile.basename, tc.objext)
+  cmxfname = paths.replace_extension(xsrc.basename, tc.objext)
   # print("CMX FNAME: %s" % cmxfname)
   obj_cmx = ctx.actions.declare_file(cmxfname)
   # print("OBJ_CMX: %s" % obj_cmx)
@@ -113,6 +95,8 @@ def _ocaml_module_impl(ctx):
         obj_cmi = ctx.actions.declare_file(cmifname)
     elif ctx.file.intf.extension == "cmi":
         obj_cmi = ctx.attr.intf[OcamlInterfaceProvider].payload.cmi
+        dep_graph.append(ctx.file.intf)
+        # dep_graph.append(ctx.attr.intf[OcamlInterfaceProvider].payload.mli)
         if "-bin-annot" in ctx.attr.opts:
             if hasattr(ctx.attr.intf[OcamlInterfaceProvider].payload, "cmt"):
                 obj_cmt = ctx.attr.intf[OcamlInterfaceProvider].payload.cmt
@@ -122,13 +106,13 @@ def _ocaml_module_impl(ctx):
             print("CMI: %s" % obj_cmi)
             # obj_cmi = ctx.attr.intf.files.to_list()[0]
   else:
-    cmifname = paths.replace_extension(outfile.basename, ".cmi")
+    cmifname = paths.replace_extension(xsrc.basename, ".cmi")
     obj_cmi = ctx.actions.declare_file(cmifname)
     if "-bin-annot" in ctx.attr.opts:
-        obj_cmt = ctx.actions.declare_file(paths.replace_extension(outfile.basename, ".cmt"))
+        obj_cmt = ctx.actions.declare_file(paths.replace_extension(xsrc.basename, ".cmt"))
         outputs.append(obj_cmt)
 
-  ofname = paths.replace_extension(outfile.basename, ".o")
+  ofname = paths.replace_extension(xsrc.basename, ".o")
   obj_o = ctx.actions.declare_file(ofname)
   # cmxfname = paths.replace_extension(ctx.file.src.basename, tc.objext)
   # obj_cmx = ctx.actions.declare_file(cmxfname)
@@ -179,8 +163,8 @@ def _ocaml_module_impl(ctx):
   # args.add("-opaque")
 
   opam_deps = []
-  if entailed_deps:
-    for x_dep in entailed_deps.to_list():
+  if x_deps:
+    for x_dep in x_deps.to_list():
         if OpamPkgInfo in x_dep:
             for x in x_dep[OpamPkgInfo].pkg.to_list():
                 opam_deps.append(x.name)
@@ -363,13 +347,13 @@ def _ocaml_module_impl(ctx):
   if ctx.attr.intf:
     if ctx.file.intf.extension == "mli":
         args.add(ctx.file.intf.path)
-  args.add(outfile)
-  # args.add("-impl", outfile)
+  args.add(xsrc)
+  # args.add("-impl", xsrc)
 
-  # dep_graph = dep_graph + build_deps + cclib_deps + [outfile] #  [ctx.file.src]  # ctx.files.src
+  # dep_graph = dep_graph + build_deps + cclib_deps + [xsrc] #  [ctx.file.src]  # ctx.files.src
   dep_graph.extend(build_deps)
   dep_graph.extend(cclib_deps)
-  dep_graph.append(outfile)
+  dep_graph.append(xsrc)
 
   # if ctx.attr.ns_module:
   #   dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
