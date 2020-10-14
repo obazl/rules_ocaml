@@ -1,7 +1,6 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//implementation:providers.bzl",
      "OcamlNsModuleProvider",
-     "PpxNsModuleProvider",
 )
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
@@ -96,19 +95,6 @@ def ns_module_action(ctx):
           payload = struct(
               ns  = ctx.attr.ns,
               # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
-              cmi = obj_cmi,
-              cm  = obj_cmx,
-              o   = obj_o
-          ),
-          deps = struct(
-              opam  = depset(),
-              nopam = depset()
-          )
-      )
-  else:
-      provider = PpxNsModuleProvider(
-          payload = struct(
-              ns  = ctx.attr.ns,
               cmi = obj_cmi,
               cm  = obj_cmx,
               o   = obj_o

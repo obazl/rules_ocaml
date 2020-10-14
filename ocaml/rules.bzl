@@ -36,8 +36,6 @@ load("//ocaml/_rules:ppx_library.bzl",
      _ppx_library = "ppx_library")
 load("//ocaml/_rules:ppx_module.bzl",
      _ppx_module = "ppx_module")
-load("//ocaml/_rules:ppx_ns_module.bzl",
-     _ppx_ns_module = "ppx_ns_module")
 load("//ocaml/_rules:ppx_test.bzl",
      _ppx_test = "ppx_test",
      _ppx_diff_test = "ppx_diff_test",
@@ -69,7 +67,6 @@ ppx_test = _ppx_test
 ppx_diff_test = _ppx_diff_test
 ppx_fail_test = _ppx_fail_test
 ppx_transform = _ppx_transform
-ppx_ns_module = _ppx_ns_module
 
 # macros
 ocaml_ns_archive_macro = _ocaml_ns_archive_macro

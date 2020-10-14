@@ -8,7 +8,6 @@ load("//implementation:providers.bzl",
      "OpamPkgInfo",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
-     "PpxNsModuleProvider",
      "PpxModuleProvider")
 
 OCAML_FILETYPES = [

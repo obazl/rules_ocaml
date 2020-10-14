@@ -5,7 +5,7 @@ load("//implementation:providers.bzl",
      "OpamPkgInfo",
      "OcamlInterfaceProvider",
      "PpxExecutableProvider",
-     "PpxNsModuleProvider",
+     # "PpxNsModuleProvider",
      "PpxModuleProvider")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
@@ -236,8 +236,8 @@ ppx_module = rule(
       doc = "Namespace separator.  Default: '__'",
       default = "__"
     ),
-    ppx_ns_module = attr.label(
-      doc = "Label of a ppx_ns_module target. Used to derive namespace, output name, -open arg, etc.",
+    ns_module = attr.label(
+      doc = "Label of a ns_module target. Used to derive namespace, output name, -open arg, etc.",
     ),
     impl = attr.label(
       mandatory = True,  # use ocaml_interface for isolated .mli files
