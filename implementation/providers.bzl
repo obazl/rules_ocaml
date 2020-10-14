@@ -281,22 +281,7 @@ PpxModuleProvider = provider(
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
             nopam: direct and transitive non-opam deps (Files) of target
-        """
-    }
-)
-
-PpxNsModuleProvider = provider(
-    doc = "OCaml PPX NS module provider.",
-    fields = {
-        "payload": """A struct with the following fields:
-            ns : namespace
-            cmi: .cmi file produced by the target
-            cm : .cmx or .cmo file produced by the target
-            o  : .o file produced by the target
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            nopam: direct and transitive non-opam deps (Files) of target
+            nopam_lazy_deps : extension output deps; needed when transformed source is compiled
         """
     }
 )
