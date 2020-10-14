@@ -25,7 +25,7 @@ load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
 #      "ocaml_ppx_library_compile",
 #      "ocaml_ppx_library_link")
 
-load("//implementation:deps.bzl", "get_all_deps")
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
 load("//implementation:utils.bzl",
      "capitalize_initial_char",

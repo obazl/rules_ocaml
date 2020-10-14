@@ -192,11 +192,15 @@ def get_all_deps(rule, ctx):
           print("CcInfo dep: %s" % cp)
           print("CcInfo payload: %s" % dep[DefaultInfo])
       nopam_directs.append(struct( clib = dep[DefaultInfo]) )
+
+    ## PPX
     elif PpxArchiveProvider in dep:
       ap = dep[PpxArchiveProvider]
-      print("PpxArchiveProvider: %s" % ap)
-      print(ap.deps)
-      nopam_directs.append(ap.payload)
+      if debug:
+          print("PpxArchiveProvider: %s" % ap)
+          print(ap.deps)
+      nopam_directs.append(ap.payload.cmxa)
+      nopam_directs.append(ap.payload.a)
       # nopam_transitives.append(ap.deps.nopam)
       opam_transitives.append(ap.deps.opam)
     elif PpxExecutableProvider in dep:
@@ -206,25 +210,26 @@ def get_all_deps(rule, ctx):
       nopam_transitives.append(bp.deps.nopam)
       opam_transitives.append(bp.deps.opam)
     elif PpxModuleProvider in dep:
-      pmp = dep[PpxModuleProvider]
-      # print("OcamlInterfaceProvider dep: %s" % pmp)
-      nopam_directs.append(pmp.payload.cm)
-      nopam_directs.append(pmp.payload.cmi)
-      nopam_directs.append(pmp.payload.o)
-      nopam_transitives.append(pmp.deps.nopam)
-      opam_transitives.append(pmp.deps.opam)
-    elif PpxNsModuleProvider in dep:
-      pnmp = dep[PpxNsModuleProvider]
-      # print("OcamlInterfaceProvider dep: %s" % pmp)
-      # nopam_directs.append(pnmp.payload)
-      nopam_directs.append(pnmp.payload.cm)
-      nopam_directs.append(pnmp.payload.cmi)
-      nopam_directs.append(pnmp.payload.o)
-      nopam_transitives.append(pnmp.deps.nopam)
-      opam_transitives.append(pnmp.deps.opam)
-      # opams = opams + d.opam_deps.to_list()
-      # nopam_deps.append(d)
-      # nopam_transitive_deps.append(d)
+        if debug:
+            print("PpxModuleProvider: %s" % provider)
+        provider = dep[PpxModuleProvider]
+        nopam_directs.append(provider.payload.cm)
+        nopam_directs.append(provider.payload.cmi)
+        nopam_directs.append(provider.payload.o)
+        nopam_transitives.append(provider.deps.nopam)
+        opam_transitives.append(provider.deps.opam)
+    # elif PpxNsModuleProvider in dep:
+    #   provider = dep[PpxNsModuleProvider]
+    #   # print("OcamlInterfaceProvider dep: %s" % provider)
+    #   # nopam_directs.append(provider.payload)
+    #   nopam_directs.append(provider.payload.cm)
+    #   nopam_directs.append(provider.payload.cmi)
+    #   nopam_directs.append(provider.payload.o)
+    #   nopam_transitives.append(provider.deps.nopam)
+    #   opam_transitives.append(provider.deps.opam)
+    #   # opams = opams + d.opam_deps.to_list()
+    #   # nopam_deps.append(d)
+    #   # nopam_transitive_deps.append(d)
     else:
       fail("UNKNOWN DEP TYPE: %s" % dep)
 

@@ -10,7 +10,7 @@ load("//implementation:providers.bzl",
      "PpxExecutableProvider",
      # "PpxModuleProvider"
      )
-load("//implementation:deps.bzl", "get_all_deps")
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      "OCAML_IMPL_FILETYPES",
      "get_opamroot",

@@ -15,7 +15,7 @@ load("//implementation:providers.bzl",
 #      # "ocaml_ppx_library_cmo",
 #      # "ocaml_ppx_library_link"
 # )
-load("//implementation:deps.bzl", "get_all_deps")
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      # "xget_all_deps",
      "get_opamroot",

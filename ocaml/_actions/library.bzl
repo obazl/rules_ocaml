@@ -6,7 +6,7 @@ load("//implementation:providers.bzl",
      "PpxLibraryProvider",
      "OpamPkgInfo")
 
-load("//implementation:deps.bzl", "get_all_deps")
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      # "get_all_deps",
      "get_opamroot",
