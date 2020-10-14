@@ -1,12 +1,11 @@
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider",
-     "OcamlSDK",
-     "OpamPkgInfo",
-     "PpxInfo")
+     "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 

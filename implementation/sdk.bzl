@@ -18,8 +18,7 @@
 # )
 load("//implementation:ocaml_toolchains.bzl",
      "ocaml_toolchain")
-load("//implementation:providers.bzl",
-     "OcamlSDK")
+load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
 load("//implementation:common.bzl",
      "OCAML_SDK", # = "ocaml"
      "OCAML_VERSION",

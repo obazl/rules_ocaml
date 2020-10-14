@@ -1,4 +1,4 @@
-load("//implementation:providers.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 
 ################################################################
 def _opam_pkg_impl(ctx):

@@ -1,6 +1,6 @@
-load("//implementation:providers.bzl",
-     "OcamlSDK",
-     "OpamPkgInfo",
+load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")

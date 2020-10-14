@@ -1,4 +1,4 @@
-load("//implementation:providers.bzl", "PpxExecutableProvider")
+load("//ocaml/_providers:ppx.bzl", "PpxExecutableProvider")
 load("//implementation:utils.bzl", "OCAML_IMPL_FILETYPES")
 # load("ppx_transform.bzl", "ppx_transform_impl")
 # load("ocaml_module.bzl", "ocaml_module")

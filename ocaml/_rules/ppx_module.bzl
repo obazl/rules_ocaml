@@ -1,11 +1,11 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
-     "OpamPkgInfo",
-     "OcamlInterfaceProvider",
+     "OcamlInterfaceProvider")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl",
      "PpxExecutableProvider",
-     # "PpxNsModuleProvider",
      "PpxModuleProvider")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_action")

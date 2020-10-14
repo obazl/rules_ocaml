@@ -1,7 +1,6 @@
-load("//implementation:providers.bzl",
-     "OcamlSDK",
-     "OpamPkgInfo",
-     "PpxInfo")
+# load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 # load("//implementation/actions:ocamlopt.bzl",
 #      "compile_native_with_ppx",
 #      "link_native")

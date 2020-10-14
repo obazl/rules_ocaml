@@ -1,9 +1,8 @@
 ## WARNING:: NOT IMPLEMENTED YET
 
-load("//implementation:providers.bzl",
-     "OcamlSDK",
-     "OpamPkgInfo",
-     "PpxInfo")
+load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 load("//implementation/actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",

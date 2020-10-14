@@ -12,15 +12,15 @@ load("//ocaml/_actions:library.bzl", "library_action")
 # load("//ocaml/_actions:ocamlopt.bzl",
 #      "compile_native_with_ppx",
 #      "link_native")
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlNsModuleProvider",
      "OcamlModuleProvider",
-     "OcamlSDK",
-     "OpamPkgInfo",
-     "PpxInfo")
+     "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath",

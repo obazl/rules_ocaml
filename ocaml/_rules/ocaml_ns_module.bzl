@@ -1,9 +1,9 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
-     "OpamPkgInfo",
      "OcamlNsModuleProvider")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
 load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",

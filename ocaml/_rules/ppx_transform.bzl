@@ -1,15 +1,7 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//implementation:providers.bzl",
-     # "OcamlSDK",
-     # "OcamlArchiveProvider",
-     # "OcamlInterfaceProvider",
-     # "OcamlNsModuleProvider",
-     # "OcamlModuleProvider",
-     "OpamPkgInfo",
-     # "PpxArchiveProvider",
-     "PpxExecutableProvider",
-     # "PpxModuleProvider"
-     )
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxExecutableProvider")
+
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      "OCAML_IMPL_FILETYPES",

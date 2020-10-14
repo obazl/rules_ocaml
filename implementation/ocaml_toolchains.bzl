@@ -1,8 +1,7 @@
 load("//implementation:common.bzl",
     "OCAML_VERSION")
-load("//implementation:providers.bzl",
-     "OpamPkgInfo",
-     "PpxInfo")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 load("//implementation:utils.bzl",
      "strip_ml_extension",
      "OCAML_FILETYPES"

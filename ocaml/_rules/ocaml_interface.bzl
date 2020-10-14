@@ -1,12 +1,13 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsModuleProvider",
-     "OpamPkgInfo",
+     "OcamlNsModuleProvider")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider")
 load("//ocaml/_actions:rename.bzl", "rename_module")
@@ -20,7 +21,7 @@ load("//ocaml/_actions:ppx.bzl",
      "ocaml_ppx_library_compile",
      "ocaml_ppx_library_link")
 
-load("//implementation:deps.bzl", "get_all_deps")
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
 load("//implementation:utils.bzl",
      "capitalize_initial_char",

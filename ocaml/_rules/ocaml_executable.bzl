@@ -6,13 +6,13 @@ load("//ocaml/_actions:ppx.bzl",
 # load("//ocaml/_actions:ocaml.bzl",
 #      "ocaml_compile")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlSDK",
-     "OpamPkgInfo",
-     "PpxInfo")
+     "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
