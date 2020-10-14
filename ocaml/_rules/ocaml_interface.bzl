@@ -9,7 +9,7 @@ load("//implementation:providers.bzl",
      "OpamPkgInfo",
      "PpxArchiveProvider",
      "PpxExecutableProvider")
-load("//ocaml/_actions:module.bzl", "rename_ocaml_module")
+load("//ocaml/_actions:rename.bzl", "rename_module")
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
 load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
@@ -60,8 +60,7 @@ def _ocaml_interface_impl(ctx):
   if ctx.attr.ppx:
     xsrc = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
   elif ctx.attr.ns_module:
-    xsrc = rename_ocaml_module(ctx, ctx.file.src) #, ctx.attr.ns)
-    # xsrc = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.src), ctx.attr.ns)
+    xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   else:
     xsrc = ctx.file.src
     # xsrc = struct(impl = impl_src_file, intf = ctx.attr.src if ctx.attr.src else None)
