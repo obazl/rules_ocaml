@@ -17,6 +17,11 @@ def ppx_transform_action(rule, ctx, infile):
   Outputs: struct(intf :: declared File, maybe impl :: declared File)
   """
 
+  debug = False
+  # if (ctx.label.name == "snark0.cm_"):
+  # if ctx.label.name == "Filter":
+  #     debug = True
+
   # print("PPX_TRANSFORM_ACTION: {rule} ({target}): {infile}".format(rule=rule, target=ctx.label.name, infile=infile))
 
   pfx = None
@@ -26,11 +31,14 @@ def ppx_transform_action(rule, ctx, infile):
   # elif (rule == "ppx_module"):
   #   if ctx.attr.ppx_ns_module:
   #     pfx = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns
+  elif (rule == "ppx_module"):
+    if ctx.attr.ns_module:
+      pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
   elif (rule == "ocaml_interface"):
     if ctx.attr.ns_module:
       pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
   else:
-    fail("ppx_transform_action called by rule other than ocaml_module or ppx_module: %s" % rule)
+    fail("ppx_transform_action called by rule other than ocaml_module or ocaml_interface or ppx_module: %s" % rule)
 
   # print("XFORM NS: %s" % pfx)
 
@@ -93,6 +101,8 @@ def ppx_transform_action(rule, ctx, infile):
 
   # print("PPX: %s" % ppx)
   if ctx.attr.ppx:
+    if debug:
+        print("PPX: %s" % ctx.attr.ppx)
     args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
     args.add_all(ctx.attr.ppx_args)
     if hasattr(ctx.attr, "ppx_output_format"):
@@ -120,10 +130,11 @@ def ppx_transform_action(rule, ctx, infile):
   #       args.add("-ppxopt", pkg + "," + ppxargs)
 
   dep_graph = [infile] # , ppx]
-  if ctx.attr.ppx_runtime_deps:
-      for dep in ctx.files.ppx_runtime_deps:
-          # includes.append(dep.dirname)
-          dep_graph.append(dep)
+  if hasattr(ctx.attr, "ppx_runtime_deps"):
+      if ctx.attr.ppx_runtime_deps:
+          for dep in ctx.files.ppx_runtime_deps:
+              # includes.append(dep.dirname)
+              dep_graph.append(dep)
 
   ctx.actions.run(
     env = env,
@@ -132,11 +143,11 @@ def ppx_transform_action(rule, ctx, infile):
     inputs = dep_graph,
     outputs = [outfile], #outputs.values(),
     tools = [ppx], # [item[0]],
-    mnemonic = "OcamlPpxModule",
-    progress_message = "ppx_transform_action of {rule}{msg}".format(
+    mnemonic = "PpxTransformAction",
+    progress_message = "Action: ppx_transform_action of {rule}({tgt}){msg}".format(
         rule=rule,
-        # target=ctx.label.name,
-        msg = "" if not ctx.attr.msg else ", msg: " + ctx.attr.msg
+        tgt=ctx.label.name,
+        msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
     )
   )
 

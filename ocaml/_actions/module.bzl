@@ -1,11 +1,13 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/_providers:ocaml.bzl",
+     "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlNsModuleProvider",
      "OcamlModuleProvider")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_providers:ppx.bzl",
+     "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
@@ -33,35 +35,25 @@ def compile_module(rule, ctx, mydeps):
 
   if debug:
       print("COMPILE_MODULE: %s" % ctx.label.name)
+      print("DEPSET:")
+      print(mydeps)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
   xsrc   = None
-  ppx_opam_lazy_deps = None
-  ppx_nopam_lazy_deps = None
-
   dep_graph = []
   outputs   = []
 
   if ctx.attr.ppx:
-      ppx = ctx.attr.ppx
-      ppx_opam_lazy_deps = ppx[PpxExecutableProvider].deps.opam_lazy_deps
-      ppx_nopam_lazy_deps = ppx[PpxExecutableProvider].deps.nopam_lazy_deps
       ## this will also handle ns
       xsrc = ppx_transform_action(rule, ctx, ctx.file.src)
-      if debug:
-          print("PPX: %s" % ppx)
-          print("PPX DEP DEFAULT PROVIDER: %s" % ppx[DefaultInfo])
-          print("PPX DEP PROVIDER: %s" % ppx[PpxExecutableProvider])
-          print("PPX OPAM LAZY DEPS: %s" % ppx_opam_lazy_deps)
-          print("PPX NOPAM LAZY DEPS: %s" % ppx_nopam_lazy_deps)
       dep_graph.append(ctx.file.ppx)
+      # a ppx executable may have lazy deps; they are handled by get_all_deps
   elif ctx.attr.ns_module:
       # rename this module to put it in the namespace
-    xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
-    # e.g. vector.ml -> Camlsnark_c_bindings__Vector.ml
+      xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   else:
       xsrc = ctx.file.src
 
@@ -151,18 +143,6 @@ def compile_module(rule, ctx, mydeps):
   # later we will add opam deps to CL using -package
   opam_deps = []
   nopam_deps = []
-  if ppx_opam_lazy_deps:
-    for lazy_dep in ppx_opam_lazy_deps.to_list():
-        if OpamPkgInfo in lazy_dep:
-            for x in lazy_dep[OpamPkgInfo].pkg.to_list():
-                opam_deps.append(x.name)
-        else: ## this is a non-opam dep
-            for x in lazy_dep[DefaultInfo].to_list():
-                nopam_deps.append(x.name)
-  if ppx_nopam_lazy_deps:
-    for lazy_dep in ppx_nopam_lazy_deps.to_list():
-        # nopam_deps.append(lazy_dep)
-        args.add(lazy_dep)
 
   for datum in ctx.attr.data:
       dep_graph.extend(datum.files.to_list())
@@ -204,24 +184,28 @@ def compile_module(rule, ctx, mydeps):
   for dep in mydeps.nopam.to_list():
       # if debug:
       #     print("\nNOPAM DEP: %s\n\n" % dep)
-      if dep.extension == "cmx":
+      if dep.extension == "cmi":
           dep_graph.append(dep)
-          # build_deps.append(dep)
+          ## THIS IS THE CRITICAL BIT for compiling! The compiler must be able to find the cmi files.
           includes.append(dep.dirname)
-      elif dep.extension == "cmi":
-          dep_graph.append(dep)
-          # includes.append(dep.dirname)
           ## cmi ignored if mli not present!
+      elif dep.extension == "cmx":
+          dep_graph.append(dep)
+          # Just to make sure (cmx and cmi should be in same dir?)
+          includes.append(dep.dirname)
+          # We do not need to list cmx files, the compiler will find them in the search path.
       elif dep.extension == "mli":
           dep_graph.append(dep)
           includes.append(dep.dirname)
       elif dep.extension == "o":
-          # build_deps.append(dep)
-        dep_graph.append(dep)
+          dep_graph.append(dep)
+          includes.append(dep.dirname)
       elif dep.extension == "cmxa":
           build_deps.append(dep)
           dep_graph.append(dep)
-          # includes.append(dep.dirname)
+          includes.append(dep.dirname)
+          ## we need the dir on the search path, so the subcomponents can be found.
+          ## alternatively, we can add each subcomponent cmx to the command line
           ## cc deps
       elif dep.extension == "a":
           dep_graph.append(dep)
@@ -250,6 +234,43 @@ def compile_module(rule, ctx, mydeps):
               cclib_deps.append(dep)
       elif dep.extension == ".cmxs":
           includes.append(dep.dirname)
+
+  ## lazy deps: we're compiling a module, so make them eager
+  ## NO: only use lazy deps from ppx to compile this module,
+  ## the lazy deps in the deps tree are propagated.
+  ## which should only happen for ppx_* rules.
+  ## i.e. if an ocaml_module depends on a ppx lib, then it too is a ppx lib.
+  ## FIXME: do not allow ocaml_modules to depend on ppx_*?
+
+  # for dep in mydeps.nopam_lazy.to_list():
+  #     ## get provider from dep: module? archive?
+  #     print("NOPAM LAZY DEP: %s" % dep)
+  #     if dep.extension == "cmx":
+  #         # includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #         args.add(dep)
+  #     elif dep.extension == "cmxa":
+  #         includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #     elif dep.extension == "o":
+  #         # includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #     elif dep.extension == "cmi":
+  #         # includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #     elif dep.extension == "mli":
+  #         # includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+
+      # if OcamlModuleProvider in dep:
+      #     print("NOPAM LAZY OcamlModuleProvider DEP: %s" % dep)
+      # elif OcamlArchiveProvider in dep:
+      #     print("NOPAM LAZY DEP: %s" % dep[OcamlArchiveProvider])
+      # elif PpxModuleProvider in dep:
+      #     print("NOPAM LAZY DEP: %s" % dep[PpxModuleProvider])
+      # elif PpxArchiveProvider in dep:
+      #     print("NOPAM LAZY DEP: %s" % dep[PpxArchiveProvider])
+
 
   ####  TODO:  transitive cc_deps
   # for dep in ctx.attr.cc_deps.items():
@@ -316,12 +337,14 @@ def compile_module(rule, ctx, mydeps):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
-  ## opam_deps already includes ppx_opam_lazy_deps, now add transitive opam deps
-  ## transitive opam deps - filter out ppx_driver-based libs
-  # deps.extend(mydeps.opam.to_list())
   for dep in mydeps.opam.to_list():
       for x in dep.pkg.to_list():
           opam_deps.append(x.name)
+
+  ## lazy deps in the dep graph are NOT compile deps of this module.
+  ## only the lazy deps of the ppx are.
+  # for dep in mydeps.opam_lazy.to_list():
+  #     opam_deps.append(dep.pkg.to_list()[0].name)
 
   if len(opam_deps) > 0:
       # args.add("-linkpkg")
@@ -333,6 +356,34 @@ def compile_module(rule, ctx, mydeps):
           #             args.add("-package", dep.pkg.to_list()[0].name)
           #         else:
           #             args.add("-package", dep.pkg.to_list()[0].name)
+
+  if ctx.attr.ppx:
+      ## add lazy_deps from ppx provider
+      ppx_provider = ctx.attr.ppx[PpxExecutableProvider]
+      if debug:
+          print("PPX Provider: %s" % ppx_provider)
+      for dep in ppx_provider.deps.opam_lazy.to_list():
+          if debug:
+              print("OPAM lazy dep: %s" % dep)
+          args.add("-package", dep.pkg.to_list()[0].name)
+      for dep in ppx_provider.deps.nopam_lazy.to_list():
+          if debug:
+              print("NOPAM lazy dep: %s" % dep)
+          if dep.extension == "cmxa":
+              dep_graph.append(dep)
+              includes.append(dep.dirname)
+          if dep.extension == "cmx":
+              dep_graph.append(dep)
+              # Just to make sure (cmx and cmi should be in same dir?)
+              includes.append(dep.dirname)
+              # We do not need to list cmx files, the compiler will find them in the search path.
+              # args.add(dep)
+          # # no need to add .o? adding .cmx covers it?
+          # if dep.extension == "o":
+          #     includes.append(dep.dirname)
+          if dep.extension == "cmi":
+              includes.append(dep.dirname)
+              dep_graph.append(dep)
 
   args.add_all(build_deps)
   # args.add_all(cclib_deps)

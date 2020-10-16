@@ -1,4 +1,4 @@
-# Copyright 2014 The Bazel Authors. All rights reserved.
+# Copyright 2020 Gregg Reynolds. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,10 +36,10 @@ load(
     "//implementation:platforms.bzl",
     "generate_toolchain_names",
 )
-load(
-    "//implementation:skylib/lib/versions.bzl",
-    "versions",
-)
+# load(
+#     "//implementation:skylib/lib/versions.bzl",
+#     "versions",
+# )
 
 # print("private/sdk.bzl loading")
 
@@ -378,13 +378,14 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
             installation = DEFAULT_VERSION
         if installation == "host":
             ocaml_home_sdk(name = OCAML_SDK)
-        else:
-            if not versions.is_at_least(MIN_SUPPORTED_VERSION, installation):
-                print("DEPRECATED: ocaml_register_toolchains: support for Ocaml versions before {} will be removed soon".format(MIN_SUPPORTED_VERSION))
-                ocaml_project_sdk(
-                    name = OCAML_SDK,
-                    version = installation,
-                )
+        ## FIXME: use skylib https://github.com/bazelbuild/bazel-skylib/blob/master/docs/versions_doc.md
+        # else:
+        #     if not versions.is_at_least(MIN_SUPPORTED_VERSION, installation):
+        #         print("DEPRECATED: ocaml_register_toolchains: support for Ocaml versions before {} will be removed soon".format(MIN_SUPPORTED_VERSION))
+        #         ocaml_project_sdk(
+        #             name = OCAML_SDK,
+        #             version = installation,
+        #         )
 
     # toolchain target defined in generated file ocaml_sdk/BUILD.bazel (BUILD.sdk.tpl)
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_macos")

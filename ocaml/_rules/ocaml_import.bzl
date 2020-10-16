@@ -12,16 +12,15 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 # load("//ocaml/_actions:ocamlopt.bzl",
 #      "compile_native_with_ppx",
 #      "link_native")
-load("//implementation:providers.bzl",
+load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
      "OcamlImportProvider",
      "OcamlLibraryProvider",
      "OcamlNsModuleProvider",
      "OcamlModuleProvider",
-     "OcamlSDK",
-     "OpamPkgInfo",
-     "PpxInfo")
+     "OcamlSDK")
+load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      # "get_all_deps",

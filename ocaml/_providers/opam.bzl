@@ -16,6 +16,7 @@ OpamPkgInfo = provider(
     doc = "Provider for OPAM packages.",
     fields = {
         ## clients must write: dep[OpamPkgInfo].pkg.to_list()[0].name
+        ## FIXME: make pkg contain just the label? no need for a depset.
         "pkg": "Label depset containing package name string used by ocamlfind.",
         "ppx_driver": "True if ocamlfind would generate -ppx command line arg when this lib is listed as a dep."
     }

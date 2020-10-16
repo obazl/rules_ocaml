@@ -57,20 +57,19 @@ def _ocaml_interface_impl(ctx):
 
   xsrc = None
   opam_deps = []
+  nopam_deps = []
+
+  build_deps = []
+  dso_deps = []
+  includes   = []
 
   if ctx.attr.ppx:
+      ## this will also handle ns
     xsrc = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
   elif ctx.attr.ns_module:
     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   else:
     xsrc = ctx.file.src
-    # xsrc = struct(impl = impl_src_file, intf = ctx.attr.src if ctx.attr.src else None)
-
-
-  # elif ctx.attr.ppx_libs:
-  #   for item in ctx.attr.ppx.items():
-  #     if item[0].label.workspace_name == "opam":
-  #       args.add("-package", item[0].label.name)
 
   # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
   cmifname = xsrc.basename.rstrip("mli") + "cmi"
@@ -103,14 +102,22 @@ def _ocaml_interface_impl(ctx):
   # args.add("-linkpkg")
   # args.add("-linkall")
 
+  ppx_opam_lazy_deps = []
+  ppx_nopam_lazy_deps = []
+
+  ## FIXME: use mydeps.opam_lazy
   if ctx.attr.ppx:
-    x_deps = ctx.attr.ppx[PpxExecutableProvider].deps.x
-    for x_dep in x_deps.to_list():
-        if OpamPkgInfo in x_dep:
-            for x in x_dep[OpamPkgInfo].pkg.to_list():
-                opam_deps.append(x.name)
-        # else:
-        #     ## FIXME: support nopam x_deps
+    if PpxExecutableProvider in ctx.attr.ppx:
+        ppx_opam_lazy_deps = ctx.attr.ppx[PpxExecutableProvider].deps.opam_lazy
+        for dep in ppx_opam_lazy_deps.to_list():
+            for p in dep.pkg.to_list():
+                opam_deps.append(p.name)
+        ppx_nopam_lazy_deps = ctx.attr.ppx[PpxExecutableProvider].deps.nopam_lazy
+        for lazy_dep in ppx_nopam_lazy_deps.to_list():
+            if debug:
+                print("LAZY DEP: %s" % lazy_dep)
+            nopam_deps.append(lazy_dep)
+            includes.append(lazy_dep.dirname)
 
   for dep in mydeps.opam.to_list():
       for x in dep.pkg.to_list():
@@ -120,10 +127,6 @@ def _ocaml_interface_impl(ctx):
       args.add("-linkpkg")
       for dep in opam_deps:  # mydeps.opam.to_list():
           args.add("-package", dep)
-
-  build_deps = []
-  dso_deps = []
-  includes   = []
 
   intf_dep = None
 

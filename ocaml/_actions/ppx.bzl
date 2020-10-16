@@ -3,10 +3,7 @@ load("//implementation:utils.bzl",
 )
 load("//implementation/actions:ocaml.bzl",
      "ocaml_compile")
-load("//implementation:providers.bzl",
-     # "OcamlSDK",
-     # "OpamPkgInfo",
-     "PpxInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 
 def ocaml_ppx_compile(ctx, env, pgm, args, inputs, outputs, tools,
                       msg):

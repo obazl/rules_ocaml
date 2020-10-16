@@ -38,25 +38,22 @@ load("//implementation:utils.bzl",
 #### then link.
 def _ppx_archive_impl(ctx):
 
-  ## this is essentially the same as ocaml_library, but it returns a
-  ## ppx provider. should unify them?
-
-  # print("_PPX_ARCHIVE_IMPL: %s" % ctx.label.name)
-  if len(ctx.attr.deps) == 1:
-    if PpxArchiveProvider in ctx.attr.deps[0]:
-      ## used to redirect/wrap a ppx_module in another location
-      ## e.g. src/ppx/register_event redirects to src/lib/ppx_register_event
-      redirect = ctx.attr.deps[0]
-      # print("PPX ARCHIVE REDIRECT: %s" % redirect)
-      return [
-        redirect[DefaultInfo],
-        redirect[PpxArchiveProvider]
-      ]
+  debug = False
+  # if ctx.label.name == "ppx_version":
+  #     debug = True
 
   mydeps = get_all_deps("ppx_archive", ctx)
 
   # print("PPX ARCHIVE MYDEPS")
   # print(mydeps.opam)
+
+  # opam_lazy_deps = []
+  # nopam_lazy_deps = []
+  # for dep in ctx.attr.lazy_deps:
+  #   if OpamPkgInfo in dep:
+  #       opam_lazy_deps.append(dep)
+  #   else:
+  #       nopam_lazy_deps.append(dep)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -139,7 +136,7 @@ def _ppx_archive_impl(ctx):
         #   build_deps.append(g)
         if g.path.endswith(".cmx"):
           includes.append(g.dirname)
-          build_deps.append(g)
+          # build_deps.append(g)
           dep_graph.append(g)
         if g.path.endswith(".cmi"):
           includes.append(g.dirname)
@@ -149,7 +146,8 @@ def _ppx_archive_impl(ctx):
           dep_graph.append(g)
         if g.path.endswith(".cmxa"):
           includes.append(g.dirname)
-          build_deps.append(g)
+          ## cannot pass a cmxa dep when using -a
+          # build_deps.append(g)
           dep_graph.append(g)
 
   # for an archive we need all deps on the command line:
@@ -160,10 +158,10 @@ def _ppx_archive_impl(ctx):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
-  args.add_all(ctx.files.srcs)
+  # args.add_all(ctx.files.srcs)
 
-  inputs_arg = ctx.files.srcs + build_deps
-  dep_graph.extend(ctx.files.srcs)
+  # inputs_arg = ctx.files.srcs + build_deps
+  # dep_graph.extend(ctx.files.srcs)
 
   # print("INPUT_ARGS:")
   # print(inputs_arg)
@@ -183,25 +181,33 @@ def _ppx_archive_impl(ctx):
     )
   )
 
-  return [
-    DefaultInfo(
-      files = depset(direct = obj.values()) # [obj_cmxa, obj_a])
-    ),
-    PpxArchiveProvider(
+  ppx_provider = PpxArchiveProvider(
       payload = struct(
-        cmxa = obj["cmxa"] if "cmxa" in obj else None,
-        cmxs = obj["cmxs"] if "cmxs" in obj else None,
-        a    = obj["a"] if "a" in obj else None
-        # cmi  : .cmi file produced by the target
-        # cm   : .cmx or .cmo file produced by the target
-        # o    : .o file produced by the target
+          cmxa = obj["cmxa"] if "cmxa" in obj else None,
+          cmxs = obj["cmxs"] if "cmxs" in obj else None,
+          a    = obj["a"] if "a" in obj else None
+          # cmi  : .cmi file produced by the target
+          # cm   : .cmx or .cmo file produced by the target
+          # o    : .o file produced by the target
       ),
       deps = struct(
-        opam  = mydeps.opam,
-        nopam = mydeps.nopam
+          opam  = mydeps.opam,
+          opam_lazy = mydeps.opam_lazy,
+          nopam = mydeps.nopam,
+          nopam_lazy = mydeps.nopam_lazy
       )
-    )
-  ]
+  )
+
+  defaultInfo = DefaultInfo(
+      files = depset(direct = obj.values()) # [obj_cmxa, obj_a])
+  )
+
+  result = [defaultInfo, ppx_provider]
+  if debug:
+      print("PpxArchiveProvider RESULT:")
+      print(result)
+
+  return result
 
 #############################################
 #### RULE DECL:  PPX_ARCHIVE  #########
@@ -217,9 +223,9 @@ ppx_archive = rule(
     ),
     msg = attr.string(),
     dump_ast = attr.bool(default = True),
-    srcs = attr.label_list(
-      allow_files = OCAML_FILETYPES
-    ),
+    # srcs = attr.label_list(
+    #   allow_files = OCAML_FILETYPES
+    # ),
     linkshared = attr.bool(default = False),
     # src_root = attr.label(
     #   allow_single_file = True,
@@ -260,6 +266,9 @@ ppx_archive = rule(
     ),
     #### end options ####
     deps = attr.label_list(
+      providers = [[DefaultInfo], [PpxModuleProvider]]
+    ),
+    lazy_deps = attr.label_list(
       providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
     mode = attr.string(default = "native"),

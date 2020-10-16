@@ -26,9 +26,9 @@ PpxArchiveProvider = provider(
         """,
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
-            opam_lazy_deps : extension output deps; needed when transformed source is compiled
+            opam_lazy : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy_deps : extension output deps; needed when transformed source is compiled
+            nopam_lazy : extension output deps; needed when transformed source is compiled
         """
     }
 )
@@ -40,9 +40,9 @@ PpxExecutableProvider = provider(
         "args"   : "Args to be passed when binary is invoked",
         "deps"   : """A triple of depsets:
             opam : direct and transitive opam deps (Labels) of target
-            opam_lazy_deps : extension output deps; needed when transformed source is compiled
+            opam_lazy : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy_deps : extension output deps; needed when transformed source is compiled
+            nopam_lazy : extension output deps; needed when transformed source is compiled
         """
     }
 )
@@ -72,11 +72,11 @@ PpxModuleProvider = provider(
             cm: .cmx or .cmo file produced by the target
             o  : .o file produced by the target
         """,
-        "deps"   : """A pair of depsets:
+        "deps"   : """A collectikon of depsets:
             opam : direct and transitive opam deps (Labels) of target
-            opam_lazy_deps : extension output deps; needed when transformed source is compiled
+            opam_lazy : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy_deps : extension output deps; needed when transformed source is compiled
+            nopam_lazy : extension output deps; needed when transformed source is compiled
             cc_deps : C/C++ deps
         """
     }

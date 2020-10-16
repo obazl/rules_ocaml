@@ -31,10 +31,8 @@ load("//implementation:utils.bzl",
 def _ppx_executable_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "vector_ffi_bindings.cm_"):
-  # if (ctx.label.name == "ppx_exe"):
-  # # if (ctx.label.name == "ppxlib_metaquot"):
-  #     debug = True
+  if (ctx.label.name == "ppx[ppx_sexp_conv][ppx_bin_prot][ppx_let][ppx_hash][ppx_compare][ppx_deriving.enum][ppx_assert][ppx_deriving.eq][ppx_snarky][ppx_fields_conv][ppx_inline_test][ppx_custom_printf]"):
+      debug = True
 
   if debug:
       print("\n\n\tPPX_EXECUTABLE TARGET: %s\n\n" % ctx.label.name)
@@ -59,6 +57,9 @@ def _ppx_executable_impl(ctx):
       # print("PPX MODULE PROVIDER: %s" % src[PpxModuleProvider])
 
   mydeps = get_all_deps("ppx_executable", ctx)
+  if debug:
+      print("MYDEPS: %s" % mydeps)
+
   dep_graph = []
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
@@ -83,31 +84,33 @@ def _ppx_executable_impl(ctx):
   build_deps = []
   includes = []
 
+
   # print("NOPAMS: %s" % mydeps.nopam)
   # we need to add the archive components to inputs, the archive is not enough
   # without these we get "implementation not found"
   for dep in mydeps.nopam.to_list():
+    # if debug:
+      # print("DEPGRAPH:  %s" % dep_graph)
     if debug:
-        # print("DEPGRAPH:  %s" % dep_graph)
         print("DEP:  %s" % dep)
-    if dep.extension == "cmx":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
-      build_deps.append(dep)
-    if dep.extension == "o":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
     if dep.extension == "cmi":
       dep_graph.append(dep)
       includes.append(dep.dirname)
-    if dep.extension == "mli":
+    elif dep.extension == "mli":
       dep_graph.append(dep)
       includes.append(dep.dirname)
-    if dep.extension == "cmxa":
+    elif dep.extension == "cmx":
       dep_graph.append(dep)
       includes.append(dep.dirname)
       build_deps.append(dep)
-    if dep.extension == "a":
+    elif dep.extension == "o":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+    elif dep.extension == "cmxa":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+      build_deps.append(dep)
+    elif dep.extension == "a":
       dep_graph.append(dep)
       includes.append(dep.dirname)
   # for dep in ctx.attr.build_deps:
@@ -121,13 +124,20 @@ def _ppx_executable_impl(ctx):
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
+  args.add_all(build_deps)
+
   opam_deps = mydeps.opam.to_list()
+  ## indirect lazy deps
+  opam_deps.extend(mydeps.opam_lazy.to_list())
+
   if len(opam_deps) > 0:
     # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
     args.add("-linkpkg")
     for dep in opam_deps:
+        # args.add("-package", dep)
         args.add("-package", dep.pkg.to_list()[0].name)
         # args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
+
 
   # WARNING: don't add build_deps to command line.  For namespaced
   # modules, they may contain both a .cmx and a .cmxa with the same
@@ -166,58 +176,34 @@ def _ppx_executable_impl(ctx):
       print("DEP_GRAPH:")
       print(dep_graph)
 
-  entailing_opam_deps = []
-  entailing_nopam_deps = []
-  entailed_deps = []
-  for x_dep in ctx.attr.x_deps:
+  ## direct lazy deps
+  opam_lazy_deps = []
+  nopam_lazy_deps = []
+  # this covers direct lazy deps; what about indirects?
+  # e.g. suppose a direct lazy dep depends on a module that has its own lazy deps.
+  # e.g. a non-lazy dep has lazy deps - ppx_executable depends on ppx_modules with lazy deps
+  for dep in ctx.attr.lazy_deps:
     if debug:
-        print("DEP X_DEP: %s" % x_dep)
+        print("DEP LAZY_DEP: %s" % dep)
         # ed = ctx.attr.deps[key]
         # if OpamPkgInfo in ed:
         #     if debug:
         #         print("is OPAM")
         #     output_dep = ed[OpamPkgInfo].pkg.to_list()[0]
-        #     entailed_deps.append(output_dep)
+        #     lazy_deps.append(output_dep)
         # # else:
-        # #     entailed_deps.append(ctx.attr.deps[key].name)
-    if OpamPkgInfo in x_dep:
+        # #     lazy_deps.append(ctx.attr.deps[key].name)
+    if OpamPkgInfo in dep:
         if debug:
-            print("is OPAM: %s" % x_dep)
-        entailed_deps.append(x_dep)
-        # output_dep = x_dep[OpamPkgInfo].pkg.to_list()[0]
-        # entailing_opam_deps.append(output_dep.name)
-    # else:
-    #     if debug:
-    #         print("is NOPAM: %s" % key)
-    #     if OcamlArchiveProvider in key:
-    #         archive = key[OcamlArchiveProvider]
-    #         if debug:
-    #             print("OCAML ARCHIVE: %s" % archive)
-    #             print(" PAYLOAD: %s" % archive.payload)
-    #         # build_deps.append(archive.payload.cmxa)
-    #         # build_deps.append(archive.payload.a)
-    #         dep_graph.append(archive.payload.cmxa)
-    #         dep_graph.append(archive.payload.a)
-    #         for dep in archive.deps.opam.to_list():
-    #             if debug:
-    #                 print("OCAML A OPAM DEP: %s" % dep)
-    #             # entailing_opam_deps.append(dep)
-    #         for dep in archive.deps.nopam.to_list():
-    #             if debug:
-    #                 print("OCAML A NOPAM DEP: %s" % dep)
-    #     elif OcamlModuleProvider in key:
-    #         dep = key[OcamlModuleProvider]
-    #         if debug:
-    #             print("OCAML MODULE: %s" % dep)
-    #     for f in key.files.to_list():
-    #         print("XXXXXXXXXXXXXXXX UNKOWN PROVIDER: %s" % key)
+            print("is OPAM: %s" % dep)
+        provider = dep[OpamPkgInfo]
+        opam_lazy_deps.append(provider)
+    else:
+        nopam_lazy_deps.append(dep)
 
-  # if len(entailing_opam_deps) > 0:
-  #     args.add("-linkpkg")
-  #     for dep in entailing_opam_deps:
-  #         args.add("-package", dep)
+  ## this is handled by get_all_deps
+  # nopam_lazy_deps.extend(mydeps.nopam_lazy.to_list())
 
-  args.add_all(build_deps)
   # driver shim source must come after lib deps!
   for src in ctx.files.srcs:
       if src.extension == "cmx":
@@ -251,21 +237,28 @@ def _ppx_executable_impl(ctx):
   )
 
 
-  # print("PPX_EXECUTABLE TRANSFORM: %s" % entailed_deps)
+  # print("PPX_EXECUTABLE TRANSFORM: %s" % lazy_deps)
 
-  return [DefaultInfo(executable=outbinary,
+  results = [DefaultInfo(executable=outbinary,
                       files = depset(direct = [outbinary])),
           PpxExecutableProvider(
             payload=outbinary,
             args = depset(direct = ctx.attr.args),
             deps = struct(
                 opam = mydeps.opam,
+                opam_lazy = mydeps.opam_lazy,
+                # opam_lazy = depset(direct = opam_lazy_deps),
                 nopam = mydeps.nopam,
-                ## FIXME: support both opam and nopam x_deps
-                x = depset(direct = entailed_deps)
+                nopam_lazy = mydeps.nopam_lazy
+                # nopam_lazy = depset(direct = nopam_lazy_deps)
             )
           )]
 
+  if debug:
+      print("PPX_EXECUTABLE RESULTS:")
+      print(results)
+
+  return results
 # (library
 #  (name deriving_hello)
 #  (libraries base ppxlib)
@@ -285,10 +278,10 @@ ppx_executable = rule(
     srcs = attr.label_list(
       allow_files = OCAML_IMPL_FILETYPES
     ),
-    ppx_bin  = attr.label(
-      doc = "PPX binary (executable).",
-      providers = [PpxExecutableProvider]
-    ),
+    # ppx_bin  = attr.label(
+    #   doc = "PPX binary (executable).",
+    #   providers = [PpxExecutableProvider]
+    # ),
     ppx  = attr.label(
       doc = "PPX binary (executable).",
       providers = [PpxExecutableProvider],
@@ -301,8 +294,8 @@ ppx_executable = rule(
       doc = "Deps needed to build this ppx executable.",
       providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
-    x_deps = attr.label_list(
-      doc = """(Entailed) eXtension Dependencies.""",
+    lazy_deps = attr.label_list(
+      doc = """(Lazy) eXtension Dependencies.""",
       # providers = [[DefaultInfo], [PpxModuleProvider]]
     ),
     mode = attr.string(default = "native"),

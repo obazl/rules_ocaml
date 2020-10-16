@@ -11,14 +11,6 @@ load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
 load("//ocaml/_actions:module.bzl", "compile_module")
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
-# load("//ocaml/_actions:ppx.bzl",
-     # "apply_ppx",
-     # "ocaml_ppx_compile",
-     # "ocaml_ppx_apply",
-     # "ocaml_ppx_library_gendeps",
-     # "ocaml_ppx_library_cmo",
-     # "ocaml_ppx_library_compile",
-     # "ocaml_ppx_library_link")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
@@ -37,183 +29,54 @@ load("//implementation:utils.bzl",
 ####  OCAML_PPX_MODULE IMPLEMENTATION
 def _ppx_module_impl(ctx):
 
-  # FIXME: use alias?  import?
-  # if not ctx.attr.impl:
-  #   if len(ctx.attr.deps) == 1:
-  #     ## used to redirect/wrap a ppx_module in another location
-  #     ## e.g. src/ppx/register_event redirects to src/lib/ppx_register_event
-  #     redirect = ctx.attr.deps[0]
-  #     # print("PPX MODULE REDIRECT: %s" % redirect)
-  #     return [
-  #       redirect[DefaultInfo],
-  #       redirect[PpxModuleProvider]
-  #     ]
+  debug = False
+  if ctx.label.name == "Register_event":
+      debug = True
 
   mydeps = get_all_deps("ppx_module", ctx)
 
-  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+  result = compile_module("ppx_module", ctx, mydeps)
 
-  x_deps = None
-  dep_graph = []
-  infile = None
-  obj = {}
-  if ctx.attr.ppx_exe:
-    ## this will also handle ns
-    infile = ppx_transform_action("ppx_module", ctx, ctx.file.impl)
-    dep_graph.append(infile)
-    print("PPX INFILE: %s" % infile)
-    obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
-    obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
-    obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
-    # srcs = ppx_transform_action("ppx_module", ctx, struct(impl = impl_src_file, intf = ctx.attr.intf))
-    x_deps = ctx.attr.ppx_exe[PpxExecutableProvider].deps.x_deps
-  elif ctx.attr.ppx_ns_module:
-    infile = rename_module(ctx, ctx.file.impl) # , ctx.attr.ns)
-    obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
-    obj_cmi = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmi"))
-    obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
-    outfile = paths.replace_extension(infile.basename, ".cmx")
-    # srcs = rename_module(ctx, struct(impl = impl_src_file, intf = ctx.attr.intf), ctx.attr.ns)
-  else:
-    if ctx.attr.impl:
-      infile = ctx.file.impl
-      obj_cm = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".cmx"))
-      obj_o  = ctx.actions.declare_file(paths.replace_extension(infile.basename, ".o"))
-      if ctx.attr.module_name:
-        outfile = ctx.attr.module_name + ".cmx"
-      else:
-        outfile = paths.replace_extension(infile.basename, ".cmx")
+  if debug:
+      print("PPX_MODULE COMPILE RESULT:")
+      print(result)
 
-  # print("TRANSFORM DEPS: %s" % x_deps)
-
-  # print("CTX.ATTR.IMPL: %s" % ctx.attr.impl)
-  # print("CTX.ATTR.MODULE_NAME: %s" % ctx.attr.module_name)
-  # print("INFILE: %s" % infile)
-  # srcs now contains output files we need to declare, and we no longer need ns or ppx
-  # srcs :: struct( impl :: declared File, maybe intf :: File )
-  # Note that we need to declare the cmi output even if we do not have an intf input.
-
-  obj = {}
-
-  args = ctx.actions.args()
-  args.add(tc.compiler.basename)
-  args.add("-w", ctx.attr.warnings)
-  options = tc.opts + ctx.attr.opts
-  args.add_all(options)
-
-  if ctx.attr.ppx_ns_module:
-    args.add("-no-alias-deps")
-    args.add("-opaque")
-    ns_cm = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cm
-    dep_graph.append(ns_cm)
-    dep_graph.append(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.cmi)
-    ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
-    args.add("-open", ns_mod)
-    # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
-
-  args.add("-c")
-  args.add("-o", obj_cm)
-
-  build_deps = []
-  includes = []
-
-  includes.append(obj_cm.dirname)
-
-  ## transitive opam deps
-  # linkpkg_flag = False
-  # for dep in ctx.attr.deps:
-  #   for g in dep[DefaultInfo].files.to_list():
-  #     if g.path.endswith(".cmx"):
-  #       build_deps.append(g)
-  #       includes.append(g.dirname)
-  #     if g.path.endswith(".cmxa"):
-  #       build_deps.append(g)
-  #       includes.append(g.dirname)
-  ##FIXME:  use mydeps.nopam
-  # print("NOPAMS: %s" % mydeps.nopam)
-  for dep in mydeps.nopam.to_list():
-    # print("DEP:  %s" % dep)
-    if hasattr(dep, "cm"):
-      build_deps.append(dep.cm)
-      includes.append(dep.cm.dirname)
-      dep_graph.append(dep.cm)
-    if hasattr(dep, "cmi"):
-        ## if cmi is not in the depgraph then even if it is on the search path we get e.g.
-        ## Error: The module Token is an alias for module Ppx_optcomp__Token, which is missing
-        includes.append(dep.cmi.dirname)
-        dep_graph.append(dep.cmi)
-    # if hasattr(dep, "o"):
-    #     includes.append(dep.o.dirname)
-    #     dep_graph.append(dep.o)
-    elif hasattr(dep, "cmxa"):
-      build_deps.append(dep.cmxa)
-      includes.append(dep.cmxa.dirname)
-    else:
-      build_deps.append(dep)
-      includes.append(dep.dirname)
-      dep_graph.append(dep)
-
-  args.add_all(includes, before_each="-I", uniquify = True)
-
-  # non-ocamlfind-enabled deps: we need to add to action inputs, but not to command args
-  args.add_all(build_deps)
-
-  dep_graph.extend(build_deps) ##  + [infile] # [ctx.file.impl] #  [srcs.impl]
-  if ctx.attr.cmi:
-    # print("CMI: %s" % ctx.attr.cmi[OcamlInterfaceProvider])
-    dep_graph.append(ctx.file.cmi)
-    args.add("-I", ctx.file.cmi.dirname)
-    obj_cmi = ctx.file.cmi
-  # else:
-  #   outputs.append cmi file
-
-  print("INPUTS:")
-  print(dep_graph)
-
-  # print("OUTPUTS: %s" % obj_cm)
-
-  args.add("-linkpkg")
-  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-  if x_deps:
-    args.add_all([dep for dep in x_deps], before_each="-package")
-
-  args.add("-impl", infile)
-
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = dep_graph,
-    outputs = [obj_cm, obj_cmi, obj_o],
-    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt], # + ctx.files.data,
-    mnemonic = "PpxModule",
-    progress_message = "compiling ppx_module"
-  )
-
-  # print("srcs.impl: %s" % srcs.impl)
-  # testing:
-  return [
-    DefaultInfo(files = depset(direct = [obj_cm, obj_cmi, obj_o])),
-    PpxModuleProvider(
+  ppx_provider = PpxModuleProvider(
       payload = struct(
-        cmi = obj_cmi,  #obj["cmi"] if "cmi" in obj else None,
-        cm  = obj_cm,
-        o   = obj_o
+          cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
+          mli = result.mli,
+          cm  = result.cm,
+          cmt = result.cmt,
+          o   = result.o
       ),
       deps = struct(
-        opam  = mydeps.opam,
-        nopam = mydeps.nopam
+          opam  = result.opam,
+          opam_lazy = mydeps.opam_lazy,
+          # opam_lazy = depset(order = "postorder",
+          #                    direct = opam_lazy_deps),
+          nopam = result.nopam,
+          nopam_lazy = mydeps.nopam_lazy
+          # nopam_lazy = depset(order = "postorder",
+          #                    direct = nopam_lazy_deps),
       )
-    )
-  ]
+  )
 
-# (library
-#  (name deriving_hello)
-#  (libraries base ppxlib)
-#  (preprocess (pps ppxlib.metaquot))
-#  (kind ppx_deriver))
+  directs = [result.cm, result.o, result.cmi]
+  if result.mli: directs.append(result.mli)
+  if result.cmt: directs.append(result.cmt)
+  defaultInfo = DefaultInfo(
+      files = depset(
+          order = "postorder",
+          direct = directs
+      )
+  )
+
+  result = [defaultInfo, ppx_provider]
+  if debug:
+      print("PpxModuleProvider RESULT:")
+      print(result)
+
+  return result
 
 #############################################
 ########## DECL:  PPX_MODULE  ################
@@ -239,30 +102,37 @@ ppx_module = rule(
     ns_module = attr.label(
       doc = "Label of a ns_module target. Used to derive namespace, output name, -open arg, etc.",
     ),
-    impl = attr.label(
+    src = attr.label(
       mandatory = True,  # use ocaml_interface for isolated .mli files
       doc = "A single .ml source file label.",
       allow_single_file = OCAML_IMPL_FILETYPES
     ),
-    cmi = attr.label(
+    intf = attr.label(
       doc = "Single label of a target providing a single .cmi file (not a .mli source file). Optional",
       allow_single_file = [".cmi"],
       providers = [OcamlInterfaceProvider],
+    ),
+    data = attr.label_list(
+    ),
+    runtime_deps  = attr.label_list(
+        doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        allow_files = True,
+    ),
+    lazy_deps  = attr.label_list(
+        doc = "PPX lazy (i.e. 'runtime') deps.",
+        allow_files = True,
     ),
     # ppx = attr.label_keyed_string_dict(
     #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments.""",
     #   providers = [PpxExecutableProvider]
     # ),
-    ppx_exe  = attr.label(
-      doc = "PPX binary (executable).",
-      providers = [PpxExecutableProvider]
+    ppx  = attr.label(
+        doc = "PPX binary (executable).",
+        allow_single_file = True,
+        providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
-      doc = "Arguments to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
-    ),
-    ppx_deps  = attr.label_list(
-        doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
-        allow_files = True,
+        doc = "Arguments to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
     ),
     # args  = attr.string_list(
     #   doc = "PPX cmd args.",

@@ -5,14 +5,14 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlNsModuleProvider")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
-load("//ocaml/_actions:ppx.bzl",
-     "apply_ppx",
-     "ocaml_ppx_compile",
-     # "ocaml_ppx_apply",
-     "ocaml_ppx_library_gendeps",
-     "ocaml_ppx_library_cmo",
-     "ocaml_ppx_library_compile",
-     "ocaml_ppx_library_link")
+# load("//ocaml/_actions:ppx.bzl",
+#      "apply_ppx",
+#      "ocaml_ppx_compile",
+#      # "ocaml_ppx_apply",
+#      "ocaml_ppx_library_gendeps",
+#      "ocaml_ppx_library_cmo",
+#      "ocaml_ppx_library_compile",
+#      "ocaml_ppx_library_link")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",

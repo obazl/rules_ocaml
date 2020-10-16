@@ -132,9 +132,10 @@ def _ocaml_archive_impl(ctx):
         dep_graph.append(dep)
         includes.append(dep.dirname)
     elif dep.extension == "cmxa":
-        build_deps.append(dep)
         dep_graph.append(dep)
         includes.append(dep.dirname)
+        ## "Option -a cannot be used with .cmxa input files."
+        # build_deps.append(dep)
     elif dep.extension == "a":
         dep_graph.append(dep)
         # build_deps.append(dep)
@@ -354,12 +355,12 @@ ocaml_archive(
   attrs = dict(
     archive_name = attr.string(),
     doc = attr.string(),
-    preprocessor = attr.label(
-      providers = [PpxInfo],
-      executable = True,
-      cfg = "exec",
-      # allow_single_file = True
-    ),
+    # preprocessor = attr.label(
+    #   providers = [PpxInfo],
+    #   executable = True,
+    #   cfg = "exec",
+    #   # allow_single_file = True
+    # ),
     # srcs = attr.label_list(
     #   doc = "OCaml source files",
     #   allow_files = OCAML_FILETYPES
