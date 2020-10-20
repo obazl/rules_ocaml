@@ -47,7 +47,7 @@ def rename_module(ctx, src):  # , pfx):
   dest = outfile.path
   # print("DEST: %s" % dest)
   # cmd = cmd + "touch {dest}; ".format(dest = bindir + "/" + tmpdir + src.path)
-  cmd = cmd + "mkdir -vp {destdir} && cp -v {src} {dest} && ".format(
+  cmd = cmd + "mkdir -p {destdir} && cp {src} {dest} && ".format(
     src = src.path,
     destdir = destdir,
     dest = dest
