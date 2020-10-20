@@ -106,9 +106,9 @@ def ppx_transform_action(rule, ctx, infile):
     args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
     args.add_all(ctx.attr.ppx_args)
     if hasattr(ctx.attr, "ppx_output_format"):
-      if ctx.attr.ppx_output_format == "binary":
-        #FIXME: also check ppx_args for -dump-ast
-        args.add("-dump-ast")
+        if ctx.attr.ppx_output_format == "binary":
+            #FIXME: also check ppx_args for -dump-ast
+            args.add("-dump-ast")
 
   args.add("-o", outfile)
   if infile.path.endswith(".mli"):
@@ -116,7 +116,7 @@ def ppx_transform_action(rule, ctx, infile):
   if infile.path.endswith(".ml"):
     args.add("-impl", infile)
 
-  ppx = ctx.file.ppx
+  # ppx = ctx.file.ppx
   # ppx = ctx.attr.ppx.files.to_list()[0]
   # print("PPX: %s" % ppx)
   # if ctx.attr.ppx:
@@ -130,19 +130,20 @@ def ppx_transform_action(rule, ctx, infile):
   #       args.add("-ppxopt", pkg + "," + ppxargs)
 
   dep_graph = [infile] # , ppx]
-  if hasattr(ctx.attr, "ppx_runtime_deps"):
-      if ctx.attr.ppx_runtime_deps:
-          for dep in ctx.files.ppx_runtime_deps:
-              # includes.append(dep.dirname)
+  if hasattr(ctx.attr, "ppx_data"):
+      print("PPX_DATA: %s" % ctx.attr.ppx_data)
+      if ctx.attr.ppx_data:
+          for dep in ctx.files.ppx_data:
+              # args.add(dep.dirname)
               dep_graph.append(dep)
 
   ctx.actions.run(
     env = env,
-    executable = ppx, # item[0],
+    executable = ctx.executable.ppx,
     arguments = [args],
     inputs = dep_graph,
     outputs = [outfile], #outputs.values(),
-    tools = [ppx], # [item[0]],
+    tools = [ctx.executable.ppx],
     mnemonic = "PpxTransformAction",
     progress_message = "Action: ppx_transform_action of {rule}({tgt}){msg}".format(
         rule=rule,

@@ -53,8 +53,8 @@ load("//implementation:utils.bzl",
 def _ocaml_executable_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "election"):
-      debug = True
+  # if (ctx.label.name == "election"):
+  #     debug = True
 
   if debug:
       print("EXECUTABLE TARGET: %s" % ctx.label.name)

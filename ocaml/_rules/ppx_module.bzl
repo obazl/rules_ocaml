@@ -128,6 +128,8 @@ ppx_module = rule(
     # ),
     ppx  = attr.label(
         doc = "PPX binary (executable).",
+        executable = True,
+        cfg = "host",
         allow_single_file = True,
         providers = [PpxExecutableProvider]
     ),

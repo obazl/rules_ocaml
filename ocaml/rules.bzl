@@ -37,9 +37,9 @@ load("//ocaml/_rules:ppx_library.bzl",
 load("//ocaml/_rules:ppx_module.bzl",
      _ppx_module = "ppx_module")
 load("//ocaml/_rules:ppx_test.bzl",
-     _ppx_test = "ppx_test",
-     _ppx_diff_test = "ppx_diff_test",
-     _ppx_fail_test = "ppx_fail_test")
+     _ppx_x_test = "ppx_x_test",
+     _ppx_test = "ppx_test")
+     # _ppx_fail_test = "ppx_fail_test")
 load("//ocaml/_rules:ppx_transform.bzl",
      _ppx_transform = "ppx_transform")
 
@@ -63,9 +63,9 @@ ppx_archive = _ppx_archive
 ppx_executable = _ppx_executable
 ppx_library = _ppx_library
 ppx_module = _ppx_module
+ppx_x_test = _ppx_x_test
 ppx_test = _ppx_test
-ppx_diff_test = _ppx_diff_test
-ppx_fail_test = _ppx_fail_test
+# ppx_fail_test = _ppx_fail_test
 ppx_transform = _ppx_transform
 
 # macros

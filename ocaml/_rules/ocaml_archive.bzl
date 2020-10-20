@@ -44,7 +44,7 @@ def _ocaml_archive_impl(ctx):
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   ## declare outputs
   obj_files = []
@@ -66,12 +66,12 @@ def _ocaml_archive_impl(ctx):
 
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
-  args.add("-w", ctx.attr.warnings)
+  # args.add("-w", ctx.attr.warnings)
   options = tc.opts + ctx.attr.opts
   # if ctx.attr.nocopts:
   args.add_all(options)
-  if ctx.attr.alwayslink:
-    args.add("-linkall")
+  # if ctx.attr.alwayslink:
+  #   args.add("-linkall")
 
   if ctx.attr.linkshared:
     args.add("-shared")
@@ -378,22 +378,22 @@ ocaml_archive(
     # strict_sequence         = attr.bool(default = True),
     # strict_formats          = attr.bool(default = True),
     # short_paths             = attr.bool(default = True),
-    compile_strict_sequence = attr.bool(default = True),
-    link_strict_sequence    = attr.bool(default = True),
-    keep_locs               = attr.bool(default = True),
-    opaque                  = attr.bool(default = True),
-    no_alias_deps           = attr.bool(default = True),
-    debug                   = attr.bool(default = True),
+    # compile_strict_sequence = attr.bool(default = True),
+    # link_strict_sequence    = attr.bool(default = True),
+    # keep_locs               = attr.bool(default = True),
+    # opaque                  = attr.bool(default = True),
+    # no_alias_deps           = attr.bool(default = True),
+    # debug                   = attr.bool(default = True),
     ## use these to pass additional args
     opts                    = attr.string_list(),
-    linkopts                = attr.string_list(),
-    warnings                = attr.string(
-      default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
-    ),
-    alwayslink = attr.bool(
-      doc = "If true (default), use OCaml -linkall switch. Default: False",
-      default = False,
-    ),
+    # linkopts                = attr.string_list(),
+    # warnings                = attr.string(
+    #   default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
+    # ),
+    # alwayslink = attr.bool(
+    #   doc = "If true (default), use OCaml -linkall switch. Default: False",
+    #   default = False,
+    # ),
     # nocopts = attr.string(),
     linkshared = attr.bool(default = False),
     #### end options ####

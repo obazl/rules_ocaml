@@ -130,9 +130,11 @@ ocaml_module = rule(
     ),
     ##FIXME: ppx => ppx?
     ppx  = attr.label(
-      doc = "PPX binary (executable).",
-      allow_single_file = True,
-      providers = [PpxExecutableProvider]
+        doc = "PPX binary (executable).",
+        executable = True,
+        cfg = "host",
+        allow_single_file = True,
+        providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
@@ -140,7 +142,7 @@ ocaml_module = rule(
     # ppx_x = attr.label_keyed_string_dict(
     #     doc = "Experimental",
     # ),
-    ppx_runtime_deps  = attr.label_list(
+    ppx_data  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,
     ),

@@ -240,7 +240,8 @@ def _ppx_executable_impl(ctx):
   # print("PPX_EXECUTABLE TRANSFORM: %s" % lazy_deps)
 
   results = [DefaultInfo(executable=outbinary,
-                      files = depset(direct = [outbinary])),
+                         runfiles = ctx.runfiles(collect_data = True),
+                         files = depset(direct = [outbinary])),
           PpxExecutableProvider(
             payload=outbinary,
             args = depset(direct = ctx.attr.args),
@@ -286,6 +287,10 @@ ppx_executable = rule(
       doc = "PPX binary (executable).",
       providers = [PpxExecutableProvider],
       mandatory = False,
+    ),
+    data  = attr.label_list(
+        doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        allow_files = True,
     ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
