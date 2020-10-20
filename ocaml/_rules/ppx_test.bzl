@@ -8,14 +8,10 @@ load("//implementation:utils.bzl", "OCAML_IMPL_FILETYPES")
 ## FIXME: handle -cookie better
 
 ################################################################
-########## RULE:  PPX_TEST  ################
+########## RULE:  PPX_X_TEST  ################
 # ppx doc:  "-null   Produce no output, except for errors"
 # using -null instead of "-o /dev/null 2>&1"
 def _gen_test_script(ppx, inparam, verbose):
-    """Return shell commands for ppx preprocessing of file 'f'."""
-
-    # We write information to stdout. It will show up in logs, so that the user
-    # knows what happened if the test fails.
     return """
 {verbose}
 {ppx} \
@@ -28,7 +24,7 @@ exit $?
            verbose=verbose)
 
 ################
-def _ppx_test_impl(ctx):
+def _ppx_x_test_impl(ctx):
 
   verbose = ""
   if ctx.attr.verbose:
@@ -41,16 +37,14 @@ def _ppx_test_impl(ctx):
       inparam = "--intf " + ctx.file.src.short_path
 
   script = "\n".join(
-    ["#!/bin/sh",
-     "err=0"] +
+    ["#!/bin/sh"] +
     [_gen_test_script(ctx.file.ppx,
                       inparam,
-                      verbose)] +
-    ["exit $err"],
+                      verbose)]
   )
 
-  # print("TEST SCRIPT:")
-  # print(script)
+  print("TEST SCRIPT:")
+  print(script)
 
   ctx.actions.write(
       output = ctx.outputs.executable,
@@ -68,8 +62,8 @@ def _ppx_test_impl(ctx):
                       executable = ctx.outputs.executable)]
 
 ################
-ppx_test = rule(
-  implementation = _ppx_test_impl,
+ppx_x_test = rule(
+  implementation = _ppx_x_test_impl,
   test = True,
   attrs = dict(
     _sdkpath = attr.label(
@@ -127,110 +121,202 @@ fi
 
 #################################################
 ################  PPX_FAIL_TEST  ################
-def _ppx_fail_test_impl(ctx):
+# def _ppx_fail_test_impl(ctx):
 
-  inparam = ""
-  if ctx.file.src.extension == "ml":
-      inparam = "--impl " + ctx.file.src.short_path
-  else:
-      inparam = "--intf " + ctx.file.src.short_path
+#   inparam = ""
+#   if ctx.file.src.extension == "ml":
+#       inparam = "--impl " + ctx.file.src.short_path
+#   else:
+#       inparam = "--intf " + ctx.file.src.short_path
 
-  verbose = ""
-  if ctx.attr.verbose:
-      verbose = "set -x"
+#   verbose = ""
+#   if ctx.attr.verbose:
+#       verbose = "set -x"
 
-  script = "\n".join(
-    [_gen_fail_script(ctx.file.ppx,
-                      ctx.attr.expected,
-                      inparam,
-                      verbose)]
-  )
+#   script = "\n".join(
+#     [_gen_fail_script(ctx.file.ppx,
+#                       ctx.attr.expected,
+#                       inparam,
+#                       verbose)]
+#   )
 
-  # print("SCRIPT:")
-  # print(script)
+#   # print("SCRIPT:")
+#   # print(script)
 
-  ctx.actions.write(
-      output = ctx.outputs.executable,
-      is_executable = True,
-      content = script,
-  )
+#   ctx.actions.write(
+#       output = ctx.outputs.executable,
+#       is_executable = True,
+#       content = script,
+#   )
 
-  runfiles = ctx.runfiles(files = [ctx.file.src] + ctx.files.deps
-                          ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
-  return [DefaultInfo(runfiles = runfiles,
-                      executable = ctx.outputs.executable)]
+#   runfiles = ctx.runfiles(files = [ctx.file.src] + ctx.files.deps
+#                           ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
+#   return [DefaultInfo(runfiles = runfiles,
+#                       executable = ctx.outputs.executable)]
 
-#################################################
-ppx_fail_test = rule(
-  implementation = _ppx_fail_test_impl,
-  test = True,
-  attrs = dict(
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
-    ),
-    ppx = attr.label(
-        mandatory = True,
-        providers = [[DefaultInfo], [PpxExecutableProvider]],
-        executable = True,
-        cfg = "host",
-        allow_single_file = True
-    ),
-    expected = attr.string(
-    ),
-    # args  = attr.string_list(
-    #   doc = "Options to pass to PPX binary.",
-    # ),
-    output = attr.string(
-      doc = "Format of output of PPX transform, binary (default) or text",
-      values = ["binary", "text"],
-      default = "binary"
-    ),
-    src = attr.label(
-      allow_single_file = [".ml", ".mli"],
-    ),
-    deps = attr.label_list( ),
-    mode = attr.string(default = "native"),
-    verbose = attr.bool(
-        doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",
-        default = False
-    ),
-    message = attr.string()
-  ),
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-)
-
+# #################################################
+# ppx_fail_test = rule(
+#   implementation = _ppx_fail_test_impl,
+#   test = True,
+#   attrs = dict(
+#     _sdkpath = attr.label(
+#       default = Label("@ocaml//:path")
+#     ),
+#     ppx = attr.label(
+#         mandatory = True,
+#         providers = [[DefaultInfo], [PpxExecutableProvider]],
+#         executable = True,
+#         cfg = "host",
+#         allow_single_file = True
+#     ),
+#     expected = attr.string(
+#     ),
+#     # args  = attr.string_list(
+#     #   doc = "Options to pass to PPX binary.",
+#     # ),
+#     output = attr.string(
+#       doc = "Format of output of PPX transform, binary (default) or text",
+#       values = ["binary", "text"],
+#       default = "binary"
+#     ),
+#     src = attr.label(
+#       allow_single_file = [".ml", ".mli"],
+#     ),
+#     deps = attr.label_list( ),
+#     mode = attr.string(default = "native"),
+#     verbose = attr.bool(
+#         doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",
+#         default = False
+#     ),
+#     message = attr.string()
+#   ),
+#   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+# )
 
 ################################################################
-########## RULE:  PPX_DIFF_TEST  ################
-#### run diff against ppx result and a test data file
-def _gen_diff_script(ppx, cookies, expected, inparam, outfile, verbose):
+########## RULE:  PPX_TEST  ################
+## https://stackoverflow.com/questions/11027679/capture-stdout-and-stderr-into-different-variables
+################################################################
+def _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
     """Return shell commands for ppx preprocessing of file 'src'."""
+    return """{ppx} \
+-null \
+{cookies} \
+\"$@\" \
+{inparam}""".format(ppx = ppx.short_path,
+                    cookies = cookies,
+                    expected = expected,
+                    inparam = inparam,
+                    outfile = outfile,
+                    verbose = verbose)
+
+################
+def _gen_capture_string_script(s, outfile, expected):
+    ## NOTE the pattern of single/double quotes around expected and actual!
     return """
-{verbose}
-{ppx} \
+#!/bin/bash
+{{
+    IFS=$'\\n' read -r -d '' CAPTURED_STDERR;
+    IFS=$'\\n' read -r -d '' CAPTURED_STDOUT;
+}} < <((printf '\\0%s\\0' "$({script})" 1>&2) 2>&1)
+if [[ '{expected}' == $CAPTURED_STDERR ]]
+then
+    echo SUCCESS
+    exit 0
+else
+    echo 'EXPECTED:\n{expected}'
+    echo "ACTUAL:\n${{CAPTURED_STDERR}}"
+    exit 1
+fi
+""".format(script = s, outfile = outfile, expected = expected)
+
+################
+def _gen_capture_file_script(s, outfile, expected):
+    return """
+#!/bin/bash
+
+DIFFCMD="diff -c {expected} $TEST_UNDECLARED_OUTPUTS_DIR/{outfile}"
+{script}
+if [[ $? == 0 ]]
+then
+    {{
+        IFS=$'\\n' read -r -d '' CAPTURED_STDERR;
+        IFS=$'\\n' read -r -d '' CAPTURED_STDOUT;
+    }} < <((printf '\\0%s\\0' "$($DIFFCMD)" 1>&2) 2>&1)
+    if [[ ${{CAPTURED_STDOUT}} == "" ]]
+    then
+        exit 0
+    else
+        echo "$DIFFCMD"
+        echo "STDOUT:\n${{CAPTURED_STDOUT}}"
+        echo "STDERR:\n${{CAPTURED_STDERR}}"
+        exit 1
+    fi
+else
+    exit 1
+fi
+
+""".format(script = s, outfile = outfile, expected = expected)
+
+################################################################
+def _gen_expect_file_script(ppx, cookies, expected, inparam, outfile, verbose):
+    """Return shell commands for ppx preprocessing of file 'src'."""
+    return """{ppx} \
 {cookies} \
 $@ \
 -o $TEST_UNDECLARED_OUTPUTS_DIR/{outfile} \
 {inparam}
-if [[ $? == 0 ]]
-then
-    diff {expected} $TEST_UNDECLARED_OUTPUTS_DIR/{outfile}
-    exit $?
-else
-    exit 1
-fi
 """.format(ppx = ppx.short_path,
            cookies = cookies,
            # args = args,
-           expected = expected.short_path,
+           expected = expected,
            inparam = inparam,
            outfile = outfile,
            verbose = verbose)
-  # --dump-ast;
+
+################################################################
+def _gen_cmd_script(ppx, cookies, expected, inparam, outfile, errfile, verbose):
+    """Return shell commands for ppx preprocessing of file 'src'."""
+    return """
+{ppx} \
+{cookies} \
+$@ \
+-o $TEST_UNDECLARED_OUTPUTS_DIR/{stdout_file} \
+{inparam} \
+2> $TEST_UNDECLARED_OUTPUTS_DIR/{stderr_file}
+if  [[ $? == 0 ]]
+then
+    echo "Comparing actual to expected output"
+    diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stdout_file} {expected}
+    if [[ $? == 0 ]]
+    then
+        echo "OK"
+        exit 0
+    else
+        exit 1
+    fi
+else
+    echo "Comparing actual to expected stderr"
+    diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stderr_file} {expected}
+    if [[ $? == 0 ]]
+    then
+        echo "OK"
+        exit 0
+    else
+        exit 1
+    fi
+fi
+""".format(ppx = ppx.short_path,
+           cookies = cookies,
+           expected = expected,
+           inparam = inparam,
+           stdout_file = outfile,
+           stderr_file = errfile,
+           verbose = verbose)
 
 #################################################
-################  PPX_DIFF_TEST  ################
-def _ppx_diff_test_impl(ctx):
+################  PPX_TEST  ################
+def _ppx_test_impl(ctx):
 
   # cookies are legacy, do we need this?
   cookies = ""
@@ -241,10 +327,12 @@ def _ppx_diff_test_impl(ctx):
   inparam = ""
   if ctx.file.src.extension == "ml":
       inparam = "--impl " + ctx.file.src.short_path
-      outfile = ctx.file.src.basename + ".pp.ml"
+      stdout_file = ctx.file.src.basename + ".pp.ml"
+      stderr_file = ctx.file.src.basename + ".stderr"
   else:
       inparam = "--intf " + ctx.file.src.short_path
-      outfile = ctx.file.src.basename + ".pp.mli"
+      stdout_file = ctx.file.src.basename + ".pp.mli"
+      stderr_file = ctx.file.src.basename + ".stderr"
 
   # print("INPARAM: %s" % inparam)
   # print("OUTFILE: %s" % outfile)
@@ -256,32 +344,62 @@ def _ppx_diff_test_impl(ctx):
       verbose = "set -x"
       # print("COOKIES: %s" % cookies)
 
-  script = "\n".join(
-    [_gen_diff_script(ctx.file.ppx,
-                      cookies,
-                      ctx.file.expected,
-                      inparam,
-                      outfile,
-                      verbose)]
-  )
-
-  # print("Script:")
-  # print(script)
+  script = ""
+  if ctx.attr.expect != None:
+      print("EXPECT: %s" % ctx.attr.expect)
+      run_script = "\n".join(
+          ## def _gen_cmd_script(ppx, cookies, expected, inparam, outfile, errfile, verbose):
+          [_gen_cmd_script(ctx.executable.ppx,
+                           cookies,
+                           ctx.file.expect.short_path,
+                           inparam,
+                           stdout_file,
+                           stderr_file,
+                           verbose)])
+      print("Embedded file Script:")
+      print(run_script)
+  elif ctx.attr.expect_stderr != "":
+      ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
+      script = _gen_expect_stderr_script(ctx.file.ppx,
+                                         cookies,
+                                         ctx.attr.expect_stderr,
+                                         inparam,
+                                         stdout_file,
+                                         verbose)
+      print("Embedded string Script:")
+      print(script)
+      run_script = _gen_capture_string_script(script, stdout_file, ctx.attr.expect_stderr)
+      print("Run Script:")
+      print(run_script)
+      # run_script = "\n".join(
+      #     [_gen_fail_script(ctx.file.ppx,
+      #                       ctx.attr.expect_stderr,
+      #                       inparam,
+      #                       verbose)])
+      # print("Run Script:")
+      # print(run_script)
+  else:
+      fail("Either expect (file) or expect_stderr (string) required.")
 
   ctx.actions.write(
       output = ctx.outputs.executable,
       is_executable = True,
-      content = script,
+      content = run_script,
   )
 
-  runfiles = ctx.runfiles(files = [ctx.file.src, ctx.file.expected] + ctx.files.deps
-                          ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
+  rfiles = [ctx.file.src] + ctx.files.deps
+  if ctx.file.expect != None:
+      rfiles.append(ctx.file.expect)
+
+  runfiles = ctx.runfiles(
+      files = rfiles
+  ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
   return [DefaultInfo(runfiles = runfiles,
                       executable = ctx.outputs.executable)]
 
 #################################################
-ppx_diff_test = rule(
-  implementation = _ppx_diff_test_impl,
+ppx_test = rule(
+  implementation = _ppx_test_impl,
   test = True,
   attrs = dict(
     _sdkpath = attr.label(
@@ -304,8 +422,10 @@ ppx_diff_test = rule(
 Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'name="value"'. Since it is easy to get the quoting wrong due to shell substitutions, this attribute makes it easy. Keys are cookie names, values are cookie vals.
  """
     ),
-    expected = attr.label(
+    expect = attr.label(
         allow_single_file = True,
+    ),
+    expect_stderr = attr.string(
     ),
     # args  = attr.string_list(
     #   doc = "Options to pass to PPX binary.",
