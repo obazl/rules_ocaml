@@ -275,7 +275,7 @@ $@ \
            verbose = verbose)
 
 ################################################################
-def _gen_cmd_script(ppx, cookies, expected, inparam, outfile, errfile, verbose):
+def _gen_cmd_script(ppx, cookies, expected_out, expected_err, inparam, outfile, errfile, verbose):
     """Return shell commands for ppx preprocessing of file 'src'."""
     return """
 {ppx} \
@@ -287,7 +287,7 @@ $@ \
 if  [[ $? == 0 ]]
 then
     echo "Comparing actual to expected output"
-    diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stdout_file} {expected}
+    diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stdout_file} {expected_out}
     if [[ $? == 0 ]]
     then
         echo "OK"
@@ -297,7 +297,7 @@ then
     fi
 else
     echo "Comparing actual to expected stderr"
-    diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stderr_file} {expected}
+    diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stderr_file} {expected_err}
     if [[ $? == 0 ]]
     then
         echo "OK"
@@ -308,7 +308,8 @@ else
 fi
 """.format(ppx = ppx.short_path,
            cookies = cookies,
-           expected = expected,
+           expected_out = expected_out,
+           expected_err = expected_err,
            inparam = inparam,
            stdout_file = outfile,
            stderr_file = errfile,
@@ -318,6 +319,18 @@ fi
 ################  PPX_TEST  ################
 def _ppx_test_impl(ctx):
 
+  stdout_expect = None;
+  stderr_expect = None;
+  for item in ctx.attr.expect.items():
+      if item[1] in ["stdout", "1"]:
+          stdout_expect = item[0].files.to_list()[0]
+          print("STDOUT_EXPECT: %s" % stdout_expect)
+      elif item[1] in ["stderr", "2"]:
+          stderr_expect = item[0].files.to_list()[0]
+          print("STDERR_EXPECT: %s" % stderr_expect)
+      # else:
+      #     fail("Allowed expect item values: \"stdout\", \"1\", \"stderr\", \"2\"]. Got: '%s'" % item[1])
+
   # cookies are legacy, do we need this?
   cookies = ""
   for key in ctx.attr.cookies:
@@ -326,7 +339,7 @@ def _ppx_test_impl(ctx):
 
   inparam = ""
   if ctx.file.src.extension == "ml":
-      inparam = "--impl " + ctx.file.src.short_path
+      inparam = "--impl " + ctx.file.src.path
       stdout_file = ctx.file.src.basename + ".pp.ml"
       stderr_file = ctx.file.src.basename + ".stderr"
   else:
@@ -345,13 +358,16 @@ def _ppx_test_impl(ctx):
       # print("COOKIES: %s" % cookies)
 
   script = ""
+  # if ctx.attr.expect != None:
+  # if stdout_expect != None:
   if ctx.attr.expect != None:
-      print("EXPECT: %s" % ctx.attr.expect)
+      print("EXPECT: %s" % stdout_expect) # ctx.attr.expect)
       run_script = "\n".join(
           ## def _gen_cmd_script(ppx, cookies, expected, inparam, outfile, errfile, verbose):
           [_gen_cmd_script(ctx.executable.ppx,
                            cookies,
-                           ctx.file.expect.short_path,
+                           stdout_expect.short_path if stdout_expect else "",
+                           stderr_expect.short_path if stderr_expect else "",
                            inparam,
                            stdout_file,
                            stderr_file,
@@ -359,9 +375,11 @@ def _ppx_test_impl(ctx):
       print("Embedded file Script:")
       print(run_script)
   elif ctx.attr.expect_stderr != "":
+  # elif stderr_expect != None:
       ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
       script = _gen_expect_stderr_script(ctx.file.ppx,
                                          cookies,
+                                         # stderr_expect.short_path,
                                          ctx.attr.expect_stderr,
                                          inparam,
                                          stdout_file,
@@ -388,13 +406,27 @@ def _ppx_test_impl(ctx):
   )
 
   rfiles = [ctx.file.src] + ctx.files.deps
-  if ctx.file.expect != None:
-      rfiles.append(ctx.file.expect)
+  # if ctx.file.expect != None:
+  #     rfiles.append(ctx.file.expect)
+  if stdout_expect != None:
+      rfiles.append(stdout_expect)
+  if stderr_expect != None:
+      rfiles.append(stderr_expect)
 
+  for datum in ctx.attr.data:
+      if datum.label.name.startswith(ctx.label.name):
+          fail("Disallowed: target name '{t}' is a prefix of a data file '{d}'.".format(
+              t = ctx.label.name,
+              d = datum.label.name))
+  for datum in ctx.files.data:
+      rfiles.append(datum)
   runfiles = ctx.runfiles(
+      collect_data = True,
       files = rfiles
   ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
-  return [DefaultInfo(runfiles = runfiles,
+
+  return [DefaultInfo( runfiles = runfiles,
+                      ##runfiles = ctx.runfiles(collect_data = True),
                       executable = ctx.outputs.executable)]
 
 #################################################
@@ -422,10 +454,16 @@ ppx_test = rule(
 Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'name="value"'. Since it is easy to get the quoting wrong due to shell substitutions, this attribute makes it easy. Keys are cookie names, values are cookie vals.
  """
     ),
-    expect = attr.label(
-        allow_single_file = True,
+    # expect = attr.label(
+    #     allow_single_file = True,
+    # ),
+    expect = attr.label_keyed_string_dict(
+        allow_files = True
     ),
     expect_stderr = attr.string(
+    ),
+    data = attr.label_list(
+        allow_files = True
     ),
     # args  = attr.string_list(
     #   doc = "Options to pass to PPX binary.",
