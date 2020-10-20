@@ -290,8 +290,15 @@ then
     diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stdout_file} {expected_out}
     if [[ $? == 0 ]]
     then
-        echo "OK"
-        exit 0
+        echo "Comparing actual to expected stderr"
+        diff -c $TEST_UNDECLARED_OUTPUTS_DIR/{stderr_file} {expected_err}
+        if [[ $? == 0 ]]
+        then
+            echo "OK"
+            exit 0
+        else
+            exit 1
+        fi
     else
         exit 1
     fi
@@ -319,6 +326,9 @@ fi
 ################  PPX_TEST  ################
 def _ppx_test_impl(ctx):
 
+  print("EXPECT ATTR: %s" % ctx.attr.expect)
+  if ctx.attr.expect == {}:
+      fail("missing", attr="expect")
   stdout_expect = None;
   stderr_expect = None;
   for item in ctx.attr.expect.items():
@@ -367,35 +377,35 @@ def _ppx_test_impl(ctx):
           [_gen_cmd_script(ctx.executable.ppx,
                            cookies,
                            stdout_expect.short_path if stdout_expect else "",
-                           stderr_expect.short_path if stderr_expect else "",
+                           stderr_expect.short_path if stderr_expect else "/dev/null",
                            inparam,
                            stdout_file,
                            stderr_file,
                            verbose)])
       print("Embedded file Script:")
       print(run_script)
-  elif ctx.attr.expect_stderr != "":
-  # elif stderr_expect != None:
-      ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
-      script = _gen_expect_stderr_script(ctx.file.ppx,
-                                         cookies,
-                                         # stderr_expect.short_path,
-                                         ctx.attr.expect_stderr,
-                                         inparam,
-                                         stdout_file,
-                                         verbose)
-      print("Embedded string Script:")
-      print(script)
-      run_script = _gen_capture_string_script(script, stdout_file, ctx.attr.expect_stderr)
-      print("Run Script:")
-      print(run_script)
-      # run_script = "\n".join(
-      #     [_gen_fail_script(ctx.file.ppx,
-      #                       ctx.attr.expect_stderr,
-      #                       inparam,
-      #                       verbose)])
-      # print("Run Script:")
-      # print(run_script)
+  # elif ctx.attr.expect_stderr != "":
+  # # elif stderr_expect != None:
+  #     ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
+  #     script = _gen_expect_stderr_script(ctx.file.ppx,
+  #                                        cookies,
+  #                                        # stderr_expect.short_path,
+  #                                        ctx.attr.expect_stderr,
+  #                                        inparam,
+  #                                        stdout_file,
+  #                                        verbose)
+  #     print("Embedded string Script:")
+  #     print(script)
+  #     run_script = _gen_capture_string_script(script, stdout_file, ctx.attr.expect_stderr)
+  #     print("Run Script:")
+  #     print(run_script)
+  #     # run_script = "\n".join(
+  #     #     [_gen_fail_script(ctx.file.ppx,
+  #     #                       ctx.attr.expect_stderr,
+  #     #                       inparam,
+  #     #                       verbose)])
+  #     # print("Run Script:")
+  #     # print(run_script)
   else:
       fail("Either expect (file) or expect_stderr (string) required.")
 
@@ -460,8 +470,8 @@ Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'nam
     expect = attr.label_keyed_string_dict(
         allow_files = True
     ),
-    expect_stderr = attr.string(
-    ),
+    # expect_stderr = attr.string(
+    # ),
     data = attr.label_list(
         allow_files = True
     ),
