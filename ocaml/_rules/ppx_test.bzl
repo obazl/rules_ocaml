@@ -326,7 +326,7 @@ fi
 ################  PPX_TEST  ################
 def _ppx_test_impl(ctx):
 
-  print("EXPECT ATTR: %s" % ctx.attr.expect)
+  # print("EXPECT ATTR: %s" % ctx.attr.expect)
   if ctx.attr.expect == {}:
       fail("missing", attr="expect")
   stdout_expect = None;
@@ -334,12 +334,12 @@ def _ppx_test_impl(ctx):
   for item in ctx.attr.expect.items():
       if item[1] in ["stdout", "1"]:
           stdout_expect = item[0].files.to_list()[0]
-          print("STDOUT_EXPECT: %s" % stdout_expect)
+          # print("STDOUT_EXPECT: %s" % stdout_expect)
       elif item[1] in ["stderr", "2"]:
           stderr_expect = item[0].files.to_list()[0]
-          print("STDERR_EXPECT: %s" % stderr_expect)
-      # else:
-      #     fail("Allowed expect item values: \"stdout\", \"1\", \"stderr\", \"2\"]. Got: '%s'" % item[1])
+          # print("STDERR_EXPECT: %s" % stderr_expect)
+      else:
+          fail("Allowed expect item values: \"stdout\", \"1\", \"stderr\", \"2\"]. Got: '%s'" % item[1])
 
   # cookies are legacy, do we need this?
   cookies = ""
@@ -371,7 +371,7 @@ def _ppx_test_impl(ctx):
   # if ctx.attr.expect != None:
   # if stdout_expect != None:
   if ctx.attr.expect != None:
-      print("EXPECT: %s" % stdout_expect) # ctx.attr.expect)
+      # print("EXPECT: %s" % stdout_expect) # ctx.attr.expect)
       run_script = "\n".join(
           ## def _gen_cmd_script(ppx, cookies, expected, inparam, outfile, errfile, verbose):
           [_gen_cmd_script(ctx.executable.ppx,
@@ -382,8 +382,8 @@ def _ppx_test_impl(ctx):
                            stdout_file,
                            stderr_file,
                            verbose)])
-      print("Embedded file Script:")
-      print(run_script)
+      # print("Embedded file Script:")
+      # print(run_script)
   # elif ctx.attr.expect_stderr != "":
   # # elif stderr_expect != None:
   #     ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
