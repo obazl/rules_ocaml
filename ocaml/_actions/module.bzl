@@ -30,8 +30,8 @@ load("//implementation:utils.bzl",
 def compile_module(rule, ctx, mydeps):
   debug = False
   # if (ctx.label.name == "snark0.cm_"):
-  if ctx.label.name == "Register_event":
-      debug = True
+  # if ctx.label.name == "Register_event":
+  #     debug = True
 
   if debug:
       print("COMPILE_MODULE: %s" % ctx.label.name)
@@ -123,22 +123,14 @@ def compile_module(rule, ctx, mydeps):
 
   includes   = []
 
-  # if ctx.attr.ns:
-  #   args.add("-open", ctx.attr.ns)
   if ctx.attr.ns_module:
+      ## FIXME: make user reponsible for these args?
+      # args.add("-w", "-49") # ignore Warning 49: no cmi file was found in path for module x
       # args.add("-no-alias-deps")
       # args.add("-opaque")
-    ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
-    ## NOTE: dep_graph and includes covered by mydeps.nopam
-    # dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
-    # dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cmi)
-    # includes.append(ns_cm.dirname)
-    ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
-    args.add("-open", ns_mod)
-    # capitalize_initial_char(ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns))
-
-  # args.add("-no-alias-deps")
-  # args.add("-opaque")
+      ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
+      ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
+      args.add("-open", ns_mod)
 
   # later we will add opam deps to CL using -package
   opam_deps = []

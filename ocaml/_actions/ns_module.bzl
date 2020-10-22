@@ -65,12 +65,13 @@ def ns_module_action(ctx):
   args = ctx.actions.args()
   args.add("ocamlopt")
   args.add_all(ctx.attr.opts)
-  if ctx.attr.alwayslink:
-    args.add("-linkall")
+  ## FIXME: normally we do not use defaults. does ns_module warrant an exception?
   args.add("-w", "-49") # Error (warning 49): no cmi file was found in path for module <m>
-  args.add("-c")
   args.add("-no-alias-deps")
   args.add("-opaque")
+  if ctx.attr.alwayslink:
+    args.add("-linkall")
+  args.add("-c")
   args.add("-o", obj_cmx)
   args.add(module_src.path)
   ctx.actions.run(

@@ -274,19 +274,22 @@ ocaml_interface = rule(
       allow_single_file = OCAML_INTF_FILETYPES
     ),
     ppx  = attr.label(
-      doc = "PPX binary (executable).",
-      allow_single_file = True,
-      providers = [PpxExecutableProvider]
+        doc = "PPX binary (executable).",
+        executable = True,
+        cfg = "host",
+        allow_single_file = True,
+        providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
     ),
-    ppx_runtime_deps  = attr.label_list(
+    ppx_data  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,
     ),
-    # ppx = attr.label_keyed_string_dict(
-    #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments."""
+    # ppx_runtime_deps  = attr.label_list(
+    #     doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+    #     allow_files = True,
     # ),
     deps = attr.label_list(
       providers = [[OpamPkgInfo],

@@ -34,8 +34,8 @@ load("//implementation:utils.bzl",
 def _ocaml_module_impl(ctx):
 
   debug = False
-  if ctx.label.name == "Interpolator":
-      debug = True
+  # if ctx.label.name == "Interpolator":
+  #     debug = True
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
@@ -128,7 +128,6 @@ ocaml_module = rule(
       doc = "If true, use OCaml -linkall switch. Default: False",
       default = False,
     ),
-    ##FIXME: ppx => ppx?
     ppx  = attr.label(
         doc = "PPX binary (executable).",
         executable = True,
@@ -139,9 +138,6 @@ ocaml_module = rule(
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
     ),
-    # ppx_x = attr.label_keyed_string_dict(
-    #     doc = "Experimental",
-    # ),
     ppx_data  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,

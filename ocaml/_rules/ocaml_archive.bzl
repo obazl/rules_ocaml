@@ -44,7 +44,7 @@ def _ocaml_archive_impl(ctx):
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   ## declare outputs
   obj_files = []
@@ -70,9 +70,9 @@ def _ocaml_archive_impl(ctx):
   options = tc.opts + ctx.attr.opts
   # if ctx.attr.nocopts:
   args.add_all(options)
-  # if ctx.attr.alwayslink:
-  #   args.add("-linkall")
-
+  if ctx.attr.alwayslink:
+    args.add("-linkall")
+ 
   if ctx.attr.linkshared:
     args.add("-shared")
     args.add("-o", obj_cmxs)
@@ -184,41 +184,44 @@ def _ocaml_archive_impl(ctx):
   #         dep_graph.append(g)
   #         build_deps.append(g)
 
-  for dep in ctx.attr.cc_deps.items():
-    if debug:
-        print("CCLIB DEP: ")
-        print(dep)
-    if dep[1] == "static":
-        if debug:
-            print("STATIC lib: %s:" % dep[0])
-        for depfile in dep[0].files.to_list():
-            if (depfile.extension == "a"):
-                cclib_deps.append(depfile)
-                includes.append(depfile.dirname)
-    elif dep[1] == "dynamic":
-        if debug:
-            print("DYNAMIC lib: %s" % dep[0])
-        for depfile in dep[0].files.to_list():
-            if debug:
-                print("DEPFILE extension: %s" % depfile.extension)
-            if (depfile.extension == "so"):
-                libname = depfile.basename[:-3]
-                print("LIBNAME: %s" % libname)
-                libname = libname[3:]
-                print("LIBNAME: %s" % libname)
-                args.add("-ccopt", "-L" + depfile.dirname)
-                args.add("-cclib", "-l" + libname)
-                # cclib_deps.append(depfile)
-            elif (depfile.extension == "dylib"):
-                libname = depfile.basename[:-6]
-                libname = libname[3:]
-                print("LIBNAME: %s:" % libname)
-                args.add("-ccopt", "-L" + depfile.dirname)
-                args.add("-cclib", "-l" + libname)
-                includes.append(depfile.dirname)
-            else:
-                if debug:
-                    print("IGNORING: %s" % depfile)
+  ## cc_deps handled by get_all_deps
+  # for dep in ctx.attr.cc_deps.items():
+  #   if debug:
+  #       print("CCLIB DEP: ")
+  #       print(dep)
+  #   if dep[1] == "static":
+  #       if debug:
+  #           print("STATIC lib: %s:" % dep[0])
+  #       for depfile in dep[0].files.to_list():
+  #           if (depfile.extension == "a"):
+  #               cclib_deps.append(depfile)
+  #               includes.append(depfile.dirname)
+  #   elif dep[1] == "dynamic":
+  #       if debug:
+  #           print("DYNAMIC lib: %s" % dep[0])
+  #       for depfile in dep[0].files.to_list():
+  #           if debug:
+  #               print("DEPFILE extension: %s" % depfile.extension)
+  #           if (depfile.extension == "so"):
+  #               libname = depfile.basename[:-3]
+  #               print("LIBNAME: %s" % libname)
+  #               libname = libname[3:]
+  #               print("LIBNAME: %s" % libname)
+  #               args.add("-ccopt", "-L" + depfile.dirname)
+  #               args.add("-cclib", "-l" + libname)
+  #               # cclib_deps.append(depfile)
+  #           elif (depfile.extension == "dylib"):
+  #               libname = depfile.basename[:-6]
+  #               libname = libname[3:]
+  #               print("LIBNAME: %s:" % libname)
+  #               args.add("-ccopt", "-L" + depfile.dirname)
+  #               args.add("-cclib", "-l" + libname)
+  #               includes.append(depfile.dirname)
+  #           else:
+  #               if debug:
+  #                   print("IGNORING: %s" % depfile)
+    # else:
+    #     fail("cc_dep with bad mode: " + dep[1])
 
   # cclib_deps = []
   # for dep in ctx.attr.cc_deps:
@@ -378,22 +381,22 @@ ocaml_archive(
     # strict_sequence         = attr.bool(default = True),
     # strict_formats          = attr.bool(default = True),
     # short_paths             = attr.bool(default = True),
-    # compile_strict_sequence = attr.bool(default = True),
-    # link_strict_sequence    = attr.bool(default = True),
-    # keep_locs               = attr.bool(default = True),
-    # opaque                  = attr.bool(default = True),
-    # no_alias_deps           = attr.bool(default = True),
-    # debug                   = attr.bool(default = True),
+    compile_strict_sequence = attr.bool(default = True),
+    link_strict_sequence    = attr.bool(default = True),
+    keep_locs               = attr.bool(default = True),
+    opaque                  = attr.bool(default = True),
+    no_alias_deps           = attr.bool(default = True),
+    debug                   = attr.bool(default = True),
     ## use these to pass additional args
     opts                    = attr.string_list(),
-    # linkopts                = attr.string_list(),
-    # warnings                = attr.string(
-    #   default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
-    # ),
-    # alwayslink = attr.bool(
-    #   doc = "If true (default), use OCaml -linkall switch. Default: False",
-    #   default = False,
-    # ),
+    linkopts                = attr.string_list(),
+    warnings                = attr.string(
+      default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
+    ),
+    alwayslink = attr.bool(
+      doc = "If true (default), use OCaml -linkall switch. Default: False",
+      default = False,
+    ),
     # nocopts = attr.string(),
     linkshared = attr.bool(default = False),
     #### end options ####

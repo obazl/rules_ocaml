@@ -131,7 +131,7 @@ def ppx_transform_action(rule, ctx, infile):
 
   dep_graph = [infile] # , ppx]
   if hasattr(ctx.attr, "ppx_data"):
-      print("PPX_DATA: %s" % ctx.attr.ppx_data)
+      # print("PPX_DATA: %s" % ctx.attr.ppx_data)
       if ctx.attr.ppx_data:
           for dep in ctx.files.ppx_data:
               # args.add(dep.dirname)

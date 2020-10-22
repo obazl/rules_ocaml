@@ -31,8 +31,8 @@ load("//implementation:utils.bzl",
 def _ppx_executable_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "ppx[ppx_sexp_conv][ppx_bin_prot][ppx_let][ppx_hash][ppx_compare][ppx_deriving.enum][ppx_assert][ppx_deriving.eq][ppx_snarky][ppx_fields_conv][ppx_inline_test][ppx_custom_printf]"):
-      debug = True
+  # if (ctx.label.name == "ppx[ppx_sexp_conv][ppx_bin_prot][ppx_let][ppx_hash][ppx_compare][ppx_deriving.enum][ppx_assert][ppx_deriving.eq][ppx_snarky][ppx_fields_conv][ppx_inline_test][ppx_custom_printf]"):
+  #     debug = True
 
   if debug:
       print("\n\n\tPPX_EXECUTABLE TARGET: %s\n\n" % ctx.label.name)
@@ -287,6 +287,9 @@ ppx_executable = rule(
       doc = "PPX binary (executable).",
       providers = [PpxExecutableProvider],
       mandatory = False,
+    ),
+    runtime_args = attr.string_list(
+        doc = "List of args that must be passed to the ppx_executable at runtime. E.g. -inline-test-lib."
     ),
     data  = attr.label_list(
         doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
