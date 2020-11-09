@@ -1,13 +1,15 @@
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
+     "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider",
      "OcamlSDK")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ppx.bzl", "PpxArchiveProvider")
 
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
 
 load("//implementation:utils.bzl",
      "get_opamroot",
@@ -37,7 +39,7 @@ def _ocaml_archive_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  mydeps = get_all_deps("ocaml_archive", ctx)
+  mydeps = get_archive_deps("ocaml_archive", ctx)
   if debug:
       print("ALL DEPS for target %s" % ctx.label.name)
       print(mydeps)
@@ -47,22 +49,23 @@ def _ocaml_archive_impl(ctx):
   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   ## declare outputs
+  tmpdir = "_obazl_/"
   obj_files = []
   obj_cmxa = None
   obj_cmxs = None
   obj_a    = None
   if ctx.attr.archive_name:
     if ctx.attr.linkshared:
-      obj_cmxs = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxs")
+      obj_cmxs = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxs")
     else:
-      obj_cmxa = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxa")
-      obj_a = ctx.actions.declare_file(ctx.attr.archive_name + ".a")
+      obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxa")
+      obj_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
   else:
     if ctx.attr.linkshared:
-      obj_cmxs = ctx.actions.declare_file(ctx.label.name + ".cmxs")
+      obj_cmxs = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxs")
     else:
-      obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-      obj_a = ctx.actions.declare_file(ctx.label.name + ".a")
+      obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxa")
+      obj_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
 
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
@@ -72,7 +75,11 @@ def _ocaml_archive_impl(ctx):
   args.add_all(options)
   if ctx.attr.alwayslink:
     args.add("-linkall")
- 
+  args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
+  if len(ctx.addr.cc_linkall) > 0:
+      for cc_dep in ctx.files.linkall:
+          
+
   if ctx.attr.linkshared:
     args.add("-shared")
     args.add("-o", obj_cmxs)
@@ -105,8 +112,11 @@ def _ocaml_archive_impl(ctx):
   includes = []
   dep_graph = []  # for the run action inputs
 
-  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
-  # args.add_all([dep.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  # args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  if len(mydeps.opam.to_list()) > 0:
+      ## DO NOT USE -linkpkg, it puts .cmxa files on command, yielding
+      ## `Option -a cannot be used with .cmxa input files.`
+      args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   # for dep in mydeps.nopam.to_list():
   #   print("NOPAM DEP: %s" % dep)
@@ -114,11 +124,25 @@ def _ocaml_archive_impl(ctx):
   cclib_deps = []
   dso_deps = []
 
+  # for dep in ctx.files.deps:
+  #     if dep.extension == "cmx":
+  #         includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #         build_deps.append(dep)
+
   for dep in mydeps.nopam.to_list():
     if debug:
           print("\nNOPAM DEP: %s\n\n" % dep)
-    if dep.extension == "cmx":
+    if dep.extension == "cmxa":
+        ## We ignore cmxa deps, since "Option -a cannot be used with .cmxa input files."
+        ## But the depgraph contains everything contained in the cmxa, so we're covered.
+        dep_graph.append(dep)
+    elif dep.extension == "cmx":
+        ## This will include cmx that are direct deps of cmxa files.
         includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "a":
         dep_graph.append(dep)
         build_deps.append(dep)
     elif dep.extension == "cmi":
@@ -131,14 +155,6 @@ def _ocaml_archive_impl(ctx):
         # build_deps.append(dep)
         dep_graph.append(dep)
         includes.append(dep.dirname)
-    elif dep.extension == "cmxa":
-        dep_graph.append(dep)
-        includes.append(dep.dirname)
-        ## "Option -a cannot be used with .cmxa input files."
-        # build_deps.append(dep)
-    elif dep.extension == "a":
-        dep_graph.append(dep)
-        # build_deps.append(dep)
     elif dep.extension == "so":
         if debug:
             print("NOPAM .so DEP: %s" % dep)
@@ -403,15 +419,24 @@ ocaml_archive(
     # lib = attr.bool(default = False)
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
+                   [OcamlImportProvider],
                    [OcamlInterfaceProvider],
                    [OcamlModuleProvider],
                    [OcamlNsModuleProvider],
-                   # [OcamlLibraryProvider],
-                   [OcamlArchiveProvider]],
+                   [OcamlArchiveProvider],
+                   [PpxArchiveProvider]],
     ),
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
+    ),
+    cc_linkopts = attr.string_list(
+      doc = "C/C++ options",
+    ),
+    cc_linkall = attr.label_list(
+        doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
+        providers = [CcInfo],
+        default = False
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",

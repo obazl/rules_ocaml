@@ -1,3 +1,13 @@
+filegroup(
+    name = "stderr",
+    visibility = ["//visibility:public"]
+)
+filegroup(
+    name = "stdout",
+    visibility = ["//visibility:public"]
+)
+
+
 filegroup( name="migrate_parsetree_driver_shim",
            srcs=["ocaml_migrate_parsetree_driver_shim.ml"],
            visibility = ["//visibility:public"])

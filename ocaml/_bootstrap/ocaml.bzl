@@ -18,11 +18,21 @@ load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")  # buildifier: di
 load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
 # load("//implementation:skylib/lib/versions.bzl", "versions")
 
-load("//implementation:sdk.bzl", "ocaml_home_sdk")
+# load("//implementation:sdk.bzl", "ocaml_home_sdk")
 # load("//opam:opam.bzl", "opam_repo")
 load("//obazl:obazl.bzl", "obazl_repo")
 
 load("//ocaml/_bootstrap:opam.bzl", "opam_configure")
+# load("//opam:bootstrap.bzl",    _opam_configure = "opam_configure")
+
+load(
+    "//ocaml/_toolchains:sdk.bzl",
+    "ocaml_register_toolchains",
+    # _ocaml_download_sdk = "ocaml_download_sdk",
+    # _ocaml_home_sdk = "ocaml_home_sdk",
+    # _ocaml_local_sdk = "ocaml_local_sdk",
+    # _ocaml_wrap_sdk = "ocaml_wrap_sdk",
+)
 
 # load("//implementation:noocaml.bzl", "DEFAULT_NOOCAML", "ocaml_register_noocaml")
 # load("//proto:ocamlocaml.bzl", "ocamlocaml_special_proto")
@@ -30,6 +40,98 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # print("private/repositories.bzl loading")
+
+def _detect_installed_sdk_home(ctx):
+    """returns sdk installation root, ie. OCAMLROOT.
+
+    FIXME: should return ocaml root in $HOME, which may be different than OCAMLROOT.
+"""
+    # print("_detect_installed_sdk_home")
+    if "OPAM_SWITCH_PREFIX" in ctx.os.environ:
+        return ctx.os.environ["OPAM_SWITCH_PREFIX"]
+    else:
+        fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+
+def _ocaml_repo_impl(repo_ctx):
+    sdkpath = _detect_installed_sdk_home(repo_ctx)
+
+    repo_ctx.template(
+        "BUILD.bazel",
+        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.ocaml.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+    repo_ctx.template(
+        "tools/BUILD.bazel",
+        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.tools.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+    repo_ctx.template(
+        "mode/BUILD.bazel",
+        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.mode.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+    ocaml_version = repo_ctx.execute(["ocaml", "-vnum"]).stdout.strip()
+    [ocaml_major, sep, rest] = ocaml_version.partition(".")
+    [ocaml_minor, sep, rest] = rest.partition(".")
+    [ocaml_patch, sep, rest] = rest.partition(".")
+    repo_ctx.template(
+        "version/BUILD.bazel",
+        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.version.tpl"),
+        executable = False,
+        substitutions = {
+            "{VERSION}": ocaml_version,
+            "{MAJOR}": ocaml_major,
+            "{MINOR}": ocaml_minor,
+            "{PATCH}":  ocaml_patch
+        },
+    )
+    repo_ctx.template(
+        "csdk/BUILD.bazel",
+        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.csdk.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+    repo_ctx.template(
+        "csdk/ctypes/BUILD.bazel",
+        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.ctypes.csdk.tpl"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+
+    if "OPAMROOT" in repo_ctx.os.environ:
+        repo_ctx.symlink(repo_ctx.os.environ["OPAMROOT"], "opamroot")
+        # repo_ctx.symlink(opamroot, "opamroot")
+    else:
+        fail("Environment var OPAMROOT must be set (try `$ export OPAMROOT=~/.opam'un).")
+    if "OPAM_SWITCH_PREFIX" in repo_ctx.os.environ:
+        repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"], "switch")
+        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/bin", "tools")
+        repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml", "csdk/ocaml")
+        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml/caml", "csdk/include")
+        repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "csdk/ctypes/api")
+        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "lib/ctypes/api")
+        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/integers", "csdk/integers/api")
+    else:
+        fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+
+_ocaml_repo = repository_rule(
+    implementation = _ocaml_repo_impl,
+    environ = ["OCAMLROOT", "OPAM_SWITCH_PREFIX"],
+    configure = True
+)
 
 def ocaml_configure(is_rules_ocaml = False,
                     opam = None):
@@ -47,7 +149,7 @@ def ocaml_configure(is_rules_ocaml = False,
     for information on choosing different versions of these repositories
     in your own project.
     """
-    # print("ocaml_configure: opam")
+    print("ocaml_configure")
     # print(opam)
 
     # if getattr(native, "bazel_version", None):
@@ -67,14 +169,14 @@ def ocaml_configure(is_rules_ocaml = False,
         sha256 = "97e70364e9249702246c0e9444bccdc4b847bed1eb03c5a3ece4f83dfe6abc44",
     )
 
-    ## verify opam pkgs - returns a struct(root, switch)
-    opam_configure(opam=opam)
+    opam_configure()
 
-    ocaml_home_sdk("ocaml")
-
-    # opam_repo(name="opam")
+    # ocaml_home_sdk("ocaml")
+    _ocaml_repo(name="ocaml") # opam=opam)
 
     obazl_repo(name="obazl")
+
+    ocaml_register_toolchains(installation="host")
 
     # print("ocaml_configure done")
 
@@ -83,10 +185,10 @@ def ocaml_configure(is_rules_ocaml = False,
 #         # print("XXXXXXXXXXXXXXXX: " + name)
 #         repo_rule(name = name, **kwargs)
 
-# def _ocaml_name_hack_impl(ctx):
-#     ctx.file("BUILD.bazel")
-#     content = "IS_RULES_OCAML = {}".format(ctx.attr.is_rules_ocaml)
-#     ctx.file("def.bzl", content)
+# def _ocaml_name_hack_impl(repo_ctx):
+#     repo_ctx.file("BUILD.bazel")
+#     content = "IS_RULES_OCAML = {}".format(repo_ctx.attr.is_rules_ocaml)
+#     repo_ctx.file("def.bzl", content)
 
 # ocaml_name_hack = repository_rule(
 #     implementation = _ocaml_name_hack_impl,

@@ -39,8 +39,8 @@ load("//implementation:utils.bzl",
 def _ocaml_interface_impl(ctx):
 
   debug = False
-  if (ctx.label.name == "Filter_cmi"):
-      debug = True
+  # if (ctx.label.name == "_Impl"):
+  #     debug = True
 
   if debug:
       print("OCAML INTERFACE TARGET: %s" % ctx.label.name)
@@ -65,16 +65,25 @@ def _ocaml_interface_impl(ctx):
 
   if ctx.attr.ppx:
       ## this will also handle ns
-    xsrc = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
-  elif ctx.attr.ns_module:
+    (tmpdir, xsrc) = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
+  elif ctx.attr.ns:
     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
+    tmpdir = ""
   else:
     xsrc = ctx.file.src
+    tmpdir = ""
 
   # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
+  if debug:
+      print("XSRC: %s" % xsrc)
   cmifname = xsrc.basename.rstrip("mli") + "cmi"
-  obj_cmi = ctx.actions.declare_file(cmifname)
+  if debug:
+      print("CMIFNAME: %s" % cmifname)
+  obj_cmi = ctx.actions.declare_file(tmpdir + cmifname)
+  if debug:
+      print("OBJ_CMI: %s" % obj_cmi)
 
+  ################################################################
   args = ctx.actions.args()
   # args.add(tc.compiler.basename)
   args.add("ocamlc")
@@ -84,20 +93,21 @@ def _ocaml_interface_impl(ctx):
 
   args.add("-c") # interfaces always compile-only?
 
-  if ctx.attr.ns_module:
+  if ctx.attr.ns:
     # args.add("-no-alias-deps")
     # args.add("-opaque")
-    ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
+    ns_cm = ctx.attr.ns[OcamlNsModuleProvider].payload.cm
     ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
     args.add("-open", ns_mod)
-    dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
-    dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cmi)
+    dep_graph.append(ctx.attr.ns[OcamlNsModuleProvider].payload.cm)
+    dep_graph.append(ctx.attr.ns[OcamlNsModuleProvider].payload.cmi)
 
-    # capitalize_initial_char(ctx.attr.ns_module[PpxNsModuleProvider].payload.ns))
+    # capitalize_initial_char(ctx.attr.ns[PpxNsModuleProvider].payload.ns))
 
   # if ctx.attr.ns:
   #   args.add("-open", ctx.attr.ns)
-  args.add("-I", obj_cmi.dirname)
+  includes.append(obj_cmi.dirname)
+  # args.add("-I", obj_cmi.dirname)
 
   # args.add("-linkpkg")
   # args.add("-linkall")
@@ -114,8 +124,8 @@ def _ocaml_interface_impl(ctx):
                 opam_deps.append(p.name)
         ppx_nopam_lazy_deps = ctx.attr.ppx[PpxExecutableProvider].deps.nopam_lazy
         for lazy_dep in ppx_nopam_lazy_deps.to_list():
-            if debug:
-                print("LAZY DEP: %s" % lazy_dep)
+            # if debug:
+            #     print("LAZY DEP: %s" % lazy_dep)
             nopam_deps.append(lazy_dep)
             includes.append(lazy_dep.dirname)
 
@@ -124,8 +134,17 @@ def _ocaml_interface_impl(ctx):
           opam_deps.append(x.name)
 
   if len(opam_deps) > 0:
-      args.add("-linkpkg")
+      ## linking not needed to produce .cmi files
+      # args.add("-linkpkg")
       for dep in opam_deps:  # mydeps.opam.to_list():
+          ## FIXME: we do not want to add opam ppx deps, they cause
+          ## ocamlfind to inject a -ppx option that introduces ppx_deriving
+          # if ctx.label.name == "_Parallel_scan.cmi":
+          #     if dep.startswith("ppx"):
+          #         print("OMITTING PPX dep: %s" % dep)
+          #     else:
+          #         args.add("-package", dep)
+          # else:
           args.add("-package", dep)
 
   intf_dep = None
@@ -134,10 +153,16 @@ def _ocaml_interface_impl(ctx):
     if debug:
         print("NOPAM DEP: %s" % dep)
         print("NOPAM DEP ext: %s" % dep.extension)
+    # if dep.basename.startswith("ppx"):
+    #     print("OMITTING PPX dep: %s" % dep)
     if dep.extension == "cmx":
         includes.append(dep.dirname)
         dep_graph.append(dep)
         # ocamlc chokes on cmx when building cmi
+        # build_deps.append(dep)
+    elif dep.extension == "cma":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
         # build_deps.append(dep)
     elif dep.extension == "cmi":
         includes.append(dep.dirname)
@@ -149,6 +174,7 @@ def _ocaml_interface_impl(ctx):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         # build_deps.append(dep)
+        # build_deps.append(dep) ## compiler "don't know what to do with" cmxa files
         # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
         #     if g.path.endswith(".cmx"):
         #         includes.append(g.dirname)
@@ -190,11 +216,18 @@ def _ocaml_interface_impl(ctx):
               dep_graph.append(g)
               includes.append(g.dirname)
               ## expose cmi files of deps for linking
-              for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
-                  # print("LIBDEP: %s" % h)
-                  if h.path.endswith(".cmx"):
-                      dep_graph.append(h)
-                      includes.append(h.dirname)
+              if OcamlArchiveProvider in dep:
+                  for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
+                      # print("LIBDEP: %s" % h)
+                      if h.path.endswith(".cmx"):
+                          dep_graph.append(h)
+                          includes.append(h.dirname)
+              elif PpxArchiveProvider in dep:
+                  for h in dep[PpxArchiveProvider].deps.nopam.to_list():
+                      # print("LIBDEP: %s" % h)
+                      if h.path.endswith(".cmx"):
+                          dep_graph.append(h)
+                          includes.append(h.dirname)
           elif g.path.endswith(".cmi"):
               intf_dep = g
               #   dep_graph.append(g)
@@ -209,8 +242,8 @@ def _ocaml_interface_impl(ctx):
   args.add("-intf", xsrc)
 
   dep_graph.append(xsrc) #] + build_deps
-  if ctx.attr.ns_module:
-    dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
+  if ctx.attr.ns:
+    dep_graph.append(ctx.attr.ns[OcamlNsModuleProvider].payload.cm)
 
   ctx.actions.run(
     env = env,
@@ -264,8 +297,8 @@ ocaml_interface = rule(
       doc = "Namespace separator.  Default: '__'",
       default = "__"
     ),
-    ns_module = attr.label(
-      doc = "Label of a ocaml_ns_module target. Used to derive namespace, output name, -open arg, etc.",
+    ns = attr.label(
+      doc = "Label of a ocaml_ns target. Used to derive namespace, output name, -open arg, etc.",
     ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
@@ -287,10 +320,17 @@ ocaml_interface = rule(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         allow_files = True,
     ),
+    ppx_output_format = attr.string(
+      doc = "Format of output of PPX transform, binary (default) or text",
+      values = ["binary", "text"],
+      default = "binary"
+    ),
     # ppx_runtime_deps  = attr.label_list(
     #     doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
     #     allow_files = True,
     # ),
+    data = attr.label_list(
+    ),
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
                    [OcamlArchiveProvider],

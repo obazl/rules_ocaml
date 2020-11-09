@@ -29,16 +29,24 @@ load("//implementation:utils.bzl",
      "WARNING_FLAGS"
 )
 
+tmpdir = "_obazl_/"
+
 ################################################################
 ########## RULE:  OCAML_MODULE  ################
 def _ocaml_module_impl(ctx):
 
   debug = False
-  # if ctx.label.name == "Interpolator":
+  # if ctx.label.name == "structured_log_events":
   #     debug = True
+
+  # x = ["STAMPFILES %s" % f.path for f in (ctx.info_file, ctx.version_file)]
+  # print(x)
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
+
+  if len(ctx.attr.ppx_tags) > 1:
+      fail("Only one ppx_tag allowed currently.")
 
   mydeps = get_all_deps("ocaml_module", ctx)
   # if debug:
@@ -80,14 +88,16 @@ def _ocaml_module_impl(ctx):
       )
   )
 
+  result = [
+      defaultInfo,
+      module_provider
+  ]
+
   if debug:
       print("OcamlModuleProvider RESULT:")
       print(result)
 
-  return [
-    defaultInfo,
-    module_provider
-  ]
+  return result
 
 #############################################
 ########## DECL:  OCAML_MODULE  ################
@@ -110,8 +120,8 @@ ocaml_module = rule(
       doc = "Namespace separator.  Default: '__'",
       default = "__"
     ),
-    ns_module = attr.label(
-        doc = "Label of an ocaml_ns_module target. Used to derive namespace, output name, -open arg, etc.",
+    ns = attr.label(
+        doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc.",
         default = None
     ),
     src = attr.label(
@@ -131,12 +141,15 @@ ocaml_module = rule(
     ppx  = attr.label(
         doc = "PPX binary (executable).",
         executable = True,
-        cfg = "host",
+        cfg = "exec",
         allow_single_file = True,
         providers = [PpxExecutableProvider]
     ),
     ppx_args  = attr.string_list(
       doc = "Options to pass to PPX binary.",
+    ),
+    ppx_tags  = attr.string_list(
+      doc = "List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
     ),
     ppx_data  = attr.label_list(
         doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
@@ -154,8 +167,8 @@ ocaml_module = rule(
     # ),
     opts = attr.string_list(),
     linkopts = attr.string_list(),
-    data = attr.label_list(
-    ),
+    # data = attr.label_list(
+    # ),
     deps = attr.label_list(
       providers = [[OpamPkgInfo],
                    [OcamlArchiveProvider],
@@ -170,6 +183,9 @@ ocaml_module = rule(
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
+    ),
+    cc_opts = attr.string_list(
+      doc = "C/C++ options",
     ),
     ## FIXME: call this cc_deps_default_type or some such
     cc_linkstatic = attr.bool(

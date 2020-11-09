@@ -125,19 +125,35 @@ def _ocaml_executable_impl(ctx):
   #     args.add(dep.cm)
 
   dso_deps = []
+  build_deps = []
+
+  ## FIXME: transitive deps
+
+  # The problem: the dep graph contains both cmxa and the cmx they
+  # contain. we cannot add both or we get dups. Cause: maybe the way
+  # ocaml_archive handles dep graph. it should not include its direct
+  # deps in its direct deps depset, because they are already in the
+  # cmxa payload.  But it does need to add indirect deps.
+
+  # for dep in ctx.files.deps:
+  #   if dep.extension == "cmx":
+  #     includes.append(dep.dirname)
+  #     build_deps.append(dep) # .basename)
+  #     dep_graph.append(dep)
 
   for dep in mydeps.nopam.to_list():
     if debug:
         print("NOPAM DEP: %s" % dep)
     if dep.extension == "cmx":
       includes.append(dep.dirname)
-      args.add(dep) # .basename)
+      build_deps.append(dep) # .basename)
       dep_graph.append(dep)
     # if dep.extension == "cmi":
     #   includes.append(dep.dirname)
     #   dep_graph.append(dep)
     elif dep.extension == "cmxa":
         includes.append(dep.dirname)
+        # build_deps.append(dep) # .basename)
         dep_graph.append(dep)
         # build_deps.append(dep)
         # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
@@ -291,55 +307,7 @@ def _ocaml_executable_impl(ctx):
                 args.add("-ccopt", "-L" + depfile.dirname)
                 cclib_deps.append(depfile)
 
-  # cclib_deps = []
-  # for dep in ctx.attr.cc_deps:
-  #   # print("CCLIB DEP: %s" % dep)
-  #   for depfile in dep.files.to_list():
-  #     # print("CCLIB DEP FILE: %s" % depfile)
-  #     includes.append(depfile.dirname)
-
-  #     ##FIXME:  if linkstatic
-  #     if depfile.extension == "a":
-  #       cclib_deps.append(depfile)
-  #       dep_graph.append(depfile)
-  #       args.add(depfile)
-  #       ## -dllib is for bytecode only
-  #       # args.add("-dllib", "lrakia")
-  #       ## incredibly, starlark's rstrip function does not strip suffix strings. we have to hack it:
-  #       # libname = depfile.basename.rstrip("a")
-  #       # libname = libname.rstrip(".")
-  #       # libname = libname[3:]
-  #       # # args.add(depfile)
-  #       # args.add("-ccopt", "-L" + depfile.dirname)
-  #       # args.add("-cclib", "-l" + libname)
-  #     if depfile.extension == "lo":
-  #       libname = depfile.basename.rstrip("o")
-  #       libname = libname.rstrip("l")
-  #       libname = libname.rstrip(".")
-  #       libname = libname[3:]
-  #       args.add("-cclib", "-l" + libname)
-  #       # cclib_deps.append(depfile)
-  #     elif depfile.extension == "dylib":
-  #       ## -dllib is for bytecode only
-  #       # args.add("-dllib", "lrakia")
-  #       ## incredibly, starlark's rstrip function does not strip suffix strings. we have to hack it:
-  #       libname = depfile.basename.rstrip("dylib")
-  #       libname = libname.rstrip(".")
-  #       libname = libname[3:]
-  #       args.add("-ccopt", "-L" + depfile.dirname)
-  #       args.add("-cclib", "-l" + libname)
-  #       # cclib_deps.append(depfile)
-  #     elif depfile.extension == "so":
-  #       libname = depfile.basename.rstrip("o")
-  #       libname = libname.rstrip("s")
-  #       libname = libname.rstrip(".")
-  #       libname = libname[3:]
-  #       args.add("-ccopt", "-L" + depfile.dirname)
-  #       args.add("-cclib", "-l" + libname)
-  #       # cclib_deps.append(depfile)
-  #     #   libname = depfile.basename.rstrip(".dylib")
-  #     #   libname = libname.lstrip("lib")
-  #     #   args.add("-cclib", "-l" + libname)
+  args.add_all(ctx.attr.cc_opts, before_each="-ccopt")
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -366,6 +334,8 @@ def _ocaml_executable_impl(ctx):
   # args.add_all(outs_cmi)
 
   # args.add_all(cclib_deps)
+
+  args.add_all(build_deps)
 
   args.add("-o", outbinary)
 
@@ -407,9 +377,13 @@ ocaml_executable = rule(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
-    srcs = attr.label_list(
-      allow_files = OCAML_FILETYPES
+    main = attr.label(
+        providers = [[OcamlModuleProvider], [OpamPkgInfo]],
+        default = None
     ),
+    # srcs = attr.label_list(
+    #   allow_files = OCAML_FILETYPES
+    # ),
     # srcs_impl = attr.label_list(
     #   allow_files = OCAML_IMPL_FILETYPES
     # ),
@@ -445,6 +419,9 @@ ocaml_executable = rule(
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
+    ),
+    cc_opts = attr.string_list(
+      doc = "C/C++ options",
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",

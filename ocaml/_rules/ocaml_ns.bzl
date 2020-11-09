@@ -4,7 +4,7 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
      "OcamlNsModuleProvider")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
+load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 # load("//ocaml/_actions:ppx.bzl",
 #      "apply_ppx",
 #      "ocaml_ppx_compile",
@@ -32,13 +32,13 @@ load("//implementation:utils.bzl",
 # print("implementation/ocaml.bzl loading")
 
 
-########## RULE:  OCAML_NS_MODULE  ################
+########## RULE:  OCAML_NS  ################
 ## Generate a namespacing module, containing module aliases for the
 ## namespaced submodules listed as sources.
 
-def _ocaml_ns_module_impl(ctx):
+def _ocaml_ns_impl(ctx):
 
-  return ns_module_action(ctx)
+  return ns_module_compile(ctx)
 
 # (library
 #  (name deriving_hello)
@@ -48,8 +48,8 @@ def _ocaml_ns_module_impl(ctx):
 
 #############################################
 ########## DECL:  OCAML_MODULE  ################
-ocaml_ns_module = rule(
-  implementation = _ocaml_ns_module_impl,
+ocaml_ns = rule(
+  implementation = _ocaml_ns_impl,
   attrs = dict(
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
@@ -85,7 +85,7 @@ ocaml_ns_module = rule(
     # ),
     mode = attr.string(default = "native"),
     msg = attr.string(),
-    _rule = attr.string(default = "ocaml_ns_module")
+    _rule = attr.string(default = "ocaml_ns")
   ),
   provides = [DefaultInfo, OcamlNsModuleProvider],
   executable = False,

@@ -8,8 +8,8 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice.
 """
 
-load("//ocaml/extension/implementation/rules:ocamlx_cppo_runner.bzl",
-    _ocaml_cppo_runner = "ocamlx_cppo_runner"
-)
+# load("//ocaml/extension/implementation/rules:rulex_cppo_filegroup.bzl",
+#     _rulex_cppo_filegroup = "rulex_cppo_filegroup"
+# )
 
-ocamlx_cppo_runner = _ocaml_cppo_runner
+# rulex_cppo_filegroup = _rulex_cppo_filegroup

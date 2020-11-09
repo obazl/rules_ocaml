@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:collections.bzl", "collections")
+
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
@@ -69,15 +71,16 @@ def _ppx_executable_impl(ctx):
   outfilename = ctx.label.name
   outbinary = ctx.actions.declare_file(outfilename)
 
+  ################################################################
   args = ctx.actions.args()
   args.add("ocamlopt")
   options = tc.opts + ctx.attr.opts
   if "-predicates" not in options:
-      print("\n\n\tWARNING: did you forget a -predicates option for your ppx_executable?\n\n")
+      print("\n\n\tWARNING: did you forget a -predicates option for your ppx_executable (%s)?\n\n" % ctx.label.name)
   if "-linkall" not in options:
       print("\n\n\tWARNING: did you forget the -linkall option for your ppx_executable?\n\n")
 
-  args.add_all(options)
+  args.add_all(collections.uniq(options))
 
   args.add("-o", outbinary)
 
@@ -109,7 +112,7 @@ def _ppx_executable_impl(ctx):
     elif dep.extension == "cmxa":
       dep_graph.append(dep)
       includes.append(dep.dirname)
-      build_deps.append(dep)
+      # build_deps.append(dep)
     elif dep.extension == "a":
       dep_graph.append(dep)
       includes.append(dep.dirname)
@@ -204,15 +207,18 @@ def _ppx_executable_impl(ctx):
   ## this is handled by get_all_deps
   # nopam_lazy_deps.extend(mydeps.nopam_lazy.to_list())
 
+
+  ## FIXME: put deps of main into dep_graph, but also make sure main file itself comes last
+
   # driver shim source must come after lib deps!
-  for src in ctx.files.srcs:
-      if src.extension == "cmx":
-          args.add(src)
-      elif src.extension == "ml":
-          args.add(src)
+  # for src in ctx.files.main:
+  #     if src.extension == "cmx":
+  #         args.add(src)
+  #     elif src.extension == "ml":
+  #         args.add(src)
 
   dep_graph.extend(build_deps)
-  dep_graph.extend(ctx.files.srcs)
+  dep_graph.extend(ctx.files.main)
 
         ## opam deps are just strings, we feed them to ocamlfind, which finds the file.
         ## this means we cannot add them to the dep_graph.
@@ -229,31 +235,48 @@ def _ppx_executable_impl(ctx):
     arguments = [args],
     inputs = dep_graph,
     outputs = [outbinary],
-    tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
+    tools = [tc.ocamlfind, tc.ocamlopt], # tc.opam,
     mnemonic = "OcamlPPXBinary",
-    progress_message = "ppx_executable({}), {}".format(
+    progress_message = "Compiling ppx_executable({}), {}".format(
       ctx.label.name, ctx.attr.message
       )
   )
 
+  defaultInfo = None
+  if len(ctx.attr.data) == 0:
+        defaultInfo = DefaultInfo(
+            executable=outbinary
+        )
+  else:
+      print("DATA: %s" % ctx.files.data)
+      defaultInfo = DefaultInfo(
+          executable=outbinary,
+          runfiles = ctx.runfiles(
+              root_symlinks = {
+                  # FIXME: foreach
+                  ctx.files.data[0].short_path: ctx.files.data[0]
+                  # "src/config.mlh": ctx.files.data[0]
+              }
+          )
+      )
 
   # print("PPX_EXECUTABLE TRANSFORM: %s" % lazy_deps)
 
-  results = [DefaultInfo(executable=outbinary,
-                         runfiles = ctx.runfiles(collect_data = True),
-                         files = depset(direct = [outbinary])),
-          PpxExecutableProvider(
-            payload=outbinary,
-            args = depset(direct = ctx.attr.args),
-            deps = struct(
-                opam = mydeps.opam,
-                opam_lazy = mydeps.opam_lazy,
-                # opam_lazy = depset(direct = opam_lazy_deps),
+  results = [
+      defaultInfo,
+      PpxExecutableProvider(
+          payload=outbinary,
+          args = depset(direct = ctx.attr.args),
+          deps = struct(
+              opam = mydeps.opam,
+              opam_lazy = mydeps.opam_lazy,
+              # opam_lazy = depset(direct = opam_lazy_deps),
                 nopam = mydeps.nopam,
-                nopam_lazy = mydeps.nopam_lazy
-                # nopam_lazy = depset(direct = nopam_lazy_deps)
+              nopam_lazy = mydeps.nopam_lazy
+              # nopam_lazy = depset(direct = nopam_lazy_deps)
             )
-          )]
+      )
+  ]
 
   if debug:
       print("PPX_EXECUTABLE RESULTS:")
@@ -276,13 +299,12 @@ ppx_executable = rule(
       default = Label("@ocaml//:path")
     ),
     # IMPLICIT: args = string list = runtime args, passed whenever the binary is used
-    srcs = attr.label_list(
-      allow_files = OCAML_IMPL_FILETYPES
+    main = attr.label(
+        mandatory = True,
+        # allow_single_file = [".ml", ".cmx"],
+        providers = [PpxModuleProvider], #  [OcamlModuleProvider]], #, [OpamPkgInfo]],
+        default = None
     ),
-    # ppx_bin  = attr.label(
-    #   doc = "PPX binary (executable).",
-    #   providers = [PpxExecutableProvider]
-    # ),
     ppx  = attr.label(
       doc = "PPX binary (executable).",
       providers = [PpxExecutableProvider],

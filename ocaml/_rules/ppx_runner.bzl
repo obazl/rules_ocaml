@@ -181,3 +181,64 @@ ppx_transform = rule(
   ),
   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
+
+################################################################
+################
+def _ppx_runner_impl(ctx):
+
+    debug = False
+    if (ctx.label.name == "foo"):
+        debug = True
+
+    if debug:
+        print("PPX_RUNNER TARGET: %s" % ctx.label.name)
+
+    runfiles_relative_tool_path = ctx.workspace_name + "/" + ctx.attr.ppx[DefaultInfo].files_to_run.executable.short_path
+    print("runfiles_relative_tool_path: %s" % runfiles_relative_tool_path)
+    print("TOOL: %s" % ctx.file.ppx.short_path)
+    print("RUNFILES: %s" % ctx.files.data[0].path)
+    print("BINDIR: %s" % ctx.bin_dir.path)
+
+    cmd = ctx.expand_location("$(location //src/config.mlh)")
+    print("CMD: %s" % cmd)
+
+    command = "\n".join([
+        "#!/bin/sh",
+        "{exe} $1".format(exe = ctx.bin_dir.path + "/" +  ctx.executable.ppx.short_path)
+    ])
+        # "{exe} $1".format(exe = ctx.attr.ppx[DefaultInfo].files_to_run.executable.short_path)
+
+    ctx.actions.write(
+        output  = ctx.outputs.executable,
+        content = command,
+        is_executable = True
+    )
+
+    return [DefaultInfo(
+        runfiles = ctx.runfiles(## files = ctx.files.data,
+                                root_symlinks = {"src/config.mlh": ctx.files.data[0]}),
+    )]
+
+##################
+ppx_runner = rule(
+    implementation = _ppx_runner_impl,
+    executable = True,
+    attrs = dict(
+        ppx = attr.label(
+            mandatory = True,
+            providers = [[DefaultInfo], [PpxExecutableProvider]],
+            executable = True,
+            cfg = "exec",
+            allow_single_file = True
+        ),
+        data  = attr.label_list(
+            doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
+            allow_files = True,
+        ),
+        output_format = attr.string(
+            doc = "Format of output of PPX transform, binary (default) or text",
+            values = ["binary", "text"],
+            default = "binary"
+        ),
+    ),
+)

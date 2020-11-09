@@ -459,6 +459,7 @@ ppx_test = rule(
         default = False
     ),
     # to support legacy stuff. cookies not needed with "modern" ppxlib + OMP
+    ## FIXME: call this "tag" ("ppx_tag" on ocaml_module, ocaml_interface)
     cookies = attr.string_dict(
         doc = """
 Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'name="value"'. Since it is easy to get the quoting wrong due to shell substitutions, this attribute makes it easy. Keys are cookie names, values are cookie vals.

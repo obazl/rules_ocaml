@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:collections.bzl", "collections")
+
 load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_providers:ppx.bzl",
@@ -17,7 +19,6 @@ load("//ocaml/_providers:ppx.bzl",
 # )
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
-     # "xget_all_deps",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
@@ -30,6 +31,8 @@ load("//implementation:utils.bzl",
 )
 
 # print("implementation/ocaml.bzl loading")
+
+tmpdir = "_obazl_/"
 
 ################################################################
 #### Compile/link without preprocessing.
@@ -71,16 +74,16 @@ def _ppx_archive_impl(ctx):
   obj = {}
   if ctx.attr.archive_name:
     if ctx.attr.linkshared:
-      obj["cmxs"] = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxs")
+      obj["cmxs"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxs")
     else:
-      obj["cmxa"] = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxa")
-      obj["a"]    = ctx.actions.declare_file(ctx.attr.archive_name + ".a")
+      obj["cmxa"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxa")
+      obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
   else:
     if ctx.attr.linkshared:
-      obj["cmxs"] = ctx.actions.declare_file(ctx.label.name + ".cmxs")
+      obj["cmxs"] = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxs")
     else:
-      obj["cmxa"] = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-      obj["a"]    = ctx.actions.declare_file(ctx.label.name + ".a")
+      obj["cmxa"] = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxa")
+      obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
 
   # print("PPX_ARCHIVE OBJS: %s" % obj)
   # obj_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
@@ -88,8 +91,8 @@ def _ppx_archive_impl(ctx):
 
   args = ctx.actions.args()
   args.add("ocamlopt")
-  args.add_all(ctx.attr.flags)
-  args.add_all(ctx.attr.opts)
+  # args.add_all(ctx.attr.flags)
+  args.add_all(collections.uniq(ctx.attr.opts))
 
   if ctx.attr.linkall:
     args.add("-linkall")
@@ -127,28 +130,80 @@ def _ppx_archive_impl(ctx):
   dep_graph  = []
   includes   = []
 
-  for dep in ctx.attr.deps:
-    if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
+  for dep in mydeps.nopam.to_list():
+    if debug:
+          print("\nNOPAM DEP: %s\n\n" % dep)
+    if dep.extension == "cmx":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "cmi":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "mli":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "o":
+        # build_deps.append(dep)
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "cmxa":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+        ## "Option -a cannot be used with .cmxa input files."
+        # build_deps.append(dep)
+    elif dep.extension == "a":
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "so":
+        if debug:
+            print("NOPAM .so DEP: %s" % dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-3]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # dso_deps.append(dep)
+    elif dep.extension == "dylib":
+        if debug:
+            print("NOPAM .dylib DEP: %s" % dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-6]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # includes.append(dep.dirname)
+        # dso_deps.append(dep)
     else:
-      for g in dep[DefaultInfo].files.to_list():
-        # if g.path.endswith(".cmi"):
-        #   build_deps.append(g)
-        if g.path.endswith(".cmx"):
-          includes.append(g.dirname)
-          # build_deps.append(g)
-          dep_graph.append(g)
-        if g.path.endswith(".cmi"):
-          includes.append(g.dirname)
-          dep_graph.append(g)
-        if g.path.endswith(".o"):
-          includes.append(g.dirname)
-          dep_graph.append(g)
-        if g.path.endswith(".cmxa"):
-          includes.append(g.dirname)
-          ## cannot pass a cmxa dep when using -a
-          # build_deps.append(g)
-          dep_graph.append(g)
+        if debug:
+            print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
+
+  # for dep in ctx.attr.deps:
+  #   if OpamPkgInfo in dep:
+  #     args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
+  #   else:
+  #     for g in dep[DefaultInfo].files.to_list():
+  #       # if g.path.endswith(".cmi"):
+  #       #   build_deps.append(g)
+  #       if g.path.endswith(".cmx"):
+  #         includes.append(g.dirname)
+  #         # build_deps.append(g)
+  #         dep_graph.append(g)
+  #       if g.path.endswith(".cmi"):
+  #         includes.append(g.dirname)
+  #         dep_graph.append(g)
+  #       if g.path.endswith(".o"):
+  #         includes.append(g.dirname)
+  #         dep_graph.append(g)
+  #       if g.path.endswith(".cmxa"):
+  #         includes.append(g.dirname)
+  #         ## cannot pass a cmxa dep when using -a
+  #         # build_deps.append(g)
+  #         dep_graph.append(g)
 
   # for an archive we need all deps on the command line:
   args.add_all(build_deps)
@@ -234,17 +289,6 @@ ppx_archive = rule(
     ####  OPTIONS  ####
     ##Flags. We set some flags by default; these params
     ## allow user to override.
-    flags = attr.string_list(
-      default = [
-        "-strict-sequence",
-        "-strict-formats",
-        "-short-paths",
-        "-keep-locs",
-        "-g",
-        "-no-alias-deps",
-        "-opaque"
-      ]
-    ),
     ## Problem is, this target registers two actions,
     ## compile and link, and each has its own params.
     ## for now, these affect the compile action:

@@ -46,30 +46,33 @@ def compile_module(rule, ctx, mydeps):
   dep_graph = []
   outputs   = []
 
+  tmpdir = "_obazl_/"
   if ctx.attr.ppx:
       ## this will also handle ns
-      xsrc = ppx_transform_action(rule, ctx, ctx.file.src)
+      (tmpdir, xsrc) = ppx_transform_action(rule, ctx, ctx.file.src)
       dep_graph.append(ctx.file.ppx)
       # a ppx executable may have lazy deps; they are handled by get_all_deps
-  elif ctx.attr.ns_module:
+  elif ctx.attr.ns:
       # rename this module to put it in the namespace
       xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
+      # tmpdir = ""
   else:
       xsrc = ctx.file.src
+      # tmpdir = ""
 
   # cmxfname = ctx.file.src.basename.rstrip("ml") + "cmx"
   cmxfname = paths.replace_extension(xsrc.basename, tc.objext)
-  obj_cmx = ctx.actions.declare_file(cmxfname)
+  obj_cmx = ctx.actions.declare_file(tmpdir + cmxfname)
   if debug:
       print("CMX FNAME: %s" % cmxfname)
       print("OBJ_CMX: %s" % obj_cmx)
   obj_cmi = None
   obj_cmt = None
   if ctx.attr.intf:
-    if ctx.file.intf.extension == "mli":
-        cmifname = paths.replace_extension(ctx.file.intf.basename, ".cmi")
-        obj_cmi = ctx.actions.declare_file(cmifname)
-    elif ctx.file.intf.extension == "cmi":
+    # if ctx.file.intf.extension == "mli":
+    #     cmifname = paths.replace_extension(ctx.file.intf.basename, ".cmi")
+    #     obj_cmi = ctx.actions.declare_file(tmpdir + "/" + cmifname)
+    if ctx.file.intf.extension == "cmi":
         obj_cmi = ctx.attr.intf[OcamlInterfaceProvider].payload.cmi
         dep_graph.append(ctx.file.intf)
         dep_graph.append(ctx.attr.intf[OcamlInterfaceProvider].payload.mli)
@@ -83,21 +86,21 @@ def compile_module(rule, ctx, mydeps):
   else:
       ## compiler will infer and emit .cmi from .ml src
     cmifname = paths.replace_extension(xsrc.basename, ".cmi")
-    obj_cmi = ctx.actions.declare_file(cmifname)
+    obj_cmi = ctx.actions.declare_file(tmpdir + cmifname)
     if "-bin-annot" in ctx.attr.opts:
         ## FIXME: only do this if no cmi intf provided
-        obj_cmt = ctx.actions.declare_file(paths.replace_extension(xsrc.basename, ".cmt"))
+        obj_cmt = ctx.actions.declare_file(tmpdir + paths.replace_extension(xsrc.basename, ".cmt"))
         outputs.append(obj_cmt)
   if debug:
       print("OBJ_CMI: %s" % obj_cmi)
   ofname = paths.replace_extension(xsrc.basename, ".o")
-  obj_o = ctx.actions.declare_file(ofname)
+  obj_o = ctx.actions.declare_file(tmpdir + ofname)
   # cmxfname = paths.replace_extension(ctx.file.src.basename, tc.objext)
   # obj_cmx = ctx.actions.declare_file(cmxfname)
   # ofname = paths.replace_extension(ctx.file.src.basename, ".o")
   # obj_o = ctx.actions.declare_file(ofname)
 
-  ################################################################
+  #########################
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
   # args.add("-w", ctx.attr.warnings)
@@ -123,12 +126,12 @@ def compile_module(rule, ctx, mydeps):
 
   includes   = []
 
-  if ctx.attr.ns_module:
+  if ctx.attr.ns:
       ## FIXME: make user reponsible for these args?
       # args.add("-w", "-49") # ignore Warning 49: no cmi file was found in path for module x
       # args.add("-no-alias-deps")
       # args.add("-opaque")
-      ns_cm = ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm
+      ns_cm = ctx.attr.ns[OcamlNsModuleProvider].payload.cm
       ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
       args.add("-open", ns_mod)
 
@@ -136,14 +139,15 @@ def compile_module(rule, ctx, mydeps):
   opam_deps = []
   nopam_deps = []
 
-  for datum in ctx.attr.data:
-      dep_graph.extend(datum.files.to_list())
+  # for datum in ctx.attr.data:
+  #     dep_graph.extend(datum.files.to_list())
 
   if ctx.attr.intf:
     if ctx.file.intf.extension == "mli":
         # args.add(ctx.file.intf.path)
         # args.add("-intf", ctx.file.intf.path)
         dep_graph.append(ctx.file.intf)
+        args.add("-intf", ctx.file.intf)
     else:
         provider = ctx.attr.intf[OcamlInterfaceProvider]
         if debug:
@@ -167,7 +171,7 @@ def compile_module(rule, ctx, mydeps):
                 includes.append(dep.dirname)
             elif dep.extension == "mli":
                 dep_graph.append(dep)
-                # includes.append(dep.dirname)
+                includes.append(dep.dirname)
 
   # args.add("-I", obj_cmx.dirname)
   includes.append(obj_cmx.dirname)
@@ -176,7 +180,10 @@ def compile_module(rule, ctx, mydeps):
   for dep in mydeps.nopam.to_list():
       # if debug:
       #     print("\nNOPAM DEP: %s\n\n" % dep)
-      if dep.extension == "cmi":
+      if dep.extension == "mli":
+          dep_graph.append(dep)
+          includes.append(dep.dirname)
+      elif dep.extension == "cmi":
           dep_graph.append(dep)
           ## THIS IS THE CRITICAL BIT for compiling! The compiler must be able to find the cmi files.
           includes.append(dep.dirname)
@@ -186,9 +193,6 @@ def compile_module(rule, ctx, mydeps):
           # Just to make sure (cmx and cmi should be in same dir?)
           includes.append(dep.dirname)
           # We do not need to list cmx files, the compiler will find them in the search path.
-      elif dep.extension == "mli":
-          dep_graph.append(dep)
-          includes.append(dep.dirname)
       elif dep.extension == "o":
           dep_graph.append(dep)
           includes.append(dep.dirname)
@@ -201,7 +205,7 @@ def compile_module(rule, ctx, mydeps):
           ## cc deps
       elif dep.extension == "a":
           dep_graph.append(dep)
-          # args.add(dep)
+          args.add(dep)
       elif dep.extension == "lo":
         if debug:
             print("NOPAM .lo DEP: %s" % dep)
@@ -265,37 +269,37 @@ def compile_module(rule, ctx, mydeps):
 
 
   ####  TODO:  transitive cc_deps
-  # for dep in ctx.attr.cc_deps.items():
-  #   if debug:
-  #       print("CCLIB DEP: ")
-  #       print(dep)
-  #   if dep[1] == "static":
-  #       if debug:
-  #           print("STATIC lib: %s:" % dep[0])
-  #       for depfile in dep[0].files.to_list():
-  #           if (depfile.extension == "a"):
-  #               cclib_deps.append(depfile)
-  #               args.add(depfile)
-  #               includes.append(depfile.dirname)
-  #   elif dep[1] == "dynamic":
-  #       if debug:
-  #           print("DYNAMIC lib: %s" % dep[0])
-  #       for depfile in dep[0].files.to_list():
-  #           print("DEPFILE extension: %s" % depfile.extension)
-  #           if (depfile.extension == "so"):
-  #               libname = depfile.basename[:-3]
-  #               libname = libname[3:]
-  #               print("SOLIBNAME: %s" % depfile.basename)
-  #               print("SO PARAM: -l%s" % libname)
-  #               args.add("-cclib", "-l" + libname)
-  #               cclib_deps.append(depfile)
-  #           elif (depfile.extension == "dylib"):
-  #               libname = depfile.basename[:-6]
-  #               libname = libname[3:]
-  #               print("DYLIBNAME: %s:" % libname)
-  #               args.add("-cclib", "-l" + libname)
-  #               includes.append(depfile.dirname)
-  #               cclib_deps.append(depfile)
+  for dep in ctx.attr.cc_deps.items():
+    if debug:
+        print("CCLIB DEP: ")
+        print(dep)
+    if dep[1] == "static":
+        if debug:
+            print("STATIC lib: %s:" % dep[0])
+        for depfile in dep[0].files.to_list():
+            if (depfile.extension == "a"):
+                cclib_deps.append(depfile)
+                args.add(depfile)
+                includes.append(depfile.dirname)
+    elif dep[1] == "dynamic":
+        if debug:
+            print("DYNAMIC lib: %s" % dep[0])
+        for depfile in dep[0].files.to_list():
+            print("DEPFILE extension: %s" % depfile.extension)
+            if (depfile.extension == "so"):
+                libname = depfile.basename[:-3]
+                libname = libname[3:]
+                print("SOLIBNAME: %s" % depfile.basename)
+                print("SO PARAM: -l%s" % libname)
+                args.add("-cclib", "-l" + libname)
+                cclib_deps.append(depfile)
+            elif (depfile.extension == "dylib"):
+                libname = depfile.basename[:-6]
+                libname = libname[3:]
+                print("DYLIBNAME: %s:" % libname)
+                args.add("-cclib", "-l" + libname)
+                includes.append(depfile.dirname)
+                cclib_deps.append(depfile)
 
     # for depfile in dep[0].files.to_list():
     #   # print("CCLIB DEP FILE: %s" % depfile)
@@ -327,6 +331,9 @@ def compile_module(rule, ctx, mydeps):
     #     args.add("-cclib", "-l" + libname)
     #     cclib_deps.append(depfile)
 
+  # if ctx.attr.cc_opts != None:
+  args.add_all(ctx.attr.cc_opts, before_each="-ccopt")
+
   args.add_all(includes, before_each="-I", uniquify = True)
 
   for dep in mydeps.opam.to_list():
@@ -339,9 +346,9 @@ def compile_module(rule, ctx, mydeps):
   #     opam_deps.append(dep.pkg.to_list()[0].name)
 
   if len(opam_deps) > 0:
-      # args.add("-linkpkg")
-      for dep in opam_deps:  # mydeps.opam.to_list():
-          args.add("-package", dep)
+      args.add("-linkpkg") # adds OPAM cmxa files to command
+      for dep in opam_deps:
+          args.add("-package", dep) # adds directories of OPAM files to search path using -I
           # if not dep.ppx_driver:
           #     if dep.pkg.to_list()[0].name == "async":
           #         if async:
@@ -394,8 +401,8 @@ def compile_module(rule, ctx, mydeps):
   dep_graph.extend(cclib_deps)
   dep_graph.append(xsrc)
 
-  # if ctx.attr.ns_module:
-  #   dep_graph.append(ctx.attr.ns_module[OcamlNsModuleProvider].payload.cm)
+  # if ctx.attr.ns:
+  #   dep_graph.append(ctx.attr.ns[OcamlNsModuleProvider].payload.cm)
 
   # print("DEP_GRAPH:")
   # print(dep_graph)
@@ -434,9 +441,9 @@ def compile_module(rule, ctx, mydeps):
       arguments = [args],
       inputs = dep_graph,
       outputs = outputs,
-      tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
+      tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "CompileModuleAction",
-      progress_message = "Action: compile_module of {rule}({tgt}){msg}".format(
+      progress_message = "Action compile_module: {rule}({tgt}){msg}".format(
           rule=rule,
           tgt=ctx.label.name,
           msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg

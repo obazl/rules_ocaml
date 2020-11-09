@@ -66,6 +66,8 @@ def _ocaml_ns_archive_sequential(ctx):
     path2tree(tree, seglist)
   # print("tree: %s" % tree[root_seg])
 
+  tmpdir = "_obazl_/"
+
   srcs = []
   ns_module = {} # {filename : {"content": "", "src": srcFile, "cmx": objFile}}
   ns_module_submodules = {} # {redirector : [submodules]}
@@ -96,20 +98,20 @@ def _ocaml_ns_archive_sequential(ctx):
       ## submodules, with -open ns_module
       if seg.endswith(".ml"):
         rename_srcfname = "__".join(pfx) + "__" + seg.capitalize()
-        rename_srcfile  = ctx.actions.declare_file(rename_srcfname)
+        rename_srcfile  = ctx.actions.declare_file(tmpdir + rename_srcfname)
         ns_module[rename_srcfname] = {}
         ns_module[rename_srcfname]["presrc"] = submod # source to be renamed
         ns_module[rename_srcfname]["src"] = rename_srcfile # source to be compiled
 
         rename_cmxfname = rename_srcfname.rstrip(".ml") + ".cmx"
-        rename_cmxfile  = ctx.actions.declare_file(rename_cmxfname)
+        rename_cmxfile  = ctx.actions.declare_file(tmpdir + rename_cmxfname)
         ns_module[rename_srcfname]["cmx"] = rename_cmxfile
         rename_ofname = rename_srcfname.rstrip(".ml") + ".o"
-        rename_ofile  = ctx.actions.declare_file(rename_ofname)
+        rename_ofile  = ctx.actions.declare_file(tmpdir + rename_ofname)
         ns_module[rename_srcfname]["o"] = rename_ofile
 
         parent_src = "__".join(pfx) + ".ml"
-        parent_src_File = ctx.actions.declare_file(parent_src)
+        parent_src_File = ctx.actions.declare_file(tmpdir + parent_src)
         if parent_src not in ns_module:
           ns_module[parent_src] = {}
         ns_module[parent_src]["src"] = parent_src_File
@@ -133,11 +135,11 @@ def _ocaml_ns_archive_sequential(ctx):
       # print("submods: %s" % submods)
       ns_module_fname = "__".join(pfx) + ".ml"
       # print("NS_MODULE_FNAME: %s" % ns_module_fname)
-      ns_module_file = ctx.actions.declare_file(ns_module_fname)
+      ns_module_file = ctx.actions.declare_file(tmpdir + ns_module_fname)
       cmxfname = "__".join(pfx) + ".cmx"
-      cmxfile = ctx.actions.declare_file(cmxfname)
+      cmxfile = ctx.actions.declare_file(tmpdir + cmxfname)
       ofname = "__".join(pfx) + ".o"
-      ofile = ctx.actions.declare_file(ofname)
+      ofile = ctx.actions.declare_file(tmpdir + ofname)
       aliases = []
       for sm in submods:
         alias = "module {sm} = {pfx}__{sm}".format(
@@ -217,11 +219,11 @@ def _ocaml_ns_archive_sequential(ctx):
   ## And if we're going to include .o files, we might as well include
   ## the .a file.  Clients are not required to actually use them.
   if ctx.attr.archive_name:
-    obj_cmxa = ctx.actions.declare_file(ctx.attr.archive_name + ".cmxa")
-    obj_a = ctx.actions.declare_file(ctx.attr.archive_name + ".a")
+    obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxa")
+    obj_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
   else:
-    obj_a = ctx.actions.declare_file(ctx.label.name + ".a")
-    obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
+    obj_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
+    obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxa")
 
   build_deps = []
   includes = []

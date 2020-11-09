@@ -7,13 +7,15 @@ load("//implementation:utils.bzl",
      "get_sdkpath",
 )
 
+tmpdir = "_obazl_/"
+
 # NOTE: Submodules are Bazel dependencies, but they are not OCaml
 # deps. They are added to the dep graph, which means they must exist
 # and if they change a rebuild of the ns module will be triggered,,
 # but they are not used by OCaml to build the ns module.  So we do not
 # need to check for transitive deps.
-def ns_module_action(ctx):
-  # print("ns_module_action: %s" % ctx.label.name)
+def ns_module_compile(ctx):
+  # print("ns_module_compile: %s" % ctx.label.name)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
@@ -25,15 +27,14 @@ def ns_module_action(ctx):
   ns_module_name = ctx.attr.ns
   # print("NS_MODULE_NAME %s" % ns_module_name)
   pfx = capitalize_initial_char(ctx.attr.ns) + ctx.attr.ns_sep
-  inputs = []
+  dep_graph = []
   for sm in ctx.files.submodules:
     # add submodules to dep graph, bazel will ensure they exist
-    inputs.append(sm)
+    dep_graph.append(sm)
+    # now construct alias statement
     sm_parts = paths.split_extension(sm.basename)
     module = sm_parts[0]
-    # print("NS MODULE %s" % module)
     if (module.lower() == ns_module_name.lower()):
-      # print("NS MATCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
       ns_module_name = ns_module_name + ctx.attr.ns_sep
     else:
       alias = "module {sm} = {pfx}{sm}".format(
@@ -43,8 +44,8 @@ def ns_module_action(ctx):
       aliases.append(alias)
 
   # module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
-  module_src = ctx.actions.declare_file(ns_module_name + ".ml")
-  inputs.append(module_src)
+  module_src = ctx.actions.declare_file(tmpdir + ns_module_name + ".ml")
+  dep_graph.append(module_src)
   # print("NS MODULE SRC: %s" % module_src)
 
   ## action: generate ns module file with alias content
@@ -55,11 +56,11 @@ def ns_module_action(ctx):
 
   ## now declare compilation outputs. compiling always produces 3 files:
   obj_cmi_fname = ns_module_name + ".cmi"
-  obj_cmi = ctx.actions.declare_file(obj_cmi_fname)
+  obj_cmi = ctx.actions.declare_file(tmpdir + obj_cmi_fname)
   obj_cmx_fname = ns_module_name + ".cmx"
-  obj_cmx = ctx.actions.declare_file(obj_cmx_fname)
+  obj_cmx = ctx.actions.declare_file(tmpdir + obj_cmx_fname)
   obj_o_fname = ns_module_name + ".o"
-  obj_o = ctx.actions.declare_file(obj_o_fname)
+  obj_o = ctx.actions.declare_file(tmpdir + obj_o_fname)
 
   ## action: compile ns module
   args = ctx.actions.args()
@@ -78,11 +79,11 @@ def ns_module_action(ctx):
       env = env,
       executable = tc.ocamlfind,
       arguments = [args],
-      inputs = inputs, # [module_src],
+      inputs = dep_graph, # [module_src],
       outputs = [obj_cmx, obj_o, obj_cmi],
-      tools = [tc.opam, tc.ocamlfind, tc.ocamlopt],
+      tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "NsModuleAction",
-      progress_message = "ns_module_action for {rule}{msg}".format(
+      progress_message = "ns_module_compile for {rule}{msg}".format(
           rule = ctx.attr._rule,
           # target = ctx.label.name,
           msg = ": " + ctx.attr.msg if ctx.attr.msg else ""
@@ -90,7 +91,7 @@ def ns_module_action(ctx):
   )
 
   provider = None
-  if ctx.attr._rule == "ocaml_ns_module":
+  if ctx.attr._rule == "ocaml_ns":
       provider = OcamlNsModuleProvider(
           payload = struct(
               ns  = ctx.attr.ns,

@@ -6,7 +6,35 @@ load("//implementation:utils.bzl",
      "get_sdkpath"
 )
 
-TMPDIR = "_obazl/"
+tmpdir = "_obazl_/"
+
+def get_module_name (ctx, src):
+    ns = None
+    if ctx.attr.ns:
+        ns = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
+
+    parts = paths.split_extension(src.basename)
+    if ctx.attr.module_name:
+        module = ctx.attr.module_name
+    else:
+        module = parts[0]
+        # module = parts[0]
+        extension = parts[1]
+
+    if ns == None: ## no ns
+        # pfx = TMPDIR
+        out_filename = module
+    else:
+        if ns.find("/") > 0:
+            fail("ERROR: ns contains '/' : '%s'" % ns)
+        else:
+            if ns.lower() == module.lower():
+                out_filename = module
+            else:
+                out_filename = capitalize_initial_char(ns) + ctx.attr.ns_sep + capitalize_initial_char(module)
+
+    out_filename = out_filename + extension
+    return out_filename
 
 ################################################################
 def rename_module(ctx, src):  # , pfx):
@@ -19,16 +47,11 @@ def rename_module(ctx, src):  # , pfx):
   # if module name == ns, then output module name
   # otherwise, outputp ns + "__" + module name
 
-  parts = paths.split_extension(src.basename)
-  module = parts[0]
-  extension = parts[1]
-  # print("RENAMING MODULE %s" % module)
-  ns = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns + ctx.attr.ns_sep
-  # print("NS: %s" % ns)
-  if (module == ns):
-    out_filename = module + extension
-  else:
-    out_filename = ns + capitalize_initial_char(module) + extension
+  out_filename = get_module_name(ctx, src)
+  # if (module == ns):
+  #   out_filename = module + extension
+  # else:
+  #   out_filename = ns + capitalize_initial_char(module) + extension
   # print("RENAMED MODULE %s" % out_filename)
 
   # if pfx.find("/") > 0:
@@ -38,7 +61,7 @@ def rename_module(ctx, src):  # , pfx):
   # outputs = []
   outputs = {}
   inputs.append(src)
-  outfile = ctx.actions.declare_file(out_filename)
+  outfile = ctx.actions.declare_file(tmpdir + out_filename)
 
   destdir = paths.normalize(outfile.dirname)
   # print("DESTDIR: %s" % destdir)

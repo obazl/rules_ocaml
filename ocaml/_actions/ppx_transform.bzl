@@ -6,74 +6,25 @@ load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
 )
+load(":rename.bzl", "get_module_name")
 
-TMPDIR = "_obazl/"
+tmpdir = "_obazl_"
 
 ################################################################
-def ppx_transform_action(rule, ctx, infile):
+def ppx_transform_action(rule, ctx, src):
   """Apply a PPX to source file.
 
-  Inputs: rule, context, infile
+  Inputs: rule, context, src
   Outputs: struct(intf :: declared File, maybe impl :: declared File)
   """
 
   debug = False
-  # if (ctx.label.name == "snark0.cm_"):
-  # if ctx.label.name == "Filter":
-  #     debug = True
+  if ctx.label.name == "o1trace":
+      debug = True
 
-  # print("PPX_TRANSFORM_ACTION: {rule} ({target}): {infile}".format(rule=rule, target=ctx.label.name, infile=infile))
+  # print("PPX_TRANSFORM_ACTION: {rule} ({target}): {src}".format(rule=rule, target=ctx.label.name, src=src))
 
-  pfx = None
-  if (rule == "ocaml_module"):
-    if ctx.attr.ns_module:
-      pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
-  # elif (rule == "ppx_module"):
-  #   if ctx.attr.ppx_ns_module:
-  #     pfx = ctx.attr.ppx_ns_module[PpxNsModuleProvider].payload.ns
-  elif (rule == "ppx_module"):
-    if ctx.attr.ns_module:
-      pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
-  elif (rule == "ocaml_interface"):
-    if ctx.attr.ns_module:
-      pfx = ctx.attr.ns_module[OcamlNsModuleProvider].payload.ns
-  else:
-    fail("ppx_transform_action called by rule other than ocaml_module or ocaml_interface or ppx_module: %s" % rule)
-
-  # print("XFORM NS: %s" % pfx)
-
-  # print("INFILE: %s" % infile.basename)
-  outfilename = None
-  parts = paths.split_extension(capitalize_initial_char(infile.basename)) # .capitalize())
-  if ctx.attr.module_name:
-    module = ctx.attr.module_name
-  else:
-    module = parts[0]
-
-  # print("INFILE MODULE %s" % module)
-
-  if pfx == None: ## no ns_module
-    # pfx = TMPDIR
-    outfilename = TMPDIR + module
-  else:
-    if pfx.find("/") > 0:
-      fail("ERROR: ns contains '/' : '%s'" % pfx)
-    else:
-      if pfx.lower() == module.lower():
-        outfilename = module
-      else:
-        outfilename = capitalize_initial_char(pfx) + ctx.attr.ns_sep + module
-
-  # print("PFX: %s" % pfx)
-
-
-  # if pfx.lower() == module.lower():
-  #   print("NS INFILE MATCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-  #   outfilename = module
-  # else:
-  #   outfilename = pfx + module
-
-  outfilename = outfilename + parts[1]  ## add extension from infile
+  outfilename = tmpdir + "/" + get_module_name(ctx, src)
 
   # print("RESOLVED OUTFILE: %s" % outfilename)
   outfile = ctx.actions.declare_file(outfilename)
@@ -110,11 +61,11 @@ def ppx_transform_action(rule, ctx, infile):
             #FIXME: also check ppx_args for -dump-ast
             args.add("-dump-ast")
 
-  args.add("-o", outfile)
-  if infile.path.endswith(".mli"):
-    args.add("-intf", infile)
-  if infile.path.endswith(".ml"):
-    args.add("-impl", infile)
+  args.add("-o", "../" + outfile.path)
+  if src.path.endswith(".mli"):
+    args.add("-intf", src)
+  if src.path.endswith(".ml"):
+    args.add("-impl", src.path)
 
   # ppx = ctx.file.ppx
   # ppx = ctx.attr.ppx.files.to_list()[0]
@@ -129,17 +80,58 @@ def ppx_transform_action(rule, ctx, infile):
   #       print("PPXARGS: {}".format(ppxargs))
   #       args.add("-ppxopt", pkg + "," + ppxargs)
 
-  dep_graph = [infile] # , ppx]
+  dep_graph = [src] # , ppx]
+
+  # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
+  # use ctx.attr.ppx_tags to set --cookie "library=tag"
+
+  parent = src.dirname
+  RUNTIME_FILES = ""
   if hasattr(ctx.attr, "ppx_data"):
-      # print("PPX_DATA: %s" % ctx.attr.ppx_data)
-      if ctx.attr.ppx_data:
-          for dep in ctx.files.ppx_data:
-              # args.add(dep.dirname)
-              dep_graph.append(dep)
+      if len(ctx.attr.ppx_data) > 0:
+          for dep in ctx.attr.ppx_data:
+              for f in dep[DefaultInfo].files.to_list():
+                  dep_graph.append(f)
+                  fname_len = len(f.basename)
+                  datafile_parent = f.short_path[:-fname_len]
+                  RUNTIME_FILES = RUNTIME_FILES + "\n".join([
+                      # "echo FNAME LEN: {}".format(fname_len),
+                      # "echo SHORTPATH: {}".format(f.short_path),
+                      "mkdir -p {tmpdir}/{parent}".format(tmpdir=tmpdir, parent=datafile_parent),
+                      "cp -v {rtf} {tmpdir}/{path}".format(rtf = f.path, tmpdir=tmpdir, path = datafile_parent)
+                  ])
+
+  command = "\n".join([
+      "#!/bin/sh",
+      "set -x",
+      "mkdir -vp {tmpdir}/{path}".format(tmpdir=tmpdir, path = parent),
+      RUNTIME_FILES,
+      ## NB: a softlink won't work here:
+      "cp -v {outfile} {tmpdir}/{path}".format(outfile = src.path, tmpdir = tmpdir, path = parent),
+      # "cp -v {outfile}/* {tmpdir}/{path}".format(outfile = parent, tmpdir = tmpdir, path = parent),
+      "pushd _obazl_",
+
+      # "echo BINDIR: {bin}".format(bin = ctx.bin_dir.path),
+      # "echo EXE short_path: {exe}".format(exe = ctx.executable.ppx.short_path),
+      # "echo EXE path: {exe}".format(exe = ctx.executable.ppx.path),
+      # "echo CTX.VAR bindir: {ep}".format(ep = ctx.var["BINDIR"]),
+
+      "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
+      "popd"
+  ])
+      # "{exe} $1".format(exe = "../" + ctx.bin_dir.path + "/" +  ctx.executable.ppx.short_path),
+
+  runner = ctx.actions.declare_file(ctx.attr.name + "_runner.sh")
+
+  ctx.actions.write(
+      output  = runner,
+      content = command,
+      is_executable = True
+  )
 
   ctx.actions.run(
     env = env,
-    executable = ctx.executable.ppx,
+    executable = runner,  ## ctx.executable.ppx,
     arguments = [args],
     inputs = dep_graph,
     outputs = [outfile], #outputs.values(),
@@ -154,4 +146,4 @@ def ppx_transform_action(rule, ctx, infile):
 
   # print("TRANSFORM result: %s" % outfile)
   # return struct(impl = outputs["impl"], intf = outputs["intf"] if "intf" in outputs else None)
-  return outfile
+  return (tmpdir + "/", outfile) # FIXME: omit trailing "/"

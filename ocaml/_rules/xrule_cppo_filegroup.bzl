@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:common_settings.bzl", "int_setting", "string_setting", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//implementation:utils.bzl",
@@ -12,8 +13,18 @@ load("//implementation:utils.bzl",
      "WARNING_FLAGS"
      )
 
+
+# BuildSettingInfo = provider(
+#     doc = "A singleton provider that contains the raw value of a build setting",
+#     fields = {
+#         "value": "The value of the build setting in the current configuration. " +
+#                  "This value may come from the command line or an upstream transition, " +
+#                  "or else it will be the build setting's default.",
+#     },
+# )
+
 ## example:
-# ocamlx_cppo_runner(
+# xrule_cppo_filegroup(
 #     name = "ExtArray.cppo_mli",
 #     srcs = ["extArray.mli"],
 #     opts = ["-I", "foo"],
@@ -30,7 +41,7 @@ load("//implementation:utils.bzl",
 # dir (e.g. bazel-bin/src)
 
 ################################################################
-def _ocamlx_cppo_runner_impl(ctx):
+def _xrule_cppo_filegroup_impl(ctx):
 
   debug = False
   # if (ctx.label.name == "snark0.cm_"):
@@ -38,7 +49,7 @@ def _ocamlx_cppo_runner_impl(ctx):
   #     debug = True
 
   if debug:
-      print("OCAMLX_CPPO_RUNNER TARGET: %s" % ctx.label.name)
+      print("XRULE_CPPO_FILEGROUP TARGET: %s" % ctx.label.name)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
@@ -46,10 +57,11 @@ def _ocamlx_cppo_runner_impl(ctx):
 
   entailed_deps = None
 
-  dep_graph = ctx.files.srcs
+  dep_graph = []
+  dep_graph.extend(ctx.files.srcs)
   outputs   = []
-  for src in ctx.files.srcs:
-      o = ctx.actions.declare_file(src.basename)
+  for src in ctx.files.outs:
+      o = ctx.actions.declare_file("_obazl_/" + src.basename)
       outputs.append(o)
 
   ################################################################
@@ -58,6 +70,9 @@ def _ocamlx_cppo_runner_impl(ctx):
 
   args.add_all(ctx.attr.defines, before_each="-D", uniquify = True)
   args.add_all(ctx.attr.undefines, before_each="-U", uniquify = True)
+
+  for var in ctx.attr.vars.items():
+      args.add("-V", var[1] + ":" + var[0][BuildSettingInfo].value)
 
   if ctx.attr.exts:
       for k in ctx.attr.exts.keys():
@@ -87,7 +102,7 @@ def _ocamlx_cppo_runner_impl(ctx):
       outputs = outputs,
       tools = [ctx.file._tool],
       mnemonic = "OcamlxCPPORunner",
-      progress_message = "ocamlx_cppo_runner"
+      progress_message = "xrule_cppo_filegroup"
   )
 
   defaultInfo = DefaultInfo(
@@ -102,8 +117,8 @@ def _ocamlx_cppo_runner_impl(ctx):
 
 #############################################
 ########## DECL:  OCAML_MODULE  ################
-ocamlx_cppo_runner = rule(
-    implementation = _ocamlx_cppo_runner_impl,
+xrule_cppo_filegroup = rule(
+    implementation = _xrule_cppo_filegroup_impl,
     attrs = dict(
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
@@ -122,6 +137,9 @@ ocamlx_cppo_runner = rule(
         ),
         undefines  = attr.string_list(
             doc = "CPPO -U (undefine) declarations.",
+        ),
+        vars = attr.label_keyed_string_dict(
+            doc = "Dictionary of cppo VAR (-V) options. Keys: label. Values: string VAR name."
         ),
         opts = attr.string_list(),
         exts = attr.string_dict(

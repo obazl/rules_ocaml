@@ -8,7 +8,7 @@ load("//ocaml/_providers:ppx.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
-load("//ocaml/_actions:ns_module.bzl", "ns_module_action")
+# load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 load("//ocaml/_actions:module.bzl", "compile_module")
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
@@ -30,8 +30,8 @@ load("//implementation:utils.bzl",
 def _ppx_module_impl(ctx):
 
   debug = False
-  if ctx.label.name == "Register_event":
-      debug = True
+  # if ctx.label.name == "Register_event":
+  #     debug = True
 
   mydeps = get_all_deps("ppx_module", ctx)
 
@@ -92,16 +92,16 @@ ppx_module = rule(
       doc = "Allows user to specify a module name different than the target name."
     ),
     ##FIXME: ns replaced by ppx_ns_module?
-    ns   = attr.string(
-      doc = "Namespace string; will be used as module name prefix."
+    ns   = attr.label(
+        doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc.",
     ),
     ns_sep = attr.string(
       doc = "Namespace separator.  Default: '__'",
       default = "__"
     ),
-    ns_module = attr.label(
-      doc = "Label of a ns_module target. Used to derive namespace, output name, -open arg, etc.",
-    ),
+    # ns_module = attr.label(
+    #   doc = "Label of a ns_module target. Used to derive namespace, output name, -open arg, etc.",
+    # ),
     src = attr.label(
       mandatory = True,  # use ocaml_interface for isolated .mli files
       doc = "A single .ml source file label.",
@@ -144,6 +144,20 @@ ppx_module = rule(
     #   allow_files = True
     # ),
     opts = attr.string_list(),
+
+    cc_deps = attr.label_keyed_string_dict(
+      doc = "C/C++ library dependencies",
+      providers = [[CcInfo]]
+    ),
+    cc_opts = attr.string_list(
+      doc = "C/C++ options",
+    ),
+    ## FIXME: call this cc_deps_default_type or some such
+    cc_linkstatic = attr.bool(
+      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+      default = True # False  ## false on macos, true on linux?
+    ),
+
     warnings                = attr.string(
       default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
     ),

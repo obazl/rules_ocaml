@@ -16,8 +16,7 @@
 #     "//implementation:ocaml_toolchain.bzl",
 #     "declare_toolchains"
 # )
-load("//implementation:ocaml_toolchains.bzl",
-     "ocaml_toolchain")
+load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_toolchain")
 load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
 load("//implementation:common.bzl",
      "OCAML_SDK", # = "ocaml"
@@ -60,7 +59,7 @@ def _ocaml_home_sdk_impl(ctx):
     _symlink_sdk(ctx) # , opamroot, ctx.attr.switch)
 
 _ocaml_home_sdk = repository_rule(
-    _ocaml_home_sdk_impl,
+    implementation = _ocaml_home_sdk_impl,
     environ = ["OCAMLROOT", "OPAM_SWITCH_PREFIX"],
     configure = True
 )
@@ -363,7 +362,7 @@ def _installed_sdk_triplet(ctx, ocamlroot):
 ## this is the fn used by the user, in WORKSPACE
 def ocaml_register_toolchains(installation = None, noocaml = None):
     """See /ocaml/toolchains.rst#ocaml-register-toolchains for full documentation."""
-    # print("ocaml_register_toolchains, installation = " + installation)
+    print("ocaml_register_toolchains, installation = " + installation)
     sdk_kinds = ("_ocaml_project_sdk", "_ocaml_home_sdk", "_ocaml_local_sdk", "_ocaml_wrap_sdk")
     existing_rules = native.existing_rules()
     sdk_rules = [r for r in existing_rules.values() if r["kind"] in sdk_kinds]
@@ -373,11 +372,13 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
 
     # if installation and len(sdk_rules) > 0:
     #     fail("installation set after ocaml sdk rule declared ({})".format(", ".join([r["name"] for r in sdk_rules])))
-    if len(sdk_rules) == 0:
-        if not installation:
-            installation = DEFAULT_VERSION
-        if installation == "host":
-            ocaml_home_sdk(name = OCAML_SDK)
+
+    # if len(sdk_rules) == 0:
+    #     if not installation:
+    #         installation = DEFAULT_VERSION
+    #     if installation == "host":
+    #         ocaml_home_sdk(name = OCAML_SDK)
+
         ## FIXME: use skylib https://github.com/bazelbuild/bazel-skylib/blob/master/docs/versions_doc.md
         # else:
         #     if not versions.is_at_least(MIN_SUPPORTED_VERSION, installation):
@@ -389,6 +390,7 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
 
     # toolchain target defined in generated file ocaml_sdk/BUILD.bazel (BUILD.sdk.tpl)
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_macos")
+    native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_linux")
     # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
     # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
