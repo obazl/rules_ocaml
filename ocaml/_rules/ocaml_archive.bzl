@@ -76,9 +76,9 @@ def _ocaml_archive_impl(ctx):
   if ctx.attr.alwayslink:
     args.add("-linkall")
   args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
-  if len(ctx.addr.cc_linkall) > 0:
-      for cc_dep in ctx.files.linkall:
-          
+  # if len(ctx.addr.cc_linkall) > 0:
+  #     for cc_dep in ctx.files.linkall:
+
 
   if ctx.attr.linkshared:
     args.add("-shared")
@@ -436,7 +436,6 @@ ocaml_archive(
     cc_linkall = attr.label_list(
         doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
         providers = [CcInfo],
-        default = False
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
