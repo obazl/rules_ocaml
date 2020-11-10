@@ -417,8 +417,9 @@ ocaml_executable = rule(
                    [CcInfo]],
     ),
     cc_deps = attr.label_keyed_string_dict(
-      doc = "C/C++ library dependencies",
-      providers = [[CcInfo]]
+        doc = "C/C++ library dependencies",
+        ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
+      # providers = [[CcInfo]]
     ),
     cc_opts = attr.string_list(
       doc = "C/C++ options",
