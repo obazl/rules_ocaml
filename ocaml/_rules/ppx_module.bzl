@@ -136,15 +136,11 @@ ppx_module = rule(
     ppx_args  = attr.string_list(
         doc = "Arguments to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
     ),
-    # args  = attr.string_list(
-    #   doc = "PPX cmd args.",
-    # ),
-    # data  = attr.label_list(
-    #   doc = "PPX data deps, e.g. headers",
-    #   allow_files = True
-    # ),
+    ppx_data  = attr.label_list(
+        doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        allow_files = True,
+    ),
     opts = attr.string_list(),
-
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
       providers = [[CcInfo]]
