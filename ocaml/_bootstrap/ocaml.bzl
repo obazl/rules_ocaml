@@ -149,7 +149,7 @@ def ocaml_configure(is_rules_ocaml = False,
     for information on choosing different versions of these repositories
     in your own project.
     """
-    print("ocaml_configure")
+    # print("ocaml_configure")
     # print(opam)
 
     # if getattr(native, "bazel_version", None):

@@ -10,11 +10,13 @@ load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_providers:ppx.bzl", "PpxArchiveProvider")
 
 load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
 load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
+     "file_to_lib_name",
      "strip_ml_extension",
      "split_srcs",
      "OCAML_FILETYPES",
@@ -30,7 +32,7 @@ load("//implementation:utils.bzl",
 def _ocaml_archive_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "snarky_backendless"):
+  # if (ctx.label.name == "zexe_backend_common"):
   #     debug = True
 
   if debug:
@@ -39,7 +41,8 @@ def _ocaml_archive_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  mydeps = get_archive_deps("ocaml_archive", ctx)
+  mydeps = get_all_deps("ocaml_archive", ctx)
+  # mydeps = get_archive_deps("ocaml_archive", ctx)
   if debug:
       print("ALL DEPS for target %s" % ctx.label.name)
       print(mydeps)
@@ -67,6 +70,11 @@ def _ocaml_archive_impl(ctx):
       obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxa")
       obj_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
 
+  build_deps = []  # for the command line
+  includes = []
+  dep_graph = []  # for the run action inputs
+
+  ################################################################
   args = ctx.actions.args()
   args.add(tc.compiler.basename)
   # args.add("-w", ctx.attr.warnings)
@@ -75,6 +83,7 @@ def _ocaml_archive_impl(ctx):
   args.add_all(options)
   if ctx.attr.alwayslink:
     args.add("-linkall")
+
   args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
   # if len(ctx.addr.cc_linkall) > 0:
   #     for cc_dep in ctx.files.linkall:
@@ -108,9 +117,20 @@ def _ocaml_archive_impl(ctx):
   # print("OBJ_FILES")
   # print(obj_files)
 
-  build_deps = []  # for the command line
-  includes = []
-  dep_graph = []  # for the run action inputs
+  if hasattr(ctx.attr, "cc_linkall"):
+      if debug:
+          print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
+      for cc_dep in ctx.files.cc_linkall:
+          if cc_dep.extension == "a":
+              dep_graph.append(cc_dep)
+              path = cc_dep.path
+              # if tc.os == "macos":
+              args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+              # elif tc.os == "linux":
+              # "-Wl,--push-state,-whole-archive",
+              # "-lrocksdb",
+              # "-Wl,--pop-state",
+
 
   # args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
   if len(mydeps.opam.to_list()) > 0:
@@ -121,8 +141,8 @@ def _ocaml_archive_impl(ctx):
   # for dep in mydeps.nopam.to_list():
   #   print("NOPAM DEP: %s" % dep)
 
-  cclib_deps = []
-  dso_deps = []
+  cc_deps   = []
+  link_search  = []
 
   # for dep in ctx.files.deps:
   #     if dep.extension == "cmx":
@@ -142,9 +162,6 @@ def _ocaml_archive_impl(ctx):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
-    elif dep.extension == "a":
-        dep_graph.append(dep)
-        build_deps.append(dep)
     elif dep.extension == "cmi":
         dep_graph.append(dep)
         includes.append(dep.dirname)
@@ -159,122 +176,30 @@ def _ocaml_archive_impl(ctx):
         if debug:
             print("NOPAM .so DEP: %s" % dep)
         dep_graph.append(dep)
-        libname = dep.basename[:-3]
-        libname = libname[3:]
-        if debug:
-          print("LIBNAME: %s" % libname)
-        args.add("-ccopt", "-L" + dep.dirname)
-        args.add("-cclib", "-l" + libname)
-        # dso_deps.append(dep)
+        link_search.append("-L" + dep.dirname)
+        libname = file_to_lib_name(dep)
+        cc_deps.append("-l" + libname)
+        # args.add("-ccopt", "-L" + dep.dirname)
+        # args.add("-cclib", "-l" + libname)
     elif dep.extension == "dylib":
         if debug:
             print("NOPAM .dylib DEP: %s" % dep)
         dep_graph.append(dep)
-        libname = dep.basename[:-6]
-        libname = libname[3:]
-        if debug:
-          print("LIBNAME: %s" % libname)
-        args.add("-ccopt", "-L" + dep.dirname)
-        args.add("-cclib", "-l" + libname)
+        link_search.append("-L" + dep.dirname)
+        libname = file_to_lib_name(dep)
+        cc_deps.append("-l" + libname)
+        # args.add("-ccopt", "-L" + dep.dirname)
+        # args.add("-cclib", "-l" + libname)
         # includes.append(dep.dirname)
-        # dso_deps.append(dep)
+    elif dep.extension == "a":
+        dep_graph.append(dep)
+        build_deps.append(dep)
     else:
         if debug:
             print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
 
-  ## this does not eliminate dups:
-  # for dep in ctx.attr.deps:
-  #     for g in dep[DefaultInfo].files.to_list():
-  #       if g.path.endswith(".cmxa"):
-  #         for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
-  #           if h.path.endswith(".cmx"):
-  #             includes.append(h.dirname)
-  #             # build_deps.append(h)
-  #             dep_graph.append(h)
-  #       else:
-  #         dep_graph.append(g)
-  #       includes.append(g.dirname)
-  #       # if g.path.endswith(".cmi"):
-  #       #   build_deps.append(g)
-  #       if g.path.endswith(".cmx"):
-  #         dep_graph.append(g)
-  #         build_deps.append(g)
-
-  ## cc_deps handled by get_all_deps
-  # for dep in ctx.attr.cc_deps.items():
-  #   if debug:
-  #       print("CCLIB DEP: ")
-  #       print(dep)
-  #   if dep[1] == "static":
-  #       if debug:
-  #           print("STATIC lib: %s:" % dep[0])
-  #       for depfile in dep[0].files.to_list():
-  #           if (depfile.extension == "a"):
-  #               cclib_deps.append(depfile)
-  #               includes.append(depfile.dirname)
-  #   elif dep[1] == "dynamic":
-  #       if debug:
-  #           print("DYNAMIC lib: %s" % dep[0])
-  #       for depfile in dep[0].files.to_list():
-  #           if debug:
-  #               print("DEPFILE extension: %s" % depfile.extension)
-  #           if (depfile.extension == "so"):
-  #               libname = depfile.basename[:-3]
-  #               print("LIBNAME: %s" % libname)
-  #               libname = libname[3:]
-  #               print("LIBNAME: %s" % libname)
-  #               args.add("-ccopt", "-L" + depfile.dirname)
-  #               args.add("-cclib", "-l" + libname)
-  #               # cclib_deps.append(depfile)
-  #           elif (depfile.extension == "dylib"):
-  #               libname = depfile.basename[:-6]
-  #               libname = libname[3:]
-  #               print("LIBNAME: %s:" % libname)
-  #               args.add("-ccopt", "-L" + depfile.dirname)
-  #               args.add("-cclib", "-l" + libname)
-  #               includes.append(depfile.dirname)
-  #           else:
-  #               if debug:
-  #                   print("IGNORING: %s" % depfile)
-    # else:
-    #     fail("cc_dep with bad mode: " + dep[1])
-
-  # cclib_deps = []
-  # for dep in ctx.attr.cc_deps:
-  #   if debug:
-  #       print("CCLIB DEP: %s" % dep)
-  #   for depfile in dep.files.to_list():
-  #     if debug:
-  #         print("CCLIB DEP FILE: %s" % depfile)
-
-  #     ##FIXME:  if linkstatic
-  #     if depfile.extension == "a":
-  #       # if debug:
-  #       #     print("SKIPPING %s" % depfile)
-  #       ## -dllib is for bytecode only
-  #       # args.add("-dllib", "lrakia")
-  #       # libname = depfile.basename.rstrip("a")
-  #       # libname = libname.rstrip(".")
-  #       # libname = libname.lstrip("lib")
-  #       # args.add("-cclib", "-l" + libname)
-  #       includes.append(depfile.dirname)
-  #       cclib_deps.append(depfile)
-  #     elif depfile.extension == "dylib":
-  #       libname = depfile.basename.rstrip("dylib")
-  #       libname = libname.rstrip(".")
-  #       libname = libname.lstrip("lib")
-  #       args.add("-cclib", "-l" + libname)
-  #       # cclib_deps.append(depfile)
-  #     elif depfile.extension == "so":
-  #       ## incredibly, starlark's rstrip function does not strip suffix strings, only char classes.
-  #       ## rstrip(".so") would take snarky_stubs.so to snarky_stub
-  #       ## so we have to hack it:
-  #       libname = depfile.basename.rstrip("o")
-  #       libname = libname.rstrip("s")
-  #       libname = libname.rstrip(".")
-  #       libname = libname.lstrip("lib")
-  #       args.add("-cclib", "-l" + libname)
-  #       # cclib_deps.append(depfile)
+  args.add_all(link_search, before_each="-ccopt", uniquify = True)
+  args.add_all(cc_deps, before_each="-cclib", uniquify = True)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -301,25 +226,30 @@ def _ocaml_archive_impl(ctx):
 
   ## since we're building an archive, we need all members on command line
   args.add_all(build_deps)
-  args.add_all(cclib_deps)
   # args.add_all(ctx.files.srcs)
 
-  dep_graph = dep_graph + build_deps + cclib_deps  #  + ctx.files.srcs
+  dep_graph = dep_graph + build_deps
   if debug:
-      print("INPUT_ARGS:")
+      print("INPUT_ARGS: ")
       print(dep_graph)
 
   ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = dep_graph,
-    outputs = obj_files,
-    tools = [tc.ocamlfind, tc.ocamlopt],
-    mnemonic = "OcamlLibrary",
-    progress_message = "ocaml_archive({}): {}".format(
-        ctx.label.name, ctx.attr.msg
+      env = env,
+      executable = tc.ocamlfind,
+      arguments = [args],
+      inputs = dep_graph,
+      outputs = obj_files,
+      tools = [tc.ocamlfind, tc.ocamlopt],
+      mnemonic = "OcamlArchive",
+      progress_message = "compiling ocaml_archive: @{ws}//{pkg}:{tgt}{msg}".format(
+          ws  = ctx.label.workspace_name,
+          pkg = ctx.label.package,
+          tgt=ctx.label.name,
+          msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
       )
+    # progress_message = "ocaml_archive({}): {}".format(
+    #     ctx.label.name, ctx.attr.msg
+    #   )
   )
 
   archiveProvider = OcamlArchiveProvider(
@@ -328,7 +258,7 @@ def _ocaml_archive_impl(ctx):
       cmxa = obj_cmxa,
       cmxs = obj_cmxs,
       a    = obj_a,
-      # modules = build_deps + cclib_deps
+      # modules = build_deps + cc_deps
     ),
     deps = struct(
       opam = mydeps.opam,
@@ -342,7 +272,7 @@ def _ocaml_archive_impl(ctx):
       files = depset(
           order = "preorder",
           direct = obj_files,
-        # transitive = [depset(build_deps + cclib_deps)]
+        # transitive = [depset(build_deps + cc_deps)]
       )),
     archiveProvider,
     # libProvider

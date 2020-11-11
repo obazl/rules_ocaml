@@ -10,7 +10,7 @@ load("//ocaml/_providers:ppx.bzl",
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 # load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 load("//ocaml/_actions:module.bzl", "compile_module")
-load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
+# load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
@@ -142,20 +142,18 @@ ppx_module = rule(
     ),
     opts = attr.string_list(),
     cc_deps = attr.label_keyed_string_dict(
-      doc = "C/C++ library dependencies",
+      doc = "C/C++ library dependencies. Keys: lib target. Vals: 'default', 'static', 'dynamic'",
       providers = [[CcInfo]]
     ),
     cc_opts = attr.string_list(
       doc = "C/C++ options",
     ),
     ## FIXME: call this cc_deps_default_type or some such
-    cc_linkstatic = attr.bool(
-      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = True # False  ## false on macos, true on linux?
-    ),
-
+    # cc_linkstatic = attr.bool(
+    #   doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+    #   default = True # False  ## false on macos, true on linux?
+    # ),
     warnings                = attr.string(
-      default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
     ),
     linkopts = attr.string_list(),
     # linkall = attr.bool(default = True),

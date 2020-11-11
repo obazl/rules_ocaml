@@ -43,13 +43,13 @@ See https://bazelbuild.github.io/rules_nodejs/stamping.html and https://docs.baz
     if debug:
         print("XRULE_STAMP_TEMPLATE target: %s" % ctx.label.name)
 
-    print("OUTPUT: %s" % ctx.attr.output)
+    # print("OUTPUT: %s" % ctx.attr.output)
     outfile = ctx.actions.declare_file(ctx.attr.output.name)
-    print("OUTFILE: %s" % outfile)
+    # print("OUTFILE: %s" % outfile)
 
     # args = ["--stamp-info-file=%s" % f.path for f in (ctx.info_file, ctx.version_file)]
-    print("INFO_FILE: %s" % ctx.info_file)
-    print("VERSION_FILE: %s" % ctx.version_file)
+    # print("INFO_FILE: %s" % ctx.info_file)
+    # print("VERSION_FILE: %s" % ctx.version_file)
 
     subslines = []
     i = 1

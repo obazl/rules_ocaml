@@ -75,12 +75,10 @@ filegroup(
     ]),
 )
 
+################################################################
 ocaml_toolchain(
     name = "ocaml_toolchaininfo_native_provider_linux",
-    # compiler = "ocamlopt",
-    # opam_root= "...",
-    # sdk_path = "...",
-    # mode     = "native",
+    link = "static",
     visibility = ["//visibility:public"],
 )
 
@@ -101,12 +99,11 @@ toolchain(
     toolchain = ":ocaml_toolchaininfo_native_provider_linux"
 )
 
+################################################################
 ocaml_toolchain(
     name = "ocaml_toolchaininfo_bytecode_provider_linux",
-    # compiler = "ocamlc",
-    # opam_root= "...",
-    # sdk_path = "...",
-    # mode     = "bytecode",
+    link = "static",
+    mode = "bytecode",
     visibility = ["//visibility:public"],
 )
 
@@ -130,10 +127,8 @@ toolchain(
 ################################################################
 ocaml_toolchain(
     name = "ocaml_toolchaininfo_native_provider_macos",
-    # compiler = "ocamlopt",
-    # opam_root= "...",
-    # sdk_path = "...",
-    # mode     = "native",
+    mode = "native",
+    link = "dynamic",
     visibility = ["//visibility:public"],
 )
 
@@ -154,12 +149,11 @@ toolchain(
     toolchain = ":ocaml_toolchaininfo_native_provider_macos"
 )
 
+################################################################
 ocaml_toolchain(
     name = "ocaml_toolchaininfo_bytecode_provider_macos",
-    # compiler = "ocamlc",
-    # opam_root= "...",
-    # sdk_path = "...",
-    # mode     = "bytecode",
+    link = "dynamic",
+    mode = "bytecode",
     visibility = ["//visibility:public"],
 )
 

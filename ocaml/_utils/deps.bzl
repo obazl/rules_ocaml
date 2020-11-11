@@ -45,7 +45,7 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  # if (ctx.label.name == "rocks"):
+  # if (ctx.label.name == "zexe_backend_common"):
   #     debug = True
 
   if debug:
@@ -253,11 +253,12 @@ def get_all_deps(rule, ctx):
       nopam_indirects.append(provider.indirect)
 
     elif CcInfo in dep:
-      cp = dep[CcInfo]
-      if debug:
-          print("CcInfo dep: %s" % cp)
-          print("CcInfo payload: %s" % dep[DefaultInfo])
-      nopam_directs.append(struct( clib = dep[DefaultInfo]) )
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        cp = dep[CcInfo]
+        if debug:
+            print("CcInfo dep: %s" % cp)
+            print("CcInfo payload: %s" % dep[DefaultInfo])
+        nopam_directs.append(struct( clib = dep[DefaultInfo]) )
 
     # https://docs.bazel.build/versions/master/integrating-with-rules-cc.html
     # Implementing starlark rules that depend on cc rules:
@@ -371,6 +372,8 @@ def get_all_deps(rule, ctx):
               if dep_provider.deps.opam:
                   opam_indirects.append(dep_provider.deps.opam)
 
+  ## FIXME: what if cc_deps says dynamic but a static lib is passed?
+  ## the link type val sets a requirement, throw an error if the target key does not match
   if hasattr(ctx.attr, "cc_deps"):
       if debug:
           print("DEPSET TARGET: %s" % ctx.label.name)
@@ -399,11 +402,11 @@ def get_all_deps(rule, ctx):
                       if debug:
                           print("DEPSET DYLIB")
                       nopam_directs.append(depfile)
-          else:
-              ## any other value treated as "default"
+          elif cc_dep[1] == "default":
               if debug:
                   print("DEPSET DEFAULT")
-              if ctx.attr.cc_linkstatic:
+              tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+              if tc.link == "static":
                   if debug:
                       print("DEPSET LINKSTATIC")
                   for depfile in cc_dep[0].files.to_list():
@@ -423,6 +426,14 @@ def get_all_deps(rule, ctx):
                           if debug:
                               print("DEPSET DYLIB")
                           nopam_directs.append(depfile)
+          else:
+              fail("Allowe values of cc_deps attribute: 'default', 'static', or 'dynamic'")
+
+  # if hasattr(ctx.attr, "cc_linkall"):
+  #     if debug:
+  #         print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
+  #     for cc_dep in ctx.attr.cc_linkall:
+  #         nopam_directs.append(cc_dep)
 
   ## MUST COME LAST!!!
   if hasattr(ctx.attr, "main"):

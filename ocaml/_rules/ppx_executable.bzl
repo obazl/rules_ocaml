@@ -21,6 +21,7 @@ load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
+     "file_to_lib_name",
      "strip_ml_extension",
      "OCAML_FILETYPES",
      "OCAML_IMPL_FILETYPES",
@@ -87,7 +88,9 @@ def _ppx_executable_impl(ctx):
   build_deps = []
   includes = []
 
-
+  dynamic_libs = []
+  static_libs  = []
+  link_search  = []
   # print("NOPAMS: %s" % mydeps.nopam)
   # we need to add the archive components to inputs, the archive is not enough
   # without these we get "implementation not found"
@@ -116,6 +119,26 @@ def _ppx_executable_impl(ctx):
     elif dep.extension == "a":
       dep_graph.append(dep)
       includes.append(dep.dirname)
+      static_libs.append(dep)
+    elif dep.extension == "so":
+        dep_graph.append(dep)
+        link_search.append("-L" + dep.dirname)
+        libname = file_to_lib_name(dep)
+        dynamic_libs.append("-l" + libname)
+        # libname = dep.basename[:-3]
+        # if libname.startswith("lib"):
+        #     libname = libname.strip("l")
+        #     libname = libname.strip("i")
+        #     libname = libname.strip("b")
+        #     dynamic_libs.append("-l" + libname)
+        # else:
+        #     fail("Found '.so' file without 'lib' prefix: %s" % dep)
+    elif dep.extension == "dylib":
+        dep_graph.append(dep)
+        link_search.append("-L" + dep.dirname)
+        libname = file_to_lib_name(dep)
+        dynamic_libs.append("-l" + libname)
+
   # for dep in ctx.attr.build_deps:
   #   for g in dep[DefaultInfo].files.to_list():
   #     if g.path.endswith(".cmx"):
@@ -125,9 +148,12 @@ def _ppx_executable_impl(ctx):
   #       build_deps.append(g)
   #       includes.append(g.dirname)
 
-  args.add_all(includes, before_each="-I", uniquify = True)
+  args.add_all(link_search, before_each="-ccopt", uniquify = True)
+  args.add_all(dynamic_libs, before_each="-cclib", uniquify = True)
 
+  args.add_all(includes, before_each="-I", uniquify = True)
   args.add_all(build_deps)
+
 
   opam_deps = mydeps.opam.to_list()
   ## indirect lazy deps
@@ -318,6 +344,7 @@ ppx_executable = rule(
         allow_files = True,
     ),
     opts = attr.string_list(),
+    warnings = attr.string_list(),
     linkopts = attr.string_list(),
     linkall = attr.bool(default = True),
     deps = attr.label_list(
@@ -327,6 +354,10 @@ ppx_executable = rule(
     lazy_deps = attr.label_list(
       doc = """(Lazy) eXtension Dependencies.""",
       # providers = [[DefaultInfo], [PpxModuleProvider]]
+    ),
+    cc_deps = attr.label_keyed_string_dict(
+      doc = "C/C++ library dependencies",
+      providers = [[CcInfo]]
     ),
     mode = attr.string(default = "native"),
     message = attr.string()

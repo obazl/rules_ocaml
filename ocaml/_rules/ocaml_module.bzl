@@ -182,7 +182,7 @@ ocaml_module = rule(
     ),
     cc_deps = attr.label_keyed_string_dict(
       doc = "C/C++ library dependencies",
-      providers = [[CcInfo]]
+      # providers = [[CcInfo]]
     ),
     cc_opts = attr.string_list(
       doc = "C/C++ options",

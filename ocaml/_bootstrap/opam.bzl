@@ -48,16 +48,16 @@ def is_ppx_driver(repo_ctx, pkg):
 
 ################################################################
 def _opam_repo_nonhermetic(repo_ctx):
-    print("opam/bootstrap.bzl opam_configure()")
+    # print("opam/bootstrap.bzl opam_configure()")
     repo_ctx.report_progress("Bootstrapping nonhermetic OPAM...")
     for i in range(10000000): x = i # pause
 
-    print("CURRENT SYSTEM: %s" % repo_ctx.os.name)
+    # print("CURRENT SYSTEM: %s" % repo_ctx.os.name)
     env = repo_ctx.os.environ
     # for item in env.items():
     #     print("ENV ENTRY: %s" % str(item))
 
-    print("ROOT WS DIRECTORY: %s" % str(repo_ctx.path(Label("@//:WORKSPACE.bazel")))[:-16])
+    # print("ROOT WS DIRECTORY: %s" % str(repo_ctx.path(Label("@//:WORKSPACE.bazel")))[:-16])
 
     #### opam pinning
     pin = False
@@ -81,7 +81,8 @@ def _opam_repo_nonhermetic(repo_ctx):
                 print("ERROR stderr: %s" % pinout.stderr)
 
     opamroot = repo_ctx.execute(["opam", "var", "prefix"]).stdout.strip()
-    print("opamroot: " + opamroot)
+    # if verbose:
+    #     print("opamroot: " + opamroot)
 
     packages = []
 
@@ -98,7 +99,7 @@ def _opam_repo_nonhermetic(repo_ctx):
         packages.append(pkg.split(" ")[0])
 
     opam_pkgs = []
-    repo_ctx.report_progress("OPAM: constructing pkg rules...")
+    repo_ctx.report_progress("constructing OPAM pkg rules...")
     for p in collections.uniq(packages):
         ## WARNING: this is slow
         # print("PKG rule for %s" % p)

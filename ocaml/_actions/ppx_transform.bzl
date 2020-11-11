@@ -11,7 +11,7 @@ load(":rename.bzl", "get_module_name")
 tmpdir = "_obazl_"
 
 ################################################################
-def ppx_transform_action(rule, ctx, src):
+def ppx_transform(rule, ctx, src):
   """Apply a PPX to source file.
 
   Inputs: rule, context, src
@@ -19,10 +19,10 @@ def ppx_transform_action(rule, ctx, src):
   """
 
   debug = False
-  if ctx.label.name == "o1trace":
-      debug = True
+  # if ctx.label.name == "_Prover":
+  #     debug = True
 
-  # print("PPX_TRANSFORM_ACTION: {rule} ({target}): {src}".format(rule=rule, target=ctx.label.name, src=src))
+  # print("PPX_TRANSFORM: {rule} ({target}): {src}".format(rule=rule, target=ctx.label.name, src=src))
 
   outfilename = tmpdir + "/" + get_module_name(ctx, src)
 
@@ -34,6 +34,8 @@ def ppx_transform_action(rule, ctx, src):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
+  verbose = True if "-verbose" in ctx.attr.opts else ""
+  ################################################################
   args = ctx.actions.args()
 
   # ppx = None
@@ -97,31 +99,44 @@ def ppx_transform_action(rule, ctx, src):
                   RUNTIME_FILES = RUNTIME_FILES + "\n".join([
                       # "echo FNAME LEN: {}".format(fname_len),
                       # "echo SHORTPATH: {}".format(f.short_path),
-                      "mkdir -p {tmpdir}/{parent}".format(tmpdir=tmpdir, parent=datafile_parent),
-                      "cp -v {rtf} {tmpdir}/{path}".format(rtf = f.path, tmpdir=tmpdir, path = datafile_parent)
+                      "if [ ! \( -f {tmpdir}/{parent}/{rtf} \) ]".format(tmpdir=tmpdir,
+                                                                parent = datafile_parent,
+                                                                rtf = f.basename),
+                      "then",
+                      "    mkdir -p {v} {tmpdir}/{parent}".format(v = "-v" if verbose else "",
+                                                              tmpdir=tmpdir,
+                                                              parent=datafile_parent),
+                      "    cp {v} {rtf} {tmpdir}/{parent}".format(v = "-v" if verbose else "",
+                                                              rtf = f.path,
+                                                              tmpdir=tmpdir,
+                                                              parent = datafile_parent),
+                      "fi"
                   ])
 
   command = "\n".join([
       "#!/bin/sh",
-      "set -x",
-      "mkdir -vp {tmpdir}/{path}".format(tmpdir=tmpdir, path = parent),
+      "set {set}".format(set = "-x" if verbose else "+x"),
+      "mkdir -p {v} {tmpdir}/{path}".format(v = "-v" if verbose else "",
+                                            tmpdir=tmpdir, path = parent),
       RUNTIME_FILES,
       ## NB: a softlink won't work here:
-      "cp -v {outfile} {tmpdir}/{path}".format(outfile = src.path, tmpdir = tmpdir, path = parent),
-      # "cp -v {outfile}/* {tmpdir}/{path}".format(outfile = parent, tmpdir = tmpdir, path = parent),
+      "cp {v} {outfile} {tmpdir}/{path}".format(v = "-v" if verbose else "",
+                                                outfile = src.path, tmpdir = tmpdir, path = parent),
       "pushd _obazl_",
 
       # "echo BINDIR: {bin}".format(bin = ctx.bin_dir.path),
       # "echo EXE short_path: {exe}".format(exe = ctx.executable.ppx.short_path),
       # "echo EXE path: {exe}".format(exe = ctx.executable.ppx.path),
       # "echo CTX.VAR bindir: {ep}".format(ep = ctx.var["BINDIR"]),
-
       "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
       "popd"
   ])
-      # "{exe} $1".format(exe = "../" + ctx.bin_dir.path + "/" +  ctx.executable.ppx.short_path),
 
   runner = ctx.actions.declare_file(ctx.attr.name + "_runner.sh")
+
+  if debug:
+      print("RUNNER:")
+      print(command)
 
   ctx.actions.write(
       output  = runner,
@@ -130,18 +145,20 @@ def ppx_transform_action(rule, ctx, src):
   )
 
   ctx.actions.run(
-    env = env,
-    executable = runner,  ## ctx.executable.ppx,
-    arguments = [args],
-    inputs = dep_graph,
-    outputs = [outfile], #outputs.values(),
-    tools = [ctx.executable.ppx],
-    mnemonic = "PpxTransformAction",
-    progress_message = "Action: ppx_transform_action of {rule}({tgt}){msg}".format(
-        rule=rule,
-        tgt=ctx.label.name,
-        msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
-    )
+      env = env,
+      executable = runner,  ## ctx.executable.ppx,
+      arguments = [args],
+      inputs = dep_graph,
+      outputs = [outfile], #outputs.values(),
+      tools = [ctx.executable.ppx],
+      mnemonic = "PpxTransformAction",
+      progress_message = "ppx_transform: @{ws}//{pkg}:{tgt}{msg} (rule: {rule})".format(
+          ws  = ctx.label.workspace_name,
+          pkg = ctx.label.package,
+          rule=rule,
+          tgt=ctx.label.name,
+          msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
+      )
   )
 
   # print("TRANSFORM result: %s" % outfile)

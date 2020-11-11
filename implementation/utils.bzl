@@ -29,6 +29,22 @@ def capitalize_initial_char(s):
   rest  = s[1:]
   return first.capitalize() + rest
 
+def file_to_lib_name(file):
+    if file.extension == "so":
+        libname = file.basename[:-3]
+        if libname.startswith("lib"):
+            libname = libname[3:]
+        else:
+            fail("Found '.so' file without 'lib' prefix: %s" % file)
+        return libname
+    elif file.extension == "dylib":
+        libname = file.basename[:-6]
+        if libname.startswith("lib"):
+            libname = libname[3:]
+        else:
+            fail("Found '.so' file without 'lib' prefix: %s" % file)
+        return libname
+
 def get_target_file(target):
   return target.files.to_list()[0]
 

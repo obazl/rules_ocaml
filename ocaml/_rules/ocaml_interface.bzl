@@ -11,7 +11,7 @@ load("//ocaml/_providers:ppx.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider")
 load("//ocaml/_actions:rename.bzl", "rename_module")
-load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
+load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
 load("//ocaml/_actions:ppx.bzl",
      "apply_ppx",
      "ocaml_ppx_compile",
@@ -65,7 +65,7 @@ def _ocaml_interface_impl(ctx):
 
   if ctx.attr.ppx:
       ## this will also handle ns
-    (tmpdir, xsrc) = ppx_transform_action("ocaml_interface", ctx, ctx.file.src)
+    (tmpdir, xsrc) = ppx_transform("ocaml_interface", ctx, ctx.file.src)
   elif ctx.attr.ns:
     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
     tmpdir = ""
@@ -246,17 +246,23 @@ def _ocaml_interface_impl(ctx):
     dep_graph.append(ctx.attr.ns[OcamlNsModuleProvider].payload.cm)
 
   ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = dep_graph,
-    outputs = [obj_cmi],
-    tools = [tc.ocamlopt],
-    mnemonic = "OcamlModuleInterface",
-    progress_message = "ocaml_interface compile {}".format(
-        # ctx.label.name,
-        ctx.attr.msg
+      env = env,
+      executable = tc.ocamlfind,
+      arguments = [args],
+      inputs = dep_graph,
+      outputs = [obj_cmi],
+      tools = [tc.ocamlopt],
+      mnemonic = "OcamlInterface",
+      progress_message = "compiling ocaml_interface: @{ws}//{pkg}:{tgt}{msg}".format(
+          ws  = ctx.label.workspace_name,
+          pkg = ctx.label.package,
+          tgt=ctx.label.name,
+          msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
       )
+      # progress_message = "ocaml_interface compile {}".format(
+      #     # ctx.label.name,
+      #     ctx.attr.msg
+      #   )
   )
 
   if debug:

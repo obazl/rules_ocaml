@@ -11,7 +11,7 @@ load("//ocaml/_providers:ppx.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform_action")
+load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
 load("//ocaml/_actions:rename.bzl", "rename_module")
 
 load("//implementation:utils.bzl",
@@ -19,6 +19,7 @@ load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",
+     "file_to_lib_name",
      "strip_ml_extension",
      "OCAML_FILETYPES",
      "OCAML_IMPL_FILETYPES",
@@ -49,7 +50,7 @@ def compile_module(rule, ctx, mydeps):
   tmpdir = "_obazl_/"
   if ctx.attr.ppx:
       ## this will also handle ns
-      (tmpdir, xsrc) = ppx_transform_action(rule, ctx, ctx.file.src)
+      (tmpdir, xsrc) = ppx_transform(rule, ctx, ctx.file.src)
       dep_graph.append(ctx.file.ppx)
       # a ppx executable may have lazy deps; they are handled by get_all_deps
   elif ctx.attr.ns:
@@ -122,7 +123,8 @@ def compile_module(rule, ctx, mydeps):
   #depends on local async_kernel but a dep depends on opam asyn.
   async = False
 
-  cclib_deps = []
+  cc_deps  = []
+  link_search = []
 
   includes   = []
 
@@ -205,7 +207,10 @@ def compile_module(rule, ctx, mydeps):
           ## cc deps
       elif dep.extension == "a":
           dep_graph.append(dep)
-          args.add(dep)
+          link_search.append("-L" + dep.dirname)
+          # libname = file_to_lib_name(dep)
+          # cc_deps.append("-l" + dep.basename)
+          cc_deps.append("-lmarlin_plonk_stubs--1745127302.a")
       elif dep.extension == "lo":
         if debug:
             print("NOPAM .lo DEP: %s" % dep)
@@ -214,20 +219,28 @@ def compile_module(rule, ctx, mydeps):
       elif dep.extension == "so":
           if debug:
               print("ADDING DSO FILE: %s" % dep)
-              libname = dep.basename[:-3]
-              libname = libname[3:]
-              args.add("-ccopt", "-L" + dep.dirname)
-              args.add("-cclib", "-l" + libname)
-              cclib_deps.append(dep)
+          dep_graph.append(dep)
+          link_search.append("-L" + dep.dirname)
+          libname = file_to_lib_name(dep)
+          cc_deps.append("-l" + libname)
+          # libname = dep.basename[:-3]
+          # libname = libname[3:]
+          # args.add("-ccopt", "-L" + dep.dirname)
+          # args.add("-cclib", "-l" + libname)
+          # cclib_deps.append(dep)
       elif dep.extension == "dylib":
           if debug:
               print("ADDING DYLIB: %s" % dep)
-              libname = dep.basename[:-6]
-              libname = libname[3:]
-              args.add("-ccopt", "-L" + dep.dirname)
-              args.add("-cclib", "-l" + libname)
-              includes.append(dep.dirname)
-              cclib_deps.append(dep)
+          dep_graph.append(dep)
+          link_search.append("-L" + dep.dirname)
+          libname = file_to_lib_name(dep)
+          cc_deps.append("-l" + libname)
+          # libname = dep.basename[:-6]
+          # libname = libname[3:]
+          # args.add("-ccopt", "-L" + dep.dirname)
+          # args.add("-cclib", "-l" + libname)
+          # includes.append(dep.dirname)
+          # cclib_deps.append(dep)
       elif dep.extension == ".cmxs":
           includes.append(dep.dirname)
 
@@ -269,37 +282,37 @@ def compile_module(rule, ctx, mydeps):
 
 
   ####  TODO:  transitive cc_deps
-  for dep in ctx.attr.cc_deps.items():
-    if debug:
-        print("CCLIB DEP: ")
-        print(dep)
-    if dep[1] == "static":
-        if debug:
-            print("STATIC lib: %s:" % dep[0])
-        for depfile in dep[0].files.to_list():
-            if (depfile.extension == "a"):
-                cclib_deps.append(depfile)
-                args.add(depfile)
-                includes.append(depfile.dirname)
-    elif dep[1] == "dynamic":
-        if debug:
-            print("DYNAMIC lib: %s" % dep[0])
-        for depfile in dep[0].files.to_list():
-            print("DEPFILE extension: %s" % depfile.extension)
-            if (depfile.extension == "so"):
-                libname = depfile.basename[:-3]
-                libname = libname[3:]
-                print("SOLIBNAME: %s" % depfile.basename)
-                print("SO PARAM: -l%s" % libname)
-                args.add("-cclib", "-l" + libname)
-                cclib_deps.append(depfile)
-            elif (depfile.extension == "dylib"):
-                libname = depfile.basename[:-6]
-                libname = libname[3:]
-                print("DYLIBNAME: %s:" % libname)
-                args.add("-cclib", "-l" + libname)
-                includes.append(depfile.dirname)
-                cclib_deps.append(depfile)
+  # for dep in ctx.attr.cc_deps.items():
+  #   if debug:
+  #       print("CCLIB DEP: ")
+  #       print(dep)
+  #   if dep[1] == "static":
+  #       if debug:
+  #           print("STATIC lib: %s:" % dep[0])
+  #       for depfile in dep[0].files.to_list():
+  #           if (depfile.extension == "a"):
+  #               cclib_deps.append(depfile)
+  #               args.add(depfile)
+  #               includes.append(depfile.dirname)
+  #   elif dep[1] == "dynamic":
+  #       if debug:
+  #           print("DYNAMIC lib: %s" % dep[0])
+  #       for depfile in dep[0].files.to_list():
+  #           print("DEPFILE extension: %s" % depfile.extension)
+  #           if (depfile.extension == "so"):
+  #               libname = depfile.basename[:-3]
+  #               libname = libname[3:]
+  #               print("SOLIBNAME: %s" % depfile.basename)
+  #               print("SO PARAM: -l%s" % libname)
+  #               args.add("-cclib", "-l" + libname)
+  #               cclib_deps.append(depfile)
+  #           elif (depfile.extension == "dylib"):
+  #               libname = depfile.basename[:-6]
+  #               libname = libname[3:]
+  #               print("DYLIBNAME: %s:" % libname)
+  #               args.add("-cclib", "-l" + libname)
+  #               includes.append(depfile.dirname)
+  #               cclib_deps.append(depfile)
 
     # for depfile in dep[0].files.to_list():
     #   # print("CCLIB DEP FILE: %s" % depfile)
@@ -384,6 +397,9 @@ def compile_module(rule, ctx, mydeps):
               includes.append(dep.dirname)
               dep_graph.append(dep)
 
+  args.add_all(link_search, before_each="-ccopt", uniquify = True)
+  args.add_all(cc_deps, before_each="-cclib", uniquify = True)
+
   args.add_all(build_deps)
   # args.add_all(cclib_deps)
 
@@ -398,7 +414,7 @@ def compile_module(rule, ctx, mydeps):
 
   # dep_graph = dep_graph + build_deps + cclib_deps + [xsrc] #  [ctx.file.src]  # ctx.files.src
   dep_graph.extend(build_deps)
-  dep_graph.extend(cclib_deps)
+  # dep_graph.extend(cclib_deps)
   dep_graph.append(xsrc)
 
   # if ctx.attr.ns:
@@ -443,7 +459,9 @@ def compile_module(rule, ctx, mydeps):
       outputs = outputs,
       tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "CompileModuleAction",
-      progress_message = "Action compile_module: {rule}({tgt}){msg}".format(
+      progress_message = "compiling {rule}: @{ws}//{pkg}:{tgt}{msg}".format(
+          ws  = ctx.workspace_name,
+          pkg = ctx.label.package,
           rule=rule,
           tgt=ctx.label.name,
           msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg

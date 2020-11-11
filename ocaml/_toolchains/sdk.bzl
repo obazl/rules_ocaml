@@ -362,7 +362,7 @@ def _installed_sdk_triplet(ctx, ocamlroot):
 ## this is the fn used by the user, in WORKSPACE
 def ocaml_register_toolchains(installation = None, noocaml = None):
     """See /ocaml/toolchains.rst#ocaml-register-toolchains for full documentation."""
-    print("ocaml_register_toolchains, installation = " + installation)
+    # print("ocaml_register_toolchains, installation = " + installation)
     sdk_kinds = ("_ocaml_project_sdk", "_ocaml_home_sdk", "_ocaml_local_sdk", "_ocaml_wrap_sdk")
     existing_rules = native.existing_rules()
     sdk_rules = [r for r in existing_rules.values() if r["kind"] in sdk_kinds]
@@ -388,12 +388,11 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
         #             version = installation,
         #         )
 
-    # toolchain target defined in generated file ocaml_sdk/BUILD.bazel (BUILD.sdk.tpl)
+    # toolchain target defined in generated file ocaml/_bootstrap/ocaml/templates/BUILD.ocaml.tpl
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_macos")
     native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_linux")
-    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
-    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
+    native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
 
     # if noocaml:
     #     # Override default definition in ocaml_rules_dependencies().

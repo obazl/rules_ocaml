@@ -78,13 +78,14 @@ def _ocaml_executable_impl(ctx):
     outbinary = ctx.actions.declare_file(outfilename)
   # we will wait to add the -o flag until after we compile the interface files
 
+  ################################################################
   args = ctx.actions.args()
   args.add("ocamlopt")
   args.add_all(ctx.attr.opts)
 
-
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
-  args.add_all(ctx.attr.linkopts)
+  if ctx.attr.linkopts:
+      # lflags = " ".join(ctx.attr.linkopts)
+      args.add_all(ctx.attr.linkopts)
 
   ## deps are the same for all sources (.mli, .ml)
   ## we need to accumulate them so we can add them to the action inputs arg,
@@ -92,6 +93,21 @@ def _ocaml_executable_impl(ctx):
   dep_graph = []
   # build_deps = []
   includes = []
+
+  if hasattr(ctx.attr, "cc_linkall"):
+      if debug:
+          print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
+      for cc_dep in ctx.files.cc_linkall:
+          if cc_dep.extension == "a":
+              dep_graph.append(cc_dep)
+              path = cc_dep.path
+              # if tc.os == "macos":
+              args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+              # elif tc.os == "linux":
+              # "-Wl,--push-state,-whole-archive",
+              # "-lrocksdb",
+              # "-Wl,--pop-state",
+
   args.add("-linkpkg")  ## an ocamlfind parameter
   # print("OPAM_DEPS: %s" % mydeps.opam)
   # for dep in mydeps.opam.to_list():
@@ -307,7 +323,8 @@ def _ocaml_executable_impl(ctx):
                 args.add("-ccopt", "-L" + depfile.dirname)
                 cclib_deps.append(depfile)
 
-  args.add_all(ctx.attr.cc_opts, before_each="-ccopt")
+  if ctx.attr.cc_linkopts:
+      args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -421,8 +438,12 @@ ocaml_executable = rule(
         ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
       # providers = [[CcInfo]]
     ),
-    cc_opts = attr.string_list(
-      doc = "C/C++ options",
+    cc_linkall = attr.label_list(
+        doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
+        providers = [CcInfo],
+    ),
+    cc_linkopts = attr.string_list(
+      doc = "C/C++ link options",
     ),
     cc_linkstatic = attr.bool(
       doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
