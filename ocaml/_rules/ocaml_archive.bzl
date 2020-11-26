@@ -144,7 +144,7 @@ def _ocaml_archive_impl(ctx):
           for f in dep.files.to_list():
               if f.extension == "a":
                   dep_graph.append(f)
-                  path = f.path
+                  path = f.path # relative to execution root
                   # if tc.os == "macos". path can be relative
                   args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
 
