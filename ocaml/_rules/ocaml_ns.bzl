@@ -3,7 +3,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
      "OcamlNsModuleProvider")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 # load("//ocaml/_actions:ppx.bzl",
 #      "apply_ppx",
@@ -83,7 +83,11 @@ ocaml_ns = rule(
     # deps = attr.label_list(
     #   # providers = [OpamPkgInfo]
     # ),
-    mode = attr.string(default = "native"),
+    ## linkall?
+    _mode = attr.label(
+        default = "@ocaml//mode"
+    ),
+    _warnings  = attr.label(default = "@ocaml//ns:warnings"),
     msg = attr.string(),
     _rule = attr.string(default = "ocaml_ns")
   ),

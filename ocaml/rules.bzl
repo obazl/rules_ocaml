@@ -28,8 +28,8 @@ load("//ocaml/_rules:ocaml_ns_archive.bzl",
 load("//ocaml/_rules:ocaml_ns.bzl",
     _ocaml_ns = "ocaml_ns")
 
-load("//ocaml/_rules:xrule_cppo_filegroup.bzl",
-    _xrule_cppo_filegroup = "xrule_cppo_filegroup")
+load("//ocaml/_rules:x_cppo_filegroup.bzl",
+    _x_cppo_filegroup = "x_cppo_filegroup")
 
 
 load("//implementation:macros/ns_archive.bzl",
@@ -43,6 +43,8 @@ load("//ocaml/_rules:ppx_library.bzl",
      _ppx_library = "ppx_library")
 load("//ocaml/_rules:ppx_module.bzl",
      _ppx_module = "ppx_module")
+load("//ocaml/_rules:ppx_ns.bzl",
+     _ppx_ns = "ppx_ns")
 load("//ocaml/_rules:ppx_runner.bzl",
      _ppx_runner = "ppx_runner")
 load("//ocaml/_rules:ppx_test.bzl",
@@ -72,6 +74,7 @@ ppx_archive = _ppx_archive
 ppx_executable = _ppx_executable
 ppx_library = _ppx_library
 ppx_module = _ppx_module
+ppx_ns     = _ppx_ns
 ppx_runner = _ppx_runner
 ppx_x_test = _ppx_x_test
 ppx_test = _ppx_test
@@ -84,5 +87,5 @@ ocaml_preproc = _ocaml_preproc
 ocaml_redirector_gen = _ocaml_redirector_gen
 ocaml_submodule_rename = _ocaml_submodule_rename
 
-xrule_cppo_filegroup = _xrule_cppo_filegroup
+x_cppo_filegroup = _x_cppo_filegroup
 xrule_stamp_template = _xrule_stamp_template

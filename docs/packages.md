@@ -5,6 +5,14 @@ In Bazel, the concept of a package is
 
 Not so much for OCaml.
 
+Roughly: an OCaml package is a named library.  A library is a
+collection of modules.  We need this distinction to enable smooth
+interop with existing package management systems like OPAM, Dune and
+ocamlfind.  For example, dune files list dependencies as "libraries";
+theses are Dune packages. The actual dependencies are on modules, not
+libraries.  The ocamldep tool lists module dependencies, which do not
+necessarily correspond to packages.
+
 ## problems with current tools
 
 Most commonly used: Dune and ocamlfind.

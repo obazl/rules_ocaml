@@ -16,14 +16,11 @@
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")  # buildifier: disable=load
 load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
-# load("//implementation:skylib/lib/versions.bzl", "versions")
 
 # load("//implementation:sdk.bzl", "ocaml_home_sdk")
-# load("//opam:opam.bzl", "opam_repo")
 load("//obazl:obazl.bzl", "obazl_repo")
 
-load("//ocaml/_bootstrap:opam.bzl", "opam_configure")
-# load("//opam:bootstrap.bzl",    _opam_configure = "opam_configure")
+load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
 load(
     "//ocaml/_toolchains:sdk.bzl",
@@ -57,46 +54,15 @@ def _ocaml_repo_impl(repo_ctx):
 
     repo_ctx.template(
         "BUILD.bazel",
-        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.ocaml.tpl"),
+        Label("//ocaml/_templates:BUILD.ocaml"),
         executable = False,
         substitutions = {
             "{sdkpath}": sdkpath
-        },
-    )
-    repo_ctx.template(
-        "tools/BUILD.bazel",
-        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.tools.tpl"),
-        executable = False,
-        substitutions = {
-            "{sdkpath}": sdkpath
-        },
-    )
-    repo_ctx.template(
-        "mode/BUILD.bazel",
-        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.mode.tpl"),
-        executable = False,
-        substitutions = {
-            "{sdkpath}": sdkpath
-        },
-    )
-    ocaml_version = repo_ctx.execute(["ocaml", "-vnum"]).stdout.strip()
-    [ocaml_major, sep, rest] = ocaml_version.partition(".")
-    [ocaml_minor, sep, rest] = rest.partition(".")
-    [ocaml_patch, sep, rest] = rest.partition(".")
-    repo_ctx.template(
-        "version/BUILD.bazel",
-        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.version.tpl"),
-        executable = False,
-        substitutions = {
-            "{VERSION}": ocaml_version,
-            "{MAJOR}": ocaml_major,
-            "{MINOR}": ocaml_minor,
-            "{PATCH}":  ocaml_patch
         },
     )
     repo_ctx.template(
         "csdk/BUILD.bazel",
-        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.csdk.tpl"),
+        Label("//ocaml/_templates:BUILD.ocaml.csdk"),
         executable = False,
         substitutions = {
             "{sdkpath}": sdkpath
@@ -104,10 +70,112 @@ def _ocaml_repo_impl(repo_ctx):
     )
     repo_ctx.template(
         "csdk/ctypes/BUILD.bazel",
-        Label("//ocaml/_bootstrap/ocaml/templates:BUILD.ctypes.csdk.tpl"),
+        Label("//ocaml/_templates:BUILD.ocaml.csdk.ctypes"),
         executable = False,
         substitutions = {
             "{sdkpath}": sdkpath
+        },
+    )
+    #### BUILD CONFIG FLAGS ####
+    repo_ctx.template(
+        "cmt/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.cmt"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "debug/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.debug"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "keep-locs/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.keep_locs"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "mode/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.mode"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "noassert/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.noassert"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "opaque/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.opaque"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "short-paths/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.short_paths"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "strict-formats/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.strict_formats"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "strict-sequence/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.strict_sequence"),
+        executable = False,
+    )
+
+    ## rule types
+    repo_ctx.template(
+        "archive/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.archive"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "executable/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.executable"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "module/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.module"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "linkmode/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.linkmode"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "ns/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.ns"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "tools/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.tools"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": sdkpath
+        },
+    )
+    repo_ctx.template(
+        "verbose/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.verbose"),
+        executable = False,
+    )
+
+    ocaml_version = repo_ctx.execute(["ocaml", "-vnum"]).stdout.strip()
+    [ocaml_major, sep, rest] = ocaml_version.partition(".")
+    [ocaml_minor, sep, rest] = rest.partition(".")
+    [ocaml_patch, sep, rest] = rest.partition(".")
+    repo_ctx.template(
+        "version/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.version"),
+        executable = False,
+        substitutions = {
+            "{VERSION}": ocaml_version,
+            "{MAJOR}": ocaml_major,
+            "{MINOR}": ocaml_minor,
+            "{PATCH}":  ocaml_patch
         },
     )
 
@@ -137,17 +205,6 @@ def ocaml_configure(is_rules_ocaml = False,
                     opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
     rules_ocaml should call this.
-
-    See https://github.com/bazelbuild/rules_ocaml/blob/master/ocaml/workspace.rst#overriding-dependencies
-    for information on each dependency.
-
-    Instructions for updating this file are in
-    https://github.com/bazelbuild/rules_ocaml/wiki/Updating-dependencies.
-
-    PRs updating dependencies are NOT ACCEPTED. See
-    https://github.com/bazelbuild/rules_ocaml/blob/master/ocaml/workspace.rst#overriding-dependencies
-    for information on choosing different versions of these repositories
-    in your own project.
     """
     # print("ocaml_configure")
     # print(opam)
@@ -158,21 +215,29 @@ def ocaml_configure(is_rules_ocaml = False,
     # Needed by rules_ocaml implementation and tests.
     # We can't call bazel_skylib_workspace from here. At the moment, it's only
     # used to register unittest toolchains, which rules_ocaml does not need.
+    # maybe(
+    #     http_archive,
+    #     name = "bazel_skylib",
+    #     urls = [
+    #         "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+    #         "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+    #     ],
+    #     sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
+    # )
+
     maybe(
         http_archive,
-        name = "bazel_skylib",
-        # 1.0.2, latest as of 2020-05-12
-        urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.2/bazel-skylib-1.0.2.tar.gz",
-            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.2/bazel-skylib-1.0.2.tar.gz",
-        ],
-        sha256 = "97e70364e9249702246c0e9444bccdc4b847bed1eb03c5a3ece4f83dfe6abc44",
+        name = "rules_foreign_cc",
+        strip_prefix="rules_foreign_cc-master",
+        url = "https://github.com/bazelbuild/rules_foreign_cc/archive/master.zip",
+        sha256 = "3e6b0691fc57db8217d535393dcc2cf7c1d39fc87e9adb6e7d7bab1483915110"
     )
 
-    opam_configure()
+    # opam_configure()
 
-    # ocaml_home_sdk("ocaml")
-    _ocaml_repo(name="ocaml") # opam=opam)
+    ppx_repo(name="ppx")
+
+    _ocaml_repo(name="ocaml")
 
     obazl_repo(name="obazl")
 

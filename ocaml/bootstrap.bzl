@@ -18,38 +18,6 @@
 # declared here, but at the time this file is loaded, we can't assume
 # anything has been declared.
 
-# load(
-#     "//opam:bootstrap.bzl",
-#     _opam_configure = "opam_configure",
-#     # _ocaml_repositories = "ocaml_repositories"
-# )
-
-# load(
-#     "//ocaml/_bootstrap:opam.bzl",
-#     _opam_configure = "opam_configure",
-# )
-
-load(
-    "//ocaml/_bootstrap:ocaml.bzl",
-    _ocaml_configure = "ocaml_configure",
-    # _ocaml_repositories = "ocaml_repositories"
-)
-
-# load(
-#     "//implementation:sdk.bzl",
-#     _ocaml_register_toolchains = "ocaml_register_toolchains",
-#     # _ocaml_download_sdk = "ocaml_download_sdk",
-#     _ocaml_home_sdk = "ocaml_home_sdk",
-#     # _ocaml_local_sdk = "ocaml_local_sdk",
-#     # _ocaml_wrap_sdk = "ocaml_wrap_sdk",
-# )
-
-# opam_configure = _opam_configure
+load("//ocaml/_bootstrap:ocaml.bzl", _ocaml_configure = "ocaml_configure")
 
 ocaml_configure = _ocaml_configure
-# ocaml_repositories = _ocaml_repositories
-# ocaml_register_toolchains = _ocaml_register_toolchains
-# # ocaml_download_sdk = _ocaml_download_sdk
-# ocaml_home_sdk = _ocaml_home_sdk
-# ocaml_local_sdk = _ocaml_local_sdk
-# ocaml_wrap_sdk = _ocaml_wrap_sdk

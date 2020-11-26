@@ -12,6 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+################ Config Settings ################
+CompilationModeSettingProvider = provider(
+    doc = "Raw value of compilation_mode_flag or setting",
+    fields = {
+        "value": "The value of the build setting in the current configuration. " +
+                 "This value may come from the command line or an upstream transition, " +
+                 "or else it will be the build setting's default.",
+    },
+)
+
+################
+OcamlVerboseFlagProvider = provider(
+    doc = "Raw value of ocaml_verbose_flag",
+    fields = {
+        "value": "The value of the build setting in the current configuration. " +
+                 "This value may come from the command line or an upstream transition, " +
+                 "or else it will be the build setting's default.",
+    },
+)
+
+################################################################
 OcamlSDK = provider(
     doc = "Contains information about the Ocaml SDK used in the toolchain",
     fields = {
@@ -34,6 +55,7 @@ OcamlSDK = provider(
     },
 )
 
+################################################################
 OcamlStdLib = provider()
 
 OcamlConfigInfo = provider()

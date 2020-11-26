@@ -1,11 +1,14 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:collections.bzl", "collections")
+load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
+load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
 
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlModuleProvider")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl",
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ppx:_providers.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 # load("//ocaml/_actions:ppx.bzl",
@@ -28,6 +31,8 @@ load("//implementation:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load(":ppx_options.bzl", "ppx_options")
+load("//ocaml/_actions:utils.bzl", "get_options")
 
 #############################################
 ####  PPX_EXECUTABLE IMPLEMENTATION
@@ -69,24 +74,54 @@ def _ppx_executable_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
+  mode = ctx.attr._mode[PpxCompilationModeSettingProvider].value
+
   outfilename = ctx.label.name
   outbinary = ctx.actions.declare_file(outfilename)
 
+  includes = []
+
   ################################################################
   args = ctx.actions.args()
-  args.add("ocamlopt")
-  options = tc.opts + ctx.attr.opts
-  if "-predicates" not in options:
-      print("\n\n\tWARNING: did you forget a -predicates option for your ppx_executable (%s)?\n\n" % ctx.label.name)
-  if "-linkall" not in options:
-      print("\n\n\tWARNING: did you forget the -linkall option for your ppx_executable?\n\n")
 
-  args.add_all(collections.uniq(options))
+  if mode == "native":
+      args.add(tc.ocamlopt.basename)
+  else:
+      args.add(tc.ocamlc.basename)
 
-  args.add("-o", outbinary)
+  ## hidden _opts default: ["-predicate", "ppx_deriver"]
+  for opt in ctx.attr._opts[BuildSettingInfo].value:
+      # print("EXTRA OPT: %s" % opt)
+      args.add(opt)
+  options = get_options(rule, ctx)
+  args.add_all(options)
+
+  if mode == "bytecode":
+      args.add("-dllpath", "/private/var/tmp/_bazel_gar/d8a1bb469d0c2393045b412d4daaa038/execroot/ppx_version/external/ocaml/switch/lib/stublibs")
+
+      ## FIXME: for f in @ocamlrun//dlls ...
+
+      for f in ctx.files._dllpaths:
+          dep_graph.append(f)
+          ## -dllpath needs absolute path?
+      args.add("-dllib", "-lbase_stubs")
+      args.add("-dllib", "-lbin_prot_stubs")
+      args.add("-dllib", "-lexpect_test_collector_stubs")
+      args.add("-dllib", "-ltime_now_stubs")
+      args.add("-dllib", "-lbase_bigstring_stubs")
+      args.add("-dllib", "-lcore_kernel_stubs")
+      ## does not work without -I as well
+      args.add("-I", "external/ocaml/switch/lib/stublibs")
+      ## and we also have to cc link the same stuff ??
+      args.add("-ccopt", "-Lexternal/ocaml/switch/lib/stublibs")
+      args.add("-cclib", "-lbase_stubs")
+      args.add("-cclib", "-lbin_prot_stubs")
+      args.add("-cclib", "-lexpect_test_collector_stubs")
+      args.add("-cclib", "-ltime_now_stubs")
+      args.add("-cclib", "-lbase_bigstring_stubs")
+      args.add("-cclib", "-lcore_kernel_stubs")
 
   build_deps = []
-  includes = []
 
   dynamic_libs = []
   static_libs  = []
@@ -109,17 +144,25 @@ def _ppx_executable_impl(ctx):
       dep_graph.append(dep)
       includes.append(dep.dirname)
       build_deps.append(dep)
+    elif dep.extension == "cmo":
+      dep_graph.append(dep)
+      includes.append(dep.dirname)
+      build_deps.append(dep)
     elif dep.extension == "o":
       dep_graph.append(dep)
       includes.append(dep.dirname)
-    elif dep.extension == "cmxa":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
-      # build_deps.append(dep)
-    elif dep.extension == "a":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
-      static_libs.append(dep)
+    # elif dep.extension == "cmxa":
+    #   dep_graph.append(dep)
+    #   includes.append(dep.dirname)
+    #   build_deps.append(dep)
+    # elif dep.extension == "cma":
+    #   dep_graph.append(dep)
+    #   includes.append(dep.dirname)
+    #   build_deps.append(dep)
+    # elif dep.extension == "a":
+    #   dep_graph.append(dep)
+    #   includes.append(dep.dirname)
+    #   static_libs.append(dep)
     elif dep.extension == "so":
         dep_graph.append(dep)
         link_search.append("-L" + dep.dirname)
@@ -161,10 +204,12 @@ def _ppx_executable_impl(ctx):
 
   if len(opam_deps) > 0:
     # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
-    args.add("-linkpkg")
+    args.add("-linkpkg") # adds OPAM cmxa files to command
     for dep in opam_deps:
         # args.add("-package", dep)
-        args.add("-package", dep.pkg.to_list()[0].name)
+        args.add("-package", dep.pkg.name) # adds directories of OPAM files to search path using -I
+
+        # args.add("-package", dep.pkg.to_list()[0].name)
         # args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
 
 
@@ -254,6 +299,8 @@ def _ppx_executable_impl(ctx):
     #     dep_graph.append(dep)
     #FIXME: also support non-opam transform deps
 
+  args.add("-o", outbinary)
+
   # print("DEP_GRAPH: %s" % dep_graph)
   ctx.actions.run(
     env = env,
@@ -318,51 +365,87 @@ def _ppx_executable_impl(ctx):
 #############################################
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(
-  implementation = _ppx_executable_impl,
-  # implementation = _ppx_executable_compile_test,
-  attrs = dict(
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
-    ),
-    # IMPLICIT: args = string list = runtime args, passed whenever the binary is used
-    main = attr.label(
-        mandatory = True,
-        # allow_single_file = [".ml", ".cmx"],
+    implementation = _ppx_executable_impl,
+    # implementation = _ppx_executable_compile_test,
+    attrs = dict(
+        ppx_options,
+        _linkall     = attr.label(default = "@ppx//executable:linkall"),
+        _threads     = attr.label(default = "@ppx//executable:threads"),
+        _warnings  = attr.label(default = "@ppx//executable:warnings"),
+        _opts = attr.label(
+            ## We need this for -predicates, to avoid hardcoding it in obazl rules
+            doc = "Hidden options.",
+            default = "@ppx//executable:opts"
+        ),
+        linkopts = attr.string_list(),
+
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        # IMPLICIT: args = string list = runtime args, passed whenever the binary is used
+        main = attr.label(
+            mandatory = True,
+            # allow_single_file = [".ml", ".cmx"],
         providers = [PpxModuleProvider], #  [OcamlModuleProvider]], #, [OpamPkgInfo]],
-        default = None
+            default = None
+        ),
+        ppx  = attr.label(
+            doc = "PPX binary (executable).",
+            providers = [PpxExecutableProvider],
+            mandatory = False,
+        ),
+        runtime_args = attr.string_list(
+            doc = "List of args that must be passed to the ppx_executable at runtime. E.g. -inline-test-lib."
+        ),
+        data  = attr.label_list(
+            doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
+            allow_files = True,
+        ),
+        deps = attr.label_list(
+            doc = "Deps needed to build this ppx executable.",
+            providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        _deps = attr.label(
+            doc = "Dependency to be added last.",
+            default = "@ppx//executable:deps"
+        ),
+        lazy_deps = attr.label_list(
+            doc = """(Lazy) eXtension Dependencies.""",
+            # providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        cc_deps = attr.label_keyed_string_dict(
+            doc = "C/C++ library dependencies",
+            providers = [[CcInfo]]
+        ),
+        _mode = attr.label(
+            default = "@ppx//mode"
+        ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+        _dllpaths = attr.label_list(
+            # default = "@opam//:bin/cppo"
+            default = [ # FIXME
+                "@ocaml//:base_stubs",
+                "@ocaml//:bin_prot_stubs",
+                "@ocaml//:bigstringaf_stubs",
+                "@ocaml//:core_stubs",
+                "@ocaml//:expect_test_collector_stubs",
+                "@ocaml//:re2_stubs",
+                "@ocaml//:re2_c_stubs",
+                "@ocaml//:spawn_stubs",
+                "@ocaml//:time_now_stubs",
+                "@ocaml//:base_bigstring_stubs",
+                "@ocaml//:core_kernel_stubs",
+            ]
+        ),
+        message = attr.string()
     ),
-    ppx  = attr.label(
-      doc = "PPX binary (executable).",
-      providers = [PpxExecutableProvider],
-      mandatory = False,
-    ),
-    runtime_args = attr.string_list(
-        doc = "List of args that must be passed to the ppx_executable at runtime. E.g. -inline-test-lib."
-    ),
-    data  = attr.label_list(
-        doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
-        allow_files = True,
-    ),
-    opts = attr.string_list(),
-    warnings = attr.string_list(),
-    linkopts = attr.string_list(),
-    linkall = attr.bool(default = True),
-    deps = attr.label_list(
-      doc = "Deps needed to build this ppx executable.",
-      providers = [[DefaultInfo], [PpxModuleProvider]]
-    ),
-    lazy_deps = attr.label_list(
-      doc = """(Lazy) eXtension Dependencies.""",
-      # providers = [[DefaultInfo], [PpxModuleProvider]]
-    ),
-    cc_deps = attr.label_keyed_string_dict(
-      doc = "C/C++ library dependencies",
-      providers = [[CcInfo]]
-    ),
-    mode = attr.string(default = "native"),
-    message = attr.string()
-  ),
-  provides = [DefaultInfo, PpxExecutableProvider],
-  executable = True,
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    provides = [DefaultInfo, PpxExecutableProvider],
+    executable = True,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    # Attaching at rule transitions the configuration of this target and all its dependencies
+    # (until it gets overwritten again, for example...)
+  cfg     = ppx_mode_transition
 )

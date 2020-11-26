@@ -1,3 +1,10 @@
+load("@bazel_skylib//rules:common_settings.bzl",
+     # "bool_flag",
+     # "int_flag",
+     # "string_flag", "string_setting",
+     "BuildSettingInfo")
+
+load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
@@ -6,8 +13,8 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider",
      "OcamlSDK")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl", "PpxArchiveProvider")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ppx:_providers.bzl", "PpxArchiveProvider")
 
 load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
@@ -24,6 +31,8 @@ load("//implementation:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load(":ocaml_options.bzl", "ocaml_options")
+load("//ocaml/_actions:utils.bzl", "get_options")
 
 ##################################################
 ######## RULE DECL:  OCAML_ARCHIVE  #########
@@ -49,26 +58,29 @@ def _ocaml_archive_impl(ctx):
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  mode = ctx.attr._mode[CompilationModeSettingProvider].value
+  ext  = ".cmxa" if  mode == "native" else ".cma"
 
   ## declare outputs
   tmpdir = "_obazl_/"
   obj_files = []
-  obj_cmxa = None
+  obj_cm_a = None
   obj_cmxs = None
   obj_a    = None
   if ctx.attr.archive_name:
     if ctx.attr.linkshared:
       obj_cmxs = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxs")
     else:
-      obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxa")
-      obj_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
+      obj_cm_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ext)
+      if mode == "native":
+          obj_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
   else:
     if ctx.attr.linkshared:
       obj_cmxs = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxs")
     else:
-      obj_cmxa = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxa")
-      obj_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
+      obj_cm_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ext)
+      if mode == "native":
+          obj_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
 
   build_deps = []  # for the command line
   includes = []
@@ -76,34 +88,40 @@ def _ocaml_archive_impl(ctx):
 
   ################################################################
   args = ctx.actions.args()
-  args.add(tc.compiler.basename)
+  # args.add(tc.compiler.basename)
+  if mode == "native":
+      args.add(tc.ocamlopt.basename)
+  else:
+      args.add(tc.ocamlc.basename)
+
+  cc_linkmode = tc.linkmode            # used below to determine dep linkmode
+  if ctx.attr.cc_linkmode:
+      if ctx.attr.cc_linkmode[BuildSettingInfo].value == "static": # override toolchain default?
+          cc_linkmode = "static"
+          if mode == "bytecode":
+              args.add("-custom")
+
   # args.add("-w", ctx.attr.warnings)
-  options = tc.opts + ctx.attr.opts
-  # if ctx.attr.nocopts:
+  # options = ctx.attr.opts
+  # # if ctx.attr.nocopts:
+  # args.add_all(options)
+  # if ctx.attr.alwayslink:
+  #   args.add("-linkall")
+
+  options = get_options(rule, ctx)
   args.add_all(options)
-  if ctx.attr.alwayslink:
-    args.add("-linkall")
+  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
   # if len(ctx.addr.cc_linkall) > 0:
   #     for cc_dep in ctx.files.linkall:
 
 
-  if ctx.attr.linkshared:
-    args.add("-shared")
-    args.add("-o", obj_cmxs)
-    obj_files.append(obj_cmxs)
-  else:
-    args.add("-a")
-    args.add("-o", obj_cmxa)
-    obj_files.append(obj_cmxa)
-    obj_files.append(obj_a)
-
   ## We also need to add the .o files as outputs. Why? Because -
   ## assuming we use lazy linking - a change to a source file that
   ## does not affect an interface will not result in a change to the
-  ## cmxa file, so downstream targets that depend only on cmxa will
-  ## not rebuilt. So we need the dependency to be on both the cmxa and
+  ## cm_a file, so downstream targets that depend only on cm_a will
+  ## not rebuilt. So we need the dependency to be on both the cm_a and
   ## the associated object files.
 
   # currently we do not support direct dep on source files
@@ -117,26 +135,36 @@ def _ocaml_archive_impl(ctx):
   # print("OBJ_FILES")
   # print(obj_files)
 
-  if hasattr(ctx.attr, "cc_linkall"):
-      if debug:
-          print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
-      for cc_dep in ctx.files.cc_linkall:
-          if cc_dep.extension == "a":
-              dep_graph.append(cc_dep)
-              path = cc_dep.path
-              # if tc.os == "macos":
-              args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
-              # elif tc.os == "linux":
-              # "-Wl,--push-state,-whole-archive",
-              # "-lrocksdb",
-              # "-Wl,--pop-state",
+  # if hasattr(ctx.attr, "cc_linkall"):
+  for (dep, linkmode) in ctx.attr.cc_deps.items():
+      print("CC_DEP: {dep} mode: {m}".format(dep = dep, m = linkmode))
+      if linkmode == "static-linkall":
+          # if debug:
+          print("CC_DEP STATIC_LINKALL: %s" % dep) # ctx.attr.cc_linkall)
+          for f in dep.files.to_list():
+              if f.extension == "a":
+                  dep_graph.append(f)
+                  path = f.path
+                  # if tc.os == "macos". path can be relative
+                  args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
 
+          # for cc_dep in ctx.files.cc_linkall:
+          #     if cc_dep.extension == "a":
+          #         dep_graph.append(cc_dep)
+          #         path = cc_dep.path
+          #         # if tc.os == "macos". path can be relative
+          #         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+                  # elif tc.os == "linux":
+                  # "-Wl,--push-state,-whole-archive",
+                  # "-lrocksdb",
+                  # "-Wl,--pop-state",
 
   # args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
   if len(mydeps.opam.to_list()) > 0:
       ## DO NOT USE -linkpkg, it puts .cmxa files on command, yielding
       ## `Option -a cannot be used with .cmxa input files.`
-      args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+      args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
+      # args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   # for dep in mydeps.nopam.to_list():
   #   print("NOPAM DEP: %s" % dep)
@@ -157,8 +185,19 @@ def _ocaml_archive_impl(ctx):
         ## We ignore cmxa deps, since "Option -a cannot be used with .cmxa input files."
         ## But the depgraph contains everything contained in the cmxa, so we're covered.
         dep_graph.append(dep)
+    ## mode == bytecode
+    elif dep.extension == "cma":
+        ## We ignore cma deps, since "Option -a cannot be used with .cmxa input files."
+        ## But the depgraph contains everything contained in the cmxa, so we're covered.
+        dep_graph.append(dep)
     elif dep.extension == "cmx":
         ## This will include cmx that are direct deps of cmxa files.
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    ## mode == bytecode
+    elif dep.extension == "cmo":
+        ## This will include cmo that are direct deps of cmxa files.
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
@@ -172,34 +211,50 @@ def _ocaml_archive_impl(ctx):
         # build_deps.append(dep)
         dep_graph.append(dep)
         includes.append(dep.dirname)
+
+    elif dep.extension == "a":
+        if cc_linkmode == "static":
+            dep_graph.append(dep)
+            build_deps.append(dep)
     elif dep.extension == "so":
+        dep_graph.append(dep)
         if debug:
             print("NOPAM .so DEP: %s" % dep)
-        dep_graph.append(dep)
-        link_search.append("-L" + dep.dirname)
-        libname = file_to_lib_name(dep)
-        cc_deps.append("-l" + libname)
+        if cc_linkmode == "dynamic":
+            libname = file_to_lib_name(dep)
+        if mode == "native":
+            link_search.append("-L" + dep.dirname)
+            cc_deps.append("-l" + libname)
+        else:
+            link_search.append(dep.dirname)
+            cc_deps.append("-l" + libname)
         # args.add("-ccopt", "-L" + dep.dirname)
         # args.add("-cclib", "-l" + libname)
     elif dep.extension == "dylib":
         if debug:
             print("NOPAM .dylib DEP: %s" % dep)
-        dep_graph.append(dep)
-        link_search.append("-L" + dep.dirname)
-        libname = file_to_lib_name(dep)
-        cc_deps.append("-l" + libname)
+        if cc_linkmode == "dynamic":
+            dep_graph.append(dep)
+            libname = file_to_lib_name(dep)
+            if mode == "native":
+                link_search.append("-L" + dep.dirname)
+                cc_deps.append("-l" + libname)
+            else:
+                link_search.append(dep.dirname)
+                cc_deps.append(libname)
         # args.add("-ccopt", "-L" + dep.dirname)
         # args.add("-cclib", "-l" + libname)
         # includes.append(dep.dirname)
-    elif dep.extension == "a":
-        dep_graph.append(dep)
-        build_deps.append(dep)
     else:
         if debug:
-            print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
+            print("NOMAP DEP not .cmx, cmxa, cmo, cma, .o, .lo, .so, .dylib: %s" % dep.path)
 
   args.add_all(link_search, before_each="-ccopt", uniquify = True)
-  args.add_all(cc_deps, before_each="-cclib", uniquify = True)
+  if mode == "native":
+      args.add_all(cc_deps, before_each="-cclib", uniquify = True)
+  else:
+      args.add_all(link_search, before_each="-dllpath", uniquify = True)
+      args.add_all(cc_deps, before_each="-dllib", uniquify = True)
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -228,6 +283,18 @@ def _ocaml_archive_impl(ctx):
   args.add_all(build_deps)
   # args.add_all(ctx.files.srcs)
 
+  if ctx.attr.linkshared:
+    args.add("-shared")
+    args.add("-o", obj_cmxs)
+    obj_files.append(obj_cmxs)
+  else:
+    if mode == "native":
+        obj_files.append(obj_a)
+    obj_files.append(obj_cm_a)
+    args.add("-a")
+    args.add("-o", obj_cm_a)
+
+
   dep_graph = dep_graph + build_deps
   if debug:
       print("INPUT_ARGS: ")
@@ -241,7 +308,8 @@ def _ocaml_archive_impl(ctx):
       outputs = obj_files,
       tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "OcamlArchive",
-      progress_message = "compiling ocaml_archive: @{ws}//{pkg}:{tgt}{msg}".format(
+      progress_message = "{mode} compiling ocaml_archive: @{ws}//{pkg}:{tgt}{msg}".format(
+          mode = mode,
           ws  = ctx.label.workspace_name,
           pkg = ctx.label.package,
           tgt=ctx.label.name,
@@ -252,18 +320,27 @@ def _ocaml_archive_impl(ctx):
     #   )
   )
 
+  if mode == "native":
+      payload = struct(
+          archive = ctx.label.name,
+          cm_a = obj_cm_a,
+          cmxs = obj_cmxs,
+          a    = obj_a,
+          # modules = build_deps + cc_deps
+      )
+  else:
+      payload = struct(
+          archive = ctx.label.name,
+          cm_a = obj_cm_a,
+          cmxs = obj_cmxs,
+      )
+
   archiveProvider = OcamlArchiveProvider(
-    payload = struct(
-      archive = ctx.label.name,
-      cmxa = obj_cmxa,
-      cmxs = obj_cmxs,
-      a    = obj_a,
-      # modules = build_deps + cc_deps
-    ),
-    deps = struct(
-      opam = mydeps.opam,
-      nopam = mydeps.nopam
-    )
+      payload = payload,
+      deps = struct(
+          opam = mydeps.opam,
+          nopam = mydeps.nopam
+      )
   )
 
   # print("ARCHIVEPROVIDER for {arch}: {ap}".format(arch=ctx.label.name, ap=archiveProvider))
@@ -280,109 +357,58 @@ def _ocaml_archive_impl(ctx):
 
 ################################################################
 ocaml_archive = rule(
-  doc = """Generates an OCaml archive file (.cmxa) and a C archive file (.a).
-
-  Here is an example, from the 'digestif' library:
-
-ocaml_archive(
-    name = "common_archive",
-    msg = "digestif, common",
-    opts = ["-I", "src", "-open", "Digestif_by"],
-    deps = [
-        ":digestif_by",
-        ":digestif_bi",
-        ":digestif_conv",
-        ":digestif_eq",
-        ":digestif_hash",
-        ":digestif_mli", # this will be ignored, archives do not understand cmi files
-    ]
-)
-
-
-""",
-  implementation = _ocaml_archive_impl,
-  attrs = dict(
-    archive_name = attr.string(),
-    doc = attr.string(),
-    # preprocessor = attr.label(
-    #   providers = [PpxInfo],
-    #   executable = True,
-    #   cfg = "exec",
-    #   # allow_single_file = True
-    # ),
-    # srcs = attr.label_list(
-    #   doc = "OCaml source files",
-    #   allow_files = OCAML_FILETYPES
-    # ),
-    # src_root = attr.label(
-    #   allow_single_file = True,
-    #   mandatory = True,
-    # ),
-    ####  OPTIONS  ####
-    ##Flags. We set some flags by default; these params
-    ## allow user to override.
-    ## Problem is, this target registers two actions,
-    ## compile and link, and each has its own params.
-    ## for now, these affect the compile action:
-    # strict_sequence         = attr.bool(default = True),
-    # strict_formats          = attr.bool(default = True),
-    # short_paths             = attr.bool(default = True),
-    compile_strict_sequence = attr.bool(default = True),
-    link_strict_sequence    = attr.bool(default = True),
-    keep_locs               = attr.bool(default = True),
-    opaque                  = attr.bool(default = True),
-    no_alias_deps           = attr.bool(default = True),
-    debug                   = attr.bool(default = True),
-    ## use these to pass additional args
-    opts                    = attr.string_list(),
-    linkopts                = attr.string_list(),
-    warnings                = attr.string(
-      default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
+    implementation = _ocaml_archive_impl,
+    doc = "Generates an OCaml archive file (.cmxa or .cma) and a C archive file (.a).",
+    attrs = dict(
+        ocaml_options,
+        ## RULE DEFAULTS
+        _linkall     = attr.label(default = "@ocaml//archive:linkall"), # FIXME: call it alwayslink?
+        _threads     = attr.label(default = "@ocaml//archive:threads"),
+        _warnings  = attr.label(default = "@ocaml//archive:warnings"),
+        linkopts = attr.string_list(),
+        linkshared = attr.bool(default = False),
+        #### end options ####
+        archive_name = attr.string(),
+        doc = attr.string(),
+        deps = attr.label_list(
+            providers = [[OpamPkgInfo],
+                         [OcamlImportProvider],
+                         [OcamlInterfaceProvider],
+                         [OcamlLibraryProvider],
+                         [OcamlModuleProvider],
+                         [OcamlNsModuleProvider],
+                         [OcamlArchiveProvider],
+                         [PpxArchiveProvider]],
+        ),
+        cc_deps = attr.label_keyed_string_dict(
+            doc = "C/C++ library dependencies",
+            providers = [[CcInfo]]
+        ),
+        cc_linkopts = attr.string_list(
+            doc = "C/C++ options",
+        ),
+        cc_linkall = attr.label_list(
+            doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
+            providers = [CcInfo],
+        ),
+        ## FIXME: make cc_linkmode a configurable default
+        cc_linkstatic = attr.bool( ## FIXME: rename cc_linkmode = static | dynamice
+            doc     = "Override platform-dependent link mode (static or dynamic).",
+            # default = False  # "@ocaml//:linkstatic"
+        ),
+        cc_linkmode = attr.label(
+            doc     = "Override platform-dependent link mode (static or dynamic).",
+            # default = "@ocaml//linkmode:static"
+        ),
+        _mode = attr.label(
+            default = "@ocaml//mode"
+        ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        msg = attr.string(),
     ),
-    alwayslink = attr.bool(
-      doc = "If true (default), use OCaml -linkall switch. Default: False",
-      default = False,
-    ),
-    # nocopts = attr.string(),
-    linkshared = attr.bool(default = False),
-    #### end options ####
-    # lib = attr.bool(default = False)
-    deps = attr.label_list(
-      providers = [[OpamPkgInfo],
-                   [OcamlImportProvider],
-                   [OcamlInterfaceProvider],
-                   [OcamlModuleProvider],
-                   [OcamlNsModuleProvider],
-                   [OcamlArchiveProvider],
-                   [PpxArchiveProvider]],
-    ),
-    cc_deps = attr.label_keyed_string_dict(
-      doc = "C/C++ library dependencies",
-      providers = [[CcInfo]]
-    ),
-    cc_linkopts = attr.string_list(
-      doc = "C/C++ options",
-    ),
-    cc_linkall = attr.label_list(
-        doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
-        providers = [CcInfo],
-    ),
-    cc_linkstatic = attr.bool(
-      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = True # False
-    ),
-    mode = attr.string(default = "native"),
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
-    ),
-    msg = attr.string(),
-    # outputs = attr.output_list(
-    #   # default = ["%{name}.pp.ml",
-    #   #           "%{name}.pp.ml.d"],
-    # )
-  ),
-  provides = [OcamlArchiveProvider],
-  executable = False,
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-  # outputs = { "build_dir": "_build_%{name}" },
+    provides = [OcamlArchiveProvider],
+    executable = False,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

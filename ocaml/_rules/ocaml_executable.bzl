@@ -1,8 +1,10 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
 load("//implementation:common.bzl",
      "OCAML_VERSION")
-load("//ocaml/_actions:ppx.bzl",
-     "apply_ppx",
-     "compile_new_srcs")
+# load("//ocaml/_actions:ppx.bzl",
+#      "apply_ppx",
+#      "compile_new_srcs")
 # load("//ocaml/_actions:ocaml.bzl",
 #      "ocaml_compile")
 load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
@@ -11,8 +13,8 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlSDK")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl", "PpxInfo")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ppx:_providers.bzl", "PpxInfo")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
@@ -25,6 +27,8 @@ load("//implementation:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load(":ocaml_options.bzl", "ocaml_options")
+load("//ocaml/_actions:utils.bzl", "get_options")
 
 # def _ocaml_interface_impl(ctx):
 #   ctx.actions.run_shell(
@@ -53,7 +57,7 @@ load("//implementation:utils.bzl",
 def _ocaml_executable_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "election"):
+  # if (ctx.label.name == "gen.exe"):
   #     debug = True
 
   if debug:
@@ -78,10 +82,32 @@ def _ocaml_executable_impl(ctx):
     outbinary = ctx.actions.declare_file(outfilename)
   # we will wait to add the -o flag until after we compile the interface files
 
+  mode = ctx.attr._mode[CompilationModeSettingProvider].value
+  dep_graph = []
+  # build_deps = []
+  includes = []
+
   ################################################################
   args = ctx.actions.args()
-  args.add("ocamlopt")
-  args.add_all(ctx.attr.opts)
+  if mode == "native":
+      args.add(tc.ocamlopt.basename)
+  else:
+      args.add(tc.ocamlc.basename)
+
+      # dynamic linking does not currently work on the mac - ocamlrun
+      # wants a file named 'dllfoo.so', which rust cannot produce. to
+      # support this we would need to rename the file using install_name_tool
+
+      # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
+      # if ctx.attr.linkstatic:
+      args.add("-custom") # statically link cc code for ocamlrun
+
+  for opt in ctx.attr._opts[BuildSettingInfo].value:
+      # print("EXTRA OPT: %s" % opt)
+      args.add(opt)
+  # args.add_all(ctx.attr.opts)
+  options = get_options(rule, ctx)
+  args.add_all(options)
 
   if ctx.attr.linkopts:
       # lflags = " ".join(ctx.attr.linkopts)
@@ -90,10 +116,6 @@ def _ocaml_executable_impl(ctx):
   ## deps are the same for all sources (.mli, .ml)
   ## we need to accumulate them so we can add them to the action inputs arg,
   ## in order to  register the dependency with Bazel.
-  dep_graph = []
-  # build_deps = []
-  includes = []
-
   if hasattr(ctx.attr, "cc_linkall"):
       if debug:
           print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
@@ -116,7 +138,8 @@ def _ocaml_executable_impl(ctx):
   #     # print("OPAM DEPDEP: %s" % depdep)
   #   args.add("-package", dep.pkg.to_list()[0].name)
 
-  args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
+  args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
+  # args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
   # for debugging:
   # args.add("-absname")
@@ -157,6 +180,8 @@ def _ocaml_executable_impl(ctx):
   #     build_deps.append(dep) # .basename)
   #     dep_graph.append(dep)
 
+  execroot = "/private/var/tmp/_bazel_gar/a96cd3ac87eaeba07bfd00b35d52a61a/execroot/mina"
+
   for dep in mydeps.nopam.to_list():
     if debug:
         print("NOPAM DEP: %s" % dep)
@@ -164,14 +189,24 @@ def _ocaml_executable_impl(ctx):
       includes.append(dep.dirname)
       build_deps.append(dep) # .basename)
       dep_graph.append(dep)
-    # if dep.extension == "cmi":
-    #   includes.append(dep.dirname)
-    #   dep_graph.append(dep)
+    elif dep.extension == "cmo":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "cmi":
+      includes.append(dep.dirname)
+      dep_graph.append(dep)
+    elif dep.extension == "mli":
+      includes.append(dep.dirname)
+      dep_graph.append(dep)
     elif dep.extension == "cmxa":
         includes.append(dep.dirname)
-        # build_deps.append(dep) # .basename)
         dep_graph.append(dep)
-        # build_deps.append(dep)
+        # build_deps.append(dep) # .basename)
+    elif dep.extension == "cma":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        # build_deps.append(dep) # .basename)
         # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
         #     if g.path.endswith("cmx":
         #         includes.append(g.dirname)
@@ -208,7 +243,7 @@ def _ocaml_executable_impl(ctx):
           print("LIBNAME: %s" % libname)
         args.add("-ccopt", "-L" + dep.dirname)
         args.add("-cclib", "-l" + libname)
-        # dso_deps.append(dep)
+        # build_deps.append(dep)
     elif dep.extension == "dylib":
         if debug:
             print("NOPAM .dylib DEP: %s" % dep)
@@ -217,13 +252,55 @@ def _ocaml_executable_impl(ctx):
         libname = libname[3:]
         if debug:
           print("LIBNAME: %s" % libname)
-        args.add("-ccopt", "-L" + dep.dirname)
-        args.add("-cclib", "-l" + libname)
+        ## -ccopt is for static linking? see chs. 8, 9, 11.3, 20 of the manual
+        if mode == "native":
+            args.add("-ccopt", "-L" + dep.dirname)
+            args.add("-cclib", "-l" + libname)
+        else:
+            args.add("-dllpath", execroot + "/" + dep.dirname)
+            args.add("-ccopt", "-L" + dep.dirname)
+            args.add("-cclib", "-l" + libname)
         # includes.append(dep.dirname)
         # dso_deps.append(dep)
     else:
         if debug:
-            print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
+            print("NOMAP DEP not .cmx, cmo, cmxa, cma, cmi, .o, .lo, .so, .dylib: %s" % dep.path)
+
+  execroot = "/private/var/tmp/_bazel_gar/a96cd3ac87eaeba07bfd00b35d52a61a/execroot"
+  if mode == "bytecode":
+      ## FIXME.  REALLY!!!
+      args.add("-dllpath", execroot + "/ppx_version/external/ocaml/switch/lib/stublibs")
+
+      ## FIXME: for f in toolchain ocamlrun libs
+      for f in ctx.files._dllpaths:
+          dep_graph.append(f)
+
+      args.add("-dllib", "-lbase_bigstring_stubs")
+      args.add("-dllib", "-lbase_stubs")
+      args.add("-dllib", "-lbin_prot_stubs")
+      args.add("-dllib", "-lcore_kernel_stubs")
+      args.add("-dllib", "-lctypes-foreign-base_stubs")
+      args.add("-dllib", "-lctypes_stubs")
+      args.add("-dllib", "-lexpect_test_collector_stubs")
+      args.add("-dllib", "-lintegers_stubs")
+      args.add("-dllib", "-lspawn_stubs")
+      args.add("-dllib", "-lsodium_stubs")
+      args.add("-dllib", "-ltime_now_stubs")
+      args.add("-I", "external/ocaml/switch/lib/stublibs")
+
+      # args.add("-ccopt", "-L/usr/local/lib")
+      # args.add("-cclib", "-lsodium")
+
+      # args.add("-ccopt", "-Lexternal/ocaml/switch/lib/stublibs")
+      # args.add("-cclib", "-lbase_bigstring_stubs")
+      # args.add("-cclib", "-lbase_stubs")
+      # args.add("-cclib", "-lbin_prot_stubs")
+      # args.add("-cclib", "-lcore_kernel_stubs")
+      # args.add("-cclib", "-lctypes_stubs")
+      # args.add("-cclib", "-lctypes-foreign-base_stubs")
+      # args.add("-cclib", "-lexpect_test_collector_stubs")
+      # args.add("-cclib", "-lintegers_stubs")
+      # args.add("-cclib", "-ltime_now_stubs")
 
   # for dso in dso_deps:
   #     if debug:
@@ -323,11 +400,6 @@ def _ocaml_executable_impl(ctx):
                 args.add("-ccopt", "-L" + depfile.dirname)
                 cclib_deps.append(depfile)
 
-  if ctx.attr.cc_linkopts:
-      args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
-
-  args.add_all(includes, before_each="-I", uniquify = True)
-
   # srcs_ml  = []
   # outs_cmx = []
 
@@ -353,6 +425,11 @@ def _ocaml_executable_impl(ctx):
   # args.add_all(cclib_deps)
 
   args.add_all(build_deps)
+
+  if ctx.attr.cc_linkopts:
+      args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
+
+  args.add_all(includes, before_each="-I", uniquify = True)
 
   args.add("-o", outbinary)
 
@@ -388,70 +465,94 @@ def _ocaml_executable_impl(ctx):
 
 ################################################################
 ocaml_executable = rule(
-  implementation = _ocaml_executable_impl,
-  attrs = dict(
-    exe_name = attr.string(),
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
+    implementation = _ocaml_executable_impl,
+    attrs = dict(
+        ocaml_options,
+        _linkall     = attr.label(default = "@ppx//executable:linkall"),
+        _threads     = attr.label(default = "@ppx//executable:threads"),
+        _warnings  = attr.label(default = "@ppx//executable:warnings"),
+        _opts = attr.label(
+            doc = "Hidden options.",
+            default = "@ocaml//executable:opts"
+        ),
+        exe_name = attr.string(),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        main = attr.label(
+            providers = [[OcamlModuleProvider], [OpamPkgInfo]],
+            default = None
+        ),
+        # srcs = attr.label_list(
+        #   allow_files = OCAML_FILETYPES
+        # ),
+        # srcs_impl = attr.label_list(
+        #   allow_files = OCAML_IMPL_FILETYPES
+        # ),
+        # srcs_intf = attr.label_list(
+        #   allow_files = OCAML_INTF_FILETYPES
+        # ),
+        data = attr.label_list(
+            allow_files = True,
+            doc = "Data files used by this executable."
+        ),
+        strip_data_prefixes = attr.bool(
+            doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
+            default = False
+        ),
+        copts = attr.string_list(),
+        linkopts = attr.string_list(),
+        # preprocessor = attr.label(
+        #     doc = "Preprocessor. Must be a single PPX executable.",
+        #     allow_single_file = True,
+        #     providers = [PpxInfo],
+        #     executable = True,
+        #     cfg = "exec",
+        # ),
+        deps = attr.label_list(
+            doc = "Dependencies. Do not include preprocessor (PPX) deps.",
+            providers = [[OpamPkgInfo],
+                         [OcamlArchiveProvider],
+                         [OcamlLibraryProvider],
+                         [OcamlModuleProvider],
+                         [CcInfo]],
+        ),
+        cc_deps = attr.label_keyed_string_dict(
+            doc = "C/C++ library dependencies",
+            ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
+            # providers = [[CcInfo]]
+        ),
+        cc_linkall = attr.label_list(
+            ## equivalent to cc_library's "alwayslink"
+            doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+            providers = [CcInfo],
+        ),
+        cc_linkopts = attr.string_list(
+            doc = "C/C++ link options",
+        ),
+        cc_linkstatic = attr.bool(
+            doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+            default = True # False
+        ),
+        _mode = attr.label(
+            default = "@ocaml//mode"
+        ),
+        _dllpaths = attr.label_list(
+            # default = "@opam//:bin/cppo"
+            default = [ # FIXME
+                "@ocaml//:base_stubs",
+                "@ocaml//:base_bigstring_stubs",
+                "@ocaml//:bin_prot_stubs",
+                "@ocaml//:core_kernel_stubs",
+                "@ocaml//:ctypes_stubs",
+                "@ocaml//:ctypes-foreign-base_stubs",
+                "@ocaml//:expect_test_collector_stubs",
+                "@ocaml//:integers_stubs",
+                "@ocaml//:time_now_stubs",
+            ]
+        ),
+        message = attr.string()
     ),
-    main = attr.label(
-        providers = [[OcamlModuleProvider], [OpamPkgInfo]],
-        default = None
-    ),
-    # srcs = attr.label_list(
-    #   allow_files = OCAML_FILETYPES
-    # ),
-    # srcs_impl = attr.label_list(
-    #   allow_files = OCAML_IMPL_FILETYPES
-    # ),
-    # srcs_intf = attr.label_list(
-    #   allow_files = OCAML_INTF_FILETYPES
-    # ),
-    data = attr.label_list(
-      allow_files = True,
-      doc = "Data files used by this executable."
-    ),
-    strip_data_prefixes = attr.bool(
-      doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
-      default = False
-    ),
-    opts = attr.string_list(),
-    copts = attr.string_list(),
-    linkopts = attr.string_list(),
-    preprocessor = attr.label(
-      doc = "Preprocessor. Must be a single PPX executable.",
-      allow_single_file = True,
-      providers = [PpxInfo],
-      executable = True,
-      cfg = "exec",
-    ),
-    deps = attr.label_list(
-      doc = "Dependencies. Do not include preprocessor (PPX) deps.",
-      providers = [[OpamPkgInfo],
-                   [OcamlArchiveProvider],
-                   [OcamlLibraryProvider],
-                   [OcamlModuleProvider],
-                   [CcInfo]],
-    ),
-    cc_deps = attr.label_keyed_string_dict(
-        doc = "C/C++ library dependencies",
-        ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
-      # providers = [[CcInfo]]
-    ),
-    cc_linkall = attr.label_list(
-        doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
-        providers = [CcInfo],
-    ),
-    cc_linkopts = attr.string_list(
-      doc = "C/C++ link options",
-    ),
-    cc_linkstatic = attr.bool(
-      doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-      default = True # False
-    ),
-    mode = attr.string(default = "native"), # or "bytecode"
-    message = attr.string()
-  ),
-  executable = True,
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    executable = True,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

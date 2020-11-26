@@ -1,8 +1,10 @@
 load("@bazel_skylib//lib:collections.bzl", "collections")
+load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
+load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
 
 load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl",
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
@@ -29,6 +31,8 @@ load("//implementation:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load("//ocaml/_actions:utils.bzl", "get_options")
+load(":ppx_options.bzl", "ppx_options")
 
 # print("implementation/ocaml.bzl loading")
 
@@ -42,8 +46,11 @@ tmpdir = "_obazl_/"
 def _ppx_archive_impl(ctx):
 
   debug = False
-  # if ctx.label.name == "ppx_version":
-  #     debug = True
+  if ctx.label.name == "ppx":
+      if ctx.label.package == "src/lib/logproc_lib":
+          print("DEBUGGING %s" % ctx.label)
+          debug = True
+
 
   mydeps = get_all_deps("ppx_archive", ctx)
 
@@ -63,7 +70,10 @@ def _ppx_archive_impl(ctx):
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+
+  mode = ctx.attr._mode[0][PpxCompilationModeSettingProvider].value
+  ext = ".cmxa" if mode == "native" else ".cma"
 
   ## declare outputs
   # obj_files = []
@@ -76,36 +86,35 @@ def _ppx_archive_impl(ctx):
     if ctx.attr.linkshared:
       obj["cmxs"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxs")
     else:
-      obj["cmxa"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxa")
-      obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
+      obj["cm_a"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ext)
+      if mode == "native":
+          obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
   else:
     if ctx.attr.linkshared:
       obj["cmxs"] = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxs")
     else:
-      obj["cmxa"] = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxa")
-      obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
+      obj["cm_a"] = ctx.actions.declare_file(tmpdir + ctx.label.name + ext)
+      if mode == "native":
+          obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
 
   # print("PPX_ARCHIVE OBJS: %s" % obj)
-  # obj_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
+  # obj_cm_a = ctx.actions.declare_file(outfile_cm_a_name)
   # obj_a    = ctx.actions.declare_file(outfile_a_name)
 
+  ################################################################
   args = ctx.actions.args()
-  args.add("ocamlopt")
-  # args.add_all(ctx.attr.flags)
-  args.add_all(collections.uniq(ctx.attr.opts))
 
-  if ctx.attr.linkall:
-    args.add("-linkall")
+  if mode == "native":
+      args.add(tc.ocamlopt.basename)
+  else:
+      args.add(tc.ocamlc.basename)
+
+  options = get_options(rule, ctx)
+  args.add_all(options)
 
   # NOTE: we do not put .a on the command line, since putting -o
   # foo.cmxa or -o foo.cmxs will automatically produce foo.a.
   # But we do add it to the Bazel outputs.
-  if ctx.attr.linkshared:
-    args.add("-shared")
-    args.add("-o", obj["cmxs"])
-  else:
-    args.add("-a")
-    args.add("-o", obj["cmxa"])
 
   ## We insert -I for each non-opam dep; since this would usually
   ## result in duplicates, we accumulate them first, then dedup.
@@ -115,7 +124,11 @@ def _ppx_archive_impl(ctx):
       for g in dep[DefaultInfo].files.to_list():
         if g.path.endswith(".cmx"):
           includes.append(g.dirname)
+        if g.path.endswith(".cmo"):
+          includes.append(g.dirname)
         if g.path.endswith(".cmxa"):
+          includes.append(g.dirname)
+        if g.path.endswith(".cma"):
           includes.append(g.dirname)
 
   args.add_all(includes, before_each="-I", uniquify = True)
@@ -130,10 +143,22 @@ def _ppx_archive_impl(ctx):
   dep_graph  = []
   includes   = []
 
+  # for dep in ctx.files.deps:
+  #     print("DIRECT DEP: %s" % dep)
+  #     if dep.extension != "cmi":
+  #         includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #         build_deps.append(dep)
+
+  ## depset for archives omits direct deps, since they are bundled into the payload
   for dep in mydeps.nopam.to_list():
     if debug:
-          print("\nNOPAM DEP: %s\n\n" % dep)
+          print("NOPAM DEP:\n\t%s\n" % dep)
     if dep.extension == "cmx":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "cmo":
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
@@ -151,6 +176,10 @@ def _ppx_archive_impl(ctx):
         dep_graph.append(dep)
         includes.append(dep.dirname)
         ## "Option -a cannot be used with .cmxa input files."
+        # build_deps.append(dep)
+    elif dep.extension == "cma":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
         # build_deps.append(dep)
     elif dep.extension == "a":
         dep_graph.append(dep)
@@ -180,7 +209,7 @@ def _ppx_archive_impl(ctx):
         # dso_deps.append(dep)
     else:
         if debug:
-            print("NOMAP DEP not .cmx, ,cmxa, .o, .lo, .so, .dylib: %s" % dep.path)
+            print("NOMAP DEP not .cmx, cmo, cmxa, cma, .o, .lo, .so, .dylib: %s" % dep.path)
 
   # for dep in ctx.attr.deps:
   #   if OpamPkgInfo in dep:
@@ -218,33 +247,58 @@ def _ppx_archive_impl(ctx):
   # inputs_arg = ctx.files.srcs + build_deps
   # dep_graph.extend(ctx.files.srcs)
 
+  if ctx.attr.linkshared:
+    args.add("-shared")
+    args.add("-o", obj["cmxs"])
+  else:
+    args.add("-a")
+    args.add("-o", obj["cm_a"])
+
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
   # print("OUTPUTS_ARG:")
   # print(outputs_arg)
   ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = dep_graph,
-    outputs = obj.values(), # outputs_arg,
-    tools = [tc.ocamlfind, tc.ocamlopt],
-    mnemonic = "OcamlPpxLibrary",
-    progress_message = "ppx_archive({}): {}".format(
-      ctx.label.name, ctx.attr.msg
-    )
+      env = env,
+      executable = tc.ocamlfind,
+      arguments = [args],
+      inputs = dep_graph,
+      outputs = obj.values(), # outputs_arg,
+      tools = [tc.ocamlfind, tc.ocamlopt],
+      mnemonic = "PpxArchive",
+      progress_message = "{mode} compiling ppx_archive: @{ws}//{pkg}:{tgt}{msg}".format(
+          mode = mode,
+          ws  = ctx.label.workspace_name,
+          pkg = ctx.label.package,
+          tgt=ctx.label.name,
+          msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
+      )
+      # progress_message = "{mode} compiling ppx_archive({}): {}".format(
+      #   ctx.label.name, ctx.attr.msg
+      # )
   )
 
-  ppx_provider = PpxArchiveProvider(
+  if mode == "native":
       payload = struct(
-          cmxa = obj["cmxa"] if "cmxa" in obj else None,
+          cm_a = obj["cm_a"] if "cm_a" in obj else None,
           cmxs = obj["cmxs"] if "cmxs" in obj else None,
           a    = obj["a"] if "a" in obj else None
           # cmi  : .cmi file produced by the target
           # cm   : .cmx or .cmo file produced by the target
           # o    : .o file produced by the target
-      ),
+      )
+  else:
+      payload = struct(
+          cm_a = obj["cm_a"] if "cm_a" in obj else None,
+          cmxs = obj["cmxs"] if "cmxs" in obj else None,
+          # cmi  : .cmi file produced by the target
+          # cm   : .cmx or .cmo file produced by the target
+          # o    : .o file produced by the target
+      )
+
+  ppx_provider = PpxArchiveProvider(
+      payload = payload,
       deps = struct(
           opam  = mydeps.opam,
           opam_lazy = mydeps.opam_lazy,
@@ -267,65 +321,49 @@ def _ppx_archive_impl(ctx):
 #############################################
 #### RULE DECL:  PPX_ARCHIVE  #########
 ppx_archive = rule(
-  implementation = _ppx_archive_impl,
-  attrs = dict(
-    archive_name = attr.string(),
-    preprocessor = attr.label(
-      providers = [PpxExecutableProvider],
-      executable = True,
-      cfg = "exec",
-      # allow_single_file = True
+    implementation = _ppx_archive_impl,
+    attrs = dict(
+        ppx_options,
+        archive_name = attr.string(),
+        preprocessor = attr.label(
+            providers = [PpxExecutableProvider],
+            executable = True,
+            cfg = "exec",
+            # allow_single_file = True
+        ),
+        msg = attr.string(),
+        dump_ast = attr.bool(default = True),
+        # srcs = attr.label_list(
+        #   allow_files = OCAML_FILETYPES
+        # ),
+        linkshared = attr.bool(default = False),
+        _linkall     = attr.label(default = "@ppx//archive:linkall"),
+        _threads     = attr.label(default = "@ppx//archive:threads"),
+        _warnings  = attr.label(default = "@ppx//archive:warnings"),
+        #### end options ####
+        deps = attr.label_list(
+            providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        lazy_deps = attr.label_list(
+            providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        _mode = attr.label(
+            default = "@ppx//mode",
+            cfg     = ppx_mode_transition
+        ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        ## FIXME: add cc_* options?
     ),
-    msg = attr.string(),
-    dump_ast = attr.bool(default = True),
-    # srcs = attr.label_list(
-    #   allow_files = OCAML_FILETYPES
-    # ),
-    linkshared = attr.bool(default = False),
-    # src_root = attr.label(
-    #   allow_single_file = True,
-    #   mandatory = True,
-    # ),
-    ####  OPTIONS  ####
-    ##Flags. We set some flags by default; these params
-    ## allow user to override.
-    ## Problem is, this target registers two actions,
-    ## compile and link, and each has its own params.
-    ## for now, these affect the compile action:
-    strict_sequence         = attr.bool(default = True),
-    compile_strict_sequence = attr.bool(default = True),
-    link_strict_sequence    = attr.bool(default = True),
-    strict_formats          = attr.bool(default = True),
-    short_paths             = attr.bool(default = True),
-    keep_locs               = attr.bool(default = True),
-    opaque                  = attr.bool(default = True),
-    no_alias_deps           = attr.bool(default = True),
-    debug                   = attr.bool(default = True),
-    linkall                 = attr.bool(default = False),
-    ## use these to pass additional args
-    opts                   = attr.string_list(),
-    linkopts                = attr.string_list(),
-    warnings                = attr.string(
-      default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
-    ),
-    #### end options ####
-    deps = attr.label_list(
-      providers = [[DefaultInfo], [PpxModuleProvider]]
-    ),
-    lazy_deps = attr.label_list(
-      providers = [[DefaultInfo], [PpxModuleProvider]]
-    ),
-    mode = attr.string(default = "native"),
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
-    ),
-    # outputs = attr.output_list(
-    #   # default = ["%{name}.pp.ml",
-    #   #           "%{name}.pp.ml.d"],
-    # )
-  ),
-  provides = [DefaultInfo, PpxArchiveProvider],
-  executable = False,
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-  # outputs = { "build_dir": "_build_%{name}" },
+    provides = [DefaultInfo, PpxArchiveProvider],
+    executable = False,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    # Attaching at rule transitions the configuration of this target and all its dependencies
+    # (until it gets overwritten again, for example...)
+    # cfg     = ppx_mode_transition
 )

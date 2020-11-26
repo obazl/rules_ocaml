@@ -1,4 +1,9 @@
+# load("@rules_foreign_cc//tools/build_defs:framework.bzl",
+#      "ForeignCcDeps",
+#      "ForeignCcArtifact")
+
 load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider",
      "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlInterfaceProvider",
@@ -6,11 +11,17 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl",
+
+# load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
+load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
+     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
-     "PpxModuleProvider")
+     "PpxLibraryProvider",
+     "PpxModuleProvider",
+     "PpxNsModuleProvider")
 
 ## FIXME: support for rules_foreign_cc: workspace must load the repo?
 ## or pass a param telling obazl to load it?
@@ -45,13 +56,31 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  # if (ctx.label.name == "zexe_backend_common"):
-  #     debug = True
+  if (ctx.label.name == "jemalloc"):
+      debug = True
 
   if debug:
-      print("GET_ALL_DEPS {rule}({target})".format(rule=rule, target=ctx.label.name))
+      print("GET_ALL_DEPS {rule}({target})".format(rule=rule, target=ctx.label))
+
+  if CompilationModeSettingProvider in ctx.attr._mode:
+      mode = ctx.attr._mode[CompilationModeSettingProvider].value
+  else:
+      if rule == "ppx_module":
+          mode = ctx.attr._mode[0][PpxCompilationModeSettingProvider].value
+      elif rule == "ppx_archive":
+          mode = ctx.attr._mode[0][PpxCompilationModeSettingProvider].value
+      else:
+          mode = ctx.attr._mode[PpxCompilationModeSettingProvider].value
 
   defaults = []
+
+  # used for Archives logic to filter out deps that are both direct and indirect
+  target_directs = []
+  for dep in ctx.files.deps:
+      if dep.extension != "cmi":
+          target_directs.append(dep)
+  if debug:
+      print("TARGET DIRECTS: %s" % target_directs)
 
   # payload lists
   opam_directs = []
@@ -78,8 +107,14 @@ def get_all_deps(rule, ctx):
           else:
               if OcamlModuleProvider in dep:
                   provider = dep[OcamlModuleProvider]
-                  nopam_lazy_directs.append(provider.payload.cm)
-                  nopam_lazy_directs.append(provider.payload.o)
+                  if hasattr(provider.payload, "cmo"):
+                      nopam_lazy_directs.append(provider.payload.cmo)
+                  elif hasattr(provider.payload, "cmx"):
+                      nopam_lazy_directs.append(provider.payload.cmx)
+                  else:
+                      fail("Lazy dep neither cmo nor cmx")
+                  if hasattr(provider.payload, "o"):
+                      nopam_lazy_directs.append(provider.payload.o)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
@@ -92,19 +127,25 @@ def get_all_deps(rule, ctx):
                   if debug:
                       print("LAZY OcamlArchiveProvider dep: %s" % dep)
                   provider = dep[OcamlArchiveProvider]
-                  nopam_lazy_directs.append(provider.payload.cmxa)
+                  nopam_lazy_directs.append(provider.payload.cm_a)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
-                  nopam_lazy_directs.append(provider.payload.a)
-                  if provider.deps.nopam:
-                      nopam_lazy_indirects.append(provider.deps.nopam)
+                  if hasattr(provider.payload, "a"):
+                      nopam_lazy_directs.append(provider.payload.a)
+                  if hasattr(provider, "deps"):
+                      if provider.deps.nopam:
+                          nopam_lazy_indirects.append(provider.deps.nopam)
               elif PpxModuleProvider in dep:
                   if debug:
                       print("LAZY PpxModuleProvider dep: %s" % dep)
                   provider = dep[PpxModuleProvider]
-                  nopam_lazy_directs.append(provider.payload.cm)
-                  nopam_lazy_directs.append(provider.payload.o)
+                  if mode == "native":
+                      nopam_lazy_directs.append(provider.payload.cmx)
+                  else:
+                      nopam_lazy_directs.append(provider.payload.cmo)
+                  if hasattr(provider.payload, "o"):
+                      nopam_lazy_directs.append(provider.payload.o)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
@@ -117,11 +158,12 @@ def get_all_deps(rule, ctx):
                   if debug:
                       print("LAZY PpxArchiveProvider dep: %s" % dep)
                   provider = dep[PpxArchiveProvider]
-                  nopam_lazy_directs.append(provider.payload.cmxa)
+                  nopam_lazy_directs.append(provider.payload.cm_a)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
-                  nopam_lazy_directs.append(provider.payload.a)
+                  if hasattr(provider.payload, "a"):
+                      nopam_lazy_directs.append(provider.payload.a)
                   if provider.deps.nopam:
                       nopam_lazy_indirects.append(provider.deps.nopam)
               elif PpxExecutableProvider in dep:
@@ -132,7 +174,8 @@ def get_all_deps(rule, ctx):
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
-                  nopam_lazy_directs.append(provider.payload.a)
+                  if hasattr(provider.payload, "a"):
+                      nopam_lazy_directs.append(provider.payload.a)
                   if provider.deps.nopam:
                       nopam_lazy_indirects.append(provider.deps.nopam)
               else:
@@ -152,46 +195,59 @@ def get_all_deps(rule, ctx):
       provider = dep[OpamPkgInfo]
       # print("OpamPkgInfo dep: %s" % provider)
       # print("OpamPkgInfo type: %s" % type(provider))
+
       opam_directs.append(provider)
       # opam_indirects.append(provider.pkg)
 
     elif OcamlArchiveProvider in dep:
+      if debug:
+          print("OcamlArchiveProvider: %s" % dep)
       dep_provider = dep[OcamlArchiveProvider]
       # print("#### OcamlArchiveProvider: %s" % dep_provider)
       # print("#### OcamlArchiveProvider DefaultInfo: %s" % dep[DefaultInfo])
-      if dep_provider.deps.opam:
-          opam_indirects.append(dep_provider.deps.opam)
+      if hasattr(dep_provider, "deps"):
+          if dep_provider.deps.opam:
+              opam_indirects.append(dep_provider.deps.opam)
 
       if rule == "ocaml_archive":
           ## this includes both direct deps (submods) and indirect deps!
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
-          nopam_indirects.append(dep_provider.deps.nopam)
+          nopam_directs.append(dep_provider.payload.cm_a)
+          if hasattr(dep_provider, "deps"):
+              nopam_indirects.append(dep_provider.deps.nopam)
+          if hasattr(dep_provider.payload, "cmmi"):
+              if dep_provider.payload.mli != None:
+                  nopam_directs.append(dep_provider.payload.cmi)
           if hasattr(dep_provider.payload, "mli"):
               if dep_provider.payload.mli != None:
-                  # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % dep_provider.payload.mli)
                   nopam_directs.append(dep_provider.payload.mli)
       elif rule == "ocaml_executable":
           # print("payload: %s" % dep_provider.payload)
           ## this includes both direct deps (submods) and indirect deps!
-          # nopam_directs.append(dep_provider.payload.cmxa)
-          nopam_directs.extend(dep_provider.deps.nopam.to_list())
+          nopam_directs.append(dep_provider.payload.cm_a)
+          # nopam_directs.extend(dep_provider.deps.nopam.to_list())
       else:
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
-          nopam_directs.append(dep_provider.payload.cmxa)
+          nopam_directs.append(dep_provider.payload.cm_a)
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
           ## no nopam transitives, they're already in the cmxa file(?)
           ## what about second-order deps?
-          nopam_indirects.append(dep_provider.deps.nopam)
+          if hasattr(dep_provider, "deps"):
+              nopam_indirects.append(dep_provider.deps.nopam)
 
     elif OcamlLibraryProvider in dep:
-      lp = dep[OcamlLibraryProvider]
-      # print("OcamlLibraryProvider: %s" % lp)
-      nopam_directs.append(lp.payload)
-      nopam_indirects.append(lp.deps.nopam)
-      if lp.deps.opam:
-        opam_indirects.append(lp.deps.opam)
+      if debug:
+          print("OcamlLibraryProvider: %s" % dep)
+      provider = dep[OcamlLibraryProvider]
+      # print("OcamlLibraryProvider: %s" % provider)
+      # nopam_directs.append(provider.payload)
+      nopam_indirects.append(provider.deps.nopam)
+      if provider.deps.opam:
+        opam_indirects.append(provider.deps.opam)
 
     elif OcamlModuleProvider in dep:
+      if debug:
+          print("OcamlModuleProvider: %s" % dep)
       dep_provider = dep[OcamlModuleProvider]
       # print("____ OcamlModuleProvider provider: %s" % dep_provider)
       # print("____ OcamlModuleProvider DefaultInfo: %s" % dep[DefaultInfo])
@@ -200,19 +256,28 @@ def get_all_deps(rule, ctx):
         opam_indirects.append(dep_provider.deps.opam)
       # opams = opams + d.opam_deps.to_list()
 
-      nopam_directs.append(dep_provider.payload.cm)
+      # if rule != "ocaml_archive":
+      if mode == "native":
+          if hasattr(dep_provider.payload, "cmx"):
+              nopam_directs.append(dep_provider.payload.cmx)
+          else:
+              fail("native ocaml_module without cmx: %s" % dep_provider)
+      else:
+          nopam_directs.append(dep_provider.payload.cmo)
       if hasattr(dep_provider.payload, "mli"):
           if dep_provider.payload.mli != None:
-              # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % dep_provider.payload.mli)
               nopam_directs.append(dep_provider.payload.mli)
       nopam_directs.append(dep_provider.payload.cmi)
-      nopam_directs.append(dep_provider.payload.o)
+      if hasattr(dep_provider.payload, "o"):
+          nopam_directs.append(dep_provider.payload.o)
       if dep_provider.deps.nopam:
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
           nopam_indirects.append(dep_provider.deps.nopam)
           # opam_directs.append(None)
       # print("____ nopam transitives: %s" % nopam_indirects)
     elif OcamlNsModuleProvider in dep:
+      if debug:
+          print("OcamlNsModuleProvider: %s" % dep)
       dep_provider = dep[OcamlNsModuleProvider]
       # print("++++ OcamlNsModuleProvider dep: %s" % dep_provider)
       # print("++++ OcamlNsModuleProvider DefaultInfo: %s" % dep[DefaultInfo])
@@ -220,9 +285,15 @@ def get_all_deps(rule, ctx):
         opam_indirects.append(dep_provider.deps.opam)
       # opams = opams + d.opam_deps.to_list()
 
-      nopam_directs.append(dep_provider.payload.cm)
+      # if rule != "ppx_archive":
+      #     if rule != "ocaml_archive":
+      if hasattr(dep_provider.payload, "cmx"):
+          nopam_directs.append(dep_provider.payload.cmx)
+      if hasattr(dep_provider.payload, "cmo"):
+          nopam_directs.append(dep_provider.payload.cmo)
       nopam_directs.append(dep_provider.payload.cmi)
-      nopam_directs.append(dep_provider.payload.o)
+      if hasattr(dep_provider.payload, "o"):
+          nopam_directs.append(dep_provider.payload.o)
       if dep_provider.deps.nopam:
           # nopam_directs.append(dep_provider.payload)
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
@@ -244,8 +315,8 @@ def get_all_deps(rule, ctx):
           nopam_directs.append(provider.payload.cmx.files.to_list()[0])
       if provider.payload.cma:
           nopam_directs.append(provider.payload.cma.files.to_list()[0])
-      if provider.payload.cmxa:
-          nopam_directs.append(provider.payload.cmxa.files.to_list()[0])
+      if provider.payload.cm_a:
+          nopam_directs.append(provider.payload.cm_a.files.to_list()[0])
       if provider.payload.cmxs:
           nopam_directs.append(provider.payload.cmxs.files.to_list()[0])
       # nopam_directs.append(provider.payload.ml)
@@ -253,12 +324,12 @@ def get_all_deps(rule, ctx):
       nopam_indirects.append(provider.indirect)
 
     elif CcInfo in dep:
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
         cp = dep[CcInfo]
         if debug:
             print("CcInfo dep: %s" % cp)
             print("CcInfo payload: %s" % dep[DefaultInfo])
-        nopam_directs.append(struct( clib = dep[DefaultInfo]) )
+        for f in dep[DefaultInfo].files.to_list():
+            nopam_directs.append(f)
 
     # https://docs.bazel.build/versions/master/integrating-with-rules-cc.html
     # Implementing starlark rules that depend on cc rules:
@@ -301,9 +372,12 @@ def get_all_deps(rule, ctx):
         provider = dep[PpxArchiveProvider]
         if debug:
             print("PpxArchiveProvider: %s" % provider)
-        # nopam_directs.append(provider.payload.cmxa)
-        nopam_directs.append(provider.payload.a)
-        nopam_directs.append(provider.payload.cmxa)
+        # nopam_directs.append(provider.payload.cm_a)
+        if hasattr(provider.payload, "a"):
+            nopam_directs.append(provider.payload.a)
+        nopam_directs.append(provider.payload.cm_a)
+
+        # if rule == "ppx_executable"
         nopam_indirects.append(provider.deps.nopam)
 
         opam_indirects.append(provider.deps.opam)
@@ -315,17 +389,73 @@ def get_all_deps(rule, ctx):
       nopam_directs.append(bp.payload)
       nopam_indirects.append(bp.deps.nopam)
       opam_indirects.append(bp.deps.opam)
+    elif PpxLibraryProvider in dep:
+      if debug:
+          print("PpxLibraryProvider: %s" % dep)
+      provider = dep[PpxLibraryProvider]
+      # print("PpxLibraryProvider: %s" % provider)
+      # nopam_directs.append(provider.payload)
+      nopam_indirects.append(provider.deps.nopam)
+      if provider.deps.opam:
+        opam_indirects.append(provider.deps.opam)
+
     elif PpxModuleProvider in dep:
-        if debug:
-            print("PpxModuleProvider: %s" % provider)
         provider = dep[PpxModuleProvider]
-        nopam_directs.append(provider.payload.cm)
+        if debug:
+            print("PpxModuleProvider: %s" % dep)
+            print("RULE: {r} : {l}".format(r=rule, l=ctx.label))
+            print(provider)
+        # if rule != "ppx_archive":
+        #     if rule != "ocaml_archive":
+        if mode == "native":
+            nopam_directs.append(provider.payload.cmx)
+        else:
+            nopam_directs.append(provider.payload.cmo)
         nopam_directs.append(provider.payload.cmi)
-        nopam_directs.append(provider.payload.o)
+
+        if hasattr(provider.payload, "o"):
+            nopam_directs.append(provider.payload.o)
         nopam_indirects.append(provider.deps.nopam)
+        # if rule == "ppx_archive":
+        #     ## add all indirects EXCEPT those that are also directs
+        #     ## e.g. if A and B are directs, and B depends on A, then B is both direct and indirect
+        #     for dep in provider.deps.nopam.to_list():
+        #         if dep.extension != "cmi":
+        #             print("FILTERING INDIRECTS: %s" % dep)
+        #             if dep not in target_directs:
+        #                 nopam_indirects.append(provider.deps.nopam)
+        #             else:
+        #                 if debug:
+        #                     print("OMITTING INDIRECT/DIRECT DEP: %s" % dep)
+
         opam_indirects.append(provider.deps.opam)
         opam_lazy_indirects.append(provider.deps.opam_lazy)
         nopam_lazy_indirects.append(provider.deps.nopam_lazy)
+    elif PpxNsModuleProvider in dep:
+      if debug:
+          print("PpxNsModuleProvider: %s" % dep)
+      dep_provider = dep[PpxNsModuleProvider]
+      # print("++++ PpxNsModuleProvider dep: %s" % dep_provider)
+      # print("++++ PpxNsModuleProvider DefaultInfo: %s" % dep[DefaultInfo])
+      if dep_provider.deps.opam:
+        opam_indirects.append(dep_provider.deps.opam)
+      # opams = opams + d.opam_deps.to_list()
+
+      # if rule != "ppx_archive":
+      #     if rule != "ocaml_archive":
+      if hasattr(dep_provider.payload, "cmx"):
+          nopam_directs.append(dep_provider.payload.cmx)
+      if hasattr(dep_provider.payload, "cmo"):
+          nopam_directs.append(dep_provider.payload.cmo)
+      nopam_directs.append(dep_provider.payload.cmi)
+      if hasattr(dep_provider.payload, "o"):
+          nopam_directs.append(dep_provider.payload.o)
+      if dep_provider.deps.nopam:
+          # nopam_directs.append(dep_provider.payload)
+          # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+          # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+          nopam_indirects.append(dep_provider.deps.nopam)
+          # opam_directs.append(None)
     else:
       fail("UNKNOWN DEP TYPE: %s" % dep)
 
@@ -359,10 +489,23 @@ def get_all_deps(rule, ctx):
       ## FIXME: do we need to propagate the deps of *.mli files?
       if hasattr(ctx.attr, "ns"):
           if ctx.attr.ns != None:
-              dep_provider = ctx.attr.ns[OcamlNsModuleProvider]
-              nopam_directs.append(dep_provider.payload.cm)
-              nopam_directs.append(dep_provider.payload.cmi)
-              nopam_directs.append(dep_provider.payload.o)
+              if OcamlNsModuleProvider in ctx.attr.ns:
+                  dep_provider = ctx.attr.ns[OcamlNsModuleProvider]
+              else:
+                  dep_provider = ctx.attr.ns[PpxNsModuleProvider]
+              # if rule != "ppx_archive":
+              #     if rule != "ocaml_archive":
+              if hasattr(dep_provider.payload, "cmx"):
+                  nopam_directs.append(dep_provider.payload.cmx)
+              if hasattr(dep_provider.payload, "cmo"):
+                  nopam_directs.append(dep_provider.payload.cmo)
+              if hasattr(dep_provider.payload, "o"):
+                  nopam_directs.append(dep_provider.payload.o)
+              if hasattr(dep_provider.payload, "cmi"):
+                  nopam_directs.append(dep_provider.payload.cmi)
+              if hasattr(dep_provider.payload, "mli"):
+                  nopam_directs.append(dep_provider.payload.mli)
+
               if dep_provider.deps.nopam:
                   # nopam_directs.append(dep_provider.payload)
                   # nopam_directs.extend(dep[DefaultInfo].files.to_list())
@@ -384,12 +527,14 @@ def get_all_deps(rule, ctx):
           for depfile in cc_dep[0].files.to_list():
               if debug:
                   print("CC_DEP FILE: %s" % depfile)
+
           if cc_dep[1] == "static":
-              if debug:
-                  print("DEPSET STATIC")
               for depfile in cc_dep[0].files.to_list():
                   if (depfile.extension == "a"):
+                      if debug:
+                          print("ADDING STATIC TO NOPAM_DIRECTS: %s " % depfile)
                       nopam_directs.append(depfile)
+
           elif cc_dep[1] == "dynamic":
               if debug:
                   print("DEPSET STATIC")
@@ -402,11 +547,12 @@ def get_all_deps(rule, ctx):
                       if debug:
                           print("DEPSET DYLIB")
                       nopam_directs.append(depfile)
+
           elif cc_dep[1] == "default":
               if debug:
                   print("DEPSET DEFAULT")
               tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-              if tc.link == "static":
+              if tc.linkmode == "static":
                   if debug:
                       print("DEPSET LINKSTATIC")
                   for depfile in cc_dep[0].files.to_list():
@@ -426,8 +572,13 @@ def get_all_deps(rule, ctx):
                           if debug:
                               print("DEPSET DYLIB")
                           nopam_directs.append(depfile)
+          elif cc_dep[1] == "static-linkall":
+              x = None
+              ## skip these, they are handled by the rule and not in the dep graph
+              ## FIXME: add a depset for linkalls
+              ## FIXME: what about dynamic-linkall?
           else:
-              fail("Allowe values of cc_deps attribute: 'default', 'static', or 'dynamic'")
+              fail("Allowed values of cc_deps attribute: 'default', 'dynamic', 'static' or 'static-linkall' %s" % cc_dep[1])
 
   # if hasattr(ctx.attr, "cc_linkall"):
   #     if debug:
@@ -435,8 +586,58 @@ def get_all_deps(rule, ctx):
   #     for cc_dep in ctx.attr.cc_linkall:
   #         nopam_directs.append(cc_dep)
 
+  if hasattr(ctx.attr, "_deps"):
+      # print("################ HIDDEN DEPS: %s" % ctx.attr._deps)
+      # print("Target: %s" % ctx.label)
+      if CcInfo in ctx.attr._deps:
+          # print("HIDDEN CcInfo: %s" % ctx.attr._deps[CcInfo])
+          # print("HIDDEN DefaultInfo: %s" % ctx.attr._deps[DefaultInfo])
+          tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+          for file in ctx.attr._deps[DefaultInfo].files.to_list():
+              # print("FILE: %s" % file)
+              if file.extension == "a":
+                  nopam_directs.append(file)
+              elif file.extension == "so":
+                  nopam_directs.append(file)
+              elif file.extension == "dylib":
+                  nopam_directs.append(file)
+
+      elif OpamPkgInfo in ctx.attr._deps:
+          opam_dep = ctx.attr._deps[OpamPkgInfo]
+          # print("HIDDEN Opam pkg: %s" % opam_dep)
+          # print("HIDDEN Opam ppx_driver?: %s" % opam_dep.ppx_driver)
+          if opam_dep.ppx_driver:
+              if rule == "ppx_executable":
+                  opam_directs.append(opam_dep)
+              if opam_dep.pkg == Label("@opam//pkg:bisect_ppx"):
+                  opam_lazy_directs.append(
+                      # Temporary hack until opam rules contain adjunct deps
+                      OpamPkgInfo(
+                          pkg = Label("@opam//pkg:bisect_ppx.runtime"),
+                          ppx_driver = False
+                      )
+                  )
+      # elif OcamlLibraryProvider in ctx.attr._deps:
+      #     print("HIDDEN Library: %s" % ctx.attr._deps[OcamlLibraryProvider])
+      # elif OcamlArchiveProvider in ctx.attr._deps:
+      #     print("HIDDEN Archive: %s" % ctx.attr._deps[OcamlArchiveProvider])
+      # elif PpxArchiveProvider in ctx.attr._deps:
+      #     print("HIDDEN PPX archive: %s" % ctx.attr._deps[PpxArchiveProvider])
+      # elif PpxLibraryProvider in ctx.attr._deps:
+      #     print("HIDDEN PPX Library: %s" % ctx.attr._deps[PpxLibraryProvider])
+      # elif PpxModuleProvider in ctx.attr._deps:
+      #     print("HIDDEN PPX Module: %s" % ctx.attr._deps[PpxModuleProvider])
+      ## rules_foreign_cc
+      # if ForeignCcDeps in ctx.attr._deps:
+      #     print("HIDDEN CcInfo: %s" % ctx.attr._deps[ForeignCcDeps])
+      # if ForeignCcArtifact in ctx.attr._deps:
+      #     print("HIDDEN CcInfo: %s" % ctx.attr._deps[ForeignCcArtifact])
+
+
   ## MUST COME LAST!!!
   if hasattr(ctx.attr, "main"):
+      if debug:
+          print("HASATTR MAIN")
       if ctx.attr.main != None:
           if (PpxModuleProvider in ctx.attr.main):
               provider = ctx.attr.main[PpxModuleProvider]
@@ -446,11 +647,22 @@ def get_all_deps(rule, ctx):
               provider = ctx.attr.main[OcamlModuleProvider]
           else:
               fail("Main must be ocaml_module or ppx_module.")
-          nopam_directs.append(provider.payload.cm)
+          if mode == "native":
+              nopam_directs.append(provider.payload.cmx)
+          else:
+              nopam_directs.append(provider.payload.cmo)
           nopam_directs.append(provider.payload.cmi)
-          nopam_directs.append(provider.payload.o)
+          if hasattr(provider.payload, "o"):
+              nopam_directs.append(provider.payload.o)
           nopam_indirects.append(provider.deps.nopam)
           opam_indirects.append(provider.deps.opam)
+
+  ## HACK! digestif is special
+  # for dep in opam_directs:
+  #     if dep.pkg == Label("@opam//pkg:digestif.c"):
+  #         print("DIGESTIF.C: {}".format(ctx.label))
+  #     if dep.pkg == Label("@opam//pkg:digestif.ocaml"):
+  #         print("DIGESTIF.OCAML: {}".format(ctx.label))
 
   opam_depset = depset(
     order      = "postorder",
@@ -465,7 +677,7 @@ def get_all_deps(rule, ctx):
 
   nopam_depset = depset(
     order      = "postorder",
-    direct = nopam_directs,
+    direct =  [x for x in nopam_directs if x != None],
     transitive = nopam_indirects
   )
   nopam_lazy_depset = depset(

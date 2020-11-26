@@ -35,3 +35,16 @@ its parts, e.g. librakia.
   ## By contrast, the output files must be listed in the action output arg
   ## in order to be registered in the action dependency graph.
 
+libff workspace:
+# ate-pairing already includes libgmp, but Bazel does not yet support
+# transitive external deps, so we need to repeat the dep here.
+# Specifically, ate-pairing build rules refer to @libgmp, which bazel
+# resolves to the root repo, which is determined by this WORKSPACE
+# file, rather than the one in the ate-pairing repo. So we need to
+# copy ate-pairing's repo rule into this file.  The build logic will
+# come from ate-pairing; we just need to make the repo available here,
+# in the root repo.  Build rules for this repo can then refer to
+# libgmp using '@libgmp//:libgmp' (here) or '@ate-pairing//:libgmp' (a
+# target that indirectly refers to the repo defined here).  We use the
+# latter, in case Bazel ever gets around to supporting transitive
+# workspaces.

@@ -1,5 +1,6 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
+load("//ppx:_providers.bzl", "PpxNsModuleProvider")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
@@ -11,7 +12,10 @@ tmpdir = "_obazl_/"
 def get_module_name (ctx, src):
     ns = None
     if ctx.attr.ns:
-        ns = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
+        if OcamlNsModuleProvider in ctx.attr.ns:
+            ns = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
+        else:
+            ns = ctx.attr.ns[PpxNsModuleProvider].payload.ns
 
     parts = paths.split_extension(src.basename)
     if ctx.attr.module_name:
@@ -22,7 +26,6 @@ def get_module_name (ctx, src):
         extension = parts[1]
 
     if ns == None: ## no ns
-        # pfx = TMPDIR
         out_filename = module
     else:
         if ns.find("/") > 0:

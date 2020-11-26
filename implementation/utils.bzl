@@ -6,7 +6,7 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl",
+load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")

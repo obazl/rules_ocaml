@@ -1,18 +1,26 @@
-# load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl", "PpxInfo")
+load("@bazel_skylib//lib:collections.bzl", "collections")
+load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
+load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
+
+load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ppx:_providers.bzl",
+     "PpxArchiveProvider",
+     "PpxExecutableProvider",
+     "PpxLibraryProvider",
+     "PpxModuleProvider")
 # load("//implementation/actions:ocamlopt.bzl",
 #      "compile_native_with_ppx",
 #      "link_native")
-load("//ocaml/_actions:library.bzl", "library_action")
-load("//ocaml/_actions:ppx.bzl",
-     "apply_ppx")
+# load("//implementation/actions:ppx.bzl",
+#      "apply_ppx",
 #      # "ocaml_ppx_compile",
 #      # # "ocaml_ppx_apply",
 #      # "ocaml_ppx_library_gendeps",
 #      # "ocaml_ppx_library_cmo",
 #      # "ocaml_ppx_library_link"
 # )
+load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load("//implementation:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
@@ -24,316 +32,347 @@ load("//implementation:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
+load(":ppx_options.bzl", "ppx_options")
+load("//ocaml/_actions:utils.bzl", "get_options")
 
 # print("implementation/ocaml.bzl loading")
 
+tmpdir = "_obazl_/"
+
 ################################################################
-#### compile after preprocessing:
-# def _ppx_library_with_ppx_impl(ctx):
-#   env = {"OPAMROOT": get_opamroot(),
-#          "PATH": get_sdkpath(ctx)}
-
-#   if ctx.attr.preprocessor:
-#     if PpxInfo in ctx.attr.preprocessor:
-#       new_intf_srcs, new_impl_srcs = apply_ppx(ctx, env)
-#   else:
-#     new_intf_srcs, new_impl_srcs = split_srcs(ctx.files.srcs)
-
-#   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-
-#   lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
-
-#   #################################################
-#   outfiles_cmi, outfiles_cmx, outfiles_o = compile_native_with_ppx(
-#     ctx, env, tc, new_intf_srcs, new_impl_srcs
-#   )
-
-#   # #################################################
-#   # ## 5. Link .cmxa
-#   # outfiles_cmi, outfiles_cmx, outfiles_o = link_native(
-#   #   ctx, env, tc, new_intf_srcs, new_impl_srcs
-#   # )
-
-#   outfile_cmxa_name = ctx.label.name + ".cmxa"
-#   outfile_cmxa = ctx.actions.declare_file(outfile_cmxa_name)
-#   outfile_a_name = ctx.label.name + ".a"
-#   outfile_a = ctx.actions.declare_file(outfile_a_name)
-#   args = ctx.actions.args()
-#   # args.add("ocamlopt")
-#   args.add("-w", WARNING_FLAGS)
-#   args.add("-strict-sequence")
-#   args.add("-strict-formats")
-#   args.add("-short-paths")
-#   args.add("-keep-locs")
-#   args.add("-g")
-#   args.add("-a")
-
-#   # args.add("-linkpkg")
-#   # args.add_all([dep[OpamPkgInfo].pkg for dep in ctx.attr.deps],
-#   #              before_each ="-package")
-#   # for dep in ctx.attr.deps:
-#   #   if OpamPkgInfo in dep:
-#   #     args.add("-package", dep[OpamPkgInfo].pkg)
-#   #   else:
-#   #     args.add(dep[PpxInfo].cmx)
-
-#   args.add("-o", outfile_cmxa)
-
-#   args.add("-linkall")
-#   args.add_all(outfiles_cmx)
-#   # args.add_all(outfiles_o)
-#   #################################################
-#   # ppx_library_link(ctx,
-#   #                        env = env,
-#   #                        pgm = tc.ocamlopt,
-#   #                        # pgm = tc.ocamlfind,
-#   #                        args = [args],
-#   #                        inputs = outfiles_cmx + outfiles_o,
-#   #                        outputs = [outfile_cmxa, outfile_a],
-#   #                        tools = [tc.ocamlfind, tc.ocamlc],
-#   #                        msg = ctx.attr.msg
-#   # )
-#   ctx.actions.run(
-#     env = env,
-#     executable = tc.ocamlopt,
-#     arguments = [args],
-#     inputs = outfiles_cmx + outfiles_o,
-#     outputs = [outfile_cmxa, outfile_a],
-#     tools = [tc.ocamlfind, tc.ocamlc],
-#     mnemonic = "OcamlPPXLibrary",
-#     progress_message = "ppx_library({}): {}".format(
-#       ctx.label.name,
-#       ctx.attr.msg,
-#       )
-#   )
-
-#   return [
-#     DefaultInfo(
-#     files = depset(direct = [#outfile_ppml,
-#                              #outfile_cmo,
-#                              # outfile_o,
-#                              # outfile_cmx,
-#                              outfile_a,
-#                              outfile_cmxa
-#     ])),
-#     PpxInfo(ppx=outfile_cmxa,
-#             # cmo=outfile_cmo,
-#             # cmx=outfile_cmx,
-#             cmxa=outfile_cmxa,
-#             a=outfile_a
-#     )]
-
-#### just compile, no preprocessing:
+#### Compile/link without preprocessing.
+#### WARNING: this impl is sequential; it passes all source files to
+#### one action, which will compile them (presumably in sequence) and
+#### then link.
 def _ppx_library_impl(ctx):
-  ## this is essentially the same as ocaml_library, but it returns a
-  ## ppx provider. should unify them?
+
+  debug = False
+  # if ctx.label.name == "graphql_ppx":
+  #     debug = True
+
+  mydeps = get_all_deps("ppx_library", ctx)
+
+  # print("PPX ARCHIVE MYDEPS")
+  # print(mydeps.opam)
+
+  # opam_lazy_deps = []
+  # nopam_lazy_deps = []
+  # for dep in ctx.attr.lazy_deps:
+  #   if OpamPkgInfo in dep:
+  #       opam_lazy_deps.append(dep)
+  #   else:
+  #       nopam_lazy_deps.append(dep)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
-  ## task 1: declare outputs for each input source file
+  mode = ctx.attr._mode[PpxCompilationModeSettingProvider].value
 
-  # print("CTX.BINDIR: " + ctx.bin_dir.path)
-  # print("CTX.BUILD_FILE_PATH: " + ctx.build_file_path)
+  ## declare outputs
+  # obj_files = []
 
-  ## task 2: construct command
+  # if "-linkpkg" in ctx.attr.opts:
+  #   fail("-linkpkg option not supported for ppx_library rule")
 
+  # obj = {}
+  # if ctx.attr.archive_name:
+  #   if ctx.attr.linkshared:
+  #     obj["cmxs"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".cmxs")
+  #   else:
+  #     obj["cm_a"] = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + tc.archext)
+  #     if mode == "native":
+  #         obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
+  # else:
+  #   if ctx.attr.linkshared:
+  #     obj["cmxs"] = ctx.actions.declare_file(tmpdir + ctx.label.name + ".cmxs")
+  #   else:
+  #     obj["cm_a"] = ctx.actions.declare_file(tmpdir + ctx.label.name + tc.archext)
+  #     if mode == "native":
+  #         obj["a"]    = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
+
+  # print("PPX_LIBRARY OBJS: %s" % obj)
+  # obj_cm_a = ctx.actions.declare_file(outfile_cm_a_name)
+  # obj_a    = ctx.actions.declare_file(outfile_a_name)
+
+  ################
   args = ctx.actions.args()
-  args.add("ocamlopt")
-  # args.add("-verbose")
-  args.add("-w", ctx.attr.warnings)
+  # args.add("ocamlopt")
+  if mode == "native":
+      args.add(tc.ocamlopt.basename)
+  else:
+      args.add(tc.ocamlc.basename)
 
-  # Error (warning 49): no cmi file was found in path for module <m>
-  # Disable for wrapper generation:
-  args.add("-w", "-49")
+  options = get_options(rule, ctx)
+  args.add_all(options)
 
-  ## We pass a standard set of flags, which we ape from Dune:
-  if ctx.attr.strict_sequence:
-    args.add("-strict-sequence")
-  if ctx.attr.strict_formats:
-    args.add("-strict-formats")
-  if ctx.attr.short_paths:
-    args.add("-short-paths")
-  if ctx.attr.keep_locs:
-    args.add("-keep-locs")
-  if ctx.attr.debug:
-    args.add("-g")
+  # # args.add_all(ctx.attr.flags)
+  # args.add_all(collections.uniq(ctx.attr.opts))
 
-  args.add_all(ctx.attr.opts)
+  # # if ctx.attr.linkall:
+  # #   args.add("-linkall")
 
-  build_deps = []
+  # NOTE: we do not put .a on the command line, since putting -o
+  # foo.cmxa or -o foo.cmxs will automatically produce foo.a.
+  # But we do add it to the Bazel outputs.
+
+  ## We insert -I for each non-opam dep; since this would usually
+  ## result in duplicates, we accumulate them first, then dedup.
+  includes = []
   for dep in ctx.attr.deps:
-    if OpamPkgInfo in dep:
-      args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-    else:
+    if not OpamPkgInfo in dep:
       for g in dep[DefaultInfo].files.to_list():
-        # if g.path.endswith(".cmi"):
-        #   build_deps.append(g)
         if g.path.endswith(".cmx"):
-          build_deps.append(g)
-          args.add("-I", g.dirname)
-        # if g.path.endswith(".o"):
-        #   build_deps.append(g)
-        # if g.path.endswith(".cmxa"):
-        #   build_deps.append(g)
-        #   args.add(g) # dep[DefaultInfo].files)
-        # else:
-        #   args.add(g) # dep[DefaultInfo].files)
+          includes.append(g.dirname)
+        if g.path.endswith(".cmo"):
+          includes.append(g.dirname)
+        if g.path.endswith(".cmxa"):
+          includes.append(g.dirname)
+        if g.path.endswith(".cma"):
+          includes.append(g.dirname)
 
-  # args.add("-no-alias-deps")
-  # args.add("-opaque")
+  args.add_all(includes, before_each="-I", uniquify = True)
 
-  ## IMPORTANT!  from the ocamlopt docs:
-  ## -o exec-file   Specify the name of the output file produced by the linker.
-  ## That covers both executables and library archives (-a).
-  ## If you're just compiling (-c), no need to pass -o.
-  ## By contrast, the output files must be listed in the action output arg
-  ## in order to be registered in the action dependency graph.
+  #### WARNING!!! ####
+  # For linking with redirector modules (module aliases), it is not
+  # enough to add libs to the command line (by adding to args). They
+  # must also be added to the 'inputs' parameter of the Bazel action;
+  # if we don't do this, Bazel will not make them accessible, and we
+  # will get 'Error: Unbound module'.  We use dep_graph to accum them.
+  build_deps = []
+  dep_graph  = []
+  includes   = []
 
-  # if "-a" in ctx.attr.opts:
-  args.add_all(build_deps)
+  # for dep in ctx.files.deps:
+  #     print("DIRECT DEP: %s" % dep)
+  #     if dep.extension != "cmi":
+  #         includes.append(dep.dirname)
+  #         dep_graph.append(dep)
+  #         build_deps.append(dep)
+
+  ## depset for libs, to force builds
+  for dep in mydeps.nopam.to_list():
+    if debug:
+          print("NOPAM DEP:\n\t%s\n" % dep)
+    if dep.extension == "cmx":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    if dep.extension == "cmo":
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "cmi":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "mli":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "o":
+        # build_deps.append(dep)
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+    elif dep.extension == "cmxa":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+        ## "Option -a cannot be used with .cmxa input files."
+        # build_deps.append(dep)
+    elif dep.extension == "cma":
+        dep_graph.append(dep)
+        includes.append(dep.dirname)
+        # build_deps.append(dep)
+    elif dep.extension == "a":
+        dep_graph.append(dep)
+        build_deps.append(dep)
+    elif dep.extension == "so":
+        if debug:
+            print("NOPAM .so DEP: %s" % dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-3]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # dso_deps.append(dep)
+    elif dep.extension == "dylib":
+        if debug:
+            print("NOPAM .dylib DEP: %s" % dep)
+        dep_graph.append(dep)
+        libname = dep.basename[:-6]
+        libname = libname[3:]
+        if debug:
+          print("LIBNAME: %s" % libname)
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + libname)
+        # includes.append(dep.dirname)
+        # dso_deps.append(dep)
+    else:
+        if debug:
+            print("NOMAP DEP not .cmx, cmo, cmxa, cma, .o, .lo, .so, .dylib: %s" % dep.path)
+
+  # for dep in ctx.attr.deps:
+  #   if OpamPkgInfo in dep:
+  #     args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
+  #   else:
+  #     for g in dep[DefaultInfo].files.to_list():
+  #       # if g.path.endswith(".cmi"):
+  #       #   build_deps.append(g)
+  #       if g.path.endswith(".cmx"):
+  #         includes.append(g.dirname)
+  #         # build_deps.append(g)
+  #         dep_graph.append(g)
+  #       if g.path.endswith(".cmi"):
+  #         includes.append(g.dirname)
+  #         dep_graph.append(g)
+  #       if g.path.endswith(".o"):
+  #         includes.append(g.dirname)
+  #         dep_graph.append(g)
+  #       if g.path.endswith(".cmxa"):
+  #         includes.append(g.dirname)
+  #         ## cannot pass a cmxa dep when using -a
+  #         # build_deps.append(g)
+  #         dep_graph.append(g)
+
+  # for an archive we need all deps on the command line:
+  # args.add_all(build_deps)
+
   # print("DEPS")
   # print(build_deps)
 
-  ## WARNING: declare_file is relative to the BUILD.bazel dir, so if
-  ## we're compiling generated files in a new directory, we have to
-  ## account for that in declare_file.  The compiler puts output in
-  ## the same dir as input.
+  # args.add_all(includes, before_each="-I", uniquify = True)
 
-  obj_files = []
-  if "-c" in ctx.attr.opts:
-    for src_f in ctx.files.srcs:
-      # print("BNAME: " + src_f.basename)
-      # print("SHORT: " + src_f.short_path)
-      # print("ROOT: " + src_f.root.path)
-      # print("TREEREL: " + src_f.tree_relative_path)
-      # ocmi = ctx.actions.declare_file("_tmp_/" + src_f.basename.rstrip("ml") + "cmi")
-      # obj_files.append(ocmi)
-      # print("SRC: " + ocmi.path)
-      obj_cmx = ctx.actions.declare_file(src_f.basename.rstrip("ml") + "cmx")
-      obj_files.append(obj_cmx)
-      obj_files.append(ctx.actions.declare_file(src_f.basename.rstrip("ml") + "o"))
-      args.add(obj_cmx)
-  else:
-    ## declare an output for a lib archive:
-    if "-a" in ctx.attr.opts:
-      obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-      ##Question: do we need to declare the .o file?
-      # obj_a = ctx.actions.declare_file(ctx.label.name + ".a")
-      obj_files.append(obj_cmxa)
-      # obj_files.append(obj_a)
-    else:
-      if "-linkpkg" in ctx.attr.opts:
-        obj_cmxa = ctx.actions.declare_file(ctx.label.name + ".cmxa")
-        obj_files.append(obj_cmxa)
+  # args.add_all(ctx.files.srcs)
 
-  # print("OBJ_FILES")
-  # print(obj_files)
+  # inputs_arg = ctx.files.srcs + build_deps
+  # dep_graph.extend(ctx.files.srcs)
 
+  # if ctx.attr.linkshared:
+  #   args.add("-shared")
+  #   args.add("-o", obj["cmxs"])
+  # else:
+  #   args.add("-a")
+  #   args.add("-o", obj["cm_a"])
 
-  if "-a" in ctx.attr.opts:
-    # args.add("-open")
-    # args.add("Ppx_snarky__Wrapper")
-    args.add("-o", obj_cmxa)
-
-  args.add_all(ctx.files.srcs)
-
-  # args.add("-passrest")
-  # args.add("-package", "ocaml-migrate-parsetree.driver-main")
-  # args.add("-plugin")
-  # args.add("migrate_parsetree_driver_main.cmxs")
-
-  inputs_arg = ctx.files.srcs + build_deps
   # print("INPUT_ARGS:")
   # print(inputs_arg)
 
-  outputs_arg = obj_files
   # print("OUTPUTS_ARG:")
   # print(outputs_arg)
+  # ctx.actions.run(
+  #   env = env,
+  #   executable = tc.ocamlfind,
+  #   arguments = [args],
+  #   inputs = dep_graph,
+  #   outputs = obj.values(), # outputs_arg,
+  #   tools = [tc.ocamlfind, tc.ocamlopt],
+  #   mnemonic = "OcamlPpxLibrary",
+  #   progress_message = "ppx_library({}): {}".format(
+  #     ctx.label.name, ctx.attr.msg
+  #   )
+  # )
 
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = inputs_arg,
-    outputs = outputs_arg,
-    tools = [tc.ocamlfind, tc.ocamlopt],
-    mnemonic = "OcamlPpxLibrary",
-    progress_message = "ppx_library({}): {}".format(
-        ctx.label.name, ctx.attr.msg
+  ctx.actions.do_nothing(
+      mnemonic = "PpxLibrary",
+      inputs = mydeps.nopam.to_list() # dep_graph
+  )
+
+  # if mode == "native":
+  # payload = struct(
+  #     name = ctx.label.name,
+  # )
+  ppx_provider = PpxLibraryProvider(
+      # payload = payload,
+      deps = struct(
+          opam  = mydeps.opam,
+          opam_lazy = mydeps.opam_lazy,
+          nopam = mydeps.nopam,
+          nopam_lazy = mydeps.nopam_lazy
       )
   )
 
-  return [
-    DefaultInfo(
-    files = depset(direct = obj_files,
-    )),
-    PpxInfo(ppx=obj_files,
-            # cmo=outfile_cmo,
-            # cmx=outfile_cmx,
-            # cmxa=obj_cmxa,
-            # a=obj_a
-    )]
+  defaultInfo = DefaultInfo(
+      files = depset(
+          order  = "postorder",
+          direct = ctx.files.deps
+      )
+  )
+
+  result = [defaultInfo, ppx_provider]
+  if debug:
+      print("PpxArchiveProvider RESULT:")
+      print(result)
+
+  return result
 
 #############################################
 #### RULE DECL:  PPX_LIBRARY  #########
 ppx_library = rule(
-  implementation = library_action, # _ppx_library_impl,
-  attrs = dict(
-    preprocessor = attr.label(
-      providers = [PpxInfo],
-      executable = True,
-      cfg = "exec",
-      # allow_single_file = True
+    implementation = _ppx_library_impl,
+    attrs = dict(
+        ppx_options,
+        libname = attr.string(),
+        # preprocessor = attr.label(
+        #   providers = [PpxExecutableProvider],
+        #   executable = True,
+        #   cfg = "exec",
+        #   # allow_single_file = True
+        # ),
+        msg = attr.string(),
+        # dump_ast = attr.bool(default = True),
+        # srcs = attr.label_list(
+        #   allow_files = OCAML_FILETYPES
+        # ),
+        # linkshared = attr.bool(default = False),
+        # src_root = attr.label(
+        #   allow_single_file = True,
+        #   mandatory = True,
+        # ),
+        ####  OPTIONS  ####
+        ##Flags. We set some flags by default; these params
+        ## allow user to override.
+        ## Problem is, this target registers two actions,
+        ## compile and link, and each has its own params.
+        ## for now, these affect the compile action:
+        # strict_sequence         = attr.bool(default = True),
+        # compile_strict_sequence = attr.bool(default = True),
+        # link_strict_sequence    = attr.bool(default = True),
+        # strict_formats          = attr.bool(default = True),
+        # short_paths             = attr.bool(default = True),
+        # keep_locs               = attr.bool(default = True),
+        # opaque                  = attr.bool(default = True),
+        # no_alias_deps           = attr.bool(default = True),
+        # debug                   = attr.bool(default = True),
+        # linkall                 = attr.bool(default = False),
+        ## use these to pass additional args
+        # opts                   = attr.string_list(),
+        # linkopts                = attr.string_list(),
+        # warnings                = attr.string(
+        #   default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
+        # ),
+        #### end options ####
+        deps = attr.label_list(
+            providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        lazy_deps = attr.label_list(
+            providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        _mode = attr.label(
+            default = "@ppx//mode"
+        ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
     ),
-    msg = attr.string(),
-    dump_ast = attr.bool(default = True),
-    srcs = attr.label_list(
-      allow_files = OCAML_FILETYPES
-    ),
-    # src_root = attr.label(
-    #   allow_single_file = True,
-    #   mandatory = True,
-    # ),
-    ####  OPTIONS  ####
-    ##Flags. We set some flags by default; these params
-    ## allow user to override.
-    ## Problem is, this target registers two actions,
-    ## compile and link, and each has its own params.
-    ## for now, these affect the compile action:
-    strict_sequence         = attr.bool(default = True),
-    compile_strict_sequence = attr.bool(default = True),
-    link_strict_sequence    = attr.bool(default = True),
-    strict_formats          = attr.bool(default = True),
-    short_paths             = attr.bool(default = True),
-    keep_locs               = attr.bool(default = True),
-    opaque                  = attr.bool(default = True),
-    no_alias_deps           = attr.bool(default = True),
-    debug                   = attr.bool(default = True),
-    ## use these to pass additional args
-    opts                    = attr.string_list(),
-    linkopts                = attr.string_list(),
-    warnings                = attr.string(
-      default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
-    ),
-    #### end options ####
-    deps = attr.label_list(),
-    mode = attr.string(default = "native"),
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
-    ),
-    # outputs = attr.output_list(
-    #   # default = ["%{name}.pp.ml",
-    #   #           "%{name}.pp.ml.d"],
-    # )
-    _rule = attr.string(default = "ppx_library")
-  ),
-  # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
-  executable = False,
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-  # outputs = { "build_dir": "_build_%{name}" },
+    provides = [DefaultInfo, PpxLibraryProvider],
+    executable = False,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    cfg     = ppx_mode_transition
 )

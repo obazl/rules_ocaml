@@ -2,18 +2,26 @@
 # You can shorten //hello/lwt:lwt to hello/lwt
 # To run: $ bazel run hello/lwt
 
-load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_binary")
+load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_executable", "ocaml_module")
 
-ocaml_binary(
+ocaml_module(
+    name = "hello_lwt.cm_",
+    impl = "hello_lwt.ml",
+    opts = ["-thread",  # avoid warning about possible linking problems
+            # "-verbose"
+            ],
+    deps = ["@opam//pkg:lwt.unix"],
+    visibility = ["//visibility:private"],
+)
+
+ocaml_executable(
     name = "lwt",
     message = "Compiling hello_lwt",
-    srcs = ["hello_lwt.ml"],
     opts = [
-        "-linkpkg",
         "-thread",  # avoid warning about possible linking problems
         # "-verbose"
     ],
-    deps = ["@opam//pkg:lwt.unix"],
+    deps = [":hello_lwt.cm_"],
     visibility = ["//visibility:public"],
 )
 

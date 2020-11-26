@@ -2,13 +2,18 @@
 # You can shorten //hello/simple:simple to hello/simple
 # To run: $ bazel run hello/simple
 
-load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_binary")
+load("@obazl_rules_ocaml//ocaml:build.bzl", "ocaml_executable", "ocaml_module")
 
-ocaml_binary(
+ocaml_executable(
     name = "hello",
     message = "Compiling hello_simple",
-    srcs = ["hello_simple.ml"],
+    deps = ["hello_simple.cm_"],
     # opts = ["-verbose"],
-    visibility = ["//visibility:public"],
+)
+
+ocaml_module(
+    name = "hello_simple.cm_",
+    impl = "hello_simple.ml",
+    visibility = ["//visibility:private"],
 )
 

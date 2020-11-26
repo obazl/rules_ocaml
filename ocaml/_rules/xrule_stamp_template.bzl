@@ -1,6 +1,6 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_providers:ppx.bzl", "PpxExecutableProvider")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+# load("//ppx/_providers:ppx.bzl", "PpxExecutableProvider")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 load(
     "//implementation:utils.bzl",

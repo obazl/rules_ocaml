@@ -390,9 +390,9 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
 
     # toolchain target defined in generated file ocaml/_bootstrap/ocaml/templates/BUILD.ocaml.tpl
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_macos")
-    native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
+    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
     native.register_toolchains("@ocaml//:ocaml_toolchain_native_linux")
-    native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
+    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
 
     # if noocaml:
     #     # Override default definition in ocaml_rules_dependencies().

@@ -1,0 +1,29 @@
+## @ocaml//module ##
+
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag",
+     "string_list_flag")
+
+load("@obazl_rules_ocaml//ocaml/_config:settings.bzl",
+     "ocaml_null_module",
+     "ocaml_verbose_flag")
+
+package(default_visibility = ["//visibility:public"])
+
+string_list_flag(
+    name = "warnings",
+    build_setting_default = ["@1..3@5..28@30..39@43@46..47@49..57@61..62-40"]
+)
+
+ocaml_null_module(name="null")
+
+label_flag( name = "deps", build_setting_default = ":null",
+            visibility = ["//visibility:public"])
+
+bool_flag( name = "linkall", build_setting_default = True,
+           visibility = ["//visibility:public"])
+
+bool_flag( name = "threads", build_setting_default = True )
+
+ocaml_verbose_flag( name = "verbose", build_setting_default = False)
+

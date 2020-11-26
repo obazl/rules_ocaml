@@ -1,6 +1,11 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider",
+     "OcamlNsModuleProvider")
+load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
+load("//ppx:_providers.bzl", "PpxNsModuleProvider")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
@@ -43,6 +48,12 @@ def ns_module_compile(ctx):
       )
       aliases.append(alias)
 
+  mode = None
+  if CompilationModeSettingProvider in ctx.attr._mode:
+      mode = ctx.attr._mode[CompilationModeSettingProvider].value
+  else:
+      mode = ctx.attr._mode[PpxCompilationModeSettingProvider].value
+
   # module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
   module_src = ctx.actions.declare_file(tmpdir + ns_module_name + ".ml")
   dep_graph.append(module_src)
@@ -57,30 +68,57 @@ def ns_module_compile(ctx):
   ## now declare compilation outputs. compiling always produces 3 files:
   obj_cmi_fname = ns_module_name + ".cmi"
   obj_cmi = ctx.actions.declare_file(tmpdir + obj_cmi_fname)
-  obj_cmx_fname = ns_module_name + ".cmx"
-  obj_cmx = ctx.actions.declare_file(tmpdir + obj_cmx_fname)
-  obj_o_fname = ns_module_name + ".o"
-  obj_o = ctx.actions.declare_file(tmpdir + obj_o_fname)
+  if mode == "native":
+      obj_cm__fname = ns_module_name + ".cmx" # tc.objext
+  else:
+      obj_cm__fname = ns_module_name + ".cmo" # tc.objext
+  obj_cm_ = ctx.actions.declare_file(tmpdir + obj_cm__fname)
 
+  outputs = []
+  directs = []
   ## action: compile ns module
+
+  ################################
   args = ctx.actions.args()
-  args.add("ocamlopt")
+  # args.add("ocamlopt")
+  # if CompilationModeSettingProvider in ctx.attr._mode:
+  if mode == "bytecode":
+      args.add(tc.ocamlc.basename)
+  else:
+      args.add(tc.ocamlopt.basename)
+      obj_o_fname = ns_module_name + ".o"
+      obj_o = ctx.actions.declare_file(tmpdir + obj_o_fname)
+      outputs.append(obj_o)
+      directs.append(obj_o)
+
+  directs.append(obj_cm_)
+  #?? directs.append(obj_cmi)
+  outputs.append(obj_cm_)
+  outputs.append(obj_cmi)
+
+  if ctx.attr._warnings:
+      # print("WARNINGS: %s" % ctx.attr.warnings[BuildSettingInfo].value)
+      args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
+
   args.add_all(ctx.attr.opts)
-  ## FIXME: normally we do not use defaults. does ns_module warrant an exception?
-  args.add("-w", "-49") # Error (warning 49): no cmi file was found in path for module <m>
+
+  ## This flag is REQUIRED for ns modules; see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
   args.add("-no-alias-deps")
-  args.add("-opaque")
-  if ctx.attr.alwayslink:
-    args.add("-linkall")
+  # args.add("-opaque")
+  # if ctx.attr.alwayslink: args.add("-linkall")
+  # args.add("-linkall")
+  # args.add("-w", "-49")
+
   args.add("-c")
-  args.add("-o", obj_cmx)
+  args.add("-o", obj_cm_)
   args.add(module_src.path)
+
   ctx.actions.run(
       env = env,
       executable = tc.ocamlfind,
       arguments = [args],
       inputs = dep_graph, # [module_src],
-      outputs = [obj_cmx, obj_o, obj_cmi],
+      outputs = outputs,
       tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "NsModuleAction",
       progress_message = "compiling: @{ws}//{pkg}:{tgt}{msg} (rule {rule})".format(
@@ -98,15 +136,51 @@ def ns_module_compile(ctx):
   )
 
   provider = None
-  if ctx.attr._rule == "ocaml_ns":
-      provider = OcamlNsModuleProvider(
+  # if ctx.attr._rule == "ocaml_ns":
+  if CompilationModeSettingProvider in ctx.attr._mode:
+      ## ocaml_ns
+      if mode == "native":
           payload = struct(
               ns  = ctx.attr.ns,
               # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
               cmi = obj_cmi,
-              cm  = obj_cmx,
+              cmx  = obj_cm_,
               o   = obj_o
-          ),
+          )
+      else:
+          payload = struct(
+              ns  = ctx.attr.ns,
+              # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
+              cmi = obj_cmi,
+              cmo  = obj_cm_,
+          )
+      provider = OcamlNsModuleProvider(
+          payload = payload,
+          deps = struct(
+              opam  = depset(),
+              nopam = depset()
+          )
+      )
+  else:
+      ## ppx_ns
+      if mode == "native":
+          payload = struct(
+              ns  = ctx.attr.ns,
+              # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
+              cmi = obj_cmi,
+              cmx  = obj_cm_,
+              o   = obj_o
+          )
+      else:
+          payload = struct(
+              ns  = ctx.attr.ns,
+              # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
+              cmi = obj_cmi,
+              cmo  = obj_cm_,
+          )
+
+      provider = PpxNsModuleProvider(
+          payload = payload,
           deps = struct(
               opam  = depset(),
               nopam = depset()
@@ -114,7 +188,7 @@ def ns_module_compile(ctx):
       )
 
   return [
-      DefaultInfo(files = depset(direct = [obj_cmx, obj_o])), # obj_cmi])),
+      DefaultInfo(files = depset(directs)),
       provider
   ]
 # OutputGroupInfo(bin = depset([bin_output]))]

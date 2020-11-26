@@ -1,6 +1,8 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+# load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
-load("//ocaml/_providers:ppx.bzl", "PpxExecutableProvider")
+load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider", "OcamlVerboseFlagProvider")
+load("//ppx:_providers.bzl", "PpxExecutableProvider", "PpxPrintSettingProvider")
 load("//implementation:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
@@ -24,7 +26,8 @@ def ppx_transform(rule, ctx, src):
 
   # print("PPX_TRANSFORM: {rule} ({target}): {src}".format(rule=rule, target=ctx.label.name, src=src))
 
-  outfilename = tmpdir + "/" + get_module_name(ctx, src)
+  module_name = get_module_name(ctx, src)
+  outfilename = tmpdir + "/" + module_name
 
   # print("RESOLVED OUTFILE: %s" % outfilename)
   outfile = ctx.actions.declare_file(outfilename)
@@ -34,7 +37,13 @@ def ppx_transform(rule, ctx, src):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  verbose = True if "-verbose" in ctx.attr.opts else ""
+  verbose = False
+  if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
+      if not "-no-verbose" in ctx.attr.opts:
+          verbose = True
+  elif "-verbose" in ctx.attr.opts:
+          verbose = True
+
   ################################################################
   args = ctx.actions.args()
 
@@ -53,39 +62,39 @@ def ppx_transform(rule, ctx, src):
   #     ppx = ctx.attr.ppx
 
   # print("PPX: %s" % ppx)
-  if ctx.attr.ppx:
+  if ctx.attr.ppx: # isn't this always true here?
     if debug:
         print("PPX: %s" % ctx.attr.ppx)
     args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
     args.add_all(ctx.attr.ppx_args)
-    if hasattr(ctx.attr, "ppx_output_format"):
-        if ctx.attr.ppx_output_format == "binary":
-            #FIXME: also check ppx_args for -dump-ast
-            args.add("-dump-ast")
+    if hasattr(ctx.attr, "ppx_print"):
+        if ctx.attr.ppx_print[PpxPrintSettingProvider].value == "binary":
+            if "-dump-ast" not in ctx.attr.opts:
+                args.add("-dump-ast")
+        else:
+            if "-dump-ast" in ctx.attr.opts:
+                args.add("-dump-ast")
 
+  ## in our shell script, we cd to _obazl_/ before executing this, so we need "../"
   args.add("-o", "../" + outfile.path)
   if src.path.endswith(".mli"):
-    args.add("-intf", src)
+      args.add("-intf",
+               # src.dirname + "/" + module_name)
+               src)
   if src.path.endswith(".ml"):
-    args.add("-impl", src.path)
-
-  # ppx = ctx.file.ppx
-  # ppx = ctx.attr.ppx.files.to_list()[0]
-  # print("PPX: %s" % ppx)
-  # if ctx.attr.ppx:
-  #   for item in ctx.attr.ppx.items():
-  #     pkg = item[0].label.name
-  #     print("PKG: {}".format(pkg))
-  #     args.add("-package", pkg)
-  #     if item[1]:
-  #       ppxargs = ",".join(item[1].split(" "))
-  #       print("PPXARGS: {}".format(ppxargs))
-  #       args.add("-ppxopt", pkg + "," + ppxargs)
+      ## shell script copies src to _obazl_/, cds there, then runs the ppx
+      args.add("-impl",
+               # src.dirname + "/" + module_name)
+               src.path)
 
   dep_graph = [src] # , ppx]
 
   # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
-  # use ctx.attr.ppx_tags to set --cookie "library=tag"
+  # if "@opama//pkg:ppx_inline_test" in ctx.files.deps:
+  if hasattr(ctx.attr, "ppx_tags"):
+      if len(ctx.attr.ppx_tags) > 0:
+          args.add("--cookie", "library=" + ctx.attr.ppx_tags[0])
+          args.add("-inline-test-lib", ctx.attr.ppx_tags[0]) # FIXME
 
   parent = src.dirname
   RUNTIME_FILES = ""
@@ -117,11 +126,21 @@ def ppx_transform(rule, ctx, src):
       "#!/bin/sh",
       "set {set}".format(set = "-x" if verbose else "+x"),
       "mkdir -p {v} {tmpdir}/{path}".format(v = "-v" if verbose else "",
-                                            tmpdir=tmpdir, path = parent),
+                                            tmpdir=tmpdir,
+                                            path = parent),
       RUNTIME_FILES,
-      ## NB: a softlink won't work here:
-      "cp {v} {outfile} {tmpdir}/{path}".format(v = "-v" if verbose else "",
-                                                outfile = src.path, tmpdir = tmpdir, path = parent),
+      ## copy source to tmp dir for processing. a softlink won't work here.
+      "cp {v} {outfile} {tmpdir}/{path}{renamed}".format(v = "-v" if verbose else "",
+                                                          outfile = src.path,
+                                                          tmpdir = tmpdir,
+                                                          path = parent,
+                                                          renamed = "/"
+                                                          # renamed = "/" + module_name
+                                                          ),
+
+      # "cp {v} {src} {renamed_src}".format(v = "-v" if verbose else "",
+      #                                     src = src.basename,
+      #                                     renamed_src = module_name),
       "pushd _obazl_",
 
       # "echo BINDIR: {bin}".format(bin = ctx.bin_dir.path),
@@ -132,7 +151,7 @@ def ppx_transform(rule, ctx, src):
       "popd"
   ])
 
-  runner = ctx.actions.declare_file(ctx.attr.name + "_runner.sh")
+  runner = ctx.actions.declare_file(ctx.attr.name + "_ppx.sh")
 
   if debug:
       print("RUNNER:")
@@ -141,7 +160,7 @@ def ppx_transform(rule, ctx, src):
   ctx.actions.write(
       output  = runner,
       content = command,
-      is_executable = True
+      is_executable = True,
   )
 
   ctx.actions.run(

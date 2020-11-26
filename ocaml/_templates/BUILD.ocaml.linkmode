@@ -1,0 +1,6 @@
+load("@bazel_skylib//rules:common_settings.bzl", "string_setting")
+
+package(default_visibility = ["//visibility:public"])
+
+string_setting( name = "static", build_setting_default = "static")
+string_setting( name = "dynamic", build_setting_default = "dynamic")
