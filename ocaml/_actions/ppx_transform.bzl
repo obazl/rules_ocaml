@@ -171,7 +171,7 @@ def ppx_transform(rule, ctx, src):
       outputs = [outfile], #outputs.values(),
       tools = [ctx.executable.ppx],
       mnemonic = "PpxTransformAction",
-      progress_message = "ppx_transform: @{ws}//{pkg}:{tgt}{msg} (rule: {rule})".format(
+      progress_message = "PpxTransformAction: @{ws}//{pkg}:{tgt} (rule: {rule})".format(
           ws  = ctx.label.workspace_name,
           pkg = ctx.label.package,
           rule=rule,
