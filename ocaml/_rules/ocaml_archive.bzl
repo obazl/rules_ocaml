@@ -137,10 +137,10 @@ def _ocaml_archive_impl(ctx):
 
   # if hasattr(ctx.attr, "cc_linkall"):
   for (dep, linkmode) in ctx.attr.cc_deps.items():
-      print("CC_DEP: {dep} mode: {m}".format(dep = dep, m = linkmode))
+      # print("CC_DEP: {dep} mode: {m}".format(dep = dep, m = linkmode))
       if linkmode == "static-linkall":
           # if debug:
-          print("CC_DEP STATIC_LINKALL: %s" % dep) # ctx.attr.cc_linkall)
+          # print("CC_DEP STATIC_LINKALL: %s" % dep) # ctx.attr.cc_linkall)
           for f in dep.files.to_list():
               if f.extension == "a":
                   dep_graph.append(f)

@@ -56,8 +56,8 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  if (ctx.label.name == "jemalloc"):
-      debug = True
+  # if (ctx.label.name == "jemalloc"):
+  #     debug = True
 
   if debug:
       print("GET_ALL_DEPS {rule}({target})".format(rule=rule, target=ctx.label))
