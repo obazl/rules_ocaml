@@ -201,37 +201,19 @@ _ocaml_repo = repository_rule(
     configure = True
 )
 
-def ocaml_configure(is_rules_ocaml = False,
-                    opam = None):
+def ocaml_configure():
+    # is_rules_ocaml = False,
+    #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
     rules_ocaml should call this.
     """
-    # print("ocaml_configure")
-    # print(opam)
-
-    # if getattr(native, "bazel_version", None):
-    #     versions.check(MINIMUM_BAZEL_VERSION, bazel_version = native.bazel_version)
-
-    # Needed by rules_ocaml implementation and tests.
-    # We can't call bazel_skylib_workspace from here. At the moment, it's only
-    # used to register unittest toolchains, which rules_ocaml does not need.
     # maybe(
     #     http_archive,
-    #     name = "bazel_skylib",
-    #     urls = [
-    #         "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
-    #         "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
-    #     ],
-    #     sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
+    #     name = "rules_foreign_cc",
+    #     strip_prefix="rules_foreign_cc-master",
+    #     url = "https://github.com/bazelbuild/rules_foreign_cc/archive/master.zip",
+    #     sha256 = "3e6b0691fc57db8217d535393dcc2cf7c1d39fc87e9adb6e7d7bab1483915110"
     # )
-
-    maybe(
-        http_archive,
-        name = "rules_foreign_cc",
-        strip_prefix="rules_foreign_cc-master",
-        url = "https://github.com/bazelbuild/rules_foreign_cc/archive/master.zip",
-        sha256 = "3e6b0691fc57db8217d535393dcc2cf7c1d39fc87e9adb6e7d7bab1483915110"
-    )
 
     # opam_configure()
 
