@@ -141,14 +141,14 @@ def ppx_transform(rule, ctx, src):
       # "cp {v} {src} {renamed_src}".format(v = "-v" if verbose else "",
       #                                     src = src.basename,
       #                                     renamed_src = module_name),
-      "pushd _obazl_",
+      "cd _obazl_",
 
       # "echo BINDIR: {bin}".format(bin = ctx.bin_dir.path),
       # "echo EXE short_path: {exe}".format(exe = ctx.executable.ppx.short_path),
       # "echo EXE path: {exe}".format(exe = ctx.executable.ppx.path),
       # "echo CTX.VAR bindir: {ep}".format(ep = ctx.var["BINDIR"]),
       "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
-      "popd"
+      "cd .."
   ])
 
   runner = ctx.actions.declare_file(ctx.attr.name + "_ppx.sh")
