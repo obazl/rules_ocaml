@@ -18,7 +18,7 @@ def _ocaml_verbose_impl(ctx):
 
 ocaml_verbose_flag = rule(
     implementation = _ocaml_verbose_impl,
-    build_setting = config.bool()
+    build_setting = config.bool(flag = True)
 )
 
 ocaml_verbose_setting = rule(
