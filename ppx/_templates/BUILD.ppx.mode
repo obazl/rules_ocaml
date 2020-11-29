@@ -4,7 +4,7 @@ load("@obazl_rules_ocaml//ppx/_config:settings.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-ppx_compilation_mode_flag( name = "mode", build_setting_default = "native")
+ppx_compilation_mode_flag( name = "mode", build_setting_default = "bytecode")
 ppx_compilation_mode_setting( name = "mode_bytecode", build_setting_default = "bytecode")
 ppx_compilation_mode_setting( name = "mode_native", build_setting_default = "native")
 
