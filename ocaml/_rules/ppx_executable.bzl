@@ -97,7 +97,10 @@ def _ppx_executable_impl(ctx):
   args.add_all(options)
 
   if mode == "bytecode":
-      args.add("-dllpath", "/private/var/tmp/_bazel_gar/d8a1bb469d0c2393045b412d4daaa038/execroot/ppx_version/external/ocaml/switch/lib/stublibs")
+      dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
+      args.add("-dllpath", dllpath)
+
+      # args.add("-dllpath", "/private/var/tmp/_bazel_gar/d8a1bb469d0c2393045b412d4daaa038/execroot/ppx_version/external/ocaml/switch/lib/stublibs")
 
       ## FIXME: for f in @ocamlrun//dlls ...
 
