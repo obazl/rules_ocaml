@@ -1,7 +1,0 @@
-; To build: $ dune build hello_ppx.exe
-; To run: $ dune exec ./hello_ppx.exe
-
-(executable
- (name hello_ppx)
- (libraries core)
- (preprocess (pps ppx_jane)))

@@ -1,3 +1,0 @@
-(test
- (name hello_world_test)
- (preprocess (pps deriving_hello)))

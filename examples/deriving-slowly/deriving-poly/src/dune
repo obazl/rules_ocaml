@@ -1,5 +1,0 @@
-(library
- (name deriving_poly)
- (libraries ppxlib base)
- (preprocess (pps ppxlib.metaquot))
- (kind ppx_deriver))

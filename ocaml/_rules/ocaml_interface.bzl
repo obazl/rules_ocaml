@@ -329,7 +329,8 @@ def _ocaml_interface_impl(ctx):
       outputs = [obj_cmi],
       tools = [tc.ocamlopt],
       mnemonic = "OcamlInterface",
-      progress_message = "compiling ocaml_interface: @{ws}//{pkg}:{tgt}{msg}".format(
+      progress_message = "{mode} compiling ocaml_interface: @{ws}//{pkg}:{tgt}{msg}".format(
+          mode = mode,
           ws  = ctx.label.workspace_name,
           pkg = ctx.label.package,
           tgt=ctx.label.name,

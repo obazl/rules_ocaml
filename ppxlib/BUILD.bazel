@@ -1,3 +1,0 @@
-filegroup( name="driver_standalone_shim",
-           srcs=["ppxlib_driver_standalone_shim.ml"],
-           visibility = ["//visibility:public"])

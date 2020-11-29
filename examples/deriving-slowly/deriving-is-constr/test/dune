@@ -1,3 +1,0 @@
-(test
- (name test)
- (preprocess (pps deriving_is_constr)))

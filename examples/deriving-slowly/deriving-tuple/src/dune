@@ -1,4 +1,0 @@
-(library
- (name deriving_tuple)
- (libraries ppxlib base)
- (kind ppx_deriver))
