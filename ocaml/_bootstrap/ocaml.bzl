@@ -76,6 +76,19 @@ def _ocaml_repo_impl(repo_ctx):
             "{sdkpath}": sdkpath
         },
     )
+
+    #### ASPECTS ####
+    repo_ctx.template(
+        "aspects/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.aspects"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "aspects/ppx.bzl",
+        Label("//ocaml/_aspects:ppx.bzl"),
+        executable = False,
+    )
+
     #### BUILD CONFIG FLAGS ####
     repo_ctx.template(
         "cmt/BUILD.bazel",

@@ -23,7 +23,7 @@ def get_module_name (ctx, src):
     else:
         module = parts[0]
         # module = parts[0]
-        extension = parts[1]
+    extension = parts[1]
 
     if ns == None: ## no ns
         out_filename = module

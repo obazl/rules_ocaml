@@ -6,9 +6,6 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice.
 """
 
-load("//ocaml/_rules:xrule_stamp_template.bzl",
-    _xrule_stamp_template = "xrule_stamp_template")
-
 load("//ocaml/_rules:ocaml_archive.bzl",
     _ocaml_archive = "ocaml_archive")
 load("//ocaml/_rules:ocaml_executable.bzl",
@@ -88,4 +85,3 @@ ocaml_redirector_gen = _ocaml_redirector_gen
 ocaml_submodule_rename = _ocaml_submodule_rename
 
 x_cppo_filegroup = _x_cppo_filegroup
-xrule_stamp_template = _xrule_stamp_template

@@ -161,7 +161,8 @@ def _ocaml_interface_impl(ctx):
             includes.append(lazy_dep.dirname)
 
   for dep in mydeps.opam.to_list():
-      opam_deps.append(dep.pkg.name)
+      if not dep.ppx_driver: ## FIXME: is this correct?
+          opam_deps.append(dep.pkg.name)
       # for x in dep.pkg.to_list():
       #     opam_deps.append(x.name)
 

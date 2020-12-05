@@ -259,6 +259,7 @@ def _ocaml_executable_impl(ctx):
         else:
             args.add("-dllpath", execroot + "/" + dep.dirname)
             args.add("-ccopt", "-L" + dep.dirname)
+            # args.add("-ccopt", "-L" + execroot + "/" + dep.dirname)
             args.add("-cclib", "-l" + libname)
         # includes.append(dep.dirname)
         # dso_deps.append(dep)

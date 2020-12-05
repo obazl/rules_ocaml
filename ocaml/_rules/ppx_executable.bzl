@@ -397,6 +397,10 @@ ppx_executable = rule(
             providers = [PpxExecutableProvider],
             mandatory = False,
         ),
+        print = attr.label(
+            doc = "Format of output of PPX transform, binary (default) or text",
+            default = "@ppx//print"
+        ),
         runtime_args = attr.string_list(
             doc = "List of args that must be passed to the ppx_executable at runtime. E.g. -inline-test-lib."
         ),

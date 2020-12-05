@@ -137,6 +137,12 @@ filegroup(
 )
 
 filegroup(
+    name = "ocaml-crunch",
+    srcs = ["switch/bin/ocaml-crunch"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
     name = "ocamlc",
     srcs = ["switch/bin/ocamlc"],
     visibility = ["//visibility:public"],

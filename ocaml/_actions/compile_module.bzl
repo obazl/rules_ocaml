@@ -2,15 +2,14 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
-     "OcamlVerboseFlagProvider")
-
-load("//ocaml/_providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlNsModuleProvider",
-     "OcamlModuleProvider")
+     "OcamlModuleProvider",
+     "OcamlSDK",
+     "OcamlVerboseFlagProvider")
 
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 
@@ -53,7 +52,10 @@ def compile_module(rule, ctx, mode, mydeps):
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+         "PATH": get_sdkpath(ctx),
+         "OCAMLFIND_IGNORE_DUPS_IN": ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
+         # /home/nomaddo/.opam/4.03.0/lib/ocaml/compiler-libs
+         }
 
   # mode = None
   # # print("_MODE: %s" % ctx.attr._mode)
