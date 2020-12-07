@@ -38,43 +38,74 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # print("private/repositories.bzl loading")
 
-def _detect_installed_sdk_home(ctx):
-    """returns sdk installation root, ie. OCAMLROOT.
-
-    FIXME: should return ocaml root in $HOME, which may be different than OCAMLROOT.
-"""
-    # print("_detect_installed_sdk_home")
-    if "OPAM_SWITCH_PREFIX" in ctx.os.environ:
-        return ctx.os.environ["OPAM_SWITCH_PREFIX"]
+def _get_opam_paths(repo_ctx):
+    "returns opam root and switch prefix"
+    result = repo_ctx.execute(["opam", "var", "root"])
+    if result.return_code == 0:
+        root = result.stdout.strip()
     else:
-        fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+        print("OPAM VAR ROOT ERROR RC: %s" % result.return_code)
+        print("OPAM VAR ROOT STDOUT: %s" % result.stdout)
+        print("OPAM VAR ROOT STDERR: %s" % result.stderr)
+        fail("OPAM VAR ROOT ERROR")
+
+    result = repo_ctx.execute(["opam", "var",
+                               "--switch=" + repo_ctx.attr.opam_switch,
+                               "prefix"])
+    if result.return_code == 0:
+        prefix = result.stdout.strip()
+    else:
+        print("OPAM VAR PREFIX ERROR RC: %s" % result.return_code)
+        print("OPAM VAR PREFIX STDOUT: %s" % result.stdout)
+        print("OPAM VAR PREFIX STDERR: %s" % result.stderr)
+        fail("OPAM VAR PREFIX ERROR")
+
+    return root, prefix
+    # opam_switch = None
+
+    # if "OBAZL_SWITCH" in repo_ctx.os.environ:
+    #     print("OBAZL_SWITCH = %s" % repo_ctx.os.environ["OBAZL_SWITCH"])
+    #     opam_switch = repo_ctx.os.environ["OBAZL_SWITCH"]
+    #     print("Using '{s}' from OBAZL_SWITCH env var.".format(s = opam_switch))
+    #     env_switch = True
+    # else:
+    #     opam_switch = repo_ctx.attr.opam_switch  # + "-" + repo_ctx.attr.switch_version
+    #     env_switch = False
+    # print("SWITCH: %s" % opam_switch)
+
+    # if "OPAM_SWITCH_PREFIX" in repo_ctx.os.environ:
+    #     return repo_ctx.os.environ["OPAM_SWITCH_PREFIX"]
+    # else:
+    #     fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
 
 def _ocaml_repo_impl(repo_ctx):
-    sdkpath = _detect_installed_sdk_home(repo_ctx)
+    opam_root, opam_switch_prefix = _get_opam_paths(repo_ctx)
+    print("OPAM_ROOT: %s" % opam_root)
+    print("OPAM_SWITCH_PREFIX: %s" % opam_switch_prefix)
 
     repo_ctx.template(
         "BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml"),
         executable = False,
         substitutions = {
-            "{sdkpath}": sdkpath
+            "{sdkpath}": opam_switch_prefix
         },
     )
     repo_ctx.template(
         "csdk/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.csdk"),
         executable = False,
-        substitutions = {
-            "{sdkpath}": sdkpath
-        },
+        # substitutions = {
+        #     "{sdkpath}": opam_switch_prefix
+        # },
     )
     repo_ctx.template(
         "csdk/ctypes/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.csdk.ctypes"),
         executable = False,
-        substitutions = {
-            "{sdkpath}": sdkpath
-        },
+        # substitutions = {
+        #     "{sdkpath}": opam_switch_prefix
+        # },
     )
 
     #### ASPECTS ####
@@ -166,9 +197,9 @@ def _ocaml_repo_impl(repo_ctx):
         "tools/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.tools"),
         executable = False,
-        substitutions = {
-            "{sdkpath}": sdkpath
-        },
+        # substitutions = {
+        #     "{sdkpath}": opam_switch_prefix
+        # },
     )
     repo_ctx.template(
         "verbose/BUILD.bazel",
@@ -192,29 +223,46 @@ def _ocaml_repo_impl(repo_ctx):
         },
     )
 
-    if "OPAMROOT" in repo_ctx.os.environ:
-        repo_ctx.symlink(repo_ctx.os.environ["OPAMROOT"], "opamroot")
-        # repo_ctx.symlink(opamroot, "opamroot")
-    else:
-        fail("Environment var OPAMROOT must be set (try `$ export OPAMROOT=~/.opam'un).")
-    if "OPAM_SWITCH_PREFIX" in repo_ctx.os.environ:
-        repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"], "switch")
-        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/bin", "tools")
-        repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml", "csdk/ocaml")
-        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml/caml", "csdk/include")
-        repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "csdk/ctypes/api")
-        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "lib/ctypes/api")
-        # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/integers", "csdk/integers/api")
-    else:
-        fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+    ## FIXME: use "opam var prefix"???
+    repo_ctx.symlink(opam_root, "opamroot")
+    repo_ctx.symlink(opam_switch_prefix, "switch")
+    # repo_ctx.symlink(opam_switch_prefix + "/bin", "tools")
+    repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml", "csdk/ocaml")
+    # repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml/caml", "csdk/include")
+    repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "csdk/ctypes/api")
+    # repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "lib/ctypes/api")
+    # repo_ctx.symlink(opam_switch_prefix + "/lib/integers", "csdk/integers/api")
 
+    # if "OPAMROOT" in repo_ctx.os.environ:
+    #     print("OPAMROOT: %s" % repo_ctx.os.environ["OPAMROOT"])
+    #     repo_ctx.symlink(repo_ctx.os.environ["OPAMROOT"], "opamroot")
+    #     # repo_ctx.symlink(opamroot, "opamroot")
+    # else:
+    #     fail("Environment var OPAMROOT must be set (try '$ export OPAMROOT=~/.opam').")
+
+    # if "OPAM_SWITCH_PREFIX" in repo_ctx.os.environ:
+    #     repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"], "switch")
+    #     # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/bin", "tools")
+    #     repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml", "csdk/ocaml")
+    #     # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ocaml/caml", "csdk/include")
+    #     repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "csdk/ctypes/api")
+    #     # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/ctypes", "lib/ctypes/api")
+    #     # repo_ctx.symlink(repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib/integers", "csdk/integers/api")
+    # else:
+    #     fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
+
+##############################
 _ocaml_repo = repository_rule(
     implementation = _ocaml_repo_impl,
     environ = ["OCAMLROOT", "OPAM_SWITCH_PREFIX"],
+    attrs = dict(
+        opam_switch = attr.string()
+    ),
     configure = True
 )
 
-def ocaml_configure():
+##############################
+def ocaml_configure(**kwargs):
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
@@ -230,9 +278,12 @@ def ocaml_configure():
 
     # opam_configure()
 
+    for [kw,arg] in kwargs.items():
+        print("KWARG: {kw} = {arg}".format(kw = kw, arg = arg))
+
     ppx_repo(name="ppx")
 
-    _ocaml_repo(name="ocaml")
+    _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"])
 
     obazl_repo(name="obazl")
 
