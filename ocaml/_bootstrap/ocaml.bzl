@@ -80,8 +80,8 @@ def _get_opam_paths(repo_ctx):
 
 def _ocaml_repo_impl(repo_ctx):
     opam_root, opam_switch_prefix = _get_opam_paths(repo_ctx)
-    print("OPAM_ROOT: %s" % opam_root)
-    print("OPAM_SWITCH_PREFIX: %s" % opam_switch_prefix)
+    # print("OPAM_ROOT: %s" % opam_root)
+    # print("OPAM_SWITCH_PREFIX: %s" % opam_switch_prefix)
 
     repo_ctx.template(
         "BUILD.bazel",
@@ -278,8 +278,8 @@ def ocaml_configure(**kwargs):
 
     # opam_configure()
 
-    for [kw,arg] in kwargs.items():
-        print("KWARG: {kw} = {arg}".format(kw = kw, arg = arg))
+    # for [kw,arg] in kwargs.items():
+    #     print("KWARG: {kw} = {arg}".format(kw = kw, arg = arg))
 
     ppx_repo(name="ppx")
 
