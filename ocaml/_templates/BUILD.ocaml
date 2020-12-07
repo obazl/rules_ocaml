@@ -143,14 +143,20 @@ filegroup(
 # )
 
 filegroup(
-    name = "ocaml-crunch",
-    srcs = ["switch/bin/ocaml-crunch"],
+    name = "bin",
+    srcs = glob(["switch/bin/*"]),
     visibility = ["//visibility:public"],
 )
 
 filegroup(
-    name = "bin",
-    srcs = glob(["switch/bin/*"]),
+    name = "cppo",
+    srcs = ["switch/bin/cppo"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "ocaml-crunch",
+    srcs = ["switch/bin/ocaml-crunch"],
     visibility = ["//visibility:public"],
 )
 
