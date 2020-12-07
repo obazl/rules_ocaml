@@ -53,92 +53,104 @@ cc_library(
 )
 
 filegroup(
-    name = "base_stubs",
-    srcs = ["switch/lib/stublibs/dllbase_stubs.so"],
+    name = "stublibs",
+    srcs = glob(["switch/lib/stublibs/*.so"]),
     visibility = ["//visibility:public"],
 )
 
-filegroup(
-    name = "bigstringaf_stubs",
-    srcs = ["switch/lib/stublibs/dllbigstringaf_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "base_stubs",
+#     srcs = ["switch/lib/stublibs/dllbase_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "bin_prot_stubs",
-    srcs = ["switch/lib/stublibs/dllbin_prot_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "bigstringaf_stubs",
+#     srcs = ["switch/lib/stublibs/dllbigstringaf_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "core_stubs",
-    srcs = ["switch/lib/stublibs/dllcore_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "bin_prot_stubs",
+#     srcs = ["switch/lib/stublibs/dllbin_prot_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "expect_test_collector_stubs",
-    srcs = ["switch/lib/stublibs/dllexpect_test_collector_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "core_stubs",
+#     srcs = ["switch/lib/stublibs/dllcore_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "re2_c_stubs",
-    srcs = ["switch/lib/stublibs/dllre2_c_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "expect_test_collector_stubs",
+#     srcs = ["switch/lib/stublibs/dllexpect_test_collector_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "re2_stubs",
-    srcs = ["switch/lib/stublibs/dllre2_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "re2_c_stubs",
+#     srcs = ["switch/lib/stublibs/dllre2_c_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "spawn_stubs",
-    srcs = ["switch/lib/stublibs/dllspawn_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "re2_stubs",
+#     srcs = ["switch/lib/stublibs/dllre2_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "time_now_stubs",
-    srcs = ["switch/lib/stublibs/dlltime_now_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "spawn_stubs",
+#     srcs = ["switch/lib/stublibs/dllspawn_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "base_bigstring_stubs",
-    srcs = ["switch/lib/stublibs/dllbase_bigstring_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "time_now_stubs",
+#     srcs = ["switch/lib/stublibs/dlltime_now_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "core_kernel_stubs",
-    srcs = ["switch/lib/stublibs/dllcore_kernel_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "base_bigstring_stubs",
+#     srcs = ["switch/lib/stublibs/dllbase_bigstring_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "integers_stubs",
-    srcs = ["switch/lib/stublibs/dllintegers_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "core_kernel_stubs",
+#     srcs = ["switch/lib/stublibs/dllcore_kernel_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ctypes_stubs",
-    srcs = ["switch/lib/stublibs/dllctypes_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "integers_stubs",
+#     srcs = ["switch/lib/stublibs/dllintegers_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ctypes-foreign-base_stubs",
-    srcs = ["switch/lib/stublibs/dllctypes-foreign-base_stubs.so"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ctypes_stubs",
+#     srcs = ["switch/lib/stublibs/dllctypes_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
+
+# filegroup(
+#     name = "ctypes-foreign-base_stubs",
+#     srcs = ["switch/lib/stublibs/dllctypes-foreign-base_stubs.so"],
+#     visibility = ["//visibility:public"],
+# )
 
 filegroup(
     name = "ocaml-crunch",
     srcs = ["switch/bin/ocaml-crunch"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "bin",
+    srcs = glob(["switch/bin/*"]),
     visibility = ["//visibility:public"],
 )
 

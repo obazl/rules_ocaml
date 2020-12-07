@@ -106,23 +106,25 @@ def _ppx_executable_impl(ctx):
 
       for f in ctx.files._dllpaths:
           dep_graph.append(f)
-          ## -dllpath needs absolute path?
-      args.add("-dllib", "-lbase_stubs")
-      args.add("-dllib", "-lbin_prot_stubs")
-      args.add("-dllib", "-lexpect_test_collector_stubs")
-      args.add("-dllib", "-ltime_now_stubs")
-      args.add("-dllib", "-lbase_bigstring_stubs")
-      args.add("-dllib", "-lcore_kernel_stubs")
+
+      ## -dllpath needs absolute path?
+      # args.add("-dllib", "-lbase_stubs")
+      # args.add("-dllib", "-lbin_prot_stubs")
+      # args.add("-dllib", "-lexpect_test_collector_stubs")
+      # args.add("-dllib", "-ltime_now_stubs")
+      # args.add("-dllib", "-lbase_bigstring_stubs")
+      # args.add("-dllib", "-lcore_kernel_stubs")
       ## does not work without -I as well
       args.add("-I", "external/ocaml/switch/lib/stublibs")
+
       ## and we also have to cc link the same stuff ??
-      args.add("-ccopt", "-Lexternal/ocaml/switch/lib/stublibs")
-      args.add("-cclib", "-lbase_stubs")
-      args.add("-cclib", "-lbin_prot_stubs")
-      args.add("-cclib", "-lexpect_test_collector_stubs")
-      args.add("-cclib", "-ltime_now_stubs")
-      args.add("-cclib", "-lbase_bigstring_stubs")
-      args.add("-cclib", "-lcore_kernel_stubs")
+      # args.add("-ccopt", "-Lexternal/ocaml/switch/lib/stublibs")
+      # args.add("-cclib", "-lbase_stubs")
+      # args.add("-cclib", "-lbin_prot_stubs")
+      # args.add("-cclib", "-lexpect_test_collector_stubs")
+      # args.add("-cclib", "-ltime_now_stubs")
+      # args.add("-cclib", "-lbase_bigstring_stubs")
+      # args.add("-cclib", "-lcore_kernel_stubs")
 
   build_deps = []
 
@@ -433,24 +435,26 @@ ppx_executable = rule(
         ),
         _dllpaths = attr.label_list(
             # default = "@opam//:bin/cppo"
-            default = [ # FIXME
-                "@ocaml//:base_stubs",
-                "@ocaml//:bin_prot_stubs",
-                "@ocaml//:bigstringaf_stubs",
-                "@ocaml//:core_stubs",
-                "@ocaml//:expect_test_collector_stubs",
-                "@ocaml//:re2_stubs",
-                "@ocaml//:re2_c_stubs",
-                "@ocaml//:spawn_stubs",
-                "@ocaml//:time_now_stubs",
-                "@ocaml//:base_bigstring_stubs",
-                "@ocaml//:core_kernel_stubs",
+            default = [ # FIXME - get this from toolchain
+                "@ocaml//:stublibs",
+                # "@ocaml//:base_stubs",
+                # "@ocaml//:bin_prot_stubs",
+                # "@ocaml//:bigstringaf_stubs",
+                # "@ocaml//:core_stubs",
+                # "@ocaml//:expect_test_collector_stubs",
+                # "@ocaml//:re2_stubs",
+                # "@ocaml//:re2_c_stubs",
+                # "@ocaml//:spawn_stubs",
+                # "@ocaml//:time_now_stubs",
+                # "@ocaml//:base_bigstring_stubs",
+                # "@ocaml//:core_kernel_stubs",
             ]
         ),
         message = attr.string()
     ),
     provides = [DefaultInfo, PpxExecutableProvider],
     executable = True,
+    ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
     # Attaching at rule transitions the configuration of this target and all its dependencies
     # (until it gets overwritten again, for example...)
