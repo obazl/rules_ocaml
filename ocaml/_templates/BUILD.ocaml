@@ -174,7 +174,7 @@ filegroup(
 
 filegroup(
     name = "ocamlfind",
-    srcs = ["switch/bin/ocamlfind"],
+    srcs = [":switch/bin/ocamlfind"],
     visibility = ["//visibility:public"],
 )
 

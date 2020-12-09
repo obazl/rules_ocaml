@@ -270,23 +270,25 @@ def _ocaml_executable_impl(ctx):
   execroot = "/private/var/tmp/_bazel_gar/a96cd3ac87eaeba07bfd00b35d52a61a/execroot"
   if mode == "bytecode":
       ## FIXME.  REALLY!!!
-      args.add("-dllpath", execroot + "/ppx_version/external/ocaml/switch/lib/stublibs")
+      dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
+      args.add("-dllpath", dllpath)
+      # args.add("-dllpath", execroot + "/ppx_version/external/ocaml/switch/lib/stublibs")
 
       ## FIXME: for f in toolchain ocamlrun libs
       for f in ctx.files._dllpaths:
           dep_graph.append(f)
 
-      args.add("-dllib", "-lbase_bigstring_stubs")
-      args.add("-dllib", "-lbase_stubs")
-      args.add("-dllib", "-lbin_prot_stubs")
-      args.add("-dllib", "-lcore_kernel_stubs")
-      args.add("-dllib", "-lctypes-foreign-base_stubs")
-      args.add("-dllib", "-lctypes_stubs")
-      args.add("-dllib", "-lexpect_test_collector_stubs")
-      args.add("-dllib", "-lintegers_stubs")
-      args.add("-dllib", "-lspawn_stubs")
-      args.add("-dllib", "-lsodium_stubs")
-      args.add("-dllib", "-ltime_now_stubs")
+      # args.add("-dllib", "-lbase_bigstring_stubs")
+      # args.add("-dllib", "-lbase_stubs")
+      # args.add("-dllib", "-lbin_prot_stubs")
+      # args.add("-dllib", "-lcore_kernel_stubs")
+      # args.add("-dllib", "-lctypes-foreign-base_stubs")
+      # args.add("-dllib", "-lctypes_stubs")
+      # args.add("-dllib", "-lexpect_test_collector_stubs")
+      # args.add("-dllib", "-lintegers_stubs")
+      # args.add("-dllib", "-lspawn_stubs")
+      # args.add("-dllib", "-lsodium_stubs")
+      # args.add("-dllib", "-ltime_now_stubs")
       args.add("-I", "external/ocaml/switch/lib/stublibs")
 
       # args.add("-ccopt", "-L/usr/local/lib")
@@ -541,15 +543,15 @@ ocaml_executable = rule(
         _dllpaths = attr.label_list(
             # default = "@opam//:bin/cppo"
             default = [ # FIXME
-                "@ocaml//:base_stubs",
-                "@ocaml//:base_bigstring_stubs",
-                "@ocaml//:bin_prot_stubs",
-                "@ocaml//:core_kernel_stubs",
-                "@ocaml//:ctypes_stubs",
-                "@ocaml//:ctypes-foreign-base_stubs",
-                "@ocaml//:expect_test_collector_stubs",
-                "@ocaml//:integers_stubs",
-                "@ocaml//:time_now_stubs",
+                # "@ocaml//:base_stubs",
+                # "@ocaml//:base_bigstring_stubs",
+                # "@ocaml//:bin_prot_stubs",
+                # "@ocaml//:core_kernel_stubs",
+                # "@ocaml//:ctypes_stubs",
+                # "@ocaml//:ctypes-foreign-base_stubs",
+                # "@ocaml//:expect_test_collector_stubs",
+                # "@ocaml//:integers_stubs",
+                # "@ocaml//:time_now_stubs",
             ]
         ),
         message = attr.string()
