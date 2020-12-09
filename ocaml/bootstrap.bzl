@@ -18,6 +18,6 @@
 # declared here, but at the time this file is loaded, we can't assume
 # anything has been declared.
 
-load("//ocaml/_bootstrap:ocaml.bzl", _ocaml_configure = "ocaml_configure")
+load("//ocaml/_bootstrap:ocaml.bzl", _configure = "configure")
 
-ocaml_configure = _ocaml_configure
+configure = _configure

@@ -262,7 +262,7 @@ _ocaml_repo = repository_rule(
 )
 
 ##############################
-def ocaml_configure(**kwargs):
+def configure(**kwargs):
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
