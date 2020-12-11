@@ -58,10 +58,10 @@ def _get_opam_paths(repo_ctx):
         if result.return_code == 0:
             opam_switch = result.stdout.strip()
         else:
-            print("OPAM VAR OPAM_ROOT ERROR RC: %s" % result.return_code)
-            print("OPAM VAR OPAM_ROOT STDOUT: %s" % result.stdout)
-            print("OPAM VAR OPAM_ROOT STDERR: %s" % result.stderr)
-            fail("OPAM VAR OPAM_ROOT ERROR")
+            print("Cmd 'opam var switch' ERROR RC: %s" % result.return_code)
+            print("Cmd STDOUT: %s" % result.stdout)
+            print("Cmd STDERR: %s" % result.stderr)
+            fail("OPAM VAR SWITCH ERROR")
 
     print("OPAM SWITCH: %s" % opam_switch)
     result = repo_ctx.execute(["opam", "var",
@@ -93,7 +93,10 @@ def _get_opam_paths(repo_ctx):
     # else:
     #     fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
 
+###############################
 def _ocaml_repo_impl(repo_ctx):
+    repo_ctx.report_progress("Bootstrapping ocaml repo")
+
     opam_root, opam_switch, opam_switch_prefix = _get_opam_paths(repo_ctx)
     # print("OPAM_ROOT: %s" % opam_root)
     # print("OPAM_SWITCH_PREFIX: %s" % opam_switch_prefix)
