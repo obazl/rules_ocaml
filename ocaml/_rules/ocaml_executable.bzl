@@ -13,8 +13,11 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlSDK")
+
+## FIXME: remove dependency on rules_opam?
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
-load("//ppx:_providers.bzl", "PpxInfo")
+
+load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
@@ -267,16 +270,14 @@ def _ocaml_executable_impl(ctx):
         if debug:
             print("NOMAP DEP not .cmx, cmo, cmxa, cma, cmi, .o, .lo, .so, .dylib: %s" % dep.path)
 
-  execroot = "/private/var/tmp/_bazel_gar/a96cd3ac87eaeba07bfd00b35d52a61a/execroot"
-  if mode == "bytecode":
-      ## FIXME.  REALLY!!!
-      dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
-      args.add("-dllpath", dllpath)
-      # args.add("-dllpath", execroot + "/ppx_version/external/ocaml/switch/lib/stublibs")
+  # if mode == "bytecode":
+  #     ## FIXME.  REALLY!!!
+  #     dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
+      # args.add("-dllpath", dllpath)
 
       ## FIXME: for f in toolchain ocamlrun libs
-      for f in ctx.files._dllpaths:
-          dep_graph.append(f)
+      # for f in ctx.files._dllpaths:
+      #     dep_graph.append(f)
 
       # args.add("-dllib", "-lbase_bigstring_stubs")
       # args.add("-dllib", "-lbase_stubs")
@@ -289,7 +290,8 @@ def _ocaml_executable_impl(ctx):
       # args.add("-dllib", "-lspawn_stubs")
       # args.add("-dllib", "-lsodium_stubs")
       # args.add("-dllib", "-ltime_now_stubs")
-      args.add("-I", "external/ocaml/switch/lib/stublibs")
+
+      # args.add("-I", "external/ocaml/switch/lib/stublibs")
 
       # args.add("-ccopt", "-L/usr/local/lib")
       # args.add("-cclib", "-lsodium")
@@ -518,6 +520,7 @@ ocaml_executable = rule(
                          [OcamlArchiveProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
+                         [PpxArchiveProvider],
                          [CcInfo]],
         ),
         cc_deps = attr.label_keyed_string_dict(
