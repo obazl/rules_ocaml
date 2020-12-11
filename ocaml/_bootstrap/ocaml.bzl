@@ -38,29 +38,44 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # print("private/repositories.bzl loading")
 
+##############################
 def _get_opam_paths(repo_ctx):
     "returns opam root and switch prefix"
+
     result = repo_ctx.execute(["opam", "var", "root"])
     if result.return_code == 0:
-        root = result.stdout.strip()
+        opam_root = result.stdout.strip()
     else:
-        print("OPAM VAR ROOT ERROR RC: %s" % result.return_code)
-        print("OPAM VAR ROOT STDOUT: %s" % result.stdout)
-        print("OPAM VAR ROOT STDERR: %s" % result.stderr)
-        fail("OPAM VAR ROOT ERROR")
+        print("OPAM VAR OPAM_ROOT ERROR RC: %s" % result.return_code)
+        print("OPAM VAR OPAM_ROOT STDOUT: %s" % result.stdout)
+        print("OPAM VAR OPAM_ROOT STDERR: %s" % result.stderr)
+        fail("OPAM VAR OPAM_ROOT ERROR")
 
+    if repo_ctx.attr.opam_switch:
+        opam_switch = repo_ctx.attr.opam_switch
+    else:
+        result = repo_ctx.execute(["opam", "var", "switch"])
+        if result.return_code == 0:
+            opam_switch = result.stdout.strip()
+        else:
+            print("OPAM VAR OPAM_ROOT ERROR RC: %s" % result.return_code)
+            print("OPAM VAR OPAM_ROOT STDOUT: %s" % result.stdout)
+            print("OPAM VAR OPAM_ROOT STDERR: %s" % result.stderr)
+            fail("OPAM VAR OPAM_ROOT ERROR")
+
+    print("OPAM SWITCH: %s" % opam_switch)
     result = repo_ctx.execute(["opam", "var",
-                               "--switch=" + repo_ctx.attr.opam_switch,
+                               "--switch=" + opam_switch,
                                "prefix"])
     if result.return_code == 0:
-        prefix = result.stdout.strip()
+        opam_prefix = result.stdout.strip()
     else:
         print("OPAM VAR PREFIX ERROR RC: %s" % result.return_code)
         print("OPAM VAR PREFIX STDOUT: %s" % result.stdout)
         print("OPAM VAR PREFIX STDERR: %s" % result.stderr)
         fail("OPAM VAR PREFIX ERROR")
 
-    return root, prefix
+    return opam_root, opam_switch, opam_prefix
     # opam_switch = None
 
     # if "OBAZL_SWITCH" in repo_ctx.os.environ:
@@ -79,7 +94,7 @@ def _get_opam_paths(repo_ctx):
     #     fail("Env. var OPAM_SWITCH_PREFIX is unset; try running 'opam env'")
 
 def _ocaml_repo_impl(repo_ctx):
-    opam_root, opam_switch_prefix = _get_opam_paths(repo_ctx)
+    opam_root, opam_switch, opam_switch_prefix = _get_opam_paths(repo_ctx)
     # print("OPAM_ROOT: %s" % opam_root)
     # print("OPAM_SWITCH_PREFIX: %s" % opam_switch_prefix)
 
@@ -283,7 +298,10 @@ def configure(**kwargs):
 
     ppx_repo(name="ppx")
 
-    _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"])
+    if hasattr(kwargs, "switch"):
+        _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"])
+    else:
+        _ocaml_repo(name="ocaml")
 
     obazl_repo(name="obazl")
 
