@@ -51,6 +51,7 @@ def _get_opam_paths(repo_ctx):
         print("OPAM VAR OPAM_ROOT STDERR: %s" % result.stderr)
         fail("OPAM VAR OPAM_ROOT ERROR")
 
+    print("OPAM SWITCH: %s" % repo_ctx.attr.opam_switch)
     if repo_ctx.attr.opam_switch:
         opam_switch = repo_ctx.attr.opam_switch
     else:
@@ -281,6 +282,7 @@ _ocaml_repo = repository_rule(
 
 ##############################
 def configure(**kwargs):
+    print("OCAML CONFIGURE")
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
@@ -301,7 +303,8 @@ def configure(**kwargs):
 
     ppx_repo(name="ppx")
 
-    if hasattr(kwargs, "switch"):
+    if "switch" in kwargs:
+        print("OCAML SWITCH: %s" % kwargs["switch"])
         _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"])
     else:
         _ocaml_repo(name="ocaml")
