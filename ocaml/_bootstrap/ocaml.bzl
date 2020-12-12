@@ -65,23 +65,23 @@ def _get_opam_paths(repo_ctx):
 
     # print("OPAM SWITCH: %s" % opam_switch)
     # opam_set_switch(repo_ctx, opam_switch)
-    result = repo_ctx.execute(["opam", "switch", "set", opam_switch])
-    if result.return_code == 5: # not found
+    # result = repo_ctx.execute(["opam", "switch", "set", opam_switch])
+    # if result.return_code == 5: # not found
         # opam_configure has not finished creating switch. we need to
         # create it here so ocaml config can proceed. the user will
         # need to rerun the build the first time through.
         # repo_ctx.report_progress("OPAM switch {s} not found; creating.".format(s=opam_switch))
-        print("OPAM switch {s} not found; creating.".format(s=opam_switch))
+        # print("OPAM switch {s} not found; creating.".format(s=opam_switch))
 
-    elif result.return_code != 0:
-        print("ERROR: cmd 'opam switch set {s}' RC: {rc}".format(
-            s=opam_switch, rc = result.return_code
-        ))
-        print("cmd STDOUT: %s" % result.stdout)
-        print("cmd STDERR: %s" % result.stderr)
-        fail("ERROR: cmd 'opam switch set {s}' RC: {rc}".format(
-            s=opam_switch, rc = result.return_code
-        ))
+    # if result.return_code != 0:
+    #     print("ERROR: cmd 'opam switch set {s}' RC: {rc}".format(
+    #         s=opam_switch, rc = result.return_code
+    #     ))
+    #     print("cmd STDOUT: %s" % result.stdout)
+    #     print("cmd STDERR: %s" % result.stderr)
+    #     fail("ERROR: cmd 'opam switch set {s}' RC: {rc}".format(
+    #         s=opam_switch, rc = result.return_code
+    #     ))
 
     ## WARNING: this succeeds whether the switch exists or not:
     result = repo_ctx.execute(["opam", "var",
