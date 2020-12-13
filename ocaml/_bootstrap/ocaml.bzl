@@ -36,6 +36,8 @@ load(
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+load("//ocaml/_debug:utils.bzl", "debug_report_progress")
+
 # print("private/repositories.bzl loading")
 
 ##############################
@@ -115,13 +117,15 @@ def _get_opam_paths(repo_ctx):
 
 ###############################
 def _ocaml_repo_impl(repo_ctx):
-    repo_ctx.report_progress("Bootstrapping ocaml repo")
+    debug_report_progress(repo_ctx, "Bootstrapping ocaml repo")
 
     opam_root, opam_switch, opam_switch_prefix = _get_opam_paths(repo_ctx)
 
-    # print("OPAM_ROOT: %s" % opam_root)
-    # print("OPAM_SWITCH_PREFIX: %s" % opam_switch_prefix)
+    debug_report_progress(repo_ctx, "opam_root: %s" % opam_root)
+    debug_report_progress(repo_ctx, "opam_switch: %s" % opam_switch)
+    debug_report_progress(repo_ctx, "opam_switch_prefix: %s" % opam_switch_prefix)
 
+    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml")
     repo_ctx.template(
         "BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml"),
@@ -130,6 +134,7 @@ def _ocaml_repo_impl(repo_ctx):
             "{sdkpath}": opam_switch_prefix
         },
     )
+    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.csdk")
     repo_ctx.template(
         "csdk/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.csdk"),
@@ -138,6 +143,7 @@ def _ocaml_repo_impl(repo_ctx):
         #     "{sdkpath}": opam_switch_prefix
         # },
     )
+    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.csdk.ctypes")
     repo_ctx.template(
         "csdk/ctypes/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.csdk.ctypes"),
@@ -160,6 +166,12 @@ def _ocaml_repo_impl(repo_ctx):
     )
 
     #### BUILD CONFIG FLAGS ####
+    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.cc_deps")
+    repo_ctx.template(
+        "cc_deps/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.cc_deps"),
+        executable = False,
+    )
     repo_ctx.template(
         "cmt/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.cmt"),
@@ -207,6 +219,7 @@ def _ocaml_repo_impl(repo_ctx):
     )
 
     ## rule types
+    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.archive")
     repo_ctx.template(
         "archive/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.archive"),
@@ -246,10 +259,12 @@ def _ocaml_repo_impl(repo_ctx):
         executable = False,
     )
 
+    debug_report_progress(repo_ctx, "executing ocaml -vnum")
     ocaml_version = repo_ctx.execute(["ocaml", "-vnum"]).stdout.strip()
     [ocaml_major, sep, rest] = ocaml_version.partition(".")
     [ocaml_minor, sep, rest] = rest.partition(".")
     [ocaml_patch, sep, rest] = rest.partition(".")
+    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.version")
     repo_ctx.template(
         "version/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.version"),
@@ -262,6 +277,8 @@ def _ocaml_repo_impl(repo_ctx):
         },
     )
 
+    debug_report_progress(repo_ctx, "creating symlinks")
+
     ## WARNING: the first time, when the switch is created by
     ## opam_configure, these will be dangling links, so the build will
     ## fail. Thereafter they will work and builds will succeed.
@@ -273,6 +290,9 @@ def _ocaml_repo_impl(repo_ctx):
     repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "csdk/ctypes/api")
     # repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "lib/ctypes/api")
     # repo_ctx.symlink(opam_switch_prefix + "/lib/integers", "csdk/integers/api")
+
+    debug_report_progress(repo_ctx, "exiting _ocaml_repo_impl")
+
 
     # if "OPAMROOT" in repo_ctx.os.environ:
     #     print("OPAMROOT: %s" % repo_ctx.os.environ["OPAMROOT"])
@@ -297,38 +317,28 @@ _ocaml_repo = repository_rule(
     implementation = _ocaml_repo_impl,
     # environ = ["OCAMLROOT", "OPAM_SWITCH_PREFIX"],
     attrs = dict(
-        opam_switch = attr.string()
+        opam_switch = attr.string(),
+        debug       = attr.bool(default = False)
     ),
     configure = True
 )
 
 ##############################
-def configure(**kwargs):
+def configure(debug = False, **kwargs):
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
     rules_ocaml should call this.
     """
-    # maybe(
-    #     http_archive,
-    #     name = "rules_foreign_cc",
-    #     strip_prefix="rules_foreign_cc-master",
-    #     url = "https://github.com/bazelbuild/rules_foreign_cc/archive/master.zip",
-    #     sha256 = "3e6b0691fc57db8217d535393dcc2cf7c1d39fc87e9adb6e7d7bab1483915110"
-    # )
-
-    # opam_configure()
-
-    # for [kw,arg] in kwargs.items():
-    #     print("KWARG: {kw} = {arg}".format(kw = kw, arg = arg))
+    print("ocaml.configure")
 
     ppx_repo(name="ppx")
 
     if "switch" in kwargs:
         # print("running _ocaml_repo with ocaml switch: %s" % kwargs["switch"])
-        _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"])
+        _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"], debug = debug)
     else:
-        _ocaml_repo(name="ocaml")
+        _ocaml_repo(name="ocaml", debug = debug)
 
     obazl_repo(name="obazl")
 
