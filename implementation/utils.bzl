@@ -44,6 +44,13 @@ def file_to_lib_name(file):
         else:
             fail("Found '.so' file without 'lib' prefix: %s" % file)
         return libname
+    elif file.extension == "a":
+        libname = file.basename[:-2]
+        if libname.startswith("lib"):
+            libname = libname[3:]
+        else:
+            fail("Found '.a' file without 'lib' prefix: %s" % file)
+        return libname
 
 def get_target_file(target):
   return target.files.to_list()[0]

@@ -22,6 +22,7 @@ load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
 load("//implementation:utils.bzl",
+     "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
      "strip_ml_extension",
@@ -126,12 +127,16 @@ def _ocaml_executable_impl(ctx):
           if cc_dep.extension == "a":
               dep_graph.append(cc_dep)
               path = cc_dep.path
+
               # if tc.os == "macos":
-              args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+              # args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+
               # elif tc.os == "linux":
-              # "-Wl,--push-state,-whole-archive",
-              # "-lrocksdb",
-              # "-Wl,--pop-state",
+              libname = file_to_lib_name(cc_dep)
+              args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
+              args.add("-ccopt", "-Wl,--push-state,-whole-archive")
+              args.add("-ccopt", "-l{lib}".format(lib=libname))
+              args.add("-ccopt", "-Wl,--pop-state")
 
   args.add("-linkpkg")  ## an ocamlfind parameter
   # print("OPAM_DEPS: %s" % mydeps.opam)
@@ -229,6 +234,7 @@ def _ocaml_executable_impl(ctx):
         if debug:
           print("NOPAM .lo DEP: %s" % dep)
         dep_graph.append(dep)
+        args.add("-ccopt", "-L" + dep.path)
         args.add("-ccopt", "-l" + dep.path)
         # libname = dep.basename[:-2]
         # libname = libname[3:]
@@ -240,10 +246,7 @@ def _ocaml_executable_impl(ctx):
         if debug:
             print("NOPAM .so DEP: %s" % dep)
         dep_graph.append(dep)
-        libname = dep.basename[:-3]
-        libname = libname[3:]
-        if debug:
-          print("LIBNAME: %s" % libname)
+        libname = file_to_lib_name(dep)
         args.add("-ccopt", "-L" + dep.dirname)
         args.add("-cclib", "-l" + libname)
         # build_deps.append(dep)
@@ -251,8 +254,9 @@ def _ocaml_executable_impl(ctx):
         if debug:
             print("NOPAM .dylib DEP: %s" % dep)
         dep_graph.append(dep)
-        libname = dep.basename[:-6]
-        libname = libname[3:]
+        libname = file_to_lib_name(dep)
+        # libname = dep.basename[:-6]
+        # libname = libname[3:]
         if debug:
           print("LIBNAME: %s" % libname)
         ## -ccopt is for static linking? see chs. 8, 9, 11.3, 20 of the manual
