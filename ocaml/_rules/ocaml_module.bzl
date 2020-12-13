@@ -217,11 +217,6 @@ ocaml_module = rule(
             doc = "C/C++ library dependencies",
             # providers = [[CcInfo]]
         ),
-        _cc_deps = attr.label(
-            doc = "Global C/C++ library dependencies, apply to all instances of rule.",
-            # providers = [[CcInfo]]
-            default = "@ocaml//module:cc_deps"
-        ),
         cc_opts = attr.string_list(
         ## FIXME: no need for this, we do not compile cc code
             doc = "C/C++ options",

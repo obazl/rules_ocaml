@@ -8,26 +8,15 @@ load("@obazl_rules_ocaml//ocaml/_toolchains:ocaml_toolchains.bzl",
 ## FIXME: make a public toolchain ns
      "ocaml_toolchain")
 load("@obazl_rules_ocaml//ocaml/_toolchains:sdk.bzl",
-## FIXME: put these in public ocaml namespace
+     ## FIXME: put these in public ocaml namespace
      "ocaml_sdkpath",
      "ocaml_register_toolchains")
 
-## OCAML_VERSION = "4.07.1"
-## OCAMLBUILD_VERSION = "0.14.0"
-## OCAMLFIND_VERSION = "1.8.0"
-## COMPILER_NAME = "ocaml-base-compiler.%s" % OCAML_VERSION
+load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
 
 package(default_visibility = ["//visibility:public"])
 
-# bool_flag( name = "debug", build_setting_default = True )
-# bool_flag( name = "cmt", build_setting_default = False )
-# bool_flag( name = "keep-locs", build_setting_default = True )
-# # bool_flag( name = "linkstatic", build_setting_default = False )
-# bool_flag( name = "noassert", build_setting_default = False )
-# bool_flag( name = "opaque", build_setting_default = True )
-# bool_flag( name = "short-paths", build_setting_default = True )
-# bool_flag( name = "strict-formats", build_setting_default = True )
-# bool_flag( name = "strict-sequence", build_setting_default = True )
+ocaml_null_module(name="null")
 
 exports_files(glob(["switch/bin/**"]))
 
