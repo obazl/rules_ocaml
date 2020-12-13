@@ -210,12 +210,17 @@ ocaml_module = rule(
                          [CcInfo]],
         ),
         _deps = attr.label(
-            doc = "Dependency to be added last.",
+            doc = "Globbal deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
             # providers = [[CcInfo]]
+        ),
+        _cc_deps = attr.label(
+            doc = "Global C/C++ library dependencies, apply to all instances of rule.",
+            # providers = [[CcInfo]]
+            default = "@ocaml//module:cc_deps"
         ),
         cc_opts = attr.string_list(
         ## FIXME: no need for this, we do not compile cc code

@@ -20,6 +20,9 @@ ocaml_null_module(name="null")
 label_flag( name = "deps", build_setting_default = ":null",
             visibility = ["//visibility:public"])
 
+label_flag( name = "cc_deps", build_setting_default = ":null",
+            visibility = ["//visibility:public"])
+
 bool_flag( name = "linkall", build_setting_default = True,
            visibility = ["//visibility:public"])
 
