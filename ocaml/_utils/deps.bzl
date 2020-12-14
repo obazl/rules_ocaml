@@ -586,14 +586,14 @@ def get_all_deps(rule, ctx):
   #     for cc_dep in ctx.attr.cc_linkall:
   #         nopam_directs.append(cc_dep)
 
-  if hasattr(ctx.attr, "_deps"):
-      # print("################ HIDDEN DEPS: %s" % ctx.attr._deps)
+  if hasattr(ctx.attr, "_cc_deps"):
+      # print("################ HIDDEN DEPS: %s" % ctx.attr._cc_deps)
       # print("Target: %s" % ctx.label)
-      if CcInfo in ctx.attr._deps:
-          # print("HIDDEN CcInfo: %s" % ctx.attr._deps[CcInfo])
-          # print("HIDDEN DefaultInfo: %s" % ctx.attr._deps[DefaultInfo])
+      if CcInfo in ctx.attr._cc_deps:
+          # print("HIDDEN CcInfo: %s" % ctx.attr._cc_deps[CcInfo])
+          # print("HIDDEN DefaultInfo: %s" % ctx.attr._cc_deps[DefaultInfo])
           tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-          for file in ctx.attr._deps[DefaultInfo].files.to_list():
+          for file in ctx.attr._cc_deps[DefaultInfo].files.to_list():
               # print("FILE: %s" % file)
               if file.extension == "a":
                   nopam_directs.append(file)
@@ -602,8 +602,8 @@ def get_all_deps(rule, ctx):
               elif file.extension == "dylib":
                   nopam_directs.append(file)
 
-      elif OpamPkgInfo in ctx.attr._deps:
-          opam_dep = ctx.attr._deps[OpamPkgInfo]
+      elif OpamPkgInfo in ctx.attr._cc_deps:
+          opam_dep = ctx.attr._cc_deps[OpamPkgInfo]
           # print("HIDDEN Opam pkg: %s" % opam_dep)
           # print("HIDDEN Opam ppx_driver?: %s" % opam_dep.ppx_driver)
           if opam_dep.ppx_driver:
@@ -617,6 +617,22 @@ def get_all_deps(rule, ctx):
                           ppx_driver = False
                       )
                   )
+      else:
+
+          ## FIXME: deal with cc libs produced by rules_foriegn_cc
+          # print("HIDDEN CcInfo: %s" % ctx.attr._cc_deps[CcInfo])
+          # print("HIDDEN DefaultInfo: %s" % ctx.attr._cc_deps[DefaultInfo])
+          tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+          for file in ctx.attr._cc_deps[DefaultInfo].files.to_list():
+              # print("FILE: %s" % file)
+              if file.extension == "a":
+                  nopam_directs.append(file)
+              elif file.extension == "so":
+                  nopam_directs.append(file)
+              elif file.extension == "dylib":
+                  nopam_directs.append(file)
+
+
       # elif OcamlLibraryProvider in ctx.attr._deps:
       #     print("HIDDEN Library: %s" % ctx.attr._deps[OcamlLibraryProvider])
       # elif OcamlArchiveProvider in ctx.attr._deps:
