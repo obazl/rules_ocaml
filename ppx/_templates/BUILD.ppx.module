@@ -4,7 +4,7 @@ load("@bazel_skylib//rules:common_settings.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-label_flag( name = "deps", build_setting_default = "@opam//:null" )
+label_flag( name = "deps", build_setting_default = "@ocaml//:null" )
 
 bool_flag( name = "linkall", build_setting_default = True )
 
