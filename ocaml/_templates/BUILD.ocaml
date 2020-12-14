@@ -173,11 +173,11 @@ filegroup(
 ##     visibility = ["//visibility:public"],
 ## )
 
-## filegroup(
-##     name = "ocamldep",
-##     srcs = ["switch/bin/ocamldep"],
-##     visibility = ["//visibility:public"],
-## )
+filegroup(
+    name = "ocamldep",
+    srcs = ["switch/bin/ocamldep"],
+    visibility = ["//visibility:public"],
+)
 
 ## filegroup(
 ##     name = "files",
@@ -189,102 +189,56 @@ filegroup(
 ## )
 
 ################################################################
-ocaml_toolchain(
-    name = "ocaml_toolchaininfo_native_provider_linux",
-    linkmode = "static",
-    visibility = ["//visibility:public"],
-)
+## TODO: move toolchain stuff to @ocaml//toolchains?
 
-toolchain(
-    name = "ocaml_toolchain_native_linux",
-    toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
-    exec_compatible_with = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-        # "@ocaml//mode:native"
-    ],
-    target_compatible_with = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-        # "@ocaml//mode:native"
-    ],
-    # target_compatible_with = constraints,
-    toolchain = ":ocaml_toolchaininfo_native_provider_linux"
-)
-
-################################################################
-# ocaml_toolchain(
-#     name = "ocaml_toolchaininfo_bytecode_provider_linux",
-#     linkmode = "static",
-#     # mode = "bytecode",
-#     visibility = ["//visibility:public"],
-# )
-
-# toolchain(
-#     name = "ocaml_toolchain_bytecode_linux",
-#     toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
-#     exec_compatible_with = [
-#         "@platforms//os:linux",
-#         # "@platforms//cpu:x86_64",
-#         # "@ocaml//mode:bytecode"
-#     ],
-#     target_compatible_with = [
-#         "@platforms//os:linux",
-#         # "@platforms//cpu:x86_64",
-#         # "@ocaml//mode:bytecode"
-#     ],
-#     # target_compatible_with = constraints,
-#     toolchain = ":ocaml_toolchaininfo_bytecode_provider_linux"
-# )
-
-################################################################
 ## we use same toolchain for native and bytecode modes
 ## rule logic selects the compiler based on @ocaml//mode config flag
-ocaml_toolchain(
-    name = "ocaml_toolchaininfo_native_provider_macos",
-    # mode = "native",
-    linkmode = "dynamic",
-    visibility = ["//visibility:public"],
-)
 
-toolchain(
-    name = "ocaml_toolchain_native_macos",
-    toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
-    exec_compatible_with = [
-        "@platforms//os:macos",
-        # "@platforms//cpu:x86_64",
-        # "@ocaml//mode:native"
-    ],
-    target_compatible_with = [
-        "@platforms//os:macos",
-        # "@platforms//cpu:x86_64",
-        # "@ocaml//mode:native"
-    ],
-    # target_compatible_with = constraints,
-    toolchain = ":ocaml_toolchaininfo_native_provider_macos"
-)
-
-################################################################
+# ################
 # ocaml_toolchain(
-#     name = "ocaml_toolchaininfo_bytecode_provider_macos",
-#     linkmode = "dynamic",
-#     mode = "bytecode",
+#     name = "ocaml_toolchain_linux",
+#     linkmode = "static",
+#     cc_toolchain = "gcc",
 #     visibility = ["//visibility:public"],
 # )
 
+# ##########
 # toolchain(
-#     name = "ocaml_toolchain_bytecode_macos",
+#     name = "toolchain_ocaml_linux",
+#     toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
+#     exec_compatible_with = [
+#         "@platforms//os:linux",
+#         "@platforms//cpu:x86_64",
+#         # "@ocaml//mode:native"
+#     ],
+#     target_compatible_with = [
+#         "@platforms//os:linux",
+#         "@platforms//cpu:x86_64",
+#         # "@ocaml//mode:native"
+#     ],
+#     # target_compatible_with = constraints,
+#     toolchain = ":ocaml_toolchain_linux"
+# )
+
+# ################
+# ocaml_toolchain(
+#     name = "ocaml_toolchain_macos",
+#     # mode = "native",
+#     linkmode = "dynamic",
+#     cc_toolchain = "clang",
+#     visibility = ["//visibility:public"],
+# )
+
+# ##########
+# toolchain(
+#     name = "toolchain_ocaml_macos",
 #     toolchain_type = "@obazl_rules_ocaml//ocaml:toolchain",
 #     exec_compatible_with = [
 #         "@platforms//os:macos",
-#         # "@platforms//cpu:x86_64",
-#         "@ocaml//mode:bytecode"
 #     ],
 #     target_compatible_with = [
 #         "@platforms//os:macos",
-#         # "@platforms//cpu:x86_64",
-#         "@ocaml//mode:bytecode"
 #     ],
 #     # target_compatible_with = constraints,
-#     toolchain = ":ocaml_toolchaininfo_bytecode_provider_macos"
+#     toolchain = ":ocaml_toolchain_macos"
 # )

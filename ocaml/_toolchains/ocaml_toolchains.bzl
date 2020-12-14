@@ -21,6 +21,12 @@ _ocaml_tools_attrs = {
         doc = "Default link mode: 'static' or 'dynamic'"
         # default = "static"
     ),
+    ## Hack, until we figure out how to use platforms to support clang on linux
+    "cc_toolchain": attr.string(
+        doc = "clang or gcc"
+    ),
+
+    ## FIXME: these should be provided by the toolchain definition?
     "_ocamlc": attr.label(
         default = Label("@ocaml//:ocamlc"),
         executable = True,
@@ -99,6 +105,8 @@ def _ocaml_toolchain_impl(ctx):
     #          )
     # mode = ctx.attr.mode[CompilationModeSettingProvider].value
 
+    
+
     return [platform_common.ToolchainInfo(
         # Public fields
         name = ctx.label.name,
@@ -111,6 +119,7 @@ def _ocaml_toolchain_impl(ctx):
         # compiler   = ctx.attr._compiler.files.to_list()[0],
         ocamlc     = ctx.attr._ocamlc.files.to_list()[0],
         ocamlopt   = ctx.attr._ocamlopt.files.to_list()[0],
+        cc_toolchain = ctx.attr.cc_toolchain,
         copts       = ctx.attr._copts,
         # ocamlbuild = ctx.attr._ocamlbuild.files.to_list()[0],
         ocamlfind  = ctx.attr._ocamlfind.files.to_list()[0],

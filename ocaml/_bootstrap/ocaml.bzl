@@ -125,7 +125,6 @@ def _ocaml_repo_impl(repo_ctx):
     debug_report_progress(repo_ctx, "opam_switch: %s" % opam_switch)
     debug_report_progress(repo_ctx, "opam_switch_prefix: %s" % opam_switch_prefix)
 
-    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml")
     repo_ctx.template(
         "BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml"),
@@ -134,7 +133,16 @@ def _ocaml_repo_impl(repo_ctx):
             "{sdkpath}": opam_switch_prefix
         },
     )
-    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.csdk")
+    repo_ctx.template(
+        "toolchain/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.toolchain"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "tools/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.tools"),
+        executable = False,
+    )
     repo_ctx.template(
         "csdk/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.csdk"),
@@ -143,7 +151,6 @@ def _ocaml_repo_impl(repo_ctx):
         #     "{sdkpath}": opam_switch_prefix
         # },
     )
-    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.csdk.ctypes")
     repo_ctx.template(
         "csdk/ctypes/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.csdk.ctypes"),
@@ -166,7 +173,6 @@ def _ocaml_repo_impl(repo_ctx):
     )
 
     #### BUILD CONFIG FLAGS ####
-    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.cc_deps")
     repo_ctx.template(
         "cc_deps/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.cc_deps"),
@@ -219,7 +225,6 @@ def _ocaml_repo_impl(repo_ctx):
     )
 
     ## rule types
-    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.archive")
     repo_ctx.template(
         "archive/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.archive"),
@@ -246,25 +251,16 @@ def _ocaml_repo_impl(repo_ctx):
         executable = False,
     )
     repo_ctx.template(
-        "tools/BUILD.bazel",
-        Label("//ocaml/_templates:BUILD.ocaml.tools"),
-        executable = False,
-        # substitutions = {
-        #     "{sdkpath}": opam_switch_prefix
-        # },
-    )
-    repo_ctx.template(
         "verbose/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.verbose"),
         executable = False,
     )
 
-    debug_report_progress(repo_ctx, "executing ocaml -vnum")
     ocaml_version = repo_ctx.execute(["ocaml", "-vnum"]).stdout.strip()
     [ocaml_major, sep, rest] = ocaml_version.partition(".")
     [ocaml_minor, sep, rest] = rest.partition(".")
     [ocaml_patch, sep, rest] = rest.partition(".")
-    debug_report_progress(repo_ctx, "stamping template: BUILD.ocaml.version")
+
     repo_ctx.template(
         "version/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.version"),

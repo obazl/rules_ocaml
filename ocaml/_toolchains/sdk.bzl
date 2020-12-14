@@ -359,49 +359,19 @@ def _installed_sdk_triplet(ctx, ocamlroot):
     # fail("Could not detect SDK platform")
     return "darwin_amd64"
 
-## this is the fn used by the user, in WORKSPACE
 def ocaml_register_toolchains(installation = None, noocaml = None):
-    """See /ocaml/toolchains.rst#ocaml-register-toolchains for full documentation."""
-    # print("ocaml_register_toolchains, installation = " + installation)
-    sdk_kinds = ("_ocaml_project_sdk", "_ocaml_home_sdk", "_ocaml_local_sdk", "_ocaml_wrap_sdk")
-    existing_rules = native.existing_rules()
-    sdk_rules = [r for r in existing_rules.values() if r["kind"] in sdk_kinds]
-    if len(sdk_rules) == 0 and OCAML_SDK in existing_rules:
-        # may be local_repository in bazel_tests.
-        sdk_rules.append(existing_rules[OCAML_SDK])
 
-    # if installation and len(sdk_rules) > 0:
-    #     fail("installation set after ocaml sdk rule declared ({})".format(", ".join([r["name"] for r in sdk_rules])))
+    ## FIXME: this 'kind' stuff leftover from go rules, do we need it?
+    # sdk_kinds = ("_ocaml_project_sdk", "_ocaml_home_sdk", "_ocaml_local_sdk", "_ocaml_wrap_sdk")
+    # existing_rules = native.existing_rules()
+    # sdk_rules = [r for r in existing_rules.values() if r["kind"] in sdk_kinds]
+    # if len(sdk_rules) == 0 and OCAML_SDK in existing_rules:
+    #     # may be local_repository in bazel_tests.
+    #     sdk_rules.append(existing_rules[OCAML_SDK])
 
-    # if len(sdk_rules) == 0:
-    #     if not installation:
-    #         installation = DEFAULT_VERSION
-    #     if installation == "host":
-    #         ocaml_home_sdk(name = OCAML_SDK)
-
-        ## FIXME: use skylib https://github.com/bazelbuild/bazel-skylib/blob/master/docs/versions_doc.md
-        # else:
-        #     if not versions.is_at_least(MIN_SUPPORTED_VERSION, installation):
-        #         print("DEPRECATED: ocaml_register_toolchains: support for Ocaml versions before {} will be removed soon".format(MIN_SUPPORTED_VERSION))
-        #         ocaml_project_sdk(
-        #             name = OCAML_SDK,
-        #             version = installation,
-        #         )
-
-    # toolchain target defined in generated file ocaml/_bootstrap/ocaml/templates/BUILD.ocaml.tpl
-    native.register_toolchains("@ocaml//:ocaml_toolchain_native_macos")
-    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_macos")
-    native.register_toolchains("@ocaml//:ocaml_toolchain_native_linux")
-    # native.register_toolchains("@ocaml//:ocaml_toolchain_bytecode_linux")
-
-    # if noocaml:
-    #     # Override default definition in ocaml_rules_dependencies().
-    #     ocaml_register_noocaml(
-    #         name = "io_bazel_rules_noocaml",
-    #         noocaml = noocaml,
-    #     )
-
-# print("private/sdk.bzl loaded")
+    ## FIXME: get these from @opam
+    native.register_toolchains("@ocaml//toolchain:ocaml_macos")
+    native.register_toolchains("@ocaml//toolchain:ocaml_linux")
 
 def ocaml_home_sdk(name, **kwargs):
     # print("ocaml_home_sdk: " + name)

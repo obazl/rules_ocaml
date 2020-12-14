@@ -128,15 +128,16 @@ def _ocaml_executable_impl(ctx):
               dep_graph.append(cc_dep)
               path = cc_dep.path
 
-              # if tc.os == "macos":
-              # args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
-
-              # elif tc.os == "linux":
-              libname = file_to_lib_name(cc_dep)
-              args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
-              args.add("-ccopt", "-Wl,--push-state,-whole-archive")
-              args.add("-ccopt", "-l{lib}".format(lib=libname))
-              args.add("-ccopt", "-Wl,--pop-state")
+              if tc.cc_toolchain == "clang":
+                  args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+              elif tc.cc_toolchain == "gcc":
+                  libname = file_to_lib_name(cc_dep)
+                  args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
+                  args.add("-ccopt", "-Wl,--push-state,-whole-archive")
+                  args.add("-ccopt", "-l{lib}".format(lib=libname))
+                  args.add("-ccopt", "-Wl,--pop-state")
+              else:
+                  fail("NO CC")
 
   args.add("-linkpkg")  ## an ocamlfind parameter
   # print("OPAM_DEPS: %s" % mydeps.opam)
