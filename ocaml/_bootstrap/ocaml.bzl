@@ -53,9 +53,7 @@ def _get_opam_paths(repo_ctx):
         print("OPAM VAR OPAM_ROOT STDERR: %s" % result.stderr)
         fail("OPAM VAR OPAM_ROOT ERROR")
 
-    if repo_ctx.attr.opam_switch:
-        opam_switch = repo_ctx.attr.opam_switch
-    else:
+    if repo_ctx.attr.opam_switch == "":
         result = repo_ctx.execute(["opam", "var", "switch"])
         if result.return_code == 0:
             opam_switch = result.stdout.strip()
@@ -64,6 +62,8 @@ def _get_opam_paths(repo_ctx):
             print("Cmd STDOUT: %s" % result.stdout)
             print("Cmd STDERR: %s" % result.stderr)
             fail("OPAM VAR SWITCH ERROR")
+    else:
+        opam_switch = repo_ctx.attr.opam_switch
 
     # print("OPAM SWITCH: %s" % opam_switch)
     # opam_set_switch(repo_ctx, opam_switch)
@@ -320,21 +320,23 @@ _ocaml_repo = repository_rule(
 )
 
 ##############################
-def configure(debug = False, **kwargs):
+def configure(debug = False, switch = None, **kwargs):
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
     rules_ocaml should call this.
     """
-    print("ocaml.configure")
+    # print("ocaml.configure")
 
     ppx_repo(name="ppx")
 
-    if "switch" in kwargs:
-        # print("running _ocaml_repo with ocaml switch: %s" % kwargs["switch"])
-        _ocaml_repo(name="ocaml", opam_switch = kwargs["switch"], debug = debug)
-    else:
+    print("ocaml_configure switch: %s" % switch)
+    if switch == None:
         _ocaml_repo(name="ocaml", debug = debug)
+    else:
+        # print("running _ocaml_repo with ocaml switch: %s" % kwargs["switch"])
+        _ocaml_repo(name="ocaml", opam_switch = switch, debug = debug)
+
 
     obazl_repo(name="obazl")
 
