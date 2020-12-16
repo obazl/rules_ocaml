@@ -20,7 +20,7 @@ load("//ppx:_providers.bzl",
 #      # "ocaml_ppx_library_link"
 # )
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",

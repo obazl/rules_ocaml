@@ -6,7 +6,7 @@ load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ppx:_providers.bzl", "PpxNsModuleProvider")
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",

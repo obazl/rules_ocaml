@@ -13,7 +13,9 @@ load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 #      "ocaml_ppx_library_cmo",
 #      "ocaml_ppx_library_compile",
 #      "ocaml_ppx_library_link")
-load("//implementation:utils.bzl",
+
+# load("//ocaml/_functions:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",

@@ -25,7 +25,7 @@ load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "file_to_lib_name",
      "get_opamroot",

@@ -3,7 +3,7 @@ load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ppx:_providers.bzl", "PpxExecutableProvider")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "OCAML_IMPL_FILETYPES",
      "get_opamroot",
      "get_sdkpath")

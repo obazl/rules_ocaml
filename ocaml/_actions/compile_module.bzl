@@ -25,7 +25,7 @@ load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
 load("//ocaml/_actions:rename.bzl", "rename_module")
 load("//ocaml/_actions:utils.bzl", "get_options")
 
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",

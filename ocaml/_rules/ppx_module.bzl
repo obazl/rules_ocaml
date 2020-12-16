@@ -15,7 +15,7 @@ load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",

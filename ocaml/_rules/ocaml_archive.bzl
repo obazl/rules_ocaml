@@ -19,7 +19,7 @@ load("//ppx:_providers.bzl", "PpxArchiveProvider")
 load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",

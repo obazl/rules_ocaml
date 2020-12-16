@@ -3,7 +3,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider", "OcamlVerboseFlagProvider")
 load("//ppx:_providers.bzl", "PpxExecutableProvider", "PpxPrintSettingProvider")
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath"

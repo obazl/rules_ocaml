@@ -29,9 +29,9 @@ load("//ocaml/_rules:x_cppo_filegroup.bzl",
     _x_cppo_filegroup = "x_cppo_filegroup")
 
 
-load("//implementation:macros/ns_archive.bzl",
-     _ocaml_ns_archive_macro = "ocaml_ns_archive_macro"
-)
+# load("//implementation:macros/ns_archive.bzl",
+#      _ocaml_ns_archive_macro = "ocaml_ns_archive_macro"
+# )
 load("//ocaml/_rules:ppx_archive.bzl",
      _ppx_archive = "ppx_archive")
 load("//ocaml/_rules:ppx_executable.bzl",
@@ -51,11 +51,11 @@ load("//ocaml/_rules:ppx_test.bzl",
 # load("//ocaml/_rules:ppx_transform.bzl",
 #      _ppx_transform = "ppx_transform")
 
-load("//implementation:macros/preproc.bzl",
-     _ocaml_preproc = "ocaml_preproc",
-     _ocaml_redirector_gen = "ocaml_redirector_gen",
-     _ocaml_submodule_rename = "ocaml_submodule_rename",
-)
+# load("//implementation:macros/preproc.bzl",
+#      _ocaml_preproc = "ocaml_preproc",
+#      _ocaml_redirector_gen = "ocaml_redirector_gen",
+#      _ocaml_submodule_rename = "ocaml_submodule_rename",
+# )
 
 ocaml_archive = _ocaml_archive
 ocaml_executable = _ocaml_executable
@@ -79,9 +79,10 @@ ppx_test = _ppx_test
 # ppx_transform = _ppx_transform
 
 # macros
-ocaml_ns_archive_macro = _ocaml_ns_archive_macro
-ocaml_preproc = _ocaml_preproc
-ocaml_redirector_gen = _ocaml_redirector_gen
-ocaml_submodule_rename = _ocaml_submodule_rename
+# ocaml_ns_archive_macro = _ocaml_ns_archive_macro
+# ocaml_preproc = _ocaml_preproc
+
+# ocaml_redirector_gen = _ocaml_redirector_gen
+# ocaml_submodule_rename = _ocaml_submodule_rename
 
 x_cppo_filegroup = _x_cppo_filegroup

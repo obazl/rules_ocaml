@@ -11,7 +11,7 @@
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK")
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_src_root",

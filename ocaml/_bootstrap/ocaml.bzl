@@ -15,7 +15,7 @@
 # Once nested repositories work, this file should cease to exist.
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")  # buildifier: disable=load
-load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
+# load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
 
 # load("//implementation:sdk.bzl", "ocaml_home_sdk")
 load("//obazl:obazl.bzl", "obazl_repo")
@@ -53,19 +53,27 @@ def _get_opam_paths(repo_ctx):
         print("OPAM VAR OPAM_ROOT STDERR: %s" % result.stderr)
         fail("OPAM VAR OPAM_ROOT ERROR")
 
-    if repo_ctx.attr.opam_switch == "":
-        result = repo_ctx.execute(["opam", "var", "switch"])
-        if result.return_code == 0:
-            opam_switch = result.stdout.strip()
-        else:
-            print("Cmd 'opam var switch' ERROR RC: %s" % result.return_code)
-            print("Cmd STDOUT: %s" % result.stdout)
-            print("Cmd STDERR: %s" % result.stderr)
-            fail("OPAM VAR SWITCH ERROR")
+    if "OPAMSWITCH" in repo_ctx.os.environ:
+        opam_switch = repo_ctx.os.environ["OPAMSWITCH"]
+        env_switch = True
     else:
         opam_switch = repo_ctx.attr.opam_switch
+        env_switch = False
+    print("@ocaml using switch '{s}'".format(s = opam_switch))
 
-    # print("OPAM SWITCH: %s" % opam_switch)
+
+    # if repo_ctx.attr.opam_switch == "foo":
+    #     result = repo_ctx.execute(["opam", "var", "switch"])
+    #     if result.return_code == 0:
+    #         opam_switch = result.stdout.strip()
+    #     else:
+    #         print("Cmd 'opam var switch' ERROR RC: %s" % result.return_code)
+    #         print("Cmd STDOUT: %s" % result.stdout)
+    #         print("Cmd STDERR: %s" % result.stderr)
+    #         fail("OPAM VAR SWITCH ERROR")
+    # else:
+    #     opam_switch = repo_ctx.attr.opam_switch
+
     # opam_set_switch(repo_ctx, opam_switch)
     # result = repo_ctx.execute(["opam", "switch", "set", opam_switch])
     # if result.return_code == 5: # not found
@@ -311,7 +319,7 @@ def _ocaml_repo_impl(repo_ctx):
 ##############################
 _ocaml_repo = repository_rule(
     implementation = _ocaml_repo_impl,
-    # environ = ["OCAMLROOT", "OPAM_SWITCH_PREFIX"],
+    environ = ["OPAMSWITCH"],
     attrs = dict(
         opam_switch = attr.string(),
         debug       = attr.bool(default = False)
@@ -330,7 +338,7 @@ def configure(debug = False, switch = None, **kwargs):
 
     ppx_repo(name="ppx")
 
-    print("ocaml_configure switch: %s" % switch)
+    # print("ocaml_configure switch: %s" % switch)
     if switch == None:
         _ocaml_repo(name="ocaml", debug = debug)
     else:

@@ -1,6 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
-load("//implementation:common.bzl",
+load("//ocaml/_functions:common.bzl",
      "OCAML_VERSION")
 # load("//ocaml/_actions:ppx.bzl",
 #      "apply_ppx",
@@ -21,7 +21,7 @@ load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
 
 load("//ocaml/_utils:deps.bzl", "get_all_deps")
 
-load("//implementation:utils.bzl",
+load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
