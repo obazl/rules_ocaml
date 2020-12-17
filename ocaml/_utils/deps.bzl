@@ -459,6 +459,32 @@ def get_all_deps(rule, ctx):
     else:
       fail("UNKNOWN DEP TYPE: %s" % dep)
 
+    # _deps is a label attribute
+    if rule == "ppx_module":
+        if hasattr(ctx.attr, "_deps"):
+            if ctx.attr._deps.label.name != "null":
+                print("HIDDEN _deps: %s" % ctx.attr._deps)
+            if OpamPkgInfo in ctx.attr._deps:
+                provider = ctx.attr._deps[OpamPkgInfo]
+                print("Hidden OpamPkgInfo dep: %s" % provider)
+                # print("OpamPkgInfo type: %s" % type(provider))
+                # opam_directs.append(provider)
+        elif OcamlLibraryProvider in ctx.attr._deps:
+            print("HIDDEN Library: %s" % ctx.attr._deps[OcamlLibraryProvider])
+        elif OcamlArchiveProvider in ctx.attr._deps:
+            print("HIDDEN Archive: %s" % ctx.attr._deps[OcamlArchiveProvider])
+        elif PpxArchiveProvider in ctx.attr._deps:
+            print("HIDDEN PPX archive: %s" % ctx.attr._deps[PpxArchiveProvider])
+        elif PpxLibraryProvider in ctx.attr._deps:
+            print("HIDDEN PPX Library: %s" % ctx.attr._deps[PpxLibraryProvider])
+        elif PpxModuleProvider in ctx.attr._deps:
+            print("HIDDEN PPX Module: %s" % ctx.attr._deps[PpxModuleProvider])
+      # rules_foreign_cc
+      # if ForeignCcDeps in ctx.attr._deps:
+      #     print("HIDDEN CcInfo: %s" % ctx.attr._deps[ForeignCcDeps])
+      # if ForeignCcArtifact in ctx.attr._deps:
+      #     print("HIDDEN CcInfo: %s" % ctx.attr._deps[ForeignCcArtifact])
+
   if hasattr(ctx.attr, "cmi"):
       if ctx.attr.cmi != None:
           dep_provider = ctx.attr.cmi[OcamlInterfaceProvider]
@@ -631,24 +657,6 @@ def get_all_deps(rule, ctx):
                   nopam_directs.append(file)
               elif file.extension == "dylib":
                   nopam_directs.append(file)
-
-
-      # elif OcamlLibraryProvider in ctx.attr._deps:
-      #     print("HIDDEN Library: %s" % ctx.attr._deps[OcamlLibraryProvider])
-      # elif OcamlArchiveProvider in ctx.attr._deps:
-      #     print("HIDDEN Archive: %s" % ctx.attr._deps[OcamlArchiveProvider])
-      # elif PpxArchiveProvider in ctx.attr._deps:
-      #     print("HIDDEN PPX archive: %s" % ctx.attr._deps[PpxArchiveProvider])
-      # elif PpxLibraryProvider in ctx.attr._deps:
-      #     print("HIDDEN PPX Library: %s" % ctx.attr._deps[PpxLibraryProvider])
-      # elif PpxModuleProvider in ctx.attr._deps:
-      #     print("HIDDEN PPX Module: %s" % ctx.attr._deps[PpxModuleProvider])
-      ## rules_foreign_cc
-      # if ForeignCcDeps in ctx.attr._deps:
-      #     print("HIDDEN CcInfo: %s" % ctx.attr._deps[ForeignCcDeps])
-      # if ForeignCcArtifact in ctx.attr._deps:
-      #     print("HIDDEN CcInfo: %s" % ctx.attr._deps[ForeignCcArtifact])
-
 
   ## MUST COME LAST!!!
   if hasattr(ctx.attr, "main"):

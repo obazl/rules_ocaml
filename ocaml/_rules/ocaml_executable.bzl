@@ -534,10 +534,10 @@ ocaml_executable = rule(
             # providers = [[CcInfo]]
         ),
         _cc_deps = attr.label(
-            doc = "Global C/C++ library dependencies. Apply to all instances of rule.",
+            doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_executable.",
             ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
             # providers = [[CcInfo]]
-            default = "@ocaml//cc_deps"
+            default = "@ocaml//executable:cc_deps"
         ),
         cc_linkall = attr.label_list(
             ## equivalent to cc_library's "alwayslink"

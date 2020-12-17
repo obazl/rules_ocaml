@@ -210,24 +210,33 @@ ocaml_module = rule(
                          [CcInfo]],
         ),
         _deps = attr.label(
-            doc = "Globbal deps, apply to all instances of rule. Added last.",
+            doc = "Global deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
             # providers = [[CcInfo]]
         ),
+        _cc_deps = attr.label(
+            doc = "Global cc-deps, apply to all instances of rule. Added last.",
+            default = "@ocaml//module:deps"
+        ),
         cc_opts = attr.string_list(
         ## FIXME: no need for this, we do not compile cc code
             doc = "C/C++ options",
         ),
-        ## FIXME: call this cc_deps_default_type or some such
         cc_linkstatic = attr.bool(
+            ## FIXME: replaced by "static" value for cc_deps dict
             doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
             default = True # False  ## false on macos, true on linux?
         ),
+        ## TODO:
+        _cc_linkstatic = attr.label(
+            doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
+            default = "@ocaml//module:cc_linkstatic"
+        ),
         cc_linkall = attr.label_list(
-            ## FIXME: make this sticky
+            ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
             doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
             providers = [CcInfo],
         ),

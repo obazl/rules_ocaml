@@ -9,20 +9,20 @@ load("@obazl_rules_ocaml//ppx/_config:settings.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-bool_flag( name = "debug", build_setting_default = True )
-bool_flag( name = "cmt", build_setting_default = False )
-bool_flag( name = "keep-locs", build_setting_default = True )
+# bool_flag( name = "debug", build_setting_default = True )
+# bool_flag( name = "cmt", build_setting_default = False )
+# bool_flag( name = "keep-locs", build_setting_default = True )
 # bool_flag( name = "linkstatic", build_setting_default = False )
-bool_flag( name = "opaque", build_setting_default = True )
-bool_flag( name = "noassert", build_setting_default = False )
-bool_flag( name = "short-paths", build_setting_default = True )
-bool_flag( name = "strict-formats", build_setting_default = True )
-bool_flag( name = "strict-sequence", build_setting_default = True )
+# bool_flag( name = "opaque", build_setting_default = True )
+# bool_flag( name = "noassert", build_setting_default = False )
+# bool_flag( name = "short-paths", build_setting_default = True )
+# bool_flag( name = "strict-formats", build_setting_default = True )
+# bool_flag( name = "strict-sequence", build_setting_default = True )
 
-bool_flag( name = "verbose", build_setting_default = False )
-bool_setting( name = "enable_verbose", build_setting_default = True,
-           visibility = ["//visibility:public"])
-bool_setting( name = "disable_verbose", build_setting_default = False,
-           visibility = ["//visibility:public"])
+# bool_flag( name = "verbose", build_setting_default = False )
+# bool_setting( name = "enable_verbose", build_setting_default = True,
+#            visibility = ["//visibility:public"])
+# bool_setting( name = "disable_verbose", build_setting_default = False,
+#            visibility = ["//visibility:public"])
 
-bool_flag(name = "threads", build_setting_default = True)
+# bool_flag(name = "threads", build_setting_default = True)
