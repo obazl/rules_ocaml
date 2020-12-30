@@ -37,7 +37,7 @@ load("//ocaml/_functions:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load(":ocaml_options.bzl", "ocaml_options")
+load(":options_ocaml.bzl", "options_ocaml")
 load("//ocaml/_actions:utils.bzl", "get_options")
 
 ########## RULE:  OCAML_INTERFACE  ################
@@ -368,7 +368,7 @@ def _ocaml_interface_impl(ctx):
 ocaml_interface = rule(
     implementation = _ocaml_interface_impl,
     attrs = dict(
-        ocaml_options,
+        options_ocaml,
         linkopts = attr.string_list(),
         linkall = attr.bool(default = True),
 

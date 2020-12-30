@@ -40,7 +40,7 @@ load("//ocaml/_functions:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load(":ocaml_options.bzl", "ocaml_options")
+load(":options_ocaml.bzl", "options_ocaml")
 
 tmpdir = "_obazl_/"
 
@@ -141,7 +141,7 @@ def _ocaml_module_impl(ctx):
 ocaml_module = rule(
     implementation = _ocaml_module_impl,
     attrs = dict(
-        ocaml_options,
+        options_ocaml,
         ## RULE DEFAULTS
         _linkall     = attr.label(default = "@ocaml//module:linkall"), # FIXME: call it alwayslink?
         _threads     = attr.label(default = "@ocaml//module:threads"),

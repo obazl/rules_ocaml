@@ -1,4 +1,4 @@
-ocaml_options = dict(
+options_ocaml = dict(
     opts             = attr.string_list(
         doc          = "Options. Will override global default options."
     ),

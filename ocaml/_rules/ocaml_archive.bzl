@@ -31,7 +31,7 @@ load("//ocaml/_functions:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load(":ocaml_options.bzl", "ocaml_options")
+load(":options_ocaml.bzl", "options_ocaml")
 load("//ocaml/_actions:utils.bzl", "get_options")
 
 ##################################################
@@ -360,7 +360,7 @@ ocaml_archive = rule(
     implementation = _ocaml_archive_impl,
     doc = "Generates an OCaml archive file (.cmxa or .cma) and a C archive file (.a).",
     attrs = dict(
-        ocaml_options,
+        options_ocaml,
         ## RULE DEFAULTS
         _linkall     = attr.label(default = "@ocaml//archive:linkall"), # FIXME: call it alwayslink?
         _threads     = attr.label(default = "@ocaml//archive:threads"),
