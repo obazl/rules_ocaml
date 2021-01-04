@@ -3,7 +3,7 @@ load("@obazl_rules_ocaml//ppx/_config:settings.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-ppx_print_flag( name = "print", build_setting_default = "text")
+ppx_print_flag( name = "print", build_setting_default = "binary")
 
 ppx_print_setting( name = "binary", build_setting_default = "binary")
 ppx_print_setting( name = "text", build_setting_default = "text")
