@@ -9,7 +9,6 @@ load("//ocaml/_functions:utils.bzl",
      "strip_ml_extension",
      "OCAML_FILETYPES",
      "OCAML_IMPL_FILETYPES",
-     "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
      )
 

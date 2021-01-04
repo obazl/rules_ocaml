@@ -17,9 +17,6 @@ OCAML_FILETYPES = [
 OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
 ]
-OCAML_INTF_FILETYPES = [
-    ".mli", ".cmi"
-]
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 
