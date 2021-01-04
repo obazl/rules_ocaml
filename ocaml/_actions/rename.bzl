@@ -22,11 +22,15 @@ def get_module_name (ctx, src):
             # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
 
     parts = paths.split_extension(src.basename)
-    if ctx.attr.module_name:
-        module = ctx.attr.module_name
+    module = None
+    if hasattr(ctx.attr, "module_name"):
+        if ctx.attr.module_name:
+            module = ctx.attr.module_name
+        else:
+            module = parts[0]
     else:
         module = parts[0]
-        # module = parts[0]
+
     extension = parts[1]
 
     if ns == None: ## no ns
