@@ -3,7 +3,9 @@ load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
      "OcamlSDK",
      "OcamlArchiveProvider",
+     "OcamlDepsetProvider",
      "OcamlInterfaceProvider",
+     "OcamlInterfacePayload",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider")
@@ -14,16 +16,8 @@ load("//ppx:_providers.bzl",
      "PpxNsModuleProvider")
 load("//ocaml/_actions:rename.bzl", "rename_module")
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
-# load("//ocaml/_actions:ppx.bzl",
-#      # "apply_ppx",
-#      # "ocaml_ppx_compile",
-#      # "ocaml_ppx_apply",
-#      "ocaml_ppx_library_gendeps",
-#      "ocaml_ppx_library_cmo",
-#      "ocaml_ppx_library_compile",
-#      "ocaml_ppx_library_link")
 
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
@@ -347,8 +341,8 @@ def _ocaml_interface_impl(ctx):
       print("IF OUT: %s" % obj_cmi)
 
   interface_provider = OcamlInterfaceProvider(
-    payload = struct(cmi = obj_cmi, mli = xsrc),
-    deps = struct(
+    payload = OcamlInterfacePayload(cmi = obj_cmi, mli = xsrc),
+    deps = OcamlDepsetProvider(
       opam  = mydeps.opam,
       nopam = mydeps.nopam
     )

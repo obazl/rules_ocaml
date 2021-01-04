@@ -19,7 +19,7 @@ load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 
 load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
 
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
@@ -113,9 +113,9 @@ def _ocaml_executable_impl(ctx):
   options = get_options(rule, ctx)
   args.add_all(options)
 
-  if ctx.attr.linkopts:
-      # lflags = " ".join(ctx.attr.linkopts)
-      args.add_all(ctx.attr.linkopts)
+  # if ctx.attr.linkopts:
+  #     # lflags = " ".join(ctx.attr.linkopts)
+  #     args.add_all(ctx.attr.linkopts)
 
   ## deps are the same for all sources (.mli, .ml)
   ## we need to accumulate them so we can add them to the action inputs arg,
@@ -476,20 +476,40 @@ def _ocaml_executable_impl(ctx):
 ################################################################
 ocaml_executable = rule(
     implementation = _ocaml_executable_impl,
+    doc = """Generates an OCaml executable binary.  Provides only standard DefaultInfo provider.
+
+**CONFIGURABLE DEFAULTS** for rule `ocaml_executable`
+
+In addition to the [OCaml configurable defaults](#configdefs) that apply to all
+`ocaml_*` rules, the following apply to this rule:
+
+| Label | Default | `opts` attrib |
+| ----- | ------- | ------- |
+| @ocaml//executable:linkall | True | `-linkall`, `-no-linkall`|
+| @ocaml//executable:threads | True | `-thread`, `-no-thread`|
+| @ocaml//executable:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
+
+**NOTE** These do not support `:enable`, `:disable` syntax.
+
+ See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
+    """,
     attrs = dict(
         options_ocaml,
-        _linkall     = attr.label(default = "@ppx//executable:linkall"),
-        _threads     = attr.label(default = "@ppx//executable:threads"),
-        _warnings  = attr.label(default = "@ppx//executable:warnings"),
+        _linkall     = attr.label(default = "@ocaml//executable:linkall"),
+        _threads     = attr.label(default = "@ocaml//executable:threads"),
+        _warnings  = attr.label(default   = "@ocaml//executable:warnings"),
         _opts = attr.label(
             doc = "Hidden options.",
             default = "@ocaml//executable:opts"
         ),
-        exe_name = attr.string(),
+        exe_name = attr.string(
+            doc = "Name for output executable file.  Overrides 'name' attribute."
+        ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
         main = attr.label(
+            doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
             providers = [[OcamlModuleProvider], [OpamPkgInfo]],
             default = None
         ),
@@ -504,14 +524,16 @@ ocaml_executable = rule(
         # ),
         data = attr.label_list(
             allow_files = True,
-            doc = "Data files used by this executable."
+            doc = "Runtime dependencies: data files used by this executable."
         ),
         strip_data_prefixes = attr.bool(
             doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
             default = False
         ),
-        copts = attr.string_list(),
-        linkopts = attr.string_list(),
+        # copts = attr.string_list(
+        # ),
+        # linkopts = attr.string_list(
+        # ),
         # preprocessor = attr.label(
         #     doc = "Preprocessor. Must be a single PPX executable.",
         #     allow_single_file = True,
@@ -520,7 +542,7 @@ ocaml_executable = rule(
         #     cfg = "exec",
         # ),
         deps = attr.label_list(
-            doc = "Dependencies. Do not include preprocessor (PPX) deps.",
+            doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
                          [OcamlLibraryProvider],
@@ -529,7 +551,8 @@ ocaml_executable = rule(
                          [CcInfo]],
         ),
         cc_deps = attr.label_keyed_string_dict(
-            doc = "C/C++ library dependencies",
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            """,
             ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
             # providers = [[CcInfo]]
         ),
@@ -541,15 +564,12 @@ ocaml_executable = rule(
         ),
         cc_linkall = attr.label_list(
             ## equivalent to cc_library's "alwayslink"
-            doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+            doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
             providers = [CcInfo],
         ),
         cc_linkopts = attr.string_list(
-            doc = "C/C++ link options",
-        ),
-        cc_linkstatic = attr.bool(
-            doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-            default = True # False
+            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
+
         ),
         _mode = attr.label(
             default = "@ocaml//mode"
@@ -568,7 +588,9 @@ ocaml_executable = rule(
                 # "@ocaml//:time_now_stubs",
             ]
         ),
-        message = attr.string()
+        message = attr.string(
+            doc = "Deprecated"
+        )
     ),
     executable = True,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

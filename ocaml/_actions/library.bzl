@@ -4,7 +4,7 @@ load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 load("//ocaml/_providers:ocaml.bzl", "OcamlLibraryProvider")
 load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_providers:ppx.bzl", "PpxLibraryProvider")
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",

@@ -14,7 +14,7 @@
 
 # Once nested repositories work, this file should cease to exist.
 
-load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")  # buildifier: disable=load
+# load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")  # buildifier: disable=load
 # load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
 
 # load("//implementation:sdk.bzl", "ocaml_home_sdk")
@@ -33,8 +33,8 @@ load(
 
 # load("//implementation:noocaml.bzl", "DEFAULT_NOOCAML", "ocaml_register_noocaml")
 # load("//proto:ocamlocaml.bzl", "ocamlocaml_special_proto")
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+# load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+# load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
 
@@ -328,11 +328,14 @@ _ocaml_repo = repository_rule(
 )
 
 ##############################
-def configure(debug = False, switch = None, **kwargs):
+def configure(debug = False, switch = None): # , **kwargs):
     # is_rules_ocaml = False,
     #                 opam = None):
-    """Declares workspaces (repositories) the Ocaml rules depend on. Workspaces that use
-    rules_ocaml should call this.
+    """Declares workspaces (repositories) the Ocaml rules depend on.
+
+    Args:
+      switch: name of OPAM switch to use for builds
+      debug: enable debugging
     """
     # print("ocaml.configure")
 
@@ -351,23 +354,6 @@ def configure(debug = False, switch = None, **kwargs):
     ocaml_register_toolchains(installation="host")
 
     # print("ocaml_configure done")
-
-# def _maybe(repo_rule, name, **kwargs):
-#     if name not in native.existing_rules():
-#         # print("XXXXXXXXXXXXXXXX: " + name)
-#         repo_rule(name = name, **kwargs)
-
-# def _ocaml_name_hack_impl(repo_ctx):
-#     repo_ctx.file("BUILD.bazel")
-#     content = "IS_RULES_OCAML = {}".format(repo_ctx.attr.is_rules_ocaml)
-#     repo_ctx.file("def.bzl", content)
-
-# ocaml_name_hack = repository_rule(
-#     implementation = _ocaml_name_hack_impl,
-#     attrs = {
-#         "is_rules_ocaml": attr.bool(),
-#     },
-#     doc = """ocaml_name_hack records whether the main workspace is rules_ocaml.
 
 # See documentation for _filter_transition_label in
 # ocaml/_rules/transition.bzl.

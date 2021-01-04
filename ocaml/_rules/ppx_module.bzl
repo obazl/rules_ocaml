@@ -13,7 +13,7 @@ load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 
 load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
@@ -27,7 +27,7 @@ load("//ocaml/_functions:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load("ppx_options.bzl", "ppx_options")
+load("options_ppx.bzl", "options_ppx")
 
 #############################################
 ####  OCAML_PPX_MODULE IMPLEMENTATION
@@ -112,7 +112,15 @@ ppx_module = rule(
     implementation = _ppx_module_impl,
     # implementation = _ppx_module_compile_test,
     attrs = dict(
-        ppx_options,
+        options_ppx,
+        deps = attr.label_list(
+            allow_files = True
+            # providers = [OpamPkgInfo]
+        ),
+        _deps = attr.label(
+            doc = "Dependency to be added last.",
+            default = "@ppx//module:deps"
+        ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
@@ -130,12 +138,12 @@ ppx_module = rule(
         ),
         ##FIXME: ns replaced by ppx_ns_module?
         ns   = attr.label(
-            doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc.",
+            doc = "Label of a [ppx_ns](#ppx_ns) target. Used to derive namespace, output name, -open arg, etc.",
         ),
-        ns_sep = attr.string(
-            doc = "Namespace separator.  Default: '__'",
-            default = "__"
-        ),
+        # ns_sep = attr.string(
+        #     doc = "Namespace separator.  Default: '__' (double underscore).",
+        #     default = "__"
+        # ),
         src = attr.label(
             mandatory = True,  # use ocaml_interface for isolated .mli files
             doc = "A single .ml source file label.",
@@ -161,17 +169,17 @@ ppx_module = rule(
         #   providers = [PpxExecutableProvider]
         # ),
         ppx  = attr.label(
-            doc = "PPX binary (executable).",
+            doc = "PPX binary (executable) used to transform source before compilation.",
             executable = True,
             cfg = "host",
             allow_single_file = True,
             providers = [PpxExecutableProvider]
         ),
         ppx_args  = attr.string_list(
-            doc = "Arguments to pass to PPX binary.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
+            doc = "Arguments to pass to ppx executable.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
         ),
         ppx_data  = attr.label_list(
-            doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+            doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
         ),
         ppx_print = attr.label(
@@ -200,14 +208,6 @@ ppx_module = rule(
         # ),
         linkopts = attr.string_list(), # FIXME: cc_linkopts
         # srcs = attr.label_list(),
-        deps = attr.label_list(
-            allow_files = True
-            # providers = [OpamPkgInfo]
-        ),
-        _deps = attr.label(
-            doc = "Dependency to be added last.",
-            default = "@ppx//module:deps"
-        ),
         msg = attr.string()
     ),
     provides = [DefaultInfo, PpxModuleProvider],

@@ -38,6 +38,7 @@ PpxNsModuleProvider = provider(
     fields = {
         "payload": """A struct with the following fields:
             ns : namespace
+            sep: separator
             cmi: .cmi file produced by the target
             cm : .cmx/cmo file produced by the target
             o  : .o file produced by the target
@@ -50,22 +51,22 @@ PpxNsModuleProvider = provider(
 )
 
 ################################################################
+PpxDepsetProvider = provider(
+    doc = "A Provider struct used by OBazl rules to provide heterogenous dependencies.",
+    fields = {
+        "opam"       : "depset of OPAM deps (Labels) of target",
+        "opam_lazy"  : "depset of adjunct OPAM deps; needed when transformed source is compiled",
+        "nopam"      : "depset of non-OPAM deps (Files) of target",
+        "nopam_lazy" : "depset of adjunct non-OPAM deps; needed when transformed source is compiled"
+        # "cclib"  : "C/C++ lib deps"
+   }
+)
+
 PpxArchiveProvider = provider(
     doc = "OCaml PPX archive provider.",
     fields = {
-        "payload": """A struct with the following fields:
-            cmxa : .cmxa file produced by the target
-            a    : .a file produced by the target
-            # cmi  : .cmi file produced by the target
-            # cm   : .cmx or .cmo file produced by the target
-            # o    : .o file produced by the target
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            opam_lazy : extension output deps; needed when transformed source is compiled
-            nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy : extension output deps; needed when transformed source is compiled
-        """
+        "payload": "An [OcamlArchivePayload](providers_ocaml.md#OcamlArchivePayload) provider",
+        "deps"   : "A [PpxDepsetProvider](#ppxdepsetprovider) provider."
     }
 )
 

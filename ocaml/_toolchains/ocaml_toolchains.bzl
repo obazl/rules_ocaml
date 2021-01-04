@@ -1,7 +1,7 @@
 load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
 # load("//implementation:common.bzl",
 #     "OCAML_VERSION")
-load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 # load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 # load("//implementation:utils.bzl",
 #      "strip_ml_extension",

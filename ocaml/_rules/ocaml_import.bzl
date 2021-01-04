@@ -21,7 +21,7 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlModuleProvider",
      "OcamlSDK")
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 load("//ocaml/_functions:utils.bzl",
      # "get_all_deps",
      "get_opamroot",

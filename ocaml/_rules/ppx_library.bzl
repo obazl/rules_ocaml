@@ -20,7 +20,7 @@ load("//ppx:_providers.bzl",
 #      # "ocaml_ppx_library_cmo",
 #      # "ocaml_ppx_library_link"
 # )
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
@@ -32,7 +32,7 @@ load("//ocaml/_functions:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load(":ppx_options.bzl", "ppx_options")
+load(":options_ppx.bzl", "options_ppx")
 load("//ocaml/_actions:utils.bzl", "get_options")
 
 # print("implementation/ocaml.bzl loading")
@@ -313,7 +313,7 @@ def _ppx_library_impl(ctx):
 ppx_library = rule(
     implementation = _ppx_library_impl,
     attrs = dict(
-        ppx_options,
+        options_ppx,
         libname = attr.string(),
         # preprocessor = attr.label(
         #   providers = [PpxExecutableProvider],

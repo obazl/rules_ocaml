@@ -23,7 +23,7 @@ load("//ocaml/_functions:utils.bzl",
      "OCAML_INTF_FILETYPES",
      "WARNING_FLAGS"
 )
-load(":ppx_options.bzl", "ppx_options")
+load(":options_ppx.bzl", "options_ppx")
 
 ######################
 def _ppx_ns_impl(ctx):
@@ -33,7 +33,7 @@ def _ppx_ns_impl(ctx):
 ppx_ns = rule(
     implementation = _ppx_ns_impl,
     attrs = dict(
-        ppx_options,
+        options_ppx,
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),

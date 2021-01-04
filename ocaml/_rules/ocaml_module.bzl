@@ -12,12 +12,14 @@ load("//ocaml/_config:transitions.bzl",
 
 load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
-     "OcamlSDK",
+     # "OcamlSDK",
+     "OcamlDepsetProvider",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlNsModuleProvider",
+     "OcamlModulePayload",
      "OcamlModuleProvider")
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ppx:_providers.bzl",
@@ -27,7 +29,7 @@ load("//ppx:_providers.bzl",
      "PpxModuleProvider")
 load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      # "capitalize_initial_char",
@@ -83,7 +85,7 @@ def _ocaml_module_impl(ctx):
 
   # if hasattr(result, "o"):
   if mode == "native":
-      payload = struct(
+      payload = OcamlModulePayload(
           # if we have an incoming cmi, its in the nopam deps
           # otherwise, we create it so it goes here(?)
           # what about the mli?
@@ -95,7 +97,7 @@ def _ocaml_module_impl(ctx):
       )
       directs = [result.cmx, result.o, result.cmi]
   else:
-      payload = struct(
+      payload = OcamlModulePayload(
           # if we have an incoming cmi, its in the nopam deps
           # otherwise, we create it so it goes here(?)
           # what about the mli?
@@ -108,10 +110,10 @@ def _ocaml_module_impl(ctx):
 
   module_provider = OcamlModuleProvider(
       payload = payload,
-    deps = struct(
-      opam = result.opam,
-      nopam = result.nopam
-    )
+      deps = OcamlDepsetProvider(
+          opam = result.opam,
+          nopam = result.nopam
+      )
   )
 
   if result.mli: directs.append(result.mli)

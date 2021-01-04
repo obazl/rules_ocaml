@@ -1,1 +1,7 @@
-# dummy
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+bzl_library( # for stardoc
+    name = "providers",
+    srcs = ["ocaml.bzl"], # , "opam.bzl"],
+    visibility = ["//visibility:public"],
+)

@@ -1,38 +1,26 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:collections.bzl", "collections")
-load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
-load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
 
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
+load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
+load("//ocaml/_functions:utils.bzl",
+     "get_opamroot",
+     "get_sdkpath",
+     "file_to_lib_name",
+)
 load("//ocaml/_providers:ocaml.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlModuleProvider")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
 load("//ppx:_providers.bzl",
+     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
-# load("//ocaml/_actions:ppx.bzl",
-#      # "apply_ppx",
-#      "ocaml_ppx_compile",
-#      # "ocaml_ppx_apply",
-#      "ocaml_ppx_library_gendeps",
-#      "ocaml_ppx_library_cmo",
-#      "ocaml_ppx_library_compile",
-#      "ocaml_ppx_library_link")
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
-load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
-     "get_sdkpath",
-     "get_src_root",
-     "file_to_lib_name",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "OCAML_INTF_FILETYPES",
-     "WARNING_FLAGS"
-)
-load(":ppx_options.bzl", "ppx_options")
-load("//ocaml/_actions:utils.bzl", "get_options")
+
+load(":options_ppx.bzl", "options_ppx")
 
 #############################################
 ####  PPX_EXECUTABLE IMPLEMENTATION
@@ -371,9 +359,13 @@ def _ppx_executable_impl(ctx):
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(
     implementation = _ppx_executable_impl,
+    doc = """
+PPX executable docstring ...
+
+""",
     # implementation = _ppx_executable_compile_test,
     attrs = dict(
-        ppx_options,
+        options_ppx,
         _linkall     = attr.label(default = "@ppx//executable:linkall"),
         _threads     = attr.label(default = "@ppx//executable:threads"),
         _warnings  = attr.label(default = "@ppx//executable:warnings"),

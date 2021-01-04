@@ -6,14 +6,14 @@ Definitions outside this file should not be loaded by client code
 unless otherwise noted, and may change without notice. """
 
 
-load("//ocaml/_providers:ppx.bzl",
-     _PpxPrintSettingProvider = "PpxPrintSettingProvider"
-     )
+# load("//ocaml/_providers:ppx.bzl",
+#      _PpxPrintSettingProvider = "PpxPrintSettingProvider"
+#      )
 
-PpxPrintSettingProvider = _PpxPrintSettingProvider
+# PpxPrintSettingProvider = _PpxPrintSettingProvider
 
 PpxNsModuleProvider = provider(
-    doc = "OCaml module provider.",
+    doc = "OCaml PPX NS Module provider.",
     fields = {
         "payload": """A struct with the following fields:
             ns : namespace

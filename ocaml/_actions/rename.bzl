@@ -10,12 +10,16 @@ load("//ocaml/_functions:utils.bzl",
 tmpdir = "_obazl_/"
 
 def get_module_name (ctx, src):
-    ns = None
+    ns     = None
+    ns_sep = ""
     if ctx.attr.ns:
         if OcamlNsModuleProvider in ctx.attr.ns:
-            ns = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
+            ns  = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
+            ns_sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
         else:
             ns = ctx.attr.ns[PpxNsModuleProvider].payload.ns
+            ns_sep = ctx.attr.ns[PpxNsModuleProvider].payload.sep
+            # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
 
     parts = paths.split_extension(src.basename)
     if ctx.attr.module_name:
@@ -34,7 +38,7 @@ def get_module_name (ctx, src):
             if ns.lower() == module.lower():
                 out_filename = module
             else:
-                out_filename = capitalize_initial_char(ns) + ctx.attr.ns_sep + capitalize_initial_char(module)
+                out_filename = capitalize_initial_char(ns) + ns_sep + capitalize_initial_char(module)
 
     out_filename = out_filename + extension
     return out_filename

@@ -127,7 +127,7 @@ def get_all_deps(rule, ctx):
                   if debug:
                       print("LAZY OcamlArchiveProvider dep: %s" % dep)
                   provider = dep[OcamlArchiveProvider]
-                  nopam_lazy_directs.append(provider.payload.cm_a)
+                  nopam_lazy_directs.append(provider.payload.cma)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
@@ -158,7 +158,7 @@ def get_all_deps(rule, ctx):
                   if debug:
                       print("LAZY PpxArchiveProvider dep: %s" % dep)
                   provider = dep[PpxArchiveProvider]
-                  nopam_lazy_directs.append(provider.payload.cm_a)
+                  nopam_lazy_directs.append(provider.payload.cma)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_lazy_directs.append(provider.payload.mli)
@@ -212,7 +212,7 @@ def get_all_deps(rule, ctx):
       if rule == "ocaml_archive":
           ## this includes both direct deps (submods) and indirect deps!
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
-          nopam_directs.append(dep_provider.payload.cm_a)
+          nopam_directs.append(dep_provider.payload.cma)
           if hasattr(dep_provider, "deps"):
               nopam_indirects.append(dep_provider.deps.nopam)
           if hasattr(dep_provider.payload, "cmmi"):
@@ -224,11 +224,11 @@ def get_all_deps(rule, ctx):
       elif rule == "ocaml_executable":
           # print("payload: %s" % dep_provider.payload)
           ## this includes both direct deps (submods) and indirect deps!
-          nopam_directs.append(dep_provider.payload.cm_a)
+          nopam_directs.append(dep_provider.payload.cma)
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
       else:
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
-          nopam_directs.append(dep_provider.payload.cm_a)
+          nopam_directs.append(dep_provider.payload.cma)
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
           ## no nopam transitives, they're already in the cmxa file(?)
           ## what about second-order deps?
@@ -315,8 +315,8 @@ def get_all_deps(rule, ctx):
           nopam_directs.append(provider.payload.cmx.files.to_list()[0])
       if provider.payload.cma:
           nopam_directs.append(provider.payload.cma.files.to_list()[0])
-      if provider.payload.cm_a:
-          nopam_directs.append(provider.payload.cm_a.files.to_list()[0])
+      if provider.payload.cma:
+          nopam_directs.append(provider.payload.cma.files.to_list()[0])
       if provider.payload.cmxs:
           nopam_directs.append(provider.payload.cmxs.files.to_list()[0])
       # nopam_directs.append(provider.payload.ml)
@@ -372,10 +372,10 @@ def get_all_deps(rule, ctx):
         provider = dep[PpxArchiveProvider]
         if debug:
             print("PpxArchiveProvider: %s" % provider)
-        # nopam_directs.append(provider.payload.cm_a)
+        # nopam_directs.append(provider.payload.cma)
         if hasattr(provider.payload, "a"):
             nopam_directs.append(provider.payload.a)
-        nopam_directs.append(provider.payload.cm_a)
+        nopam_directs.append(provider.payload.cma)
 
         # if rule == "ppx_executable"
         nopam_indirects.append(provider.deps.nopam)

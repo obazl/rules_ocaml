@@ -1,38 +1,31 @@
 load("@bazel_skylib//lib:collections.bzl", "collections")
-load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
+
 load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
 
-load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+# load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ocaml.bzl", "OcamlArchivePayload")
 load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
+     "PpxDepsetProvider",
+     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
-# load("//implementation/actions:ocamlopt.bzl",
-#      "compile_native_with_ppx",
-#      "link_native")
-# load("//implementation/actions:ppx.bzl",
-#      "apply_ppx",
-#      # "ocaml_ppx_compile",
-#      # # "ocaml_ppx_apply",
-#      # "ocaml_ppx_library_gendeps",
-#      # "ocaml_ppx_library_cmo",
-#      # "ocaml_ppx_library_link"
-# )
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
-     "get_src_root",
-     "split_srcs",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "OCAML_INTF_FILETYPES",
-     "WARNING_FLAGS"
+     # "get_src_root",
+     # "split_srcs",
+     # "strip_ml_extension",
+     # "OCAML_FILETYPES",
+     # "OCAML_IMPL_FILETYPES",
+     # "OCAML_INTF_FILETYPES",
+     # "WARNING_FLAGS"
 )
 load("//ocaml/_actions:utils.bzl", "get_options")
-load(":ppx_options.bzl", "ppx_options")
+load(":options_ppx.bzl", "options_ppx")
 
 # print("implementation/ocaml.bzl loading")
 
@@ -280,8 +273,9 @@ def _ppx_archive_impl(ctx):
   )
 
   if mode == "native":
-      payload = struct(
-          cm_a = obj["cm_a"] if "cm_a" in obj else None,
+      payload = OcamlArchivePayload(
+          archive = ctx.label.name,
+          cmxa = obj["cmxa"] if "cmxa" in obj else None,
           cmxs = obj["cmxs"] if "cmxs" in obj else None,
           a    = obj["a"] if "a" in obj else None
           # cmi  : .cmi file produced by the target
@@ -289,8 +283,9 @@ def _ppx_archive_impl(ctx):
           # o    : .o file produced by the target
       )
   else:
-      payload = struct(
-          cm_a = obj["cm_a"] if "cm_a" in obj else None,
+      payload = OcamlArchivePayload(
+          archive = ctx.label.name,
+          cma = obj["cm_a"] if "cm_a" in obj else None,
           cmxs = obj["cmxs"] if "cmxs" in obj else None,
           # cmi  : .cmi file produced by the target
           # cm   : .cmx or .cmo file produced by the target
@@ -299,7 +294,7 @@ def _ppx_archive_impl(ctx):
 
   ppx_provider = PpxArchiveProvider(
       payload = payload,
-      deps = struct(
+      deps = PpxDepsetProvider(
           opam  = mydeps.opam,
           opam_lazy = mydeps.opam_lazy,
           nopam = mydeps.nopam,
@@ -323,7 +318,7 @@ def _ppx_archive_impl(ctx):
 ppx_archive = rule(
     implementation = _ppx_archive_impl,
     attrs = dict(
-        ppx_options,
+        options_ppx,
         archive_name = attr.string(),
         preprocessor = attr.label(
             providers = [PpxExecutableProvider],

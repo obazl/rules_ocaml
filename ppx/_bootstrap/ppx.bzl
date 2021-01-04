@@ -14,9 +14,9 @@
 
 # Once nested repositories work, this file should cease to exist.
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
+# load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+# load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+# load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
 def _ppx_repo_impl(repo_ctx):
 

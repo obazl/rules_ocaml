@@ -11,7 +11,7 @@ load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ppx:_providers.bzl", "PpxArchiveProvider")
 
 load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",

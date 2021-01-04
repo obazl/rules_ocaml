@@ -1,64 +1,46 @@
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-# load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@io_bazel_stardoc//stardoc:stardoc.bzl", "stardoc")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
-# bzl_library(
-#     name = "foo",
-#     # srcs = ["paths.bzl"],
-#     visibility = ["//visibility:public"],
-#     deps = [
-#         "@bazel_skylib//lib:paths",
-#     ],
-# )
+## The rules in this file provide support for stardoc processing.
 
-stardoc(
-    name = "ocaml_archive_docs",
-    input = "ocaml_archive.bzl",
-    deps  = ["//ocaml/private/actions"],
-    symbol_names = ["ocaml_archive"],
-    out = "ocaml_archive_doc.md",
+exports_files(glob(["*.bzl"]))
+
+bzl_library(
+    name = "ocaml_rules",
+    srcs = glob(["ocam*.bzl"]) + ["options_ocaml.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@bazel_skylib//lib:collections",
+        "@bazel_skylib//rules:common_settings",
+        "@bazel_skylib//lib:paths",
+        "@bazel_skylib//lib:structs",
+        "//ocaml/_actions:actions",
+        "//ocaml/_config:config",
+        "//ocaml/_deps:deps",
+        "//ocaml/_functions:functions",
+        "//ocaml/_providers:providers",
+        "//ppx/_config:config",
+        "//ppx:providers",
+        "@obazl_rules_opam//opam/_providers:providers",
+    ],
 )
 
-stardoc(
-    name = "ocaml_executable_docs",
-    input = "ocaml_executable.bzl",
-    deps  = ["//ocaml/private/actions",
-             "//ocaml/private/actions:skylib_paths",
-             "//opam:opam"],
-    symbol_names = ["ocaml_executable"],
-    out = "ocaml_executable_doc.md",
-)
-
-stardoc(
-    name = "docs_ocaml",
-    input = "doc_rules_ocaml.bzl",
-    out = "docs_ocaml.md",
-    deps  = [#"//ocaml/private/actions",
-             "//ocaml/private/actions:skylib_paths",
-             "//opam:opam"],
-    symbol_names = [
-        "ocaml_archive",
-        "ocaml_executable",
-        "ocaml_interface",
-        "ocaml_library",
-        "ocaml_module",
-        "ocaml_ns_archive",
-        "ocaml_ns",
-    ]
-)
-
-stardoc(
-    name = "docs_ppx",
-    input = "doc_rules_ppx.bzl",
-    out = "docs_ppx.md",
-    deps  = [# "//ocaml/private/actions",
-             "//ocaml/private/actions:skylib_paths",
-             "//opam:opam"],
-    symbol_names = [
-        "ppx_archive",
-        "ppx_executable",
-        "ppx_library",
-        "ppx_module",
-        "ppx_test"
-    ]
+bzl_library(
+    name = "ppx_rules",
+    srcs = glob(["ppx*.bzl"]) + ["options_ppx.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@bazel_skylib//lib:collections",
+        "@bazel_skylib//rules:common_settings",
+        "@bazel_skylib//lib:paths",
+        "@bazel_skylib//lib:structs",
+        "@obazl_rules_opam//opam/_providers:providers",
+        "//ocaml/_actions:actions",
+        # "//ocaml/_config:config",
+        "//ocaml/_deps:deps",
+        "//ocaml/_functions:functions",
+        "//ocaml/_providers:providers",
+        "//ppx:providers",
+        "//ppx/_config:config",
+    ],
 )

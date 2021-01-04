@@ -6,7 +6,9 @@ load("@bazel_skylib//rules:common_settings.bzl",
 
 load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
 load("//ocaml/_providers:ocaml.bzl",
+     "OcamlArchivePayload",
      "OcamlArchiveProvider",
+     "OcamlDepsetProvider",
      "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
@@ -17,7 +19,7 @@ load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ppx:_providers.bzl", "PpxArchiveProvider")
 
 load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
-load("//ocaml/_utils:deps.bzl", "get_all_deps")
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
@@ -95,8 +97,8 @@ def _ocaml_archive_impl(ctx):
       args.add(tc.ocamlc.basename)
 
   cc_linkmode = tc.linkmode            # used below to determine dep linkmode
-  if ctx.attr.cc_linkmode:
-      if ctx.attr.cc_linkmode[BuildSettingInfo].value == "static": # override toolchain default?
+  if ctx.attr._cc_linkmode:
+      if ctx.attr._cc_linkmode[BuildSettingInfo].value == "static": # override toolchain default?
           cc_linkmode = "static"
           if mode == "bytecode":
               args.add("-custom")
@@ -110,7 +112,7 @@ def _ocaml_archive_impl(ctx):
 
   options = get_options(rule, ctx)
   args.add_all(options)
-  lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
 
   args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
   # if len(ctx.addr.cc_linkall) > 0:
@@ -308,12 +310,12 @@ def _ocaml_archive_impl(ctx):
       outputs = obj_files,
       tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "OcamlArchive",
-      progress_message = "{mode} compiling ocaml_archive: @{ws}//{pkg}:{tgt}{msg}".format(
+      progress_message = "{mode} compiling ocaml_archive: @{ws}//{pkg}:{tgt}".format(
           mode = mode,
           ws  = ctx.label.workspace_name,
           pkg = ctx.label.package,
           tgt=ctx.label.name,
-          msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
+          # msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
       )
     # progress_message = "ocaml_archive({}): {}".format(
     #     ctx.label.name, ctx.attr.msg
@@ -321,23 +323,23 @@ def _ocaml_archive_impl(ctx):
   )
 
   if mode == "native":
-      payload = struct(
+      payload = OcamlArchivePayload(
           archive = ctx.label.name,
-          cm_a = obj_cm_a,
+          cma = obj_cm_a,
           cmxs = obj_cmxs,
           a    = obj_a,
           # modules = build_deps + cc_deps
       )
   else:
-      payload = struct(
+      payload = OcamlArchivePayload(
           archive = ctx.label.name,
-          cm_a = obj_cm_a,
+          cma = obj_cm_a,
           cmxs = obj_cmxs,
       )
 
   archiveProvider = OcamlArchiveProvider(
       payload = payload,
-      deps = struct(
+      deps = OcamlDepsetProvider(
           opam = mydeps.opam,
           nopam = mydeps.nopam
       )
@@ -358,19 +360,43 @@ def _ocaml_archive_impl(ctx):
 ################################################################
 ocaml_archive = rule(
     implementation = _ocaml_archive_impl,
-    doc = "Generates an OCaml archive file (.cmxa or .cma) and a C archive file (.a).",
+    doc = """Generates an OCaml archive file. Provides: [OcamlArchiveProvider](providers_ocaml.md#ocamlarchiveprovider).
+
+**<a name="deps">Dependencies</a>**: each entry in the `deps` list must provide one or more of the following Providers:
+
+- [OpamPkgInfo](providers_ocaml.md#opampkginfo)
+- [OcamlArchiveProvider](providers_ocaml.md#ocamlarchiveprovider) The OCaml compiler does not allow an archive to depend on an archive, but the OBazl rules support this.
+- [OcamlInterfaceProvider](providers_ocaml.md#ocamlinterfaceprovider)
+- [OcamlModuleProvider](providers_ocaml.md#ocamlmoduleprovider)
+- [OcamlNsModuleProvider](providers_ocaml.md#ocamlnsmoduleprovider)
+- [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider)
+
+See [OCaml Dependencies](../ug/ocaml_deps.md) for more information on OCaml dependencies.
+
+    """,
+# - [OcamlImportProvider](providers_ocaml.md#ocamlimportprovider)
+# - [OcamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider)
+
     attrs = dict(
         options_ocaml,
         ## RULE DEFAULTS
         _linkall     = attr.label(default = "@ocaml//archive:linkall"), # FIXME: call it alwayslink?
         _threads     = attr.label(default = "@ocaml//archive:threads"),
         _warnings  = attr.label(default = "@ocaml//archive:warnings"),
-        linkopts = attr.string_list(),
-        linkshared = attr.bool(default = False),
+        # linkopts = attr.string_list(
+        #     doc = "List of OCaml link options."
+        # ),
+        linkshared = attr.bool(
+            doc = "Build a .cmxs ('plugin') for dynamic loading. Native mode only.",
+            default = False
+        ),
         #### end options ####
-        archive_name = attr.string(),
-        doc = attr.string(),
+        archive_name = attr.string(
+            doc = "Name of output file. Overrides default, which is derived from _name_ attribute."
+        ),
+        doc = attr.string( doc = "Deprecated" ),
         deps = attr.label_list(
+            doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [[OpamPkgInfo],
                          [OcamlImportProvider],
                          [OcamlInterfaceProvider],
@@ -378,26 +404,34 @@ ocaml_archive = rule(
                          [OcamlModuleProvider],
                          [OcamlNsModuleProvider],
                          [OcamlArchiveProvider],
-                         [PpxArchiveProvider]],
+                         [PpxArchiveProvider]
+                         ],
         ),
+
         cc_deps = attr.label_keyed_string_dict(
-            doc = "C/C++ library dependencies",
+
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            """,
             providers = [[CcInfo]]
         ),
+
         cc_linkopts = attr.string_list(
-            doc = "C/C++ options",
+            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
         ),
         cc_linkall = attr.label_list(
-            doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
+            doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
             providers = [CcInfo],
         ),
         ## FIXME: make cc_linkmode a configurable default
-        cc_linkstatic = attr.bool( ## FIXME: rename cc_linkmode = static | dynamice
-            doc     = "Override platform-dependent link mode (static or dynamic).",
-            # default = False  # "@ocaml//:linkstatic"
-        ),
-        cc_linkmode = attr.label(
-            doc     = "Override platform-dependent link mode (static or dynamic).",
+        # cc_linkstatic = attr.bool( ## FIXME: rename cc_linkmode = static | dynamice
+        #     doc     = "Override platform-dependent link mode (static or dynamic).",
+        #     # default = False  # "@ocaml//:linkstatic"
+        # ),
+        ## FIXME: should this be hidden? yes - to set all cc_deps for
+        ## one rule application, use the cc_deps attrib values.
+        _cc_linkmode = attr.label(
+            doc     = "Override platform-dependent link mode (static or dynamic). Configurable default is platform-dependent: static on Linux, dynamic on MacOS.",
+            # no default, but settable to static or dynamic
             # default = "@ocaml//linkmode:static"
         ),
         _mode = attr.label(
@@ -406,7 +440,7 @@ ocaml_archive = rule(
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        msg = attr.string(),
+        # msg = attr.string(),
     ),
     provides = [OcamlArchiveProvider],
     executable = False,

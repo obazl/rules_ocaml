@@ -56,41 +56,57 @@ OcamlSDK = provider(
 )
 
 ################################################################
-OcamlStdLib = provider()
+# OcamlStdLib = provider()
 
-OcamlConfigInfo = provider()
+# OcamlConfigInfo = provider()
 
-OcamlContextInfo = provider()
+# OcamlContextInfo = provider()
 
-CocamlContextInfo = provider()
+# CocamlContextInfo = provider()
 
-EXPLICIT_PATH = "explicit"
+# EXPLICIT_PATH = "explicit"
 
-INFERRED_PATH = "inferred"
+# INFERRED_PATH = "inferred"
 
-EXPORT_PATH = "export"
+# EXPORT_PATH = "export"
+
+OcamlDepsetProvider = provider(
+    doc = "A Provider struct used by OBazl rules to provide heterogenous dependencies. Not provided by rule.",
+    fields = {
+        "opam"   : "depset of OPAM deps (Labels) of target",
+        "nopam"  : "depset of non-OPAM deps (Files) of target",
+        "cclib"  : "depset of C/C++ lib deps"
+   }
+)
+
+OcamlArchivePayload = provider(
+    doc = "A Provider struct used by [OcamlArchiveProvider](#ocamlarchiveprovider) and [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider). Not provided by rule.",
+    fields = {
+        "archive": "Name of archive",
+        "cmxa"   : ".cmxa file produced by the target (native mode)",
+        "a"      : ".a file produced by the target (native mode)",
+        "cma"    : ".cma file produced by the target (bytecode mode)",
+        "cmxs"   : ".cmxs file produced by the target  (shared object)",
+        # "modules": "list of cmx files archived"
+    }
+)
 
 OcamlArchiveProvider = provider(
-    doc = "OCaml library provider. A library is a collection of modules.",
+    doc = """OCaml archive provider.
+
+Provided by rule: [ocaml_archive](rules_ocaml.md#ocaml_archive)
+    """,
     fields = {
-        "payload": """A struct with the following fields:
-            archive: Name of archive
-            cmxa: .cmxa file produced by the target (native compiler)
-            cma : .cma file produced by the target (bytecode compiler)
-            cmxs: .cmxs file produced by the target  (shared object)
-            a   : .a file produced by the target
-            modules: list of cmx files archived
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            nopam: direct and transitive non-opam deps (Files) of target
-            cclib: c/c++ lib deps
-        """
+        "payload": "An [OcamlArchivePayload](#ocamlarchivepayload) provider",
+        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider) provider."
     }
 )
 
 OcamlLibraryProvider = provider(
-    doc = "OCaml library provider. A library is a collection of modules.",
+    doc = """OCaml library provider. A library is a collection of modules, not to be confused with an archive.
+
+Provided by rule: [ocaml_library](rules_ocaml#ocaml_library)
+    """,
     fields = {
         "payload": """A struct with the following fields:
             library: Name of library
@@ -107,14 +123,16 @@ OcamlLibraryProvider = provider(
 OcamlInterfaceProvider = provider(
     doc = "OCaml interface provider.",
     fields = {
-        "payload": """A struct with the following fields:
-            cmi: .cmi file produced by the target
-            ml:  .ml source file. without the source file, the cmi file will be ignored!
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            nopam: direct and transitive non-opam deps (Files) of target
-        """
+        "payload": "An [OcamlInterfacePayload](#ocamlinterfacepayload) structure.",
+        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)."
+    }
+)
+
+OcamlInterfacePayload = provider(
+    doc = "OCaml interface payload.",
+    fields = {
+        "cmi"  : ".cmi file produced by the target",
+        "mli"  :  ".mli source file. without the source file, the cmi file will be ignored!"
     }
 )
 
@@ -132,34 +150,43 @@ OcamlImportProvider = provider(
     }
 )
 
+OcamlModulePayload = provider(
+    doc = "OCaml module payload.",
+    fields = {
+        "cmx"  : ".cmx file produced by the target (native mode)",
+        "o"    : ".o file produced by the target (native mode)",
+        "cmo"  : ".cmo file produced by the target (bytecode mode)",
+        # "cm"   : ".cmx/cmo file produced by the target",
+        "cmi"  : ".cmi file produced by the target (optional)",
+        "mli"  : ".mli source file (optional)",
+        "cmt"  : ".cmt file produced by the target (optional)"
+    }
+)
+
 OcamlModuleProvider = provider(
     doc = "OCaml module provider.",
     fields = {
-        "payload": """A struct with the following fields:
-            cmi: .cmi file produced by the target
-            cm : .cmx/cmo file produced by the target
-            o  : .o file produced by the target
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            nopam: direct and transitive non-opam deps (Files) of target
-            cclib: c/c++ lib deps
-        """
+        "payload": "An [OcamlModulePayload](#ocamlmodulepayload) provider.",
+        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider) provider."
     }
 )
 
 OcamlNsModuleProvider = provider(
     doc = "OCaml module provider.",
     fields = {
-        "payload": """A struct with the following fields:
-            ns : namespace
-            cmi: .cmi file produced by the target
-            cm : .cmx/cmo file produced by the target
-            o  : .o file produced by the target
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            nopam: direct and transitive non-opam deps (Files) of target
-        """
+        "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
+        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
+    }
+)
+
+OcamlNsModulePayload = provider(
+    doc = "OCaml NS Module payload provider.",
+    fields = {
+        "ns"  : "namespace string",
+        "sep" : "separator string",
+        "cmx"  : ".cmx file produced by the target (native mode)",
+        "o"   : ".o file produced by the target (native mode)",
+        "cmo"  : ".cmo file produced by the target (native mode)",
+        "cmi" : ".cmi file produced by the target",
     }
 )

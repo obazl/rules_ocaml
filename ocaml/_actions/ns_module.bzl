@@ -1,6 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
+     "OcamlNsModulePayload",
      "OcamlNsModuleProvider")
 load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
 load("@bazel_skylib//lib:paths.bzl", "paths")
@@ -140,16 +141,18 @@ def ns_module_compile(ctx):
   if CompilationModeSettingProvider in ctx.attr._mode:
       ## ocaml_ns
       if mode == "native":
-          payload = struct(
+          payload = OcamlNsModulePayload(
               ns  = ctx.attr.ns,
+              sep = ctx.attr.ns_sep,
               # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
               cmi = obj_cmi,
               cmx  = obj_cm_,
               o   = obj_o
           )
       else:
-          payload = struct(
+          payload = OcamlNsModulePayload(
               ns  = ctx.attr.ns,
+              sep = ctx.attr.ns_sep,
               # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
               cmi = obj_cmi,
               cmo  = obj_cm_,
@@ -166,6 +169,7 @@ def ns_module_compile(ctx):
       if mode == "native":
           payload = struct(
               ns  = ctx.attr.ns,
+              sep = ctx.attr.ns_sep,
               # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
               cmi = obj_cmi,
               cmx  = obj_cm_,
@@ -174,6 +178,7 @@ def ns_module_compile(ctx):
       else:
           payload = struct(
               ns  = ctx.attr.ns,
+              sep = ctx.attr.ns_sep,
               # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
               cmi = obj_cmi,
               cmo  = obj_cm_,

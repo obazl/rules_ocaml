@@ -1,4 +1,4 @@
-ppx_options = dict(
+options_ppx = dict(
     opts = attr.string_list(),
     ## CONFIGURABLE DEFAULTS
     _debug           = attr.label(default = "@ppx//debug"),

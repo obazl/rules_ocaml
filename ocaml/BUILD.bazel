@@ -1,4 +1,22 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
 package(default_visibility = ["//visibility:public"])
+
+bzl_library( # for stardoc
+    name = "bootstrap",
+    srcs = ["bootstrap.bzl"],
+    visibility = ["//visibility:public"],
+)
+
+bzl_library( # for stardoc
+    name = "providers",
+     visibility = ["//visibility:public"],
+    deps = [
+        "//ocaml/_providers:providers",
+         "//ppx:providers",
+        "@obazl_rules_opam//opam/_providers:providers",
+    ],
+)
 
 filegroup(
     name = "all_files",

@@ -20,8 +20,8 @@ load("//ocaml/_rules:ocaml_library.bzl",
     _ocaml_library = "ocaml_library")
 load("//ocaml/_rules:ocaml_module.bzl",
     _ocaml_module = "ocaml_module")
-load("//ocaml/_rules:ocaml_ns_archive.bzl",
-    _ocaml_ns_archive = "ocaml_ns_archive")
+# load("//ocaml/_rules:ocaml_ns_archive.bzl",
+#     _ocaml_ns_archive = "ocaml_ns_archive")
 load("//ocaml/_rules:ocaml_ns.bzl",
     _ocaml_ns = "ocaml_ns")
 
@@ -64,7 +64,7 @@ ocaml_import = _ocaml_import
 ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
-ocaml_ns_archive = _ocaml_ns_archive
+# ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns  = _ocaml_ns
 
 ppx_archive = _ppx_archive
