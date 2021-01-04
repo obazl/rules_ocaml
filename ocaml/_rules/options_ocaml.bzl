@@ -1,6 +1,6 @@
 options_ocaml = dict(
     opts             = attr.string_list(
-        doc          = "List of OCaml options. Will override global default options."
+        doc          = "List of OCaml options. Will override configurable default options."
     ),
     ## GLOBAL CONFIGURABLE DEFAULTS (all rules)
     _debug           = attr.label(default = "@ocaml//debug"),
