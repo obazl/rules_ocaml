@@ -244,6 +244,11 @@ def _ocaml_repo_impl(repo_ctx):
         executable = False,
     )
     repo_ctx.template(
+        "interface/BUILD.bazel",
+        Label("//ocaml/_templates:BUILD.ocaml.interface"),
+        executable = False,
+    )
+    repo_ctx.template(
         "module/BUILD.bazel",
         Label("//ocaml/_templates:BUILD.ocaml.module"),
         executable = False,

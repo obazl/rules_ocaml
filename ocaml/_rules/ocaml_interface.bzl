@@ -1,7 +1,7 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
+
 load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
-     "OcamlSDK",
      "OcamlArchiveProvider",
      "OcamlDepsetProvider",
      "OcamlInterfaceProvider",
@@ -9,12 +9,16 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider")
+
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
 load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxNsModuleProvider")
+
 load("//ocaml/_actions:rename.bzl", "rename_module")
+
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
@@ -24,15 +28,15 @@ load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
-     "get_src_root",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "OCAML_INTF_FILETYPES",
-     "WARNING_FLAGS"
 )
+
 load(":options_ocaml.bzl", "options_ocaml")
+
 load("//ocaml/_actions:utils.bzl", "get_options")
+
+OCAML_INTF_FILETYPES = [
+    ".mli", ".cmi"
+]
 
 ########## RULE:  OCAML_INTERFACE  ################
 def _ocaml_interface_impl(ctx):
@@ -85,13 +89,23 @@ def _ocaml_interface_impl(ctx):
 
   ################################################################
   args = ctx.actions.args()
-  # args.add(tc.compiler.basename)
-  args.add("ocamlc")
+
+  # args.add("ocamlc")
+  if mode == "native":
+      args.add(tc.ocamlopt.basename)
+  else:
+      args.add(tc.ocamlc.basename)
   # options = tc.opts + ctx.attr.opts
   # args.add_all(options)
   args.add_all(ctx.attr.opts)
+  # for opt in ctx.attr._opts[BuildSettingInfo].value:
+  #     # print("EXTRA OPT: %s" % opt)
+  #     args.add(opt)
 
-  args.add("-thread")
+  options = get_options(rule, ctx)
+  args.add_all(options)
+
+  # args.add("-thread")
 
   args.add("-c") # interfaces always compile-only?
 
@@ -361,60 +375,78 @@ def _ocaml_interface_impl(ctx):
 ########## DECL:  OCAML_INTERFACE  ################
 ocaml_interface = rule(
     implementation = _ocaml_interface_impl,
+    doc = """Generates OCaml .cmi (inteface) file. Provides `OcamlInterfaceProvider`.
+
+**CONFIGURABLE DEFAULTS** for rule `ocaml_executable`
+
+In addition to the [OCaml configurable defaults](#configdefs) that apply to all
+`ocaml_*` rules, the following apply to this rule:
+
+| Label | Default | `opts` attrib |
+| ----- | ------- | ------- |
+| @ocaml//interface:linkall | True | `-linkall`, `-no-linkall`|
+| @ocaml//interface:threads | True | `-thread`, `-no-thread`|
+| @ocaml//interface:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
+
+**NOTE** These do not support `:enable`, `:disable` syntax.
+
+ See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
+    """,
     attrs = dict(
         options_ocaml,
-        linkopts = attr.string_list(),
-        linkall = attr.bool(default = True),
+        ## RULE DEFAULTS
+        _linkall     = attr.label(default = "@ocaml//interface:linkall"), # FIXME: call it alwayslink?
+        _threads     = attr.label(default = "@ocaml//interface:threads"),
+        _warnings  = attr.label(default = "@ocaml//interface:warnings"),
+        #### end options ####
+
+        ## FIXME: does this make sense for interface files?
+        ## No: just use opts
+        # linkall = attr.bool(default = True),
 
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        module_name   = attr.string(
-            doc = "Module name."
-        ),
-        # ns   = attr.string(
-        #   doc = "Namespace string; will be used as module name prefix."
+        # module_name   = attr.string(
+        #     doc = "Module name."
         # ),
-        ns_sep = attr.string(
-            doc = "Namespace separator.  Default: '__'",
-            default = "__"
-        ),
+        # ns_sep = attr.string(
+        #     doc = "Namespace separator.  Default: '__'",
+        #     default = "__"
+        # ),
         ns = attr.label(
-            doc = "Label of a ocaml_ns target. Used to derive namespace, output name, -open arg, etc.",
+            doc = "Label of an `ocaml_ns` target. Used to derive namespace, output name, -open arg, etc.",
         ),
         src = attr.label(
+            doc = "A single .mli source file label",
             allow_single_file = OCAML_INTF_FILETYPES
         ),
         ppx  = attr.label(
-            doc = "PPX binary (executable).",
+            doc = "Label of `ppx_executable` target to be used to transform source before compilation.",
             executable = True,
             cfg = "host",
             allow_single_file = True,
             providers = [PpxExecutableProvider]
         ),
         ppx_args  = attr.string_list(
-            doc = "Options to pass to PPX binary.",
+            doc = "Options to pass to PPX executable.",
         ),
         ppx_data  = attr.label_list(
-            doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+            doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
         ),
-        # ppx_output_format = attr.string(
-        #   doc = "Format of output of PPX transform, binary (default) or text",
-        #   values = ["binary", "text"],
-        #   default = "binary"
-        # ),
         ppx_print = attr.label(
-            doc = "Format of output of PPX transform, binary (default) or text",
-            default = "@ppx//print"
+            doc = "Format of output of PPX transform, binary (default) or text. Value must be one of '@ppx//print:binary', '@ppx//print:text'.",
+            default = "@ppx//print:binary"
         ),
         # ppx_runtime_deps  = attr.label_list(
         #     doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
         #     allow_files = True,
         # ),
-        data = attr.label_list(
-        ),
+        # data = attr.label_list(
+        # ),
         deps = attr.label_list(
+            doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
                          [OcamlLibraryProvider],
@@ -425,10 +457,11 @@ ocaml_interface = rule(
         _mode       = attr.label(
             default = "@ocaml//mode",
         ),
-        msg = attr.string(),
+        msg = attr.string(
+            doc = "Deprecated"
+        ),
     ),
     provides = [OcamlInterfaceProvider],
-    # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
-  executable = False,
+    executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
