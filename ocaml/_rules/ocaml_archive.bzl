@@ -102,16 +102,8 @@ def _ocaml_archive_impl(ctx):
           if mode == "bytecode":
               args.add("-custom")
 
-  # args.add("-w", ctx.attr.warnings)
-  # options = ctx.attr.opts
-  # # if ctx.attr.nocopts:
-  # args.add_all(options)
-  # if ctx.attr.alwayslink:
-  #   args.add("-linkall")
-
-  options = get_options(rule, ctx)
-  args.add_all(options)
-  # lflags = " ".join(ctx.attr.linkopts) if ctx.attr.linkopts else ""
+  configurable_defaults = get_options(rule, ctx)
+  args.add_all(configurable_defaults)
 
   args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
   # if len(ctx.addr.cc_linkall) > 0:
