@@ -1,47 +1,45 @@
-load("@bazel_skylib//lib:paths.bzl", "paths")
+# load("@bazel_skylib//lib:paths.bzl", "paths")
 
-# load("@rules_foreign_cc//tools/build_defs:framework.bzl",
-#      "ForeignCcDeps",
-#      "ForeignCcArtifact")
 
-load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
+# load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
-load("//ocaml/_config:transitions.bzl",
-     "ocaml_mode_transition_incoming",
-     "ocaml_mode_transition_outgoing",)
+# load("//ocaml/_transistions:mode_transitions.bzl",
+#      "ocaml_mode_transition_incoming",
+#      "ocaml_mode_transition_outgoing",)
+
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
+# load("//ocaml/_transitions:ns_transitions.bzl",
+#      "ocaml_ns_transition_incoming",
+#      "ocaml_ns_transition_reset")
 
 load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
-     # "OcamlSDK",
      "OcamlDepsetProvider",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
-     "OcamlNsModuleProvider",
      "OcamlModulePayload",
+     "OcamlNsModuleProvider",
      "OcamlModuleProvider")
+
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
 load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
-     "PpxLibraryProvider",
      "PpxModuleProvider")
+
 load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
-load("//ocaml/_functions:utils.bzl",
-     # "capitalize_initial_char",
-     # "get_opamroot",
-     # "get_sdkpath",
-     # "get_src_root",
-     # "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
-)
 load(":options_ocaml.bzl", "options_ocaml")
+
+OCAML_IMPL_FILETYPES = [
+    ".ml", ".cmx", ".cmo", ".cma"
+]
 
 tmpdir = "_obazl_/"
 
@@ -216,28 +214,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             # providers = [[DefaultInfo], [OcamlInterfaceProvider]],
         ),
         ################################
-        ppx  = attr.label(
-            doc = "PPX binary (executable).",
-            executable = True,
-            cfg = "exec",
-            allow_single_file = True,
-            providers = [PpxExecutableProvider]
-        ),
-        ppx_args  = attr.string_list(
-            doc = "Options to pass to PPX binary.",
-        ),
-        ppx_tags  = attr.string_list(
-            doc = "List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
-        ),
-        ppx_data  = attr.label_list(
-            doc = "PPX dependencies. E.g. a file used by %%import from ppx_optcomp.",
+        data = attr.label_list(
             allow_files = True,
-        ),
-        ppx_print = attr.label(
-            doc = "Format of output of PPX transform, binary (default) or text",
-            default = "@ppx//print"
+            doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."
         ),
         deps = attr.label_list(
+            doc = "List of OCaml dependencies.",
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
                          [OcamlInterfaceProvider],

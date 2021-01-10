@@ -1,37 +1,14 @@
-load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//ocaml/_providers:ocaml.bzl",
-     "OcamlSDK",
-     "OcamlNsModuleProvider")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
+
 load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
-# load("//ocaml/_actions:ppx.bzl",
-#      "apply_ppx",
-#      "ocaml_ppx_compile",
-#      # "ocaml_ppx_apply",
-#      "ocaml_ppx_library_gendeps",
-#      "ocaml_ppx_library_cmo",
-#      "ocaml_ppx_library_compile",
-#      "ocaml_ppx_library_link")
 
-# load("//ocaml/_functions:utils.bzl",
-load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     "get_opamroot",
-     "get_sdkpath",
-     "get_src_root",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
-)
-# testing
-# load("//implementation/actions:ocamlopt.bzl",
-#      "compile_native_with_ppx",
-#      "link_native")
+# load("//ocaml/_transitions:ns_transitions.bzl", "ocaml_ns_transition")
 
-# print("implementation/ocaml.bzl loading")
-
+OCAML_FILETYPES = [
+    ".ml", ".mli", ".cmx", ".cmo", ".cma"
+]
 
 ########## RULE:  OCAML_NS  ################
 ## Generate a namespacing module, containing module aliases for the
@@ -39,7 +16,9 @@ load("//ocaml/_functions:utils.bzl",
 
 def _ocaml_ns_impl(ctx):
 
-  return ns_module_compile(ctx)
+    # print("TEST ocaml_ns _NS: %s" % ctx.attr.xns[0][BuildSettingInfo].value)
+
+    return ns_module_compile(ctx)
 
 # (library
 #  (name deriving_hello)
@@ -114,7 +93,6 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         default = "@ocaml//mode"
     ),
     _warnings  = attr.label(default = "@ocaml//ns:warnings"),
-    msg = attr.string(),
     _rule = attr.string(default = "ocaml_ns")
   ),
   provides = [DefaultInfo, OcamlNsModuleProvider],

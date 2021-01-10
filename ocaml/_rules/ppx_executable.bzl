@@ -1,20 +1,21 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-load("@bazel_skylib//lib:collections.bzl", "collections")
 
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 
 load("//ocaml/_actions:utils.bzl", "get_options")
+
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
+
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "file_to_lib_name",
 )
-load("//ocaml/_providers:ocaml.bzl",
-     "OcamlSDK",
-     "OcamlArchiveProvider",
-     "OcamlModuleProvider")
-load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
+
+load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+
 load("//ppx:_providers.bzl",
      "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
@@ -382,7 +383,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         main = attr.label(
             mandatory = True,
             # allow_single_file = [".ml", ".cmx"],
-        providers = [PpxModuleProvider], #  [OcamlModuleProvider]], #, [OpamPkgInfo]],
+        providers = [PpxModuleProvider],
             default = None
         ),
         ppx  = attr.label(

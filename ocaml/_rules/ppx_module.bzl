@@ -1,33 +1,21 @@
-load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
-load("//ocaml/_providers:ocaml.bzl",
-     "OcamlSDK",
-     "OcamlInterfaceProvider")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ocaml.bzl", "OcamlInterfaceProvider")
+
 load("//ppx:_providers.bzl",
      "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
-load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
 
 load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
-load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     "get_opamroot",
-     "get_sdkpath",
-     "get_src_root",
-     "get_target_file",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
-)
 load("options_ppx.bzl", "options_ppx")
 
+OCAML_IMPL_FILETYPES = [
+    ".ml", ".cmx", ".cmo", ".cma"
+]
 #############################################
 ####  OCAML_PPX_MODULE IMPLEMENTATION
 def _ppx_module_impl(ctx):

@@ -123,12 +123,12 @@ def ns_module_compile(ctx):
       outputs = outputs,
       tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = "NsModuleAction",
-      progress_message = "compiling: @{ws}//{pkg}:{tgt}{msg} (rule {rule})".format(
+      progress_message = "compiling: @{ws}//{pkg}:{tgt} (rule {rule})".format(
           ws  = ctx.workspace_name,
           pkg = ctx.label.package,
           rule= "ocaml_ns",
           tgt=ctx.label.name,
-          msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
+          # msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
       )
       # progress_message = "ns_module_compile for {rule}{msg}".format(
       #     rule = ctx.attr._rule,

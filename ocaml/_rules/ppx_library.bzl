@@ -27,14 +27,15 @@ load("//ocaml/_functions:utils.bzl",
      "get_src_root",
      "split_srcs",
      "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
 )
 load(":options_ppx.bzl", "options_ppx")
 load("//ocaml/_actions:utils.bzl", "get_options")
 
 # print("implementation/ocaml.bzl loading")
+
+OCAML_FILETYPES = [
+    ".ml", ".mli", ".cmx", ".cmo", ".cma"
+]
 
 tmpdir = "_obazl_/"
 

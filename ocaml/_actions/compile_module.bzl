@@ -1,40 +1,25 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/_providers:ocaml.bzl",
-     "CompilationModeSettingProvider",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
      "OcamlInterfaceProvider",
-     "OcamlLibraryProvider",
      "OcamlNsModuleProvider",
-     "OcamlModuleProvider",
-     "OcamlSDK",
-     "OcamlVerboseFlagProvider")
-
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+     "OcamlSDK")
 
 load("//ppx:_providers.bzl",
-     "PpxArchiveProvider",
-     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
-     "PpxLibraryProvider",
-     "PpxNsModuleProvider",
-     "PpxModuleProvider")
+     "PpxNsModuleProvider")
 
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
+
 load("//ocaml/_actions:rename.bzl", "rename_module")
+
 load("//ocaml/_actions:utils.bzl", "get_options")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",
-     "get_src_root",
      "file_to_lib_name",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
 )
 
 ################################################################

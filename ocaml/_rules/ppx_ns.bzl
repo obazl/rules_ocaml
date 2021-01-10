@@ -1,28 +1,11 @@
-load("@bazel_skylib//lib:paths.bzl", "paths")
-
-load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
-load("//ppx:_providers.bzl", "PpxNsModuleProvider")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
-# load("//ocaml/_actions:ppx.bzl",
-#      "apply_ppx",
-#      "ocaml_ppx_compile",
-#      # "ocaml_ppx_apply",
-#      "ocaml_ppx_library_gendeps",
-#      "ocaml_ppx_library_cmo",
-#      "ocaml_ppx_library_compile",
-#      "ocaml_ppx_library_link")
-load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     "get_opamroot",
-     "get_sdkpath",
-     "get_src_root",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
-)
+load("//ppx:_providers.bzl", "PpxNsModuleProvider")
+
 load(":options_ppx.bzl", "options_ppx")
+
+OCAML_FILETYPES = [
+    ".ml", ".mli", ".cmx", ".cmo", ".cma"
+]
 
 ######################
 def _ppx_ns_impl(ctx):

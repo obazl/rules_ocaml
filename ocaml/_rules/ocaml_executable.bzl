@@ -1,20 +1,11 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
-load("//ocaml/_functions:common.bzl",
-     "OCAML_VERSION")
-# load("//ocaml/_actions:ppx.bzl",
-#      "apply_ppx",
-#      "compile_new_srcs")
-# load("//ocaml/_actions:ocaml.bzl",
-#      "ocaml_compile")
-load("//ocaml/_actions:batch.bzl", "copy_srcs_to_tmp")
+
 load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlSDK")
+     "OcamlModuleProvider")
 
-## FIXME: remove dependency on rules_opam?
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 
 load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
@@ -25,36 +16,11 @@ load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
 )
+
 load(":options_ocaml.bzl", "options_ocaml")
+
 load("//ocaml/_actions:utils.bzl", "get_options")
-
-# def _ocaml_interface_impl(ctx):
-#   ctx.actions.run_shell(
-#       inputs = [ctx.file.src, ctx.executable._ocamlc],
-#       outputs = [ctx.label.name + "mli"], # [ctx.outputs.mli],
-#       progress_message = "Compiling interface file %s" % ctx.label,
-#       mnemonic="OCamlc",
-#       command = "%s -i -c %s > %s" % (ctx.executable._ocamlc.path, ctx.file.src.path, ctx.outputs.mli.path),
-#   )
-
-#   return struct(mli = ctx.outputs.mli.path)
-
-# ocaml_interface = rule(
-#     implementation = _ocaml_interface_impl,
-#     attrs = dict(
-#       _ocaml_tools_attrs,
-#       src = attr.label(
-#         allow_files = OCAML_FILETYPES,
-#         # allow_single_file = True,
-#         )
-#     ),
-#     # outputs = { "mli": "%{name}.mli" },
-# )
 
 ################################################################
 def _ocaml_executable_impl(ctx):
@@ -72,8 +38,6 @@ def _ocaml_executable_impl(ctx):
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
-
-  # srcs = copy_srcs_to_tmp(ctx)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
@@ -475,7 +439,7 @@ def _ocaml_executable_impl(ctx):
 ################################################################
 ocaml_executable = rule(
     implementation = _ocaml_executable_impl,
-    doc = """Generates an OCaml executable binary.  Provides only standard DefaultInfo provider.
+    doc = """Generates an OCaml executable binary. Provides only standard DefaultInfo provider.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_executable`
 
@@ -512,18 +476,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             providers = [[OcamlModuleProvider], [OpamPkgInfo]],
             default = None
         ),
-        # srcs = attr.label_list(
-        #   allow_files = OCAML_FILETYPES
-        # ),
-        # srcs_impl = attr.label_list(
-        #   allow_files = OCAML_IMPL_FILETYPES
-        # ),
-        # srcs_intf = attr.label_list(
-        #   allow_files = OCAML_INTF_FILETYPES
-        # ),
         data = attr.label_list(
             allow_files = True,
-            doc = "Runtime dependencies: data files used by this executable."
+            doc = "Runtime dependencies: list of labels of data files needed by this executable at runtime."
         ),
         strip_data_prefixes = attr.bool(
             doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
@@ -541,7 +496,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     cfg = "exec",
         # ),
         deps = attr.label_list(
-            doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
+            doc = "List of OCaml dependencies.",
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
                          [OcamlLibraryProvider],
@@ -564,7 +519,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         cc_linkall = attr.label_list(
             ## equivalent to cc_library's "alwayslink"
             doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
-            providers = [CcInfo],
+            # providers = [CcInfo],
         ),
         cc_linkopts = attr.string_list(
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",

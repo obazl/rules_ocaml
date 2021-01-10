@@ -1,43 +1,9 @@
 load("@bazel_skylib//rules:common_settings.bzl", "int_setting", "string_setting", "BuildSettingInfo")
-load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
      "get_opamroot",
-     "get_sdkpath",
-     "get_src_root",
-     "strip_ml_extension",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
+     "get_sdkpath"
      )
-
-
-# BuildSettingInfo = provider(
-#     doc = "A singleton provider that contains the raw value of a build setting",
-#     fields = {
-#         "value": "The value of the build setting in the current configuration. " +
-#                  "This value may come from the command line or an upstream transition, " +
-#                  "or else it will be the build setting's default.",
-#     },
-# )
-
-## example:
-# x_cppo_filegroup(
-#     name = "ExtArray.cppo_mli",
-#     srcs = ["extArray.mli"],
-#     opts = ["-I", "foo"],
-#     defines = [
-#         "OCAML 407"
-#     ] + WORD_SIZE + HAS_BYTES_FLAG,
-#     undefines = ["FOO"],
-#     exts = {
-#         "lowercase": 'tr "[A-Z]" "[a-z]"'
-#     }
-# )
-
-# output has same name as input, but is output to a Bazel-controlled
-# dir (e.g. bazel-bin/src)
 
 ################################################################
 def _x_cppo_filegroup_impl(ctx):

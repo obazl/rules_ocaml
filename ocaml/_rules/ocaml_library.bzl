@@ -1,5 +1,5 @@
-load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
 load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
      "OcamlInterfaceProvider",
@@ -7,22 +7,16 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlModuleProvider",
      "OcamlNsModuleProvider",
      "OcamlSDK")
+
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
 load("//ppx:_providers.bzl", "PpxArchiveProvider")
 
-load("//ocaml/_deps:archive_deps.bzl", "get_archive_deps")
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
-     "get_sdkpath",
-     "get_src_root",
-     "file_to_lib_name",
-     "strip_ml_extension",
-     "split_srcs",
-     "OCAML_FILETYPES",
-     "OCAML_IMPL_FILETYPES",
-     "WARNING_FLAGS"
+     "get_sdkpath"
 )
 
 ##################################################
@@ -42,7 +36,7 @@ def _ocaml_library_impl(ctx):
          "PATH": get_sdkpath(ctx)}
 
   mydeps = get_all_deps("ocaml_library", ctx)
-  # mydeps = get_archive_deps("ocaml_library", ctx)
+
   if debug:
       print("ALL DEPS for target %s" % ctx.label.name)
       print(mydeps)
@@ -363,25 +357,10 @@ Packages](../ug/collections.md).
                          [OcamlArchiveProvider],
                          [PpxArchiveProvider]],
         ),
-        cc_deps = attr.label_keyed_string_dict(
-            doc = "Target labels of hermetic (bazelized) C/C++ library dependencies.",
-            providers = [[CcInfo]]
-        ),
-        cc_linkopts = attr.string_list(
-            doc = "Non-hermetic C/C++ options, e.g. -lopenssl",
-        ),
-        cc_linkall = attr.label_list(
-            doc     = "List of libs using -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
-            providers = [CcInfo],
-        ),
-        # cc_linkstatic = attr.bool(
-        #     doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-        #     default = True # False
-        # ),
         _mode = attr.label(  ## FIXME: not needed?
             default = "@ocaml//mode"
         ),
-        msg = attr.string(),
+        msg = attr.string( doc = "DEPRECATED" ),
     ),
     provides = [OcamlLibraryProvider],
     executable = False,

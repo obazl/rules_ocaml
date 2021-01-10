@@ -13,21 +13,15 @@ load("//ppx:_providers.bzl",
      "PpxModuleProvider")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
+
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
-     # "get_src_root",
-     # "split_srcs",
-     # "strip_ml_extension",
-     # "OCAML_FILETYPES",
-     # "OCAML_IMPL_FILETYPES",
-     # "OCAML_INTF_FILETYPES",
-     # "WARNING_FLAGS"
 )
-load("//ocaml/_actions:utils.bzl", "get_options")
+
 load(":options_ppx.bzl", "options_ppx")
 
-# print("implementation/ocaml.bzl loading")
+load("//ocaml/_actions:utils.bzl", "get_options")
 
 tmpdir = "_obazl_/"
 

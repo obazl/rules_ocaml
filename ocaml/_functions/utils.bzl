@@ -11,13 +11,6 @@ load("//ppx:_providers.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-OCAML_FILETYPES = [
-    ".ml", ".mli", ".cmx", ".cmo", ".cma"
-]
-OCAML_IMPL_FILETYPES = [
-    ".ml", ".cmx", ".cmo", ".cma"
-]
-
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 
 def capitalize_initial_char(s):
