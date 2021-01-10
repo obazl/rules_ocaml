@@ -105,7 +105,7 @@ Provided by rule: [ocaml_archive](rules_ocaml.md#ocaml_archive)
 OcamlLibraryProvider = provider(
     doc = """OCaml library provider. A library is a collection of modules, not to be confused with an archive.
 
-Provided by rule: [ocaml_library](rules_ocaml#ocaml_library)
+Provided by rule: [ocaml_library](rules_ocaml.md#ocaml_library)
     """,
     fields = {
         "payload": """A struct with the following fields:

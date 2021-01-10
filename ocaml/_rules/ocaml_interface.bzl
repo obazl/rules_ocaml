@@ -375,7 +375,7 @@ def _ocaml_interface_impl(ctx):
 ########## DECL:  OCAML_INTERFACE  ################
 ocaml_interface = rule(
     implementation = _ocaml_interface_impl,
-    doc = """Generates OCaml .cmi (inteface) file. Provides `OcamlInterfaceProvider`.
+    doc = """Generates OCaml .cmi (inteface) file. [User Guide](../ug/ocaml_interface.md). Provides `OcamlInterfaceProvider`.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_executable`
 
@@ -432,11 +432,11 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Options to pass to PPX executable.",
         ),
         ppx_data  = attr.label_list(
-            doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
+            doc = "PPX runtime dependencies. List of labels of files needed by PPX at preprocessing runtime. E.g. a file used by `[%%import ]` from [ppx_optcomp](https://github.com/janestreet/ppx_optcomp).",
             allow_files = True,
         ),
         ppx_print = attr.label(
-            doc = "Format of output of PPX transform, binary (default) or text. Value must be one of '@ppx//print:binary', '@ppx//print:text'.",
+            doc = "Format of output of PPX transform. Value must be one of '@ppx//print:binary', '@ppx//print:text'. See [PPX: ppx_print](../ug/ppx.md#ppx_print) for more information.",
             default = "@ppx//print:binary"
         ),
         # ppx_runtime_deps  = attr.label_list(

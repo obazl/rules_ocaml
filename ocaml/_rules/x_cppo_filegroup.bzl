@@ -127,6 +127,25 @@ def _x_cppo_filegroup_impl(ctx):
 ########## DECL:  OCAML_MODULE  ################
 x_cppo_filegroup = rule(
     implementation = _x_cppo_filegroup_impl,
+    doc = """Process file with cppo.
+example:
+x_cppo_filegroup(
+    name = "ExtArray.cppo_mli",
+    srcs = ["extArray.mli"],
+    opts = ["-I", "foo"],
+    defines = [
+        "OCAML 407"
+    ] + WORD_SIZE + HAS_BYTES_FLAG,
+    undefines = ["FOO"],
+    exts = {
+        "lowercase": 'tr "[A-Z]" "[a-z]"'
+    }
+)
+
+output has same name as input, but is output to a Bazel-controlled
+dir (e.g. bazel-bin/src)
+    """,
+
     attrs = dict(
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")

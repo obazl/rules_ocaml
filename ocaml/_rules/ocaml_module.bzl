@@ -141,31 +141,70 @@ def _ocaml_module_impl(ctx):
 ########## DECL:  OCAML_MODULE  ################
 ocaml_module = rule(
     implementation = _ocaml_module_impl,
+    doc = """Compiles an OCaml module. Provides: [OcamlModuleProvider](providers_ocaml.md#ocamlmoduleprovider).
+
+**CONFIGURABLE DEFAULTS** for rule `ocaml_module`
+
+In addition to the [OCaml configurable defaults](#configdefs) that apply to all
+`ocaml_*` rules, the following apply to this rule:
+
+**Options**
+
+| Label | Default | Notes |
+| ----- | ------- | ------- |
+| @ocaml//module:deps | `@ocaml//:null` | list of OCaml deps to add to all `ocaml_module` instances |
+| @ocaml//module:cc_deps<sup>1</sup> | `@ocaml//:null` | list of cc_deps to add to all `ocaml_module` instances |
+| @ocaml//module:cc_linkstatic<sup>1</sup> | `@ocaml//:null` | list of cc_deps to link statically (DEPRECATED) |
+| @ocaml//module:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| sets `-w` option for all `ocaml_module` instances |
+
+<sup>1</sup> See [CC Dependencies](../ug/cc_deps.md) for more information on CC deps.
+
+**Boolean Flags**
+
+| Label | Default | `opts` attrib |
+| ----- | ------- | ------- |
+| @ocaml//module:linkall | True | `-linkall`, `-no-linkall`|
+| @ocaml//module:threads | True | `-thread`, `-no-thread`|
+| @ocaml//module:verbose | True | `-verbose`, `-no-verbose`|
+
+**NOTE** These do not support `:enable`, `:disable` syntax.
+
+ See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
+    """,
     attrs = dict(
         options_ocaml,
         ## RULE DEFAULTS
         _linkall     = attr.label(default = "@ocaml//module:linkall"), # FIXME: call it alwayslink?
         _threads     = attr.label(default = "@ocaml//module:threads"),
         _warnings  = attr.label(default = "@ocaml//module:warnings"),
-        linkopts = attr.string_list(),
+        # linkopts = attr.string_list(),
         #### end options ####
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
         doc = attr.string(
-            doc = "Docstring for module"
+            doc = "Docstring for module. DEPRECATED"
         ),
         module_name   = attr.string(
-            doc = "Module name."
+            doc = "Module name. Overrides `name` attribute."
         ),
-        ns_sep = attr.string(
-            doc = "Namespace separator.  Default: '__'",
-            default = "__"
-        ),
+        # ns_sep = attr.string(
+        #     doc = "Namespace separator.  Default: '__'",
+        #     default = "__"
+        # ),
         ns = attr.label(
             doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc.",
             default = None
         ),
+        # _xns = attr.label(
+        #     doc = "Experimental",
+        #     default = "@ocaml//ns"
+        # ),
+        # xns = attr.label(
+        #     doc = "Experimental",
+        #     cfg = ocaml_ns_transition_reset,
+        #     default = "@ocaml//ns"
+        # ),
         src = attr.label(
             mandatory = True,
             doc = "A single .ml source file label.",

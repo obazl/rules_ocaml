@@ -1,6 +1,8 @@
 options_ppx = dict(
-    opts = attr.string_list(),
-    ## CONFIGURABLE DEFAULTS
+    opts             = attr.string_list(
+        doc          = "List of OCaml options. Will override configurable default options."
+    ),
+    ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
     _debug           = attr.label(default = "@ppx//debug"),
     _cmt             = attr.label(default = "@ppx//cmt"),
     _keep_locs       = attr.label(default = "@ppx//keep-locs"),

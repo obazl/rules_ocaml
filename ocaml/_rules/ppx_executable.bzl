@@ -359,18 +359,17 @@ def _ppx_executable_impl(ctx):
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(
     implementation = _ppx_executable_impl,
-    doc = """
-PPX executable docstring ...
+    doc = """Generates a PPX executable.  Provides: [PpxExecutableProvider](providers_ppx.md#ppxexecutableprovider).
 
-""",
-    # implementation = _ppx_executable_compile_test,
+By default, this rule adds `-predicates ppx_driver` to the command line.
+    """,
     attrs = dict(
         options_ppx,
         _linkall     = attr.label(default = "@ppx//executable:linkall"),
         _threads     = attr.label(default = "@ppx//executable:threads"),
         _warnings  = attr.label(default = "@ppx//executable:warnings"),
         _opts = attr.label(
-            ## We need this for -predicates, to avoid hardcoding it in obazl rules
+            ## We need this for '-predicates ppx_driver', to avoid hardcoding it in obazl rules
             doc = "Hidden options.",
             default = "@ppx//executable:opts"
         ),

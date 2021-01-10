@@ -316,30 +316,41 @@ def _ppx_archive_impl(ctx):
 #### RULE DECL:  PPX_ARCHIVE  #########
 ppx_archive = rule(
     implementation = _ppx_archive_impl,
+    doc = """Generates an OCaml archive file suitable for use as a PPX dependency.   Provides: [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider).""",
     attrs = dict(
         options_ppx,
-        archive_name = attr.string(),
-        preprocessor = attr.label(
-            providers = [PpxExecutableProvider],
-            executable = True,
-            cfg = "exec",
-            # allow_single_file = True
+        archive_name = attr.string(
+            doc = "Name of generated archive file, without extension. Overrides `name` attribute."
         ),
-        msg = attr.string(),
-        dump_ast = attr.bool(default = True),
-        # srcs = attr.label_list(
-        #   allow_files = OCAML_FILETYPES
-        # ),
-        linkshared = attr.bool(default = False),
+        ## CONFIGURABLE DEFAULTS
         _linkall     = attr.label(default = "@ppx//archive:linkall"),
         _threads     = attr.label(default = "@ppx//archive:threads"),
         _warnings  = attr.label(default = "@ppx//archive:warnings"),
+        linkshared = attr.bool(
+            doc = "Generate a 'plugin', i.e. a `.cmxs` file. Adds `-shared` to command line.",
+            default = False
+        ),
         #### end options ####
+        msg = attr.string( doc = "DEPRECATED" ),
         deps = attr.label_list(
+            doc = "List of OCaml dependencies.",
             providers = [[DefaultInfo], [PpxModuleProvider]]
         ),
-        lazy_deps = attr.label_list(
-            providers = [[DefaultInfo], [PpxModuleProvider]]
+        cc_deps = attr.label_keyed_string_dict(
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            """,
+            providers = [[CcInfo]]
+        ),
+        cc_linkopts = attr.string_list(
+            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
+        ),
+        cc_linkall = attr.label_list(
+            doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+            providers = [CcInfo],
+        ),
+        _cc_linkmode = attr.label(
+            doc     = "Override platform-dependent link mode (static or dynamic). Configurable default is platform-dependent: static on Linux, dynamic on MacOS.",
+            # default is os-dependent, but settable to static or dynamic
         ),
         _mode = attr.label(
             default = "@ppx//mode",
