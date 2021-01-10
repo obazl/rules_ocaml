@@ -34,6 +34,12 @@ def ns_module_compile(ctx):
   # print("NS_MODULE_NAME %s" % ns_module_name)
   pfx = capitalize_initial_char(ctx.attr.ns) + ctx.attr.ns_sep
   dep_graph = []
+
+  if hasattr(ctx.files, "submods"):
+      for xsm in ctx.files.submods:
+          # add submodules to dep graph, bazel will ensure they exist
+          dep_graph.append(xsm)
+
   for sm in ctx.files.submodules:
     # add submodules to dep graph, bazel will ensure they exist
     dep_graph.append(sm)

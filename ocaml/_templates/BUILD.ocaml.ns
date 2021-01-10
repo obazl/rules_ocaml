@@ -1,9 +1,11 @@
-load("@bazel_skylib//rules:common_settings.bzl", "string_list_flag")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag", "string_list_flag")
 load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_verbose_flag")
 
 package(default_visibility = ["//visibility:public"])
 
 label_flag( name = "deps", build_setting_default = "@opam//:null")
+
+string_flag( name = "ns", build_setting_default = "XXX")
 
 ocaml_verbose_flag( name = "verbose", build_setting_default = False)
 

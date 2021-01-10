@@ -59,6 +59,8 @@ def _ocaml_module_impl(ctx):
 
   if debug:
       print("MODULE TARGET: %s" % ctx.label.name)
+      # print("TEST ocaml_module XNS: %s" % ctx.attr.xns[0][BuildSettingInfo].value)
+      # print("TEST ocaml_module _XNS: %s" % ctx.attr._xns[BuildSettingInfo].value)
 
   if len(ctx.attr.ppx_tags) > 1:
       fail("Only one ppx_tag allowed currently.")
@@ -304,12 +306,15 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     ## required for transition fn of attribute _mode
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
 
-        msg = attr.string(),
+        msg = attr.string( doc = "DEPRECATED" ),
     ),
     provides = [OcamlModuleProvider],
     # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-    # cfg = ocaml_mode_transition_outgoing
+    # cfg = ocaml_ns_transition_incoming # ocaml_mode_transition_outgoing
 )
