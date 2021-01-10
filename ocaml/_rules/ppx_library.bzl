@@ -1,6 +1,6 @@
 load("@bazel_skylib//lib:collections.bzl", "collections")
 load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
-load("//ppx/_config:transitions.bzl", "ppx_mode_transition")
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
 load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
