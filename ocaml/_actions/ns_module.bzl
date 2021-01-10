@@ -101,7 +101,8 @@ def ns_module_compile(ctx):
       # print("WARNINGS: %s" % ctx.attr.warnings[BuildSettingInfo].value)
       args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
-  args.add_all(ctx.attr.opts)
+  if hasattr(ctx.attr, "opts"):
+      args.add_all(ctx.attr.opts)
 
   ## This flag is REQUIRED for ns modules; see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
   args.add("-no-alias-deps")
