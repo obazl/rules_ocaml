@@ -66,11 +66,11 @@ def get_archive_deps(rule, ctx):
   nopam_lazy_directs = []
   nopam_lazy_indirects = []
 
-  ## ppx rules may have a lazy_deps attrib.
-  if hasattr(ctx.attr, "lazy_deps"):
+  ## ppx rules may have a adjunct_deps attrib.
+  if hasattr(ctx.attr, "adjunct_deps"):
       if debug:
-          print("LAZY_DEPS: %s" % ctx.attr.lazy_deps)
-      for dep in ctx.attr.lazy_deps:
+          print("ADJUNCT_DEPS: %s" % ctx.attr.adjunct_deps)
+      for dep in ctx.attr.adjunct_deps:
           if OpamPkgInfo in dep:
               provider = dep[OpamPkgInfo]
               opam_lazy_directs.append(provider)
@@ -450,7 +450,7 @@ def get_archive_deps(rule, ctx):
     direct     = opam_directs,
     transitive = opam_indirects
   )
-  opam_lazy_depset = depset(
+  opam_adjunct_depset = depset(
     order      = "postorder",
     direct     = opam_lazy_directs,
     transitive = opam_lazy_indirects
@@ -461,7 +461,7 @@ def get_archive_deps(rule, ctx):
     direct = nopam_directs,
     transitive = nopam_indirects
   )
-  nopam_lazy_depset = depset(
+  nopam_adjunct_depset = depset(
     order      = "postorder",
     direct     = nopam_lazy_directs,
     transitive = nopam_lazy_indirects
@@ -471,15 +471,15 @@ def get_archive_deps(rule, ctx):
   if debug:
       print("\n\n\t\tGET_ALL_DEPS result {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
       print("\n\t\t\t OPAM DEPSET: %s\n\n"  % opam_depset)
-      print("\n\t\t\t OPAM LAZY DEPSET: %s\n\n"  % opam_lazy_depset)
+      print("\n\t\t\t OPAM LAZY DEPSET: %s\n\n"  % opam_adjunct_depset)
       print("\n\t\t\t NOPAM DEPSET: %s\n\n" % nopam_depset)
-      print("\n\t\t\t NOPAM LAZY DEPSET: %s\n\n" % nopam_lazy_depset)
+      print("\n\t\t\t NOPAM LAZY DEPSET: %s\n\n" % nopam_adjunct_depset)
 
   # print("\n\n\t\t\t NOPAM DEPSET FILES: %s\n\n" % nopam_depset.to_list())
 
   return struct( default = defaults,
                  opam = opam_depset,
-                 opam_lazy = opam_lazy_depset,
+                 opam_lazy = opam_adjunct_depset,
                  nopam = nopam_depset,
-                 nopam_lazy = nopam_lazy_depset,
+                 nopam_lazy = nopam_adjunct_depset,
                 )

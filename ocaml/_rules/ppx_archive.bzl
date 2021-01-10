@@ -44,19 +44,18 @@ def _ppx_archive_impl(ctx):
           print("DEBUGGING %s" % ctx.label)
           debug = True
 
-
   mydeps = get_all_deps("ppx_archive", ctx)
 
   # print("PPX ARCHIVE MYDEPS")
   # print(mydeps.opam)
 
-  # opam_lazy_deps = []
-  # nopam_lazy_deps = []
-  # for dep in ctx.attr.lazy_deps:
+  # opam_adjunct_deps = []
+  # nopam_adjunct_deps = []
+  # for dep in ctx.attr.adjunct_deps:
   #   if OpamPkgInfo in dep:
-  #       opam_lazy_deps.append(dep)
+  #       opam_adjunct_deps.append(dep)
   #   else:
-  #       nopam_lazy_deps.append(dep)
+  #       nopam_adjunct_deps.append(dep)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -296,9 +295,9 @@ def _ppx_archive_impl(ctx):
       payload = payload,
       deps = PpxDepsetProvider(
           opam  = mydeps.opam,
-          opam_lazy = mydeps.opam_lazy,
+          opam_adjunct = mydeps.opam_adjunct,
           nopam = mydeps.nopam,
-          nopam_lazy = mydeps.nopam_lazy
+          nopam_adjunct = mydeps.nopam_adjunct
       )
   )
 

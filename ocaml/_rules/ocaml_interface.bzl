@@ -150,23 +150,23 @@ def _ocaml_interface_impl(ctx):
   # args.add("-linkpkg")
   # args.add("-linkall")
 
-  ppx_opam_lazy_deps = []
-  ppx_nopam_lazy_deps = []
+  ppx_opam_adjunct_deps = []
+  ppx_nopam_adjunct_deps = []
 
-  ## FIXME: use mydeps.opam_lazy
+  ## FIXME: use mydeps.opam_adjunct
   if ctx.attr.ppx:
     if PpxExecutableProvider in ctx.attr.ppx:
-        ppx_opam_lazy_deps = ctx.attr.ppx[PpxExecutableProvider].deps.opam_lazy
-        for dep in ppx_opam_lazy_deps.to_list():
+        ppx_opam_adjunct_deps = ctx.attr.ppx[PpxExecutableProvider].deps.opam_adjunct
+        for dep in ppx_opam_adjunct_deps.to_list():
             opam_deps.append(dep.pkg.name)
             # for p in dep.pkg.to_list():
             #     opam_deps.append(p.name)
-        ppx_nopam_lazy_deps = ctx.attr.ppx[PpxExecutableProvider].deps.nopam_lazy
-        for lazy_dep in ppx_nopam_lazy_deps.to_list():
+        ppx_nopam_adjunct_deps = ctx.attr.ppx[PpxExecutableProvider].deps.nopam_adjunct
+        for adjunct_dep in ppx_nopam_adjunct_deps.to_list():
             # if debug:
-            #     print("LAZY DEP: %s" % lazy_dep)
-            nopam_deps.append(lazy_dep)
-            includes.append(lazy_dep.dirname)
+            #     print("ADJUNCT DEP: %s" % adjunct_dep)
+            nopam_deps.append(adjunct_dep)
+            includes.append(adjunct_dep.dirname)
 
   for dep in mydeps.opam.to_list():
       if not dep.ppx_driver: ## FIXME: is this correct?

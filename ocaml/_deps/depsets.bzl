@@ -90,96 +90,96 @@ def get_all_deps(rule, ctx):
   opam_indirects = []
   nopam_indirects = []
 
-  # lazy deps
-  opam_lazy_directs = []
-  opam_lazy_indirects = []
-  nopam_lazy_directs = []
-  nopam_lazy_indirects = []
+  # adjunct deps
+  opam_adjunct_directs = []
+  opam_adjunct_indirects = []
+  nopam_adjunct_directs = []
+  nopam_adjunct_indirects = []
 
-  ## ppx rules may have a lazy_deps attrib.
-  if hasattr(ctx.attr, "lazy_deps"):
+  ## ppx rules may have a adjunct_deps attrib.
+  if hasattr(ctx.attr, "adjunct_deps"):
       if debug:
-          print("LAZY_DEPS: %s" % ctx.attr.lazy_deps)
-      for dep in ctx.attr.lazy_deps:
+          print("ADJUNCT_DEPS: %s" % ctx.attr.adjunct_deps)
+      for dep in ctx.attr.adjunct_deps:
           if OpamPkgInfo in dep:
               provider = dep[OpamPkgInfo]
-              opam_lazy_directs.append(provider)
+              opam_adjunct_directs.append(provider)
           else:
               if OcamlModuleProvider in dep:
                   provider = dep[OcamlModuleProvider]
                   if hasattr(provider.payload, "cmo"):
-                      nopam_lazy_directs.append(provider.payload.cmo)
+                      nopam_adjunct_directs.append(provider.payload.cmo)
                   elif hasattr(provider.payload, "cmx"):
-                      nopam_lazy_directs.append(provider.payload.cmx)
+                      nopam_adjunct_directs.append(provider.payload.cmx)
                   else:
-                      fail("Lazy dep neither cmo nor cmx")
+                      fail("Adjunct dep neither cmo nor cmx")
                   if hasattr(provider.payload, "o"):
-                      nopam_lazy_directs.append(provider.payload.o)
+                      nopam_adjunct_directs.append(provider.payload.o)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
-                          nopam_lazy_directs.append(provider.payload.mli)
-                  nopam_lazy_directs.append(provider.payload.cmi)
+                          nopam_adjunct_directs.append(provider.payload.mli)
+                  nopam_adjunct_directs.append(provider.payload.cmi)
                   if provider.deps.nopam:
-                      nopam_lazy_indirects.append(provider.deps.nopam)
+                      nopam_adjunct_indirects.append(provider.deps.nopam)
                   if provider.deps.opam:
-                      opam_lazy_indirects.append(provider.deps.opam)
+                      opam_adjunct_indirects.append(provider.deps.opam)
               elif OcamlArchiveProvider in dep:
                   if debug:
-                      print("LAZY OcamlArchiveProvider dep: %s" % dep)
+                      print("ADJUNCT OcamlArchiveProvider dep: %s" % dep)
                   provider = dep[OcamlArchiveProvider]
-                  nopam_lazy_directs.append(provider.payload.cma)
+                  nopam_adjunct_directs.append(provider.payload.cma)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
-                          nopam_lazy_directs.append(provider.payload.mli)
+                          nopam_adjunct_directs.append(provider.payload.mli)
                   if hasattr(provider.payload, "a"):
-                      nopam_lazy_directs.append(provider.payload.a)
+                      nopam_adjunct_directs.append(provider.payload.a)
                   if hasattr(provider, "deps"):
                       if provider.deps.nopam:
-                          nopam_lazy_indirects.append(provider.deps.nopam)
+                          nopam_adjunct_indirects.append(provider.deps.nopam)
               elif PpxModuleProvider in dep:
                   if debug:
-                      print("LAZY PpxModuleProvider dep: %s" % dep)
+                      print("ADJUNCT PpxModuleProvider dep: %s" % dep)
                   provider = dep[PpxModuleProvider]
                   if mode == "native":
-                      nopam_lazy_directs.append(provider.payload.cmx)
+                      nopam_adjunct_directs.append(provider.payload.cmx)
                   else:
-                      nopam_lazy_directs.append(provider.payload.cmo)
+                      nopam_adjunct_directs.append(provider.payload.cmo)
                   if hasattr(provider.payload, "o"):
-                      nopam_lazy_directs.append(provider.payload.o)
+                      nopam_adjunct_directs.append(provider.payload.o)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
-                          nopam_lazy_directs.append(provider.payload.mli)
-                  nopam_lazy_directs.append(provider.payload.cmi)
+                          nopam_adjunct_directs.append(provider.payload.mli)
+                  nopam_adjunct_directs.append(provider.payload.cmi)
                   if provider.deps.nopam:
-                      nopam_lazy_indirects.append(provider.deps.nopam)
+                      nopam_adjunct_indirects.append(provider.deps.nopam)
                   if provider.deps.opam:
-                      opam_lazy_indirects.append(provider.deps.opam)
+                      opam_adjunct_indirects.append(provider.deps.opam)
               elif PpxArchiveProvider in dep:
                   if debug:
-                      print("LAZY PpxArchiveProvider dep: %s" % dep)
+                      print("ADJUNCT PpxArchiveProvider dep: %s" % dep)
                   provider = dep[PpxArchiveProvider]
-                  nopam_lazy_directs.append(provider.payload.cma)
+                  nopam_adjunct_directs.append(provider.payload.cma)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
-                          nopam_lazy_directs.append(provider.payload.mli)
+                          nopam_adjunct_directs.append(provider.payload.mli)
                   if hasattr(provider.payload, "a"):
-                      nopam_lazy_directs.append(provider.payload.a)
+                      nopam_adjunct_directs.append(provider.payload.a)
                   if provider.deps.nopam:
-                      nopam_lazy_indirects.append(provider.deps.nopam)
+                      nopam_adjunct_indirects.append(provider.deps.nopam)
               elif PpxExecutableProvider in dep:
                   provider = dep[PpxExecutableProvider]
                   if debug:
-                      print("LAZY PpxExecutableProvider dep: %s" % dep)
-                  nopam_lazy_directs.append(provider.payload)
+                      print("ADJUNCT PpxExecutableProvider dep: %s" % dep)
+                  nopam_adjunct_directs.append(provider.payload)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
-                          nopam_lazy_directs.append(provider.payload.mli)
+                          nopam_adjunct_directs.append(provider.payload.mli)
                   if hasattr(provider.payload, "a"):
-                      nopam_lazy_directs.append(provider.payload.a)
+                      nopam_adjunct_directs.append(provider.payload.a)
                   if provider.deps.nopam:
-                      nopam_lazy_indirects.append(provider.deps.nopam)
+                      nopam_adjunct_indirects.append(provider.deps.nopam)
               else:
-                      print("LAZY Unknown Provider dep: %s" % dep)
+                      print("ADJUNCT Unknown Provider dep: %s" % dep)
 
   if debug:
       print("DIRECT_DEPS: %s" % ctx.attr.deps)
@@ -381,8 +381,8 @@ def get_all_deps(rule, ctx):
         nopam_indirects.append(provider.deps.nopam)
 
         opam_indirects.append(provider.deps.opam)
-        opam_lazy_indirects.append(provider.deps.opam_lazy)
-        nopam_lazy_indirects.append(provider.deps.nopam_lazy)
+        opam_adjunct_indirects.append(provider.deps.opam_adjunct)
+        nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
     elif PpxExecutableProvider in dep:
       bp = dep[PpxExecutableProvider]
       # print("PpxExecutableProvider: %s" % bp)
@@ -429,8 +429,8 @@ def get_all_deps(rule, ctx):
         #                     print("OMITTING INDIRECT/DIRECT DEP: %s" % dep)
 
         opam_indirects.append(provider.deps.opam)
-        opam_lazy_indirects.append(provider.deps.opam_lazy)
-        nopam_lazy_indirects.append(provider.deps.nopam_lazy)
+        opam_adjunct_indirects.append(provider.deps.opam_adjunct)
+        nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
     elif PpxNsModuleProvider in dep:
       if debug:
           print("PpxNsModuleProvider: %s" % dep)
@@ -499,7 +499,7 @@ def get_all_deps(rule, ctx):
           if dep_provider.deps.opam:
               opam_indirects.append(dep_provider.deps.opam)
 
-  ## get lazy deps for ppx; ocaml_module and ppx_module only
+  ## get adjunct deps for ppx; ocaml_module and ppx_module only
   if hasattr(ctx.attr, "ppx"):
       if ctx.attr.ppx:
           if debug:
@@ -507,8 +507,8 @@ def get_all_deps(rule, ctx):
           provider = ctx.attr.ppx[PpxExecutableProvider]
           if debug:
               print("PPX DEP PROVIDER: {}".format(provider))
-          opam_lazy_indirects.append(provider.deps.opam_lazy)
-          nopam_lazy_indirects.append(provider.deps.nopam_lazy)
+          opam_adjunct_indirects.append(provider.deps.opam_adjunct)
+          nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
 
   ## ns attribute: label for module and intf, string for ocaml_ns
   if (rule == "ocaml_module") or (rule == "ocaml_interface") or (rule == "ppx_module"):
@@ -636,7 +636,7 @@ def get_all_deps(rule, ctx):
               if rule == "ppx_executable":
                   opam_directs.append(opam_dep)
               if opam_dep.pkg == Label("@opam//pkg:bisect_ppx"):
-                  opam_lazy_directs.append(
+                  opam_adjunct_directs.append(
                       # Temporary hack until opam rules contain adjunct deps
                       OpamPkgInfo(
                           pkg = Label("@opam//pkg:bisect_ppx.runtime"),
@@ -665,8 +665,8 @@ def get_all_deps(rule, ctx):
       if ctx.attr.main != None:
           if (PpxModuleProvider in ctx.attr.main):
               provider = ctx.attr.main[PpxModuleProvider]
-              nopam_lazy_indirects.append(provider.deps.nopam_lazy)
-              opam_lazy_indirects.append(provider.deps.opam_lazy)
+              nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
+              opam_adjunct_indirects.append(provider.deps.opam_adjunct)
           elif (OcamlModuleProvider in ctx.attr.main):
               provider = ctx.attr.main[OcamlModuleProvider]
           else:
@@ -693,10 +693,10 @@ def get_all_deps(rule, ctx):
     direct     = opam_directs,
     transitive = opam_indirects
   )
-  opam_lazy_depset = depset(
+  opam_adjunct_depset = depset(
     order      = "postorder",
-    direct     = opam_lazy_directs,
-    transitive = opam_lazy_indirects
+    direct     = opam_adjunct_directs,
+    transitive = opam_adjunct_indirects
   )
 
   nopam_depset = depset(
@@ -704,25 +704,25 @@ def get_all_deps(rule, ctx):
     direct =  [x for x in nopam_directs if x != None],
     transitive = nopam_indirects
   )
-  nopam_lazy_depset = depset(
+  nopam_adjunct_depset = depset(
     order      = "postorder",
-    direct     = nopam_lazy_directs,
-    transitive = nopam_lazy_indirects
+    direct     = nopam_adjunct_directs,
+    transitive = nopam_adjunct_indirects
   )
 
 
   if debug:
       print("\n\n\t\tGET_ALL_DEPS result {rule}({target})\n\n".format(rule=rule, target=ctx.label.name))
       print("\n\t\t\t OPAM DEPSET: %s\n\n"  % opam_depset)
-      print("\n\t\t\t OPAM LAZY DEPSET: %s\n\n"  % opam_lazy_depset)
+      print("\n\t\t\t OPAM ADJUNCT DEPSET: %s\n\n"  % opam_adjunct_depset)
       print("\n\t\t\t NOPAM DEPSET: %s\n\n" % nopam_depset)
-      print("\n\t\t\t NOPAM LAZY DEPSET: %s\n\n" % nopam_lazy_depset)
+      print("\n\t\t\t NOPAM ADJUNCT DEPSET: %s\n\n" % nopam_adjunct_depset)
 
   # print("\n\n\t\t\t NOPAM DEPSET FILES: %s\n\n" % nopam_depset.to_list())
 
   return struct( default = defaults,
                  opam = opam_depset,
-                 opam_lazy = opam_lazy_depset,
+                 opam_adjunct = opam_adjunct_depset,
                  nopam = nopam_depset,
-                 nopam_lazy = nopam_lazy_depset,
+                 nopam_adjunct = nopam_adjunct_depset,
                 )

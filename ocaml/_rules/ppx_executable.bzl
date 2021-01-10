@@ -192,8 +192,8 @@ def _ppx_executable_impl(ctx):
 
 
   opam_deps = mydeps.opam.to_list()
-  ## indirect lazy deps
-  opam_deps.extend(mydeps.opam_lazy.to_list())
+  ## indirect adjunct deps
+  opam_deps.extend(mydeps.opam_adjunct.to_list())
 
   if len(opam_deps) > 0:
     # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
@@ -243,33 +243,33 @@ def _ppx_executable_impl(ctx):
       print("DEP_GRAPH:")
       print(dep_graph)
 
-  ## direct lazy deps
-  opam_lazy_deps = []
-  nopam_lazy_deps = []
-  # this covers direct lazy deps; what about indirects?
-  # e.g. suppose a direct lazy dep depends on a module that has its own lazy deps.
-  # e.g. a non-lazy dep has lazy deps - ppx_executable depends on ppx_modules with lazy deps
-  for dep in ctx.attr.lazy_deps:
+  ## direct adjunct deps
+  opam_adjunct_deps = []
+  nopam_adjunct_deps = []
+  # this covers direct adjunct deps; what about indirects?
+  # e.g. suppose a direct adjunct dep depends on a module that has its own adjunct deps.
+  # e.g. a non-adjunct dep has adjunct deps - ppx_executable depends on ppx_modules with adjunct deps
+  for dep in ctx.attr.adjunct_deps:
     if debug:
-        print("DEP LAZY_DEP: %s" % dep)
+        print("DEP ADJUNCT_DEP: %s" % dep)
         # ed = ctx.attr.deps[key]
         # if OpamPkgInfo in ed:
         #     if debug:
         #         print("is OPAM")
         #     output_dep = ed[OpamPkgInfo].pkg.to_list()[0]
-        #     lazy_deps.append(output_dep)
+        #     adjunct_deps.append(output_dep)
         # # else:
-        # #     lazy_deps.append(ctx.attr.deps[key].name)
+        # #     adjunct_deps.append(ctx.attr.deps[key].name)
     if OpamPkgInfo in dep:
         if debug:
             print("is OPAM: %s" % dep)
         provider = dep[OpamPkgInfo]
-        opam_lazy_deps.append(provider)
+        opam_adjunct_deps.append(provider)
     else:
-        nopam_lazy_deps.append(dep)
+        nopam_adjunct_deps.append(dep)
 
   ## this is handled by get_all_deps
-  # nopam_lazy_deps.extend(mydeps.nopam_lazy.to_list())
+  # nopam_adjunct_deps.extend(mydeps.nopam_adjunct.to_list())
 
 
   ## FIXME: put deps of main into dep_graph, but also make sure main file itself comes last
@@ -326,7 +326,7 @@ def _ppx_executable_impl(ctx):
           )
       )
 
-  # print("PPX_EXECUTABLE TRANSFORM: %s" % lazy_deps)
+  # print("PPX_EXECUTABLE TRANSFORM: %s" % adjunct_deps)
 
   results = [
       defaultInfo,
@@ -335,11 +335,11 @@ def _ppx_executable_impl(ctx):
           args = depset(direct = ctx.attr.args),
           deps = struct(
               opam = mydeps.opam,
-              opam_lazy = mydeps.opam_lazy,
-              # opam_lazy = depset(direct = opam_lazy_deps),
+              opam_adjunct = mydeps.opam_adjunct,
+              # opam_adjunct = depset(direct = opam_adjunct_deps),
                 nopam = mydeps.nopam,
-              nopam_lazy = mydeps.nopam_lazy
-              # nopam_lazy = depset(direct = nopam_lazy_deps)
+              nopam_adjunct = mydeps.nopam_adjunct
+              # nopam_adjunct = depset(direct = nopam_adjunct_deps)
             )
       )
   ]
@@ -410,10 +410,14 @@ PPX executable docstring ...
             doc = "Dependency to be added last.",
             default = "@ppx//executable:deps"
         ),
-        lazy_deps = attr.label_list(
-            doc = """(Lazy) eXtension Dependencies.""",
+        adjunct_deps = attr.label_list(
+            doc = """Adjunct dependencies.""",
             # providers = [[DefaultInfo], [PpxModuleProvider]]
         ),
+        # adjunct_deps = attr.label_list(
+        #     doc = """(Adjunct) eXtension Dependencies.""",
+        #     # providers = [[DefaultInfo], [PpxModuleProvider]]
+        # ),
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
             providers = [[CcInfo]]

@@ -74,7 +74,7 @@ def compile_module(rule, ctx, mode, mydeps):
       ## this will also handle ns
       (tmpdir, xsrc) = ppx_transform(rule, ctx, ctx.file.src)
       dep_graph.append(ctx.file.ppx)
-      # a ppx executable may have lazy deps; they are handled by get_all_deps
+      # a ppx executable may have adjunct deps; they are handled by get_all_deps
   elif ctx.attr.ns:
       # rename this module to put it in the namespace
       xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
@@ -312,16 +312,16 @@ def compile_module(rule, ctx, mode, mydeps):
       elif dep.extension == ".cmxs":
           includes.append(dep.dirname)
 
-  ## lazy deps: we're compiling a module, so make them eager
-  ## NO: only use lazy deps from ppx to compile this module,
-  ## the lazy deps in the deps tree are propagated.
+  ## adjunct deps: we're compiling a module, so make them eager
+  ## NO: only use adjunct deps from ppx to compile this module,
+  ## the adjunct deps in the deps tree are propagated.
   ## which should only happen for ppx_* rules.
   ## i.e. if an ocaml_module depends on a ppx lib, then it too is a ppx lib.
   ## FIXME: do not allow ocaml_modules to depend on ppx_*?
 
   ## FIXME: we do not compile cc code, no need for this?
   ## we only use ocamlfind's -ccopt for link flags
-  args.add_all(ctx.attr.cc_opts, before_each="-ccopt")
+  # args.add_all(ctx.attr.cc_opts, before_each="-ccopt")
 
   args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -332,21 +332,21 @@ def compile_module(rule, ctx, mode, mydeps):
       for dep in opam_deps:
           args.add("-package", dep.pkg.name) # adds directories of OPAM files to search path using -I
 
-  ## add lazy_deps from ppx provider
-  ## lazy deps in the dep graph are NOT compile deps of this module.
-  ## only the lazy deps of the ppx are.
+  ## add adjunct_deps from ppx provider
+  ## adjunct deps in the dep graph are NOT compile deps of this module.
+  ## only the adjunct deps of the ppx are.
   if ctx.attr.ppx:
       ppx_provider = ctx.attr.ppx[PpxExecutableProvider]
       if debug:
           print("PPX Provider: %s" % ppx_provider)
-      for dep in ppx_provider.deps.opam_lazy.to_list():
+      for dep in ppx_provider.deps.opam_adjunct.to_list():
           if debug:
-              print("OPAM lazy dep: %s" % dep)
+              print("OPAM adjunct dep: %s" % dep)
           args.add("-package", dep.pkg.name)
           # args.add("-package", dep.pkg.to_list()[0].name)
-      for dep in ppx_provider.deps.nopam_lazy.to_list():
+      for dep in ppx_provider.deps.nopam_adjunct.to_list():
           if debug:
-              print("NOPAM lazy dep: %s" % dep)
+              print("NOPAM adjunct dep: %s" % dep)
           if dep.extension == "cmxa":
               dep_graph.append(dep)
               includes.append(dep.dirname)

@@ -55,10 +55,11 @@ PpxDepsetProvider = provider(
     doc = "A Provider struct used by OBazl rules to provide heterogenous dependencies.",
     fields = {
         "opam"       : "depset of OPAM deps (Labels) of target",
-        "opam_lazy"  : "depset of adjunct OPAM deps; needed when transformed source is compiled",
+        "opam_adjunct"  : "depset of adjunct OPAM deps; needed when transformed source is compiled",
         "nopam"      : "depset of non-OPAM deps (Files) of target",
-        "nopam_lazy" : "depset of adjunct non-OPAM deps; needed when transformed source is compiled"
-        # "cclib"  : "C/C++ lib deps"
+        "nopam_adjunct" : "depset of adjunct non-OPAM deps; needed when transformed source is compiled",
+        "cc_deps"  : "depset of C/C++ lib deps",
+        "cc_linkall" : "string list of cc libs to link with `-force_load` (Clang) or `-whole-archive` (Linux). (Corresponds to `alwayslink` attribute of cc_library etc., and `-linkall` option for OCaml.)"
    }
 )
 
@@ -77,9 +78,9 @@ PpxExecutableProvider = provider(
         "args"   : "Args to be passed when binary is invoked",
         "deps"   : """A triple of depsets:
             opam : direct and transitive opam deps (Labels) of target
-            opam_lazy : extension output deps; needed when transformed source is compiled
+            opam_adjunct : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy : extension output deps; needed when transformed source is compiled
+            nopam_adjunct : extension output deps; needed when transformed source is compiled
         """
     }
 )
@@ -93,9 +94,9 @@ PpxLibraryProvider = provider(
         """,
         "deps"   : """A pair of depsets:
             opam : direct and transitive opam deps (Labels) of target
-            opam_lazy_deps : extension output deps; needed when transformed source is compiled
+            opam_adjunct_deps : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy_deps : extension output deps; needed when transformed source is compiled
+            nopam_adjunct_deps : extension output deps; needed when transformed source is compiled
         """
     }
 )
@@ -111,9 +112,9 @@ PpxModuleProvider = provider(
         """,
         "deps"   : """A collectikon of depsets:
             opam : direct and transitive opam deps (Labels) of target
-            opam_lazy : extension output deps; needed when transformed source is compiled
+            opam_adjunct : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
-            nopam_lazy : extension output deps; needed when transformed source is compiled
+            nopam_adjunct : extension output deps; needed when transformed source is compiled
             cc_deps : C/C++ deps
         """
     }

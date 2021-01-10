@@ -79,13 +79,13 @@ def _ppx_module_impl(ctx):
       payload = payload,
       deps = struct(
           opam  = result.opam,
-          opam_lazy = mydeps.opam_lazy,
-          # opam_lazy = depset(order = "postorder",
-          #                    direct = opam_lazy_deps),
+          opam_adjunct = mydeps.opam_adjunct,
+          # opam_adjunct = depset(order = "postorder",
+          #                    direct = opam_adjunct_deps),
           nopam = result.nopam,
-          nopam_lazy = mydeps.nopam_lazy
-          # nopam_lazy = depset(order = "postorder",
-          #                    direct = nopam_lazy_deps),
+          nopam_adjunct = mydeps.nopam_adjunct
+          # nopam_adjunct = depset(order = "postorder",
+          #                    direct = nopam_adjunct_deps),
       )
   )
 
@@ -159,14 +159,11 @@ ppx_module = rule(
             doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
         ),
-        lazy_deps  = attr.label_list(
-            doc = "PPX lazy (i.e. 'runtime') deps.",
+        adjunct_deps = attr.label_list(
+            doc = "List of [adjunct dependencies](../ug/dependencies_ocaml.md#adjunct_deps).",
+            # providers = [[DefaultInfo], [PpxModuleProvider]]
             allow_files = True,
         ),
-        # ppx = attr.label_keyed_string_dict(
-        #   doc = """Dictionary of one entry. Key is a ppx target, val string is arguments.""",
-        #   providers = [PpxExecutableProvider]
-        # ),
         ppx  = attr.label(
             doc = "PPX binary (executable) used to transform source before compilation.",
             executable = True,
