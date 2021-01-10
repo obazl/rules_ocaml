@@ -10,10 +10,10 @@ package(default_visibility = ["//visibility:public"])
 
 label_flag( name = "deps", build_setting_default = "@ocaml//:null")
 
-bool_flag( name = "linkall", build_setting_default = True)
-
 label_flag( name = "cc_deps", build_setting_default = "@ocaml//:null")
 label_flag( name = "cc_linkstatic", build_setting_default = "@ocaml//:null")
+
+bool_flag( name = "linkall", build_setting_default = True)
 
 bool_flag( name = "threads", build_setting_default = True )
 

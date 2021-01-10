@@ -236,37 +236,64 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             default = "@ocaml//module:deps"
         ),
         cc_deps = attr.label_keyed_string_dict(
-            doc = "C/C++ library dependencies",
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            """,
             # providers = [[CcInfo]]
         ),
         _cc_deps = attr.label(
             doc = "Global cc-deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
-        cc_opts = attr.string_list(
-        ## FIXME: no need for this, we do not compile cc code
-            doc = "C/C++ options",
+        # cc_opts = attr.string_list(
+        # ## FIXME: no need for this, we do not compile cc code
+        #     doc = "C/C++ options",
+        # ),
+        cc_linkall = attr.label_list(
+            ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
+            doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+            # providers = [CcInfo],
+        ),
+        cc_linkopts = attr.string_list(
+            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
+
         ),
         cc_linkstatic = attr.bool(
             ## FIXME: replaced by "static" value for cc_deps dict
-            doc     = "Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+            doc     = "DEPRECATED. Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
             default = True # False  ## false on macos, true on linux?
         ),
         ## TODO:
         _cc_linkstatic = attr.label(
+            ## FIXME: find a better way
             doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:cc_linkstatic"
         ),
-        cc_linkall = attr.label_list(
-            ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
-            doc     = "True: use -whole-archive (GCC toolchain) or -force_load (Clang toolchain)",
-            providers = [CcInfo],
+        ppx  = attr.label(
+            doc = "PPX binary (executable).",
+            executable = True,
+            cfg = "exec",
+            allow_single_file = True,
+            providers = [PpxExecutableProvider]
+        ),
+        ppx_args  = attr.string_list(
+            doc = "Options to pass to PPX binary.",
+        ),
+        ppx_tags  = attr.string_list(
+            doc = "List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
+        ),
+        ppx_data  = attr.label_list(
+            doc = "PPX runtime dependencies. List of labels of files needed by PPX at preprocessing runtime. E.g. a file used by `[%%import ]` from [ppx_optcomp](https://github.com/janestreet/ppx_optcomp).",
+            allow_files = True,
+        ),
+        ppx_print = attr.label(
+            doc = "Format of output of PPX transform. Value must be one of '@ppx//print:binary', '@ppx//print:text'.  See [PPX](../ug/ppx.md#ppx_print) for more information",
+            default = "@ppx//print:binary"
         ),
         ## CONFIGURABLE DEFAULTS ##
         _mode       = attr.label(
             default = "@ocaml//mode",
         ),
-        dual_mode = attr.bool(default = False),
+        # dual_mode = attr.bool(default = False),
         # _ppx_mode       = attr.label(
         #     default = "@ppx//mode",
         #     # Attaching to an attribute transitions the configuration of this dependency (and

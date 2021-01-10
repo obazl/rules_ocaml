@@ -75,7 +75,8 @@ OcamlDepsetProvider = provider(
     fields = {
         "opam"   : "depset of OPAM deps (Labels) of target",
         "nopam"  : "depset of non-OPAM deps (Files) of target",
-        "cclib"  : "depset of C/C++ lib deps"
+        "cc_deps"  : "depset of C/C++ lib deps",
+        "cc_linkall" : "string list of cc libs to link with `-force_load` (Clang) or `-whole-archive` (Linux). (Corresponds to `alwayslink` attribute of cc_library etc., and `-linkall` option for OCaml.)"
    }
 )
 

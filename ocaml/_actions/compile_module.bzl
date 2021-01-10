@@ -247,6 +247,9 @@ def compile_module(rule, ctx, mode, mydeps):
           # linkmode filtering only for direct deps
           # if tc.linkmode == "static":
           # print("LINKING STATIC %s" % dep)
+
+          ## TODO: if dep in mydeps.cc_alwayslink then 
+
           dep_graph.append(dep)
           link_search.append("-L" + dep.dirname)
           build_deps.append(dep)

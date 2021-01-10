@@ -554,12 +554,24 @@ def get_all_deps(rule, ctx):
               if debug:
                   print("CC_DEP FILE: %s" % depfile)
 
+          ## most lib targets pass both static dynamic libs; we use
+          ## cc_dep[1] = static | dynamic to choose between them
+          ## FIXME: add support for static-alwayslink
+
           if cc_dep[1] == "static":
               for depfile in cc_dep[0].files.to_list():
                   if (depfile.extension == "a"):
                       if debug:
                           print("ADDING STATIC TO NOPAM_DIRECTS: %s " % depfile)
                       nopam_directs.append(depfile)
+
+          elif cc_dep[1] == "static-linkall":
+              x = None
+              ## skip these, they are handled by the rule and not in the dep graph?
+              ## to handle them here we would need another depset just for these
+              ## or, a string list of libs to alwayslink
+              ## FIXME: add a depset for linkalls?
+              ## FIXME: what about dynamic-linkall?
 
           elif cc_dep[1] == "dynamic":
               if debug:
@@ -598,11 +610,6 @@ def get_all_deps(rule, ctx):
                           if debug:
                               print("DEPSET DYLIB")
                           nopam_directs.append(depfile)
-          elif cc_dep[1] == "static-linkall":
-              x = None
-              ## skip these, they are handled by the rule and not in the dep graph
-              ## FIXME: add a depset for linkalls
-              ## FIXME: what about dynamic-linkall?
           else:
               fail("Allowed values of cc_deps attribute: 'default', 'dynamic', 'static' or 'static-linkall' %s" % cc_dep[1])
 

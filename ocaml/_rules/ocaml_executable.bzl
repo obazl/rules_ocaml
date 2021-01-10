@@ -83,6 +83,8 @@ def _ocaml_executable_impl(ctx):
   ## deps are the same for all sources (.mli, .ml)
   ## we need to accumulate them so we can add them to the action inputs arg,
   ## in order to  register the dependency with Bazel.
+
+  ## FIXME: work from mydeps, match against cc_alwayslink list of libs
   if hasattr(ctx.attr, "cc_linkall"):
       if debug:
           print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
@@ -193,19 +195,18 @@ def _ocaml_executable_impl(ctx):
         if debug:
             print("NOPAM .a DEP: %s" % dep)
         dep_graph.append(dep)
+        ## FIXME: implement this:
+        # if dep in mydeps.cc_alwayslink:
+        #     if tc.cc_toolchain == "clang":
+        #         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+        #     elif tc.cc_toolchain == "gcc":
+        #         libname = file_to_lib_name(cc_dep)
+        #         args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
+        #         args.add("-ccopt", "-Wl,--push-state,-whole-archive")
+        #         args.add("-ccopt", "-l{lib}".format(lib=libname))
+        #         args.add("-ccopt", "-Wl,--pop-state")
+        # else:
         args.add(dep)
-    elif dep.extension == "lo":
-        if debug:
-          print("NOPAM .lo DEP: %s" % dep)
-        dep_graph.append(dep)
-        args.add("-ccopt", "-L" + dep.path)
-        args.add("-ccopt", "-l" + dep.path)
-        # libname = dep.basename[:-2]
-        # libname = libname[3:]
-        # if debug:
-        #   print("LIBNAME: %s" % libname)
-        # args.add("-ccopt", "-L" + dep.dirname)
-        # args.add("-cclib", "-l" + libname)
     elif dep.extension == "so":
         if debug:
             print("NOPAM .so DEP: %s" % dep)
@@ -234,6 +235,18 @@ def _ocaml_executable_impl(ctx):
             args.add("-cclib", "-l" + libname)
         # includes.append(dep.dirname)
         # dso_deps.append(dep)
+    # elif dep.extension == "lo":
+    #     if debug:
+    #       print("NOPAM .lo DEP: %s" % dep)
+    #     dep_graph.append(dep)
+    #     args.add("-ccopt", "-L" + dep.path)
+    #     args.add("-ccopt", "-l" + dep.path)
+        # libname = dep.basename[:-2]
+        # libname = libname[3:]
+        # if debug:
+        #   print("LIBNAME: %s" % libname)
+        # args.add("-ccopt", "-L" + dep.dirname)
+        # args.add("-cclib", "-l" + libname)
     else:
         if debug:
             print("NOMAP DEP not .cmx, cmo, cmxa, cma, cmi, .o, .lo, .so, .dylib: %s" % dep.path)
