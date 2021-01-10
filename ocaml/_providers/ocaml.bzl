@@ -153,13 +153,12 @@ OcamlImportProvider = provider(
 OcamlModulePayload = provider(
     doc = "OCaml module payload.",
     fields = {
-        "cmx"  : ".cmx file produced by the target (native mode)",
-        "o"    : ".o file produced by the target (native mode)",
-        "cmo"  : ".cmo file produced by the target (bytecode mode)",
-        # "cm"   : ".cmx/cmo file produced by the target",
-        "cmi"  : ".cmi file produced by the target (optional)",
-        "mli"  : ".mli source file (optional)",
-        "cmt"  : ".cmt file produced by the target (optional)"
+        "cmx"  : ".cmx file produced from the target (native mode)",
+        "o"    : ".o file produced from the target (native mode)",
+        "cmo"  : ".cmo file produced from the target (bytecode mode)",
+        "cmi"  : ".cmi file. Passed through from `intf` attrib if present, otherwise generated from `src`.",
+        "mli"  : ".mli source file passed through from `intf` attrib if present, otherwise None",
+        "cmt"  : ".cmt file produced from the target (optional)"
     }
 )
 
@@ -184,9 +183,9 @@ OcamlNsModulePayload = provider(
     fields = {
         "ns"  : "namespace string",
         "sep" : "separator string",
-        "cmx"  : ".cmx file produced by the target (native mode)",
-        "o"   : ".o file produced by the target (native mode)",
-        "cmo"  : ".cmo file produced by the target (native mode)",
-        "cmi" : ".cmi file produced by the target",
+        "cmx"  : ".cmx file produced from the target (native mode)",
+        "o"   : ".o file produced from the target (native mode)",
+        "cmo"  : ".cmo file produced from the target (native mode)",
+        "cmi" : ".cmi file produced from the target",
     }
 )
