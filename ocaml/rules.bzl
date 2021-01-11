@@ -24,6 +24,8 @@ load("//ocaml/_rules:ocaml_module.bzl",
 #     _ocaml_ns_archive = "ocaml_ns_archive")
 load("//ocaml/_rules:ocaml_ns.bzl",
     _ocaml_ns = "ocaml_ns")
+load("//ocaml/_rules:ocaml_test.bzl",
+    _ocaml_test = "ocaml_test")
 
 load("//ocaml/_rules:x_cppo_filegroup.bzl",
     _x_cppo_filegroup = "x_cppo_filegroup")
@@ -66,6 +68,7 @@ ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
 # ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns  = _ocaml_ns
+ocaml_test= _ocaml_test
 
 ppx_archive = _ppx_archive
 ppx_executable = _ppx_executable

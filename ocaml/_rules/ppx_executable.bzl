@@ -383,7 +383,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         main = attr.label(
             mandatory = True,
             # allow_single_file = [".ml", ".cmx"],
-        providers = [PpxModuleProvider],
+            providers = [PpxModuleProvider],
             default = None
         ),
         ppx  = attr.label(

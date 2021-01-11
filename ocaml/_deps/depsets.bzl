@@ -666,27 +666,28 @@ def get_all_deps(rule, ctx):
                   nopam_directs.append(file)
 
   ## MUST COME LAST!!!
-  if hasattr(ctx.attr, "main"):
-      if debug:
-          print("HASATTR MAIN")
-      if ctx.attr.main != None:
-          if (PpxModuleProvider in ctx.attr.main):
-              provider = ctx.attr.main[PpxModuleProvider]
-              nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
-              opam_adjunct_indirects.append(provider.deps.opam_adjunct)
-          elif (OcamlModuleProvider in ctx.attr.main):
-              provider = ctx.attr.main[OcamlModuleProvider]
-          else:
-              fail("Main must be ocaml_module or ppx_module.")
-          if mode == "native":
-              nopam_directs.append(provider.payload.cmx)
-          else:
-              nopam_directs.append(provider.payload.cmo)
-          nopam_directs.append(provider.payload.cmi)
-          if hasattr(provider.payload, "o"):
-              nopam_directs.append(provider.payload.o)
-          nopam_indirects.append(provider.deps.nopam)
-          opam_indirects.append(provider.deps.opam)
+  if rule !=  "ocaml_test":
+    if hasattr(ctx.attr, "main"):
+        if debug:
+            print("HASATTR MAIN")
+        if ctx.attr.main != None:
+            if (PpxModuleProvider in ctx.attr.main):
+                provider = ctx.attr.main[PpxModuleProvider]
+                nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
+                opam_adjunct_indirects.append(provider.deps.opam_adjunct)
+            elif (OcamlModuleProvider in ctx.attr.main):
+                provider = ctx.attr.main[OcamlModuleProvider]
+                # else:
+                # fail("Main must be ocaml_module or ppx_module.")
+            if mode == "native":
+                nopam_directs.append(provider.payload.cmx)
+            else:
+                nopam_directs.append(provider.payload.cmo)
+                nopam_directs.append(provider.payload.cmi)
+            if hasattr(provider.payload, "o"):
+                nopam_directs.append(provider.payload.o)
+                nopam_indirects.append(provider.deps.nopam)
+                opam_indirects.append(provider.deps.opam)
 
   ## HACK! digestif is special
   # for dep in opam_directs:
