@@ -127,7 +127,11 @@ def get_all_deps(rule, ctx):
                   if debug:
                       print("ADJUNCT OcamlArchiveProvider dep: %s" % dep)
                   provider = dep[OcamlArchiveProvider]
-                  nopam_adjunct_directs.append(provider.payload.cma)
+                  # if mode == "bytecode":
+                  if hasattr(provider.payload, "cma"):
+                      nopam_adjunct_directs.append(provider.payload.cma)
+                  elif hasattr(provider.payload, "cmxa"):
+                      nopam_adjunct_directs.append(provider.payload.cmxa)
                   if hasattr(provider.payload, "mli"):
                       if provider.payload.mli != None:
                           nopam_adjunct_directs.append(provider.payload.mli)
@@ -212,23 +216,32 @@ def get_all_deps(rule, ctx):
       if rule == "ocaml_archive":
           ## this includes both direct deps (submods) and indirect deps!
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
-          nopam_directs.append(dep_provider.payload.cma)
+          if hasattr(dep_provider.payload, "cma"):
+              nopam_directs.append(dep_provider.payload.cma)
+          if hasattr(dep_provider.payload, "cmxa"):
+              nopam_directs.append(dep_provider.payload.cmxa)
           if hasattr(dep_provider, "deps"):
               nopam_indirects.append(dep_provider.deps.nopam)
-          if hasattr(dep_provider.payload, "cmmi"):
-              if dep_provider.payload.mli != None:
-                  nopam_directs.append(dep_provider.payload.cmi)
-          if hasattr(dep_provider.payload, "mli"):
-              if dep_provider.payload.mli != None:
-                  nopam_directs.append(dep_provider.payload.mli)
+          # if hasattr(dep_provider.payload, "cmi"):
+          #     if dep_provider.payload.mli != None:
+          #         nopam_directs.append(dep_provider.payload.cmi)
+          # if hasattr(dep_provider.payload, "mli"):
+          #     if dep_provider.payload.mli != None:
+          #         nopam_directs.append(dep_provider.payload.mli)
       elif rule == "ocaml_executable":
           # print("payload: %s" % dep_provider.payload)
           ## this includes both direct deps (submods) and indirect deps!
-          nopam_directs.append(dep_provider.payload.cma)
+          if hasattr(dep_provider.payload, "cma"):
+              nopam_directs.append(dep_provider.payload.cma)
+          if hasattr(dep_provider.payload, "cmxa"):
+              nopam_directs.append(dep_provider.payload.cmxa)
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
       else:
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
-          nopam_directs.append(dep_provider.payload.cma)
+          if hasattr(dep_provider.payload, "cma"):
+              nopam_directs.append(dep_provider.payload.cma)
+          if hasattr(dep_provider.payload, "cmxa"):
+              nopam_directs.append(dep_provider.payload.cmxa)
           # nopam_directs.extend(dep[DefaultInfo].files.to_list())
           ## no nopam transitives, they're already in the cmxa file(?)
           ## what about second-order deps?
@@ -375,9 +388,11 @@ def get_all_deps(rule, ctx):
         # nopam_directs.append(provider.payload.cma)
         if hasattr(provider.payload, "a"):
             nopam_directs.append(provider.payload.a)
-        nopam_directs.append(provider.payload.cma)
+        if mode == "bytecode":
+            nopam_directs.append(provider.payload.cma)
+        else:
+            nopam_directs.append(provider.payload.cmxa)
 
-        # if rule == "ppx_executable"
         nopam_indirects.append(provider.deps.nopam)
 
         opam_indirects.append(provider.deps.opam)

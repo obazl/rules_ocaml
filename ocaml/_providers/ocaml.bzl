@@ -81,14 +81,16 @@ OcamlDepsetProvider = provider(
 )
 
 OcamlArchivePayload = provider(
-    doc = "A Provider struct used by [OcamlArchiveProvider](#ocamlarchiveprovider) and [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider). Not provided by rule.",
+    doc = "A Provider struct used by [OcamlArchiveProvider](#ocamlarchiveprovider) and [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider). Not directly provided by any rule.",
     fields = {
         "archive": "Name of archive",
+        ## bytecode mode:
+        "cma"    : ".cma file produced by the target (bytecode mode)",
+        ## native mode:
         "cmxa"   : ".cmxa file produced by the target (native mode)",
         "a"      : ".a file produced by the target (native mode)",
-        "cma"    : ".cma file produced by the target (bytecode mode)",
-        "cmxs"   : ".cmxs file produced by the target  (shared object)",
-        # "modules": "list of cmx files archived"
+        ## -a and -shared are incompatible
+        # "cmxs"   : ".cmxs file produced by the target  (shared object)",
     }
 )
 
