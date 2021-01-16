@@ -138,8 +138,8 @@ def ns_module_compile(ctx):
   )
 
   provider = None
-  # if ctx.attr._rule == "ocaml_ns":
-  if CompilationModeSettingProvider in ctx.attr._mode:
+  # if CompilationModeSettingProvider in ctx.attr._mode:
+  if ctx.attr._rule == "ocaml_ns":
       ## ocaml_ns
       if mode == "native":
           payload = OcamlNsModulePayload(

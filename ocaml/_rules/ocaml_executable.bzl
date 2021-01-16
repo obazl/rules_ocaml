@@ -29,8 +29,8 @@ def _ocaml_executable_impl(ctx):
   # if (ctx.label.name == "gen.exe"):
   #     debug = True
 
-  if debug:
-      print("EXECUTABLE TARGET: %s" % ctx.label.name)
+  # if debug:
+  #     print("EXECUTABLE TARGET: %s" % ctx.label.name)
 
   mydeps = get_all_deps("ocaml_executable", ctx) # ctx.attr.deps)
   # print("ALL DEPS for %s" % ctx.label.name)
@@ -555,9 +555,8 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                 # "@ocaml//:time_now_stubs",
             ]
         ),
-        message = attr.string(
-            doc = "Deprecated"
-        )
+        message = attr.string( doc = "Deprecated" ),
+        _rule = attr.string( default  = "ocaml_executable" )
     ),
     executable = True,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

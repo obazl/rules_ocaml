@@ -1,6 +1,10 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider")
+
+load("@obazl_rules_opam//opam/_providers:opam.bzl",
+     "OpamPkgInfo")
 
 load("//ocaml/_actions:utils.bzl", "get_options")
 
@@ -446,7 +450,11 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
                 # "@ocaml//:core_kernel_stubs",
             ]
         ),
-        message = attr.string()
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        # message = attr.string()
+        _rule = attr.string( default = "ppx_executable" )
     ),
     provides = [DefaultInfo, PpxExecutableProvider],
     executable = True,

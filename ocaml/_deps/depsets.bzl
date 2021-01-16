@@ -17,7 +17,6 @@ load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 
 load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
-     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
      "PpxLibraryProvider",
      "PpxModuleProvider",
@@ -26,9 +25,8 @@ load("//ppx:_providers.bzl",
 ## FIXME: support for rules_foreign_cc: workspace must load the repo?
 ## or pass a param telling obazl to load it?
 ## before ocaml rules can use it as a dep the user must have loaded it, to build the deps
-## 
+##
 # load("@rules_foreign_cc//tools/build_defs:framework.bzl", "ForeignCcDeps", "ForeignCcArtifact")
-
 
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"

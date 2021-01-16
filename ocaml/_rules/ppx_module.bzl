@@ -1,9 +1,10 @@
 load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
-load("//ocaml/_providers:ocaml.bzl", "OcamlInterfaceProvider")
+load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider",
+     "OcamlInterfaceProvider")
 
 load("//ppx:_providers.bzl",
-     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
@@ -24,9 +25,9 @@ def _ppx_module_impl(ctx):
   # if ctx.label.name == "Register_event":
   #     debug = True
 
-  mode = ctx.attr._mode[0][PpxCompilationModeSettingProvider].value
+  mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
 
-  mydeps = get_all_deps("ppx_module", ctx)
+  mydeps = get_all_deps(ctx.attr._rule, ctx)
 
   # result = compile_module("ppx_module", ctx, mode, mydeps)
   if mode == "dual":
@@ -101,15 +102,13 @@ ppx_module = rule(
     attrs = dict(
         options_ppx,
         deps = attr.label_list(
+            doc = "List of OCaml dependencies.",
             allow_files = True
             # providers = [OpamPkgInfo]
         ),
         _deps = attr.label(
-            doc = "Dependency to be added last.",
+            doc = "Global deps, apply to all instances of rule. Added last.",
             default = "@ppx//module:deps"
-        ),
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
         ),
         doc = attr.string(doc = "Docstring"),
         module_name = attr.string(
@@ -120,8 +119,8 @@ ppx_module = rule(
             cfg     = ppx_mode_transition
         ),
         _allowlist_function_transition = attr.label(
-            ## required for transition fn of attribute _mode
-        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+            ## required for transition fn 'ppx_mode_transition', for attribute _mode
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
         ##FIXME: ns replaced by ppx_ns_module?
         ns   = attr.label(
@@ -142,13 +141,14 @@ ppx_module = rule(
             providers = [OcamlInterfaceProvider],
         ),
         data = attr.label_list(
+            doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."
         ),
         runtime_deps  = attr.label_list(
             doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
         ),
         adjunct_deps = attr.label_list(
-            doc = "List of [adjunct dependencies](../ug/dependencies_ocaml.md#adjunct_deps).",
+            doc = "List of [adjunct dependencies](../ug/ppx.md#adjunct_deps).",
             # providers = [[DefaultInfo], [PpxModuleProvider]]
             allow_files = True,
         ),
@@ -163,7 +163,7 @@ ppx_module = rule(
             doc = "Arguments to pass to ppx executable.  (E.g. [\"-cookie\", \"library-name=\\\"ppx_version\\\"\"]"
         ),
         ppx_data  = attr.label_list(
-            doc = "PPX runtime dependencies. E.g. a file used by %%import from ppx_optcomp.",
+            doc = "PPX runtime dependencies. List of labels of files needed by PPX at preprocessing runtime. E.g. a file used by `[%%import ]` from [ppx_optcomp](https://github.com/janestreet/ppx_optcomp).",
             allow_files = True,
         ),
         ppx_print = attr.label(
@@ -190,9 +190,13 @@ ppx_module = rule(
         # .a file; False: link to shared object file (.so or .dylib)",
         #   default = True # False  ## false on macos, true on linux?
         # ),
-        linkopts = attr.string_list(), # FIXME: cc_linkopts
+        # linkopts = attr.string_list(), # FIXME: cc_linkopts
         # srcs = attr.label_list(),
-        msg = attr.string()
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        msg = attr.string( doc = "DEPRECATED" ),
+        _rule = attr.string( default = "ppx_module" )
     ),
     provides = [DefaultInfo, PpxModuleProvider],
     executable = False,

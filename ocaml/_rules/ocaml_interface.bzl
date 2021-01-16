@@ -460,6 +460,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         msg = attr.string(
             doc = "Deprecated"
         ),
+        _rule = attr.string( default = "ocaml_interface" )
     ),
     provides = [OcamlInterfaceProvider],
     executable = False,
