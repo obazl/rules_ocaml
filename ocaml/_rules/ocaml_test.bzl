@@ -10,7 +10,8 @@ load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
-     "OcamlModuleProvider"
+     "OcamlModuleProvider",
+     "OcamlNsModuleProvider"
      )
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
@@ -412,6 +413,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                          [OcamlArchiveProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
+                         [OcamlNsModuleProvider],
                          [PpxArchiveProvider],
                          [CcInfo]],
         ),
