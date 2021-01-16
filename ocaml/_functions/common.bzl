@@ -124,41 +124,41 @@ def join_srcs(source):
     """Combines source from a split_srcs struct into a single list."""
     return source.ocaml + source.headers + source.asm + source.c + source.cxx + source.objc
 
-def env_execute(ctx, arguments, environment = {}, **kwargs):
+def env_execute(repo_ctx, arguments, environment = {}, **kwargs):
     """Executes a command in for a repository rule.
 
-    It prepends "env -i" to "arguments" before calling "ctx.execute".
+    It prepends "env -i" to "arguments" before calling "repo_ctx.execute".
     Variables that aren't explicitly mentioned in "environment"
-    are removed from the environment. This should be preferred to "ctx.execute"
+    are removed from the environment. This should be preferred to "repo_ctx.execute"
     in most situations.
     """
-    if ctx.os.name.startswith("windows"):
-        return ctx.execute(arguments, environment = environment, **kwargs)
+    if repo_ctx.os.name.startswith("windows"):
+        return repo_ctx.execute(arguments, environment = environment, **kwargs)
     env_args = ["env", "-i"]
     environment = dict(environment)
     for var in ["TMP", "TMPDIR"]:
-        if var in ctx.os.environ and not var in environment:
-            environment[var] = ctx.os.environ[var]
+        if var in repo_ctx.os.environ and not var in environment:
+            environment[var] = repo_ctx.os.environ[var]
     for k, v in environment.items():
         env_args.append("%s=%s" % (k, v))
     arguments = env_args + arguments
-    return ctx.execute(arguments, **kwargs)
+    return repo_ctx.execute(arguments, **kwargs)
 
-def os_path(ctx, path):
+def os_path(repo_ctx, path):
     path = str(path)  # maybe convert from path type
-    if ctx.os.name.startswith("windows"):
+    if repo_ctx.os.name.startswith("windows"):
         path = path.replace("/", "\\")
     return path
 
-def executable_path(ctx, path):
-    path = os_path(ctx, path)
-    if ctx.os.name.startswith("windows"):
+def executable_path(repo_ctx, path):
+    path = os_path(repo_ctx, path)
+    if repo_ctx.os.name.startswith("windows"):
         path += ".exe"
     return path
 
-def executable_extension(ctx):
+def executable_extension(repo_ctx):
     extension = ""
-    if ctx.os.name.startswith("windows"):
+    if repo_ctx.os.name.startswith("windows"):
         extension = ".exe"
     return extension
 
