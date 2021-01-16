@@ -427,7 +427,8 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             providers = [[CcInfo]]
         ),
         _mode = attr.label(
-            default = "@ppx//mode"
+            default = "@ppx//mode",
+            cfg     = ppx_mode_transition
         ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode
@@ -462,5 +463,4 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
     # Attaching at rule transitions the configuration of this target and all its dependencies
     # (until it gets overwritten again, for example...)
-  cfg     = ppx_mode_transition
 )

@@ -8,17 +8,18 @@ def _ppx_mode_transition_impl(settings, attr):
     # print("PPX_MODE_TRANSITION: ppx = {ppx}".format( #, ocaml = {ocaml}
     #     ppx = ppx_mode_val # , ocaml = ocaml_mode_val
     # ))
-    attrs = structs.to_dict(attr)
+    # attrs = structs.to_dict(attr)
     # for k in sorted(attrs.keys()):
     #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
 
     return {
-        # "@ppx//mode": ppx_mode_val,
-        "@ocaml//mode": ppx_mode_val,
+        "@ppx//mode:mode": ppx_mode_val,
+        # "@ocaml//mode": ppx_mode_val,
     }
 
 ppx_mode_transition = transition(
     implementation = _ppx_mode_transition_impl,
     inputs = ["@ppx//mode:mode"], # "@ocaml//mode:mode"],
-    outputs = ["@ocaml//mode"]  #, "@ocaml//mode"]
+    outputs = ["@ppx//mode:mode"]  #, "@ocaml//mode"]
+    # outputs = ["@ocaml//mode"]  #, "@ocaml//mode"]
 )
