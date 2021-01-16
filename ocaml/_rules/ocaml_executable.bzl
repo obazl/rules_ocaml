@@ -167,12 +167,19 @@ def _ocaml_executable_impl(ctx):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         build_deps.append(dep)
+    elif dep.extension == "o":
+        if debug:
+            print("NOPAM .o DEP: %s" % dep)
+        includes.append(dep.dirname)
+        dep_graph.append(dep)
+
     elif dep.extension == "cmi":
       includes.append(dep.dirname)
       dep_graph.append(dep)
     elif dep.extension == "mli":
       includes.append(dep.dirname)
       dep_graph.append(dep)
+
     elif dep.extension == "cmxa":
         includes.append(dep.dirname)
         dep_graph.append(dep)
@@ -181,16 +188,12 @@ def _ocaml_executable_impl(ctx):
         includes.append(dep.dirname)
         dep_graph.append(dep)
         # build_deps.append(dep) # .basename)
+
         # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
         #     if g.path.endswith("cmx":
         #         includes.append(g.dirname)
         #         build_deps.append(g)
         #         dep_graph.append(g)
-    elif dep.extension == "o":
-        if debug:
-            print("NOPAM .o DEP: %s" % dep)
-        includes.append(dep.dirname)
-        dep_graph.append(dep)
     elif dep.extension == "a":
         if debug:
             print("NOPAM .a DEP: %s" % dep)
