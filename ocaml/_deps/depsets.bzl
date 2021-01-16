@@ -54,21 +54,18 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  # if (ctx.label.name == "jemalloc"):
+  # if (ctx.label.name == "sodium_bindgen"):
   #     debug = True
 
   if debug:
       print("GET_ALL_DEPS {rule}({target})".format(rule=rule, target=ctx.label))
 
+  ## Attrs with a transition fn are int-indexed, so we need to test:
   if CompilationModeSettingProvider in ctx.attr._mode:
       mode = ctx.attr._mode[CompilationModeSettingProvider].value
   else:
-      if rule == "ppx_module":
-          mode = ctx.attr._mode[0][PpxCompilationModeSettingProvider].value
-      elif rule == "ppx_archive":
-          mode = ctx.attr._mode[0][PpxCompilationModeSettingProvider].value
-      else:
-          mode = ctx.attr._mode[PpxCompilationModeSettingProvider].value
+      ## ppx_module, for example
+      mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
 
   defaults = []
 
