@@ -38,15 +38,6 @@ def impl_executable(ctx):
   if debug:
       print("\n\n\tPPX_EXECUTABLE TARGET: %s\n\n" % ctx.label.name)
 
-# print("""\n\nWARNING: target '{target}' depends on
-# '@opam//pkg:ppxlib.runner' but lacks -predicates option. PPX binaries that depend on this
-# usually pass \"-predicates\", \"ppx_driver\" to opts. Without this option, the binary may
-# compile but may not work as intended.\n\n""".format(target = ctx.label.name))
-#   else:
-#     print("""\n\nWARNING: ppx_executable target '{target}'
-# does not have a driver dependency.  Such targets usually depend on '@opam//pkg:ppxlib.runner'
-# or a similar PPX driver. Without a driver, the target may compile but not work as intended.\n\n""".format(target = ctx.label.name))
-
   mydeps = get_all_deps(ctx.attr._rule, ctx)
   if debug:
       print("MYDEPS: %s" % mydeps)
@@ -102,11 +93,6 @@ def impl_executable(ctx):
       args.add("-dllpath", dllpath)
 
       # args.add("-dllpath", "/private/var/tmp/_bazel_gar/d8a1bb469d0c2393045b412d4daaa038/execroot/ppx_version/external/ocaml/switch/lib/stublibs")
-
-      ## FIXME: for f in @ocamlrun//dlls ...
-
-      # for f in ctx.files._dllpaths:
-      #     dep_graph.append(f)
 
       args.add("-I", "external/ocaml/switch/lib/stublibs")
 
@@ -194,14 +180,6 @@ def impl_executable(ctx):
     args.add("-linkpkg") # adds OPAM cmxa files to command
     args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
 
-    # for dep in opam_deps:
-    #     # args.add("-package", dep)
-    #     args.add("-package", dep.pkg.name) # adds directories of OPAM files to search path using -I
-
-        # args.add("-package", dep.pkg.to_list()[0].name)
-        # args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
-
-
   ## cc deps
   ## FIXME: currently we have both cc_deps dict with static/dynamic/default vals,
   ## and cc_linkall list. Replace the latter with a "static-linkall" value for the former
@@ -268,74 +246,9 @@ def impl_executable(ctx):
               else:
                   fail("NO CC")
 
-  # WARNING: don't add build_deps to command line.  For namespaced
-  # modules, they may contain both a .cmx and a .cmxa with the same
-  # name, which define the same module, which will make the compiler
-  # barf.
-  # OTOH, if we do not list them, they will not be found when the ppx is used.
-
-    # if not dep.ppx_driver:
-    #   if dep.pkg.to_list()[0].name == "async":
-    #     if async:
-    #       args.add("-package", dep.pkg.to_list()[0].name)
-    #   else:
-    #       args.add("-package", dep.pkg.to_list()[0].name)
-  # print("\n\nTarget: {target}\nOPAM deps: {deps}\n\n".format(target=ctx.label.name, deps=opam_deps))
-
-  # opam_labels = [dep.to_list()[0].name for dep in opam_deps]
-  # opam_labels = [dep.pkg.to_list()[0].name for dep in opam_deps]
-  # if len(opam_deps) > 0:
-  #   # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
-  #   args.add("-linkpkg")
-  #   for dep in opam_deps:
-  #     # print("OPAM DEP: %s" % dep.pkg.to_list()[0].name)
-  #     # if (dep.pkg.to_list()[0].name != "ppx_deriving.api"):
-  #     #   if (dep.pkg.to_list()[0].name != "ppx_deriving.eq"):
-  #     args.add("-package", dep.pkg.to_list()[0].name)
-  #     args.add_all([dep.to_list()[0].name for dep in opam_deps], before_each="-package")
-  # print("OPAM LABELS: %s" % opam_labels)
-
-  # args.add("-absname")
-
-  # non-ocamlfind-enabled deps:
- # for dep in build_deps:
-  #   print("BUILD DEP: %s" % dep)
-
   if debug:
       print("DEP_GRAPH:")
       print(dep_graph)
-
-  ## FIXME: adjunct_deps is for ppx_executables only
-  ## they are not involved in the actions, only passed on as deps
-  ## so this code can be moved down to result construction section
-  ## direct adjunct deps
-  opam_adjunct_deps = []
-  nopam_adjunct_deps = []
-  # this covers direct adjunct deps; what about indirects?
-  # e.g. suppose a direct adjunct dep depends on a module that has its own adjunct deps.
-  # e.g. a non-adjunct dep has adjunct deps - ppx_executable depends on ppx_modules with adjunct deps
-  if ctx.attr._rule == "ppx_executable":
-      for dep in ctx.attr.adjunct_deps:
-          if debug:
-              print("DEP ADJUNCT_DEP: %s" % dep)
-              # ed = ctx.attr.deps[key]
-              # if OpamPkgInfo in ed:
-              #     if debug:
-              #         print("is OPAM")
-              #     output_dep = ed[OpamPkgInfo].pkg.to_list()[0]
-              #     adjunct_deps.append(output_dep)
-              # # else:
-              # #     adjunct_deps.append(ctx.attr.deps[key].name)
-          if OpamPkgInfo in dep:
-              if debug:
-                  print("is OPAM: %s" % dep)
-                  provider = dep[OpamPkgInfo]
-                  opam_adjunct_deps.append(provider)
-          else:
-              nopam_adjunct_deps.append(dep)
-
-        ## this is handled by get_all_deps
-        # nopam_adjunct_deps.extend(mydeps.nopam_adjunct.to_list())
 
   dep_graph.extend(build_deps)
   dep_graph = dep_graph + cclib_deps #  srcs_ml + outs_cmi
@@ -382,7 +295,6 @@ def impl_executable(ctx):
       files = ctx.files.data,
     )
 
-  # print("DEP_GRAPH: %s" % dep_graph)
   ctx.actions.run(
     env = env,
     executable = tc.ocamlfind,
@@ -390,29 +302,14 @@ def impl_executable(ctx):
     inputs = dep_graph,
     outputs = [outbinary],
     tools = [tc.ocamlfind, tc.ocamlopt], # tc.opam,
-    mnemonic = "OcamlExecutable" if ctx.attr._rule =="ocaml_executable" else "PpxExecutable",
-    progress_message = "Compiling ppx_executable({})".format(
-        ctx.label.name,
-        # ctx.attr.message
+    mnemonic = "OcamlExecutable" if ctx.attr._rule == "ocaml_executable" else "PpxExecutable",
+    progress_message = "{mode} compiling {rule}({target})".format(
+        mode = mode,
+        rule = ctx.attr._rule,
+        target = ctx.label.name,
       )
   )
 
-  defaultInfo = None
-  # if len(ctx.attr.data) == 0:
-  #     defaultInfo = DefaultInfo(
-  #         executable=outbinary
-  #     )
-  # else:
-  #     defaultInfo = DefaultInfo(
-  #         executable=outbinary,
-  #         runfiles = ctx.runfiles(
-  #             root_symlinks = {
-  #                 # FIXME: foreach
-  #                 ctx.files.data[0].short_path: ctx.files.data[0]
-  #                 # "src/config.mlh": ctx.files.data[0]
-  #             }
-  #         )
-  #     )
   defaultInfo = DefaultInfo(
       executable=outbinary,
       runfiles = myrunfiles
@@ -440,10 +337,6 @@ def impl_executable(ctx):
       results = [
           defaultInfo,
       ]
-      # provider = OcamlExecutableProvider(
-      #     payload = outbinary,
-      #     args = depset(direct = ctx.attr.args),
-      # )
 
   if debug:
       print("IMPL_EXECUTABLE RESULTS:")

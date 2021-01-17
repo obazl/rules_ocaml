@@ -1,29 +1,12 @@
-load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-
 load("//ocaml/_providers:ocaml.bzl",
-     "CompilationModeSettingProvider")
-
+     "OcamlSDK")
 load("@obazl_rules_opam//opam/_providers:opam.bzl",
      "OpamPkgInfo")
-
-load("//ocaml/_rules/utils:utils.bzl", "get_options")
-
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
-
-load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
-     "get_sdkpath",
-     "file_to_lib_name",
-)
-
-load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
-
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
-
 load("//ppx:_providers.bzl",
-     "PpxCompilationModeSettingProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
+
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
 load(":options_ppx.bzl", "options_ppx")
 
@@ -47,7 +30,6 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "Hidden options.",
             default = "@ppx//executable:opts"
         ),
-        # linkopts = attr.string_list(),
         # IMPLICIT: args = string list = runtime args, passed whenever the binary is used
         exe_name = attr.string(
             doc = "Name for output executable file.  Overrides 'name' attribute."
@@ -91,10 +73,6 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = """Adjunct dependencies.""",
             # providers = [[DefaultInfo], [PpxModuleProvider]]
         ),
-        # adjunct_deps = attr.label_list(
-        #     doc = """(Adjunct) eXtension Dependencies.""",
-        #     # providers = [[DefaultInfo], [PpxModuleProvider]]
-        # ),
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
             providers = [[CcInfo]]
@@ -120,35 +98,15 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode
-        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
-        # _dllpaths = attr.label_list(
-        #     # default = "@opam//:bin/cppo"
-        #     default = [ # FIXME - get this from toolchain
-        #         "@ocaml//:stublibs",
-        #         # "@ocaml//:base_stubs",
-        #         # "@ocaml//:bin_prot_stubs",
-        #         # "@ocaml//:bigstringaf_stubs",
-        #         # "@ocaml//:core_stubs",
-        #         # "@ocaml//:expect_test_collector_stubs",
-        #         # "@ocaml//:re2_stubs",
-        #         # "@ocaml//:re2_c_stubs",
-        #         # "@ocaml//:spawn_stubs",
-        #         # "@ocaml//:time_now_stubs",
-        #         # "@ocaml//:base_bigstring_stubs",
-        #         # "@ocaml//:core_kernel_stubs",
-        #     ]
-        # ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        # message = attr.string()
         _rule = attr.string( default = "ppx_executable" )
     ),
     provides = [DefaultInfo, PpxExecutableProvider],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-    # Attaching at rule transitions the configuration of this target and all its dependencies
-    # (until it gets overwritten again, for example...)
 )
