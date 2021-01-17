@@ -514,7 +514,7 @@ def get_all_deps(rule, ctx):
           if dep_provider.deps.opam:
               opam_indirects.append(dep_provider.deps.opam)
 
-  ## get adjunct deps for ppx; ocaml_module and ppx_module only
+  ## get adjunct deps from ppx (ocaml_module and ppx_module only)
   if hasattr(ctx.attr, "ppx"):
       if ctx.attr.ppx:
           if debug:

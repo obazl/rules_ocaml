@@ -1,1 +1,10 @@
-# do not remove
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+bzl_library(                    # stardoc
+    name = "utils",
+    srcs = glob(["*.bzl"]),
+    visibility = ["//visibility:public"],
+    deps = [
+    ],
+)
+
