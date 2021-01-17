@@ -81,6 +81,9 @@ def get_all_deps(rule, ctx):
   opam_directs = []
   nopam_directs = []
 
+  # cc_deps - dictionary from file to linkopts
+  cc_deps = {}
+
   # depset lists
   opam_indirects = []
   nopam_indirects = []
@@ -393,12 +396,14 @@ def get_all_deps(rule, ctx):
         opam_indirects.append(provider.deps.opam)
         opam_adjunct_indirects.append(provider.deps.opam_adjunct)
         nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
+
     elif PpxExecutableProvider in dep:
       bp = dep[PpxExecutableProvider]
       # print("PpxExecutableProvider: %s" % bp)
       nopam_directs.append(bp.payload)
       nopam_indirects.append(bp.deps.nopam)
       opam_indirects.append(bp.deps.opam)
+
     elif PpxLibraryProvider in dep:
       if debug:
           print("PpxLibraryProvider: %s" % dep)
@@ -557,6 +562,8 @@ def get_all_deps(rule, ctx):
       if debug:
           print("DEPSET TARGET: %s" % ctx.label.name)
           print("DEPSET CC_DEPS: %s" % ctx.attr.cc_deps)
+
+      ## legacy
       for cc_dep in ctx.attr.cc_deps.items():
           if debug:
               print("CC_DEP TYPE: %s" % cc_dep[1])
@@ -574,14 +581,18 @@ def get_all_deps(rule, ctx):
                       if debug:
                           print("ADDING STATIC TO NOPAM_DIRECTS: %s " % depfile)
                       nopam_directs.append(depfile)
+                      cc_deps.update({depfile: "static"})
 
           elif cc_dep[1] == "static-linkall":
-              x = None
-              ## skip these, they are handled by the rule and not in the dep graph?
-              ## to handle them here we would need another depset just for these
-              ## or, a string list of libs to alwayslink
+              cc_deps.update({depfile: "static-linkall"})
+              ## FIXME: for now we just use static
               ## FIXME: add a depset for linkalls?
               ## FIXME: what about dynamic-linkall?
+              # for depfile in cc_dep[0].files.to_list():
+              #     if (depfile.extension == "a"):
+              #         if debug:
+              #             print("ADDING STATIC TO NOPAM_LINKALLS: %s " % depfile)
+              #         nopam_directs.append(depfile)
 
           elif cc_dep[1] == "dynamic":
               if debug:
@@ -591,10 +602,12 @@ def get_all_deps(rule, ctx):
                       if debug:
                           print("DEPSET DSO")
                       nopam_directs.append(depfile)
+                      cc_deps.update({depfile: "dynamic"})
                   elif (depfile.extension == "dylib"):
                       if debug:
                           print("DEPSET DYLIB")
                       nopam_directs.append(depfile)
+                      cc_deps.update({depfile: "dynamic"})
 
           elif cc_dep[1] == "default":
               if debug:
@@ -606,6 +619,7 @@ def get_all_deps(rule, ctx):
                   for depfile in cc_dep[0].files.to_list():
                       if (depfile.extension == "a"):
                           nopam_directs.append(depfile)
+                          cc_deps.update({depfile: "static"})
                       elif (depfile.extension == "lo"):
                           nopam_directs.append(depfile)
               else:
@@ -616,10 +630,12 @@ def get_all_deps(rule, ctx):
                           if debug:
                               print("DEPSET SO")
                           nopam_directs.append(depfile)
+                          cc_deps.update({depfile: "dynamic"})
                       elif (depfile.extension == "dylib"):
                           if debug:
                               print("DEPSET DYLIB")
                           nopam_directs.append(depfile)
+                          cc_deps.update({depfile: "dynamic"})
           else:
               fail("Allowed values of cc_deps attribute: 'default', 'dynamic', 'static' or 'static-linkall' %s" % cc_dep[1])
 
@@ -748,4 +764,5 @@ def get_all_deps(rule, ctx):
                  opam_adjunct = opam_adjunct_depset,
                  nopam = nopam_depset,
                  nopam_adjunct = nopam_adjunct_depset,
+                 cc_deps = cc_deps
                 )
