@@ -171,10 +171,10 @@ def impl_ppx_transform(rule, ctx, src):
       outputs = [outfile], #outputs.values(),
       tools = [ctx.executable.ppx],
       mnemonic = "PpxTransformAction",
-      progress_message = "PpxTransformAction: @{ws}//{pkg}:{tgt} (rule: {rule})".format(
-          ws  = ctx.label.workspace_name,
+      progress_message = "ppx transform: @{ws}//{pkg}:{tgt} (rule: {rule})".format(
+          ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
           pkg = ctx.label.package,
-          rule=rule,
+          rule=ctx.attr._rule,
           tgt=ctx.label.name,
           msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
       )
