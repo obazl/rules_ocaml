@@ -1,28 +1,10 @@
-# load("@bazel_skylib//lib:paths.bzl", "paths")
-
-
-# load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
-
-# load("//ocaml/_transistions:mode_transitions.bzl",
-#      "ocaml_mode_transition_incoming",
-#      "ocaml_mode_transition_outgoing",)
-
-load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-
-# load("//ocaml/_transitions:ns_transitions.bzl",
-#      "ocaml_ns_transition_incoming",
-#      "ocaml_ns_transition_reset")
-
 load("//ocaml/_providers:ocaml.bzl",
-     "CompilationModeSettingProvider",
-     "OcamlDepsetProvider",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
-     "OcamlModulePayload",
-     "OcamlNsModuleProvider",
-     "OcamlModuleProvider")
+     "OcamlModuleProvider",
+     "OcamlNsModuleProvider")
 
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 
@@ -30,10 +12,6 @@ load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
-
-# load("//ocaml/_actions:compile_module.bzl", "compile_module")
-
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load(":options_ocaml.bzl", "options_ocaml")
 
@@ -43,106 +21,9 @@ OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
 ]
 
-tmpdir = "_obazl_/"
-
-# ################################################################
-# ########## RULE:  OCAML_MODULE  ################
-# def _ocaml_module_impl(ctx):
-
-#   debug = False
-#   # if ctx.label.name == "structured_log_events":
-#   #     debug = True
-
-#   # for [k, v] in ctx.var.items():
-#   #     print("VARS: {k} = {v}".format(k = k, v = v))
-
-#   # x = ["STAMPFILES %s" % f.path for f in (ctx.info_file, ctx.version_file)]
-#   # print(x)
-
-#   if debug:
-#       print("MODULE TARGET: %s" % ctx.label.name)
-
-#   if len(ctx.attr.ppx_tags) > 1:
-#       fail("Only one ppx_tag allowed currently.")
-
-#   mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-#   mydeps = get_all_deps(ctx.attr._rule, ctx)
-#   # if debug:
-#   #     print("ALL DEPS for target %s:" % ctx.label.name)
-#   #     print(mydeps)
-
-#   # if mode == "dual":
-#   #     native_result = compile_module("ocaml_module", ctx, "native", mydeps)
-#   #     bc_result     = compile_module("ocaml_module", ctx, "bytecode", mydeps)
-#   # else:
-#   result        = compile_module("ocaml_module", ctx, mode, mydeps)
-
-#   if debug:
-#       print("OCAML_MODULE COMPILE RESULT:")
-#       print(result)
-
-#   # if hasattr(result, "o"):
-#   if mode == "native":
-#       payload = OcamlModulePayload(
-#           # if we have an incoming cmi, its in the nopam deps
-#           # otherwise, we create it so it goes here(?)
-#           # what about the mli?
-#           cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
-#           mli = result.mli,
-#           cmx  = result.cmx,
-#           cmt = result.cmt,
-#           o   = result.o
-#       )
-#       directs = [result.cmx, result.o, result.cmi]
-#   else:
-#       payload = OcamlModulePayload(
-#           # if we have an incoming cmi, its in the nopam deps
-#           # otherwise, we create it so it goes here(?)
-#           # what about the mli?
-#           cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
-#           mli = result.mli,
-#           cmo  = result.cmo,
-#           cmt = result.cmt,
-#       )
-#       directs = [result.cmo, result.cmi]
-
-#   module_provider = OcamlModuleProvider(
-#       payload = payload,
-#       deps = OcamlDepsetProvider(
-#           opam    = result.opam,
-#           nopam   = result.nopam,
-#           cc_deps = result.cc_deps
-#       )
-#   )
-
-#   if result.mli: directs.append(result.mli)
-#   if result.cmt: directs.append(result.cmt)
-#   defaultInfo = DefaultInfo(
-#     # payload
-#       files = depset(
-#           order = "postorder",
-#           direct = directs
-#         # transitive = depset(mydeps.nopam.to_list())
-#       )
-#   )
-
-#   result = [
-#       defaultInfo,
-#       module_provider
-#   ]
-
-#   if debug:
-#       print("OcamlModuleProvider RESULT:")
-#       print(result)
-
-#   return result
-
-#############################################
-########## DECL:  OCAML_MODULE  ################
+####################
 ocaml_module = rule(
     implementation = impl_module,
-    # implementation = _ocaml_module_impl,
     doc = """Compiles an OCaml module. Provides: [OcamlModuleProvider](providers_ocaml.md#ocamlmoduleprovider).
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_module`
@@ -179,7 +60,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _linkall     = attr.label(default = "@ocaml//module:linkall"), # FIXME: call it alwayslink?
         _threads     = attr.label(default = "@ocaml//module:threads"),
         _warnings  = attr.label(default = "@ocaml//module:warnings"),
-        # linkopts = attr.string_list(),
         #### end options ####
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
@@ -190,10 +70,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         module_name   = attr.string(
             doc = "Module name. Overrides `name` attribute."
         ),
-        # ns_sep = attr.string(
-        #     doc = "Namespace separator.  Default: '__'",
-        #     default = "__"
-        # ),
         ns = attr.label(
             doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
             default = None
@@ -226,13 +102,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "List of OCaml dependencies.",
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
-                         [OcamlInterfaceProvider],
                          [OcamlImportProvider],
+                         [OcamlInterfaceProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
                          [OcamlNsModuleProvider],
                          [PpxArchiveProvider],
-                         # [PpxExecutableProvider],
                          [PpxModuleProvider],
                          [CcInfo]],
         ),
@@ -240,6 +115,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Global deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
+
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,
@@ -249,10 +125,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Global cc-deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
-        # cc_opts = attr.string_list(
-        # ## FIXME: no need for this, we do not compile cc code
-        #     doc = "C/C++ options",
-        # ),
         cc_linkall = attr.label_list(
             ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
             doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
@@ -273,6 +145,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:cc_linkstatic"
         ),
+
         ppx  = attr.label(
             doc = "PPX binary (executable).  The rule will use this executable to transform the source file before compiling it. For more information on the actions generated by `ocaml_module` when used with a PPX transform see [Action Queries](../ug/transparency.md#action_queries).",
             executable = True,
@@ -294,11 +167,11 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Format of output of PPX transform. Value must be one of '@ppx//print:binary', '@ppx//print:text'.  See [PPX Support](../ug/ppx.md#ppx_print) for more information",
             default = "@ppx//print:binary"
         ),
-        ## CONFIGURABLE DEFAULTS ##
+        ## CONFIGURATION RULE DEFAULTS ##
         _mode       = attr.label(
             default = "@ocaml//mode",
+            # cfg     = ocaml_mode_transition
         ),
-        # dual_mode = attr.bool(default = False),
         # _ppx_mode       = attr.label(
         #     default = "@ppx//mode",
         #     # Attaching to an attribute transitions the configuration of this dependency (and
@@ -314,8 +187,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _rule = attr.string( default = "ocaml_module" )
     ),
     provides = [OcamlModuleProvider],
-    # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-    # cfg = ocaml_mode_transition_outgoing
 )

@@ -1,16 +1,11 @@
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
-
 load("//ocaml/_providers:ocaml.bzl",
-     "CompilationModeSettingProvider",
      "OcamlInterfaceProvider")
 
 load("//ppx:_providers.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-# load("//ocaml/_actions:compile_module.bzl", "compile_module")
-
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
 load("options_ppx.bzl", "options_ppx")
 
@@ -20,93 +15,20 @@ OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
 ]
 
-# #############################################
-# ####  OCAML_PPX_MODULE IMPLEMENTATION
-# def _ppx_module_impl(ctx):
-
-#   debug = False
-#   # if ctx.label.name == "Register_event":
-#   #     debug = True
-
-#   mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
-
-#   mydeps = get_all_deps(ctx.attr._rule, ctx)
-
-#   # result = compile_module("ppx_module", ctx, mode, mydeps)
-#   if mode == "dual":
-#       native_result = compile_module("ppx_module", ctx, "native", mydeps)
-#       bc_result     = compile_module("ppx_module", ctx, "bytecode", mydeps)
-#   else:
-#       result        = compile_module("ppx_module", ctx, mode, mydeps)
-
-#   if debug:
-#       print("PPX_MODULE COMPILE RESULT:")
-#       print(result)
-
-#   # if mode == "native":
-#   payload = struct(
-#           cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
-#           mli = result.mli,
-#           cmx  = result.cmx,
-#           cmo  = result.cmo,
-#           cmt = result.cmt,
-#           o   = result.o
-#       )
-#   directs = []
-#   if result.cmo: directs.append(result.cmo)
-#   if result.cmx: directs.append(result.cmx)
-#   if result.cmi: directs.append(result.cmi)
-#   if result.mli: directs.append(result.mli)
-
-#   # else:
-#   #     payload = struct(
-#   #         cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
-#   #         mli = result.mli,
-#   #         cmo  = result.cmo,
-#   #         cmt = result.cmt,
-#   #     )
-#   #     directs = [result.cmo, result.cmi]
-
-#   ppx_provider = PpxModuleProvider(
-#       payload = payload,
-#       deps = struct(
-#           opam  = result.opam,
-#           opam_adjunct = mydeps.opam_adjunct,
-#           # opam_adjunct = depset(order = "postorder",
-#           #                    direct = opam_adjunct_deps),
-#           nopam = result.nopam,
-#           nopam_adjunct = mydeps.nopam_adjunct
-#           # nopam_adjunct = depset(order = "postorder",
-#           #                    direct = nopam_adjunct_deps),
-#       )
-#   )
-
-#   if result.mli: directs.append(result.mli)
-#   if result.cmt: directs.append(result.cmt)
-#   defaultInfo = DefaultInfo(
-#       files = depset(
-#           order = "postorder",
-#           direct = directs
-#       )
-#   )
-
-#   result = [defaultInfo, ppx_provider]
-#   if debug:
-#       print("PpxModuleProvider RESULT:")
-#       print(result)
-
-#   return result
-
-#############################################
-########## DECL:  PPX_MODULE  ################
+##################
 ppx_module = rule(
     implementation = impl_module,
-    # implementation = _ppx_module_impl,
+    doc = """Compiles a Ppx module. Provides: [PpxModuleProvider](providers_ppx.md#ppxmoduleprovider).
+
+TODO: finish docstring
+
+    """,
     attrs = dict(
         options_ppx,
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
             allow_files = True
+            ## FIXME: add providers constraints, issue #18
             # providers = [OpamPkgInfo]
         ),
         _deps = attr.label(
@@ -125,14 +47,9 @@ ppx_module = rule(
             ## required for transition fn 'ppx_mode_transition', for attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
-        ##FIXME: ns replaced by ppx_ns_module?
         ns   = attr.label(
             doc = "Label of a [ppx_ns](#ppx_ns) target. Used to derive namespace, output name, -open arg, etc.",
         ),
-        # ns_sep = attr.string(
-        #     doc = "Namespace separator.  Default: '__' (double underscore).",
-        #     default = "__"
-        # ),
         src = attr.label(
             mandatory = True,  # use ocaml_interface for isolated .mli files
             doc = "A single .ml source file label.",
@@ -184,17 +101,10 @@ ppx_module = rule(
             doc = "C/C++ library dependencies. Keys: lib target. Vals: 'default', 'static', 'dynamic'",
             providers = [[CcInfo]]
         ),
-        cc_opts = attr.string_list(
-            doc = "C/C++ options",
+        cc_linkopts = attr.string_list(
+            doc = "C/C++ link options",
         ),
-        ## FIXME: call this cc_deps_default_type or some such
-        # cc_linkstatic = attr.bool(
-        # doc = "Control linkage of C/C++ dependencies. True: link to
-        # .a file; False: link to shared object file (.so or .dylib)",
-        #   default = True # False  ## false on macos, true on linux?
-        # ),
-        # linkopts = attr.string_list(), # FIXME: cc_linkopts
-        # srcs = attr.label_list(),
+
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
@@ -204,7 +114,4 @@ ppx_module = rule(
     provides = [DefaultInfo, PpxModuleProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-    # Attaching at rule transitions the configuration of this target and all its dependencies
-    # (until it gets overwritten again, for example...)
-    # cfg     = ppx_mode_transition
 )
