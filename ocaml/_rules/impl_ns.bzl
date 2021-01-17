@@ -6,7 +6,6 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlNsModulePayload",
      "OcamlNsModuleProvider")
 load("//ppx:_providers.bzl",
-     "PpxCompilationModeSettingProvider",
      "PpxNsModuleProvider")
 
 load("//ocaml/_functions:utils.bzl",
@@ -14,25 +13,11 @@ load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
 )
-# load("//ocaml/_transitions:ns_transitions.bzl", "ocaml_ns_transition")
-
-OCAML_FILETYPES = [
-    ".ml", ".mli", ".cmx", ".cmo", ".cma"
-]
 
 tmpdir = "_obazl_/"
 
-########## RULE:  OCAML_NS  ################
-## Generate a namespacing module, containing module aliases for the
-## namespaced submodules listed as sources.
-
+#################
 def impl_ns(ctx):
-
-    # print("TEST ocaml_ns _NS: %s" % ctx.attr.xns[0][BuildSettingInfo].value)
-
-    #     return ns_module_compile(ctx)
-    # def ns_module_compile(ctx):
-    # print("ns_module_compile: %s" % ctx.label.name)
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
@@ -42,7 +27,6 @@ def impl_ns(ctx):
     aliases = []
     ## declare ns module file, as input to compile action
     ns_module_name = ctx.attr.ns
-    # print("NS_MODULE_NAME %s" % ns_module_name)
     pfx = capitalize_initial_char(ctx.attr.ns) + ctx.attr.ns_sep
     dep_graph = []
     for sm in ctx.files.submodules:
@@ -61,16 +45,13 @@ def impl_ns(ctx):
             aliases.append(alias)
 
     mode = None
-    # if CompilationModeSettingProvider in ctx.attr._mode:
     if ctx.attr._rule == "ocaml_ns":
         mode = ctx.attr._mode[CompilationModeSettingProvider].value
     elif ctx.attr._rule == "ppx_ns":
         mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    # module_fname = (ctx.attr.module_name if ctx.attr.module_name else ctx.label.name) + ".ml"
     module_src = ctx.actions.declare_file(tmpdir + ns_module_name + ".ml")
     dep_graph.append(module_src)
-    # print("NS MODULE SRC: %s" % module_src)
 
     ## action: generate ns module file with alias content
     ctx.actions.write(
@@ -89,12 +70,10 @@ def impl_ns(ctx):
 
     outputs = []
     directs = []
-    ## action: compile ns module
 
     ################################
     args = ctx.actions.args()
-    # args.add("ocamlopt")
-    # if CompilationModeSettingProvider in ctx.attr._mode:
+
     if mode == "bytecode":
         args.add(tc.ocamlc.basename)
     else:
@@ -105,23 +84,18 @@ def impl_ns(ctx):
         directs.append(obj_o)
 
     directs.append(obj_cm_)
-    #?? directs.append(obj_cmi)
     outputs.append(obj_cm_)
     outputs.append(obj_cmi)
 
     if ctx.attr._warnings:
-        # print("WARNINGS: %s" % ctx.attr.warnings[BuildSettingInfo].value)
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
     if hasattr(ctx.attr, "opts"):
         args.add_all(ctx.attr.opts)
 
-    ## This flag is REQUIRED for ns modules; see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
+    ## -no-alias-deps is REQUIRED for ns modules;
+    ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
     args.add("-no-alias-deps")
-    # args.add("-opaque")
-    # if ctx.attr.alwayslink: args.add("-linkall")
-    # args.add("-linkall")
-    # args.add("-w", "-49")
 
     args.add("-c")
     args.add("-o", obj_cm_)
@@ -134,30 +108,22 @@ def impl_ns(ctx):
         inputs = dep_graph, # [module_src],
         outputs = outputs,
         tools = [tc.ocamlfind, tc.ocamlopt],
-        mnemonic = "NsModuleAction",
-        progress_message = "compiling: @{ws}//{pkg}:{tgt} (rule {rule})".format(
-            ws  = ctx.workspace_name,
+        mnemonic = "OcamlNsModuleAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsModuleAction",
+        progress_message = "{mode} compiling: @{ws}//{pkg}:{tgt} (rule {rule})".format(
+            mode = mode,
+            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
-            rule= "ocaml_ns",
+            rule=ctx.attr._rule,
             tgt=ctx.label.name,
-            # msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
         )
-        # progress_message = "ns_module_compile for {rule}{msg}".format(
-        #     rule = ctx.attr._rule,
-        #     # target = ctx.label.name,
-        #     msg = ": " + ctx.attr.msg if ctx.attr.msg else ""
-        # )
     )
 
     provider = None
-    # if CompilationModeSettingProvider in ctx.attr._mode:
     if ctx.attr._rule == "ocaml_ns":
-        ## ocaml_ns
         if mode == "native":
             payload = OcamlNsModulePayload(
                 ns  = ctx.attr.ns,
                 sep = ctx.attr.ns_sep,
-                # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
                 cmi = obj_cmi,
                 cmx  = obj_cm_,
                 o   = obj_o
@@ -166,7 +132,6 @@ def impl_ns(ctx):
             payload = OcamlNsModulePayload(
                 ns  = ctx.attr.ns,
                 sep = ctx.attr.ns_sep,
-                # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
                 cmi = obj_cmi,
                 cmo  = obj_cm_,
             )
@@ -183,7 +148,6 @@ def impl_ns(ctx):
             payload = struct(
                 ns  = ctx.attr.ns,
                 sep = ctx.attr.ns_sep,
-                # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
                 cmi = obj_cmi,
                 cmx  = obj_cm_,
                 o   = obj_o
@@ -192,7 +156,6 @@ def impl_ns(ctx):
             payload = struct(
                 ns  = ctx.attr.ns,
                 sep = ctx.attr.ns_sep,
-                # we don't need cmi unless it comes from an mli, when never happens with ns_modules?
                 cmi = obj_cmi,
                 cmo  = obj_cm_,
             )
@@ -209,5 +172,4 @@ def impl_ns(ctx):
         DefaultInfo(files = depset(directs)),
         provider
     ]
-# OutputGroupInfo(bin = depset([bin_output]))]
 

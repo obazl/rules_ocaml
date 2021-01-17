@@ -1,4 +1,3 @@
-# load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 load("//ppx:_providers.bzl", "PpxNsModuleProvider")
 
 load(":options_ppx.bzl", "options_ppx")
@@ -9,14 +8,12 @@ OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
 ]
 
-######################
-# def _ppx_ns_impl(ctx):
-#   return ns_module_compile(ctx)
-
 ##############
 ppx_ns = rule(
     implementation = impl_ns,
-    # implementation = _ppx_ns_impl,
+    doc = """Generate a PPX namespace module.
+
+    """,
     attrs = dict(
         options_ppx,
         _sdkpath = attr.label(
@@ -32,7 +29,6 @@ ppx_ns = rule(
             doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
             allow_files = OCAML_FILETYPES
         ),
-        # opts = attr.string_list(),
         _linkall     = attr.label(default = "@ppx//ns:linkall"),
         _threads     = attr.label(default = "@ppx//ns:threads"),
         _warnings    = attr.label(default = "@ppx//ns:warnings"),
