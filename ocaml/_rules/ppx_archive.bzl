@@ -22,7 +22,7 @@ load(":options_ppx.bzl", "options_ppx")
 
 load(":impl_archive.bzl", "impl_archive")
 
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 tmpdir = "_obazl_/"
 

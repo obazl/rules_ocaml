@@ -28,7 +28,7 @@ load("//ocaml/_functions:utils.bzl",
 
 load("//ocaml/_rules:options_ocaml.bzl", "options_ocaml")
 
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 ##################################################
 # def impl_archive(rule, ctx, mode, mydeps):

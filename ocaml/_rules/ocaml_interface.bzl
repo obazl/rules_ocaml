@@ -17,7 +17,7 @@ load("//ppx:_providers.bzl",
      "PpxExecutableProvider",
      "PpxNsModuleProvider")
 
-load("//ocaml/_actions:rename.bzl", "rename_module")
+load("//ocaml/_rules/utils:rename.bzl", "rename_module")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -32,7 +32,7 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":options_ocaml.bzl", "options_ocaml")
 
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 OCAML_INTF_FILETYPES = [
     ".mli", ".cmi"

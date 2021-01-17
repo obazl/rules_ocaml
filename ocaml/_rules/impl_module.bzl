@@ -34,9 +34,9 @@ load("//ppx:_providers.bzl",
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_actions:rename.bzl", "rename_module")
+load("//ocaml/_rules/utils:rename.bzl", "rename_module")
 
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 # load("//ocaml/_actions:compile_module.bzl", "compile_module")
 load("//ocaml/_functions:utils.bzl",

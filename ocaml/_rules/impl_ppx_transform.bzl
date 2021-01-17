@@ -8,7 +8,7 @@ load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
 )
-load("//ocaml/_actions:rename.bzl", "get_module_name")
+load("//ocaml/_rules/utils:rename.bzl", "get_module_name")
 
 tmpdir = "_obazl_"
 

@@ -6,7 +6,7 @@ load("//ocaml/_providers:ocaml.bzl",
 load("@obazl_rules_opam//opam/_providers:opam.bzl",
      "OpamPkgInfo")
 
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 

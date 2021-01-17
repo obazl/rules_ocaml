@@ -20,7 +20,7 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":options_ocaml.bzl", "options_ocaml")
 
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load(":impl_executable.bzl", "impl_executable")
 

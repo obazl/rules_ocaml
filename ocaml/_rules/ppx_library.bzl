@@ -29,7 +29,7 @@ load("//ocaml/_functions:utils.bzl",
      "strip_ml_extension",
 )
 load(":options_ppx.bzl", "options_ppx")
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 # print("implementation/ocaml.bzl loading")
 

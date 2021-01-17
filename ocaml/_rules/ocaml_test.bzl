@@ -17,7 +17,7 @@ load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 load("//ppx:_providers.bzl", "PpxInfo", "PpxArchiveProvider")
 
 load(":options_ocaml.bzl", "options_ocaml")
-load("//ocaml/_actions:utils.bzl", "get_options")
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 ##########################
 def _ocaml_test_impl(ctx):
