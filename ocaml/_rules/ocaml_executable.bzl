@@ -22,6 +22,8 @@ load(":options_ocaml.bzl", "options_ocaml")
 
 load("//ocaml/_actions:utils.bzl", "get_options")
 
+load(":impl_executable.bzl", "impl_executable")
+
 ################################################################
 def _ocaml_executable_impl(ctx):
 
@@ -33,8 +35,8 @@ def _ocaml_executable_impl(ctx):
   #     print("EXECUTABLE TARGET: %s" % ctx.label.name)
 
   mydeps = get_all_deps("ocaml_executable", ctx) # ctx.attr.deps)
-  # print("ALL DEPS for %s" % ctx.label.name)
-  # print(mydeps)
+  print("CC DEPSET for %s" % ctx.label.name)
+  print(mydeps.cc_deps)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -112,6 +114,8 @@ def _ocaml_executable_impl(ctx):
   #     # print("OPAM DEPDEP: %s" % depdep)
   #   args.add("-package", dep.pkg.to_list()[0].name)
 
+  # for dep in mydeps.opam.to_list():
+  #     print("EXEC OPAM DEP: %s" % dep)
   args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
   # args.add_all([dep.pkg.to_list()[0].name for dep in mydeps.opam.to_list()], before_each="-package")
 
@@ -454,7 +458,8 @@ def _ocaml_executable_impl(ctx):
 
 ################################################################
 ocaml_executable = rule(
-    implementation = _ocaml_executable_impl,
+    implementation = impl_executable,
+    # implementation = _ocaml_executable_impl,
     doc = """Generates an OCaml executable binary. Provides only standard DefaultInfo provider.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_executable`
@@ -543,21 +548,22 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
         _mode = attr.label(
             default = "@ocaml//mode"
+            # cfg     = ocaml_mode_transition
         ),
-        _dllpaths = attr.label_list(
-            # default = "@opam//:bin/cppo"
-            default = [ # FIXME
-                # "@ocaml//:base_stubs",
-                # "@ocaml//:base_bigstring_stubs",
-                # "@ocaml//:bin_prot_stubs",
-                # "@ocaml//:core_kernel_stubs",
-                # "@ocaml//:ctypes_stubs",
-                # "@ocaml//:ctypes-foreign-base_stubs",
-                # "@ocaml//:expect_test_collector_stubs",
-                # "@ocaml//:integers_stubs",
-                # "@ocaml//:time_now_stubs",
-            ]
-        ),
+        # _dllpaths = attr.label_list(
+        #     # default = "@opam//:bin/cppo"
+        #     default = [ # FIXME
+        #         # "@ocaml//:base_stubs",
+        #         # "@ocaml//:base_bigstring_stubs",
+        #         # "@ocaml//:bin_prot_stubs",
+        #         # "@ocaml//:core_kernel_stubs",
+        #         # "@ocaml//:ctypes_stubs",
+        #         # "@ocaml//:ctypes-foreign-base_stubs",
+        #         # "@ocaml//:expect_test_collector_stubs",
+        #         # "@ocaml//:integers_stubs",
+        #         # "@ocaml//:time_now_stubs",
+        #     ]
+        # ),
         message = attr.string( doc = "Deprecated" ),
         _rule = attr.string( default  = "ocaml_executable" )
     ),
