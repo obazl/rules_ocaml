@@ -1,19 +1,22 @@
-load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
+# load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
 load("//ppx:_providers.bzl", "PpxNsModuleProvider")
 
 load(":options_ppx.bzl", "options_ppx")
+
+load(":impl_ns.bzl", "impl_ns")
 
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
 ]
 
 ######################
-def _ppx_ns_impl(ctx):
-  return ns_module_compile(ctx)
+# def _ppx_ns_impl(ctx):
+#   return ns_module_compile(ctx)
 
 ##############
 ppx_ns = rule(
-    implementation = _ppx_ns_impl,
+    implementation = impl_ns,
+    # implementation = _ppx_ns_impl,
     attrs = dict(
         options_ppx,
         _sdkpath = attr.label(

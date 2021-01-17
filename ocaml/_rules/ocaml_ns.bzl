@@ -2,7 +2,9 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
 
-load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
+# load("//ocaml/_actions:ns_module.bzl", "ns_module_compile")
+
+load(":impl_ns.bzl", "impl_ns")
 
 # load("//ocaml/_transitions:ns_transitions.bzl", "ocaml_ns_transition")
 
@@ -14,11 +16,11 @@ OCAML_FILETYPES = [
 ## Generate a namespacing module, containing module aliases for the
 ## namespaced submodules listed as sources.
 
-def _ocaml_ns_impl(ctx):
+# def _ocaml_ns_impl(ctx):
 
-    # print("TEST ocaml_ns _NS: %s" % ctx.attr.xns[0][BuildSettingInfo].value)
+#     # print("TEST ocaml_ns _NS: %s" % ctx.attr.xns[0][BuildSettingInfo].value)
 
-    return ns_module_compile(ctx)
+#     return ns_module_compile(ctx)
 
 # (library
 #  (name deriving_hello)
@@ -29,7 +31,8 @@ def _ocaml_ns_impl(ctx):
 #############################################
 ########## DECL:  OCAML_MODULE  ################
 ocaml_ns = rule(
-  implementation = _ocaml_ns_impl,
+  implementation = impl_ns,
+  # implementation = _ocaml_ns_impl,
     doc = """Generate a 'namespace' module. [User Guide](../ug/ocaml_ns.md).  Provides: [OcamlNsModuleProvider](providers_ocaml.md#ocamlnsmoduleprovider).
 
 See [Namespacing](../ug/namespacing.md) for more information on namespaces.
