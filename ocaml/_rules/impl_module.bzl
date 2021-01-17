@@ -32,7 +32,7 @@ load("//ppx:_providers.bzl",
      "PpxModuleProvider",
      "PpxNsModuleProvider")
 
-load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
+load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
 load("//ocaml/_actions:rename.bzl", "rename_module")
 
@@ -115,7 +115,7 @@ def impl_module(ctx):
   tmpdir = "_obazl_/"
   if ctx.attr.ppx:
       ## this will also handle ns
-      (tmpdir, xsrc) = ppx_transform(rule, ctx, ctx.file.src)
+      (tmpdir, xsrc) = impl_ppx_transform(rule, ctx, ctx.file.src)
       dep_graph.append(ctx.file.ppx)
       # a ppx executable may have adjunct deps; they are handled by get_all_deps
   elif ctx.attr.ns:

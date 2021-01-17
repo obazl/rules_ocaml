@@ -8,12 +8,12 @@ load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
 )
-load(":rename.bzl", "get_module_name")
+load("//ocaml/_actions:rename.bzl", "get_module_name")
 
 tmpdir = "_obazl_"
 
 ################################################################
-def ppx_transform(rule, ctx, src):
+def impl_ppx_transform(rule, ctx, src):
   """Apply a PPX to source file.
 
   Inputs: rule, context, src

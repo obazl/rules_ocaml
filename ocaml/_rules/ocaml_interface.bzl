@@ -19,7 +19,7 @@ load("//ppx:_providers.bzl",
 
 load("//ocaml/_actions:rename.bzl", "rename_module")
 
-load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
+load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
@@ -71,7 +71,7 @@ def _ocaml_interface_impl(ctx):
   tmpdir = "_obazl_/"
   if ctx.attr.ppx:
       ## this will also handle ns
-    (tmpdir, xsrc) = ppx_transform("ocaml_interface", ctx, ctx.file.src)
+    (tmpdir, xsrc) = impl_ppx_transform("ocaml_interface", ctx, ctx.file.src)
   elif ctx.attr.ns:
     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   else:
