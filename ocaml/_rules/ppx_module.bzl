@@ -8,97 +8,100 @@ load("//ppx:_providers.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load("//ocaml/_actions:compile_module.bzl", "compile_module")
+# load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("options_ppx.bzl", "options_ppx")
 
+load(":impl_module.bzl", "impl_module")
+
 OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
 ]
-#############################################
-####  OCAML_PPX_MODULE IMPLEMENTATION
-def _ppx_module_impl(ctx):
 
-  debug = False
-  # if ctx.label.name == "Register_event":
-  #     debug = True
+# #############################################
+# ####  OCAML_PPX_MODULE IMPLEMENTATION
+# def _ppx_module_impl(ctx):
 
-  mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
+#   debug = False
+#   # if ctx.label.name == "Register_event":
+#   #     debug = True
 
-  mydeps = get_all_deps(ctx.attr._rule, ctx)
+#   mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
 
-  # result = compile_module("ppx_module", ctx, mode, mydeps)
-  if mode == "dual":
-      native_result = compile_module("ppx_module", ctx, "native", mydeps)
-      bc_result     = compile_module("ppx_module", ctx, "bytecode", mydeps)
-  else:
-      result        = compile_module("ppx_module", ctx, mode, mydeps)
+#   mydeps = get_all_deps(ctx.attr._rule, ctx)
 
-  if debug:
-      print("PPX_MODULE COMPILE RESULT:")
-      print(result)
+#   # result = compile_module("ppx_module", ctx, mode, mydeps)
+#   if mode == "dual":
+#       native_result = compile_module("ppx_module", ctx, "native", mydeps)
+#       bc_result     = compile_module("ppx_module", ctx, "bytecode", mydeps)
+#   else:
+#       result        = compile_module("ppx_module", ctx, mode, mydeps)
 
-  # if mode == "native":
-  payload = struct(
-          cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
-          mli = result.mli,
-          cmx  = result.cmx,
-          cmo  = result.cmo,
-          cmt = result.cmt,
-          o   = result.o
-      )
-  directs = []
-  if result.cmo: directs.append(result.cmo)
-  if result.cmx: directs.append(result.cmx)
-  if result.cmi: directs.append(result.cmi)
-  if result.mli: directs.append(result.mli)
+#   if debug:
+#       print("PPX_MODULE COMPILE RESULT:")
+#       print(result)
 
-  # else:
-  #     payload = struct(
-  #         cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
-  #         mli = result.mli,
-  #         cmo  = result.cmo,
-  #         cmt = result.cmt,
-  #     )
-  #     directs = [result.cmo, result.cmi]
+#   # if mode == "native":
+#   payload = struct(
+#           cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
+#           mli = result.mli,
+#           cmx  = result.cmx,
+#           cmo  = result.cmo,
+#           cmt = result.cmt,
+#           o   = result.o
+#       )
+#   directs = []
+#   if result.cmo: directs.append(result.cmo)
+#   if result.cmx: directs.append(result.cmx)
+#   if result.cmi: directs.append(result.cmi)
+#   if result.mli: directs.append(result.mli)
 
-  ppx_provider = PpxModuleProvider(
-      payload = payload,
-      deps = struct(
-          opam  = result.opam,
-          opam_adjunct = mydeps.opam_adjunct,
-          # opam_adjunct = depset(order = "postorder",
-          #                    direct = opam_adjunct_deps),
-          nopam = result.nopam,
-          nopam_adjunct = mydeps.nopam_adjunct
-          # nopam_adjunct = depset(order = "postorder",
-          #                    direct = nopam_adjunct_deps),
-      )
-  )
+#   # else:
+#   #     payload = struct(
+#   #         cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
+#   #         mli = result.mli,
+#   #         cmo  = result.cmo,
+#   #         cmt = result.cmt,
+#   #     )
+#   #     directs = [result.cmo, result.cmi]
 
-  if result.mli: directs.append(result.mli)
-  if result.cmt: directs.append(result.cmt)
-  defaultInfo = DefaultInfo(
-      files = depset(
-          order = "postorder",
-          direct = directs
-      )
-  )
+#   ppx_provider = PpxModuleProvider(
+#       payload = payload,
+#       deps = struct(
+#           opam  = result.opam,
+#           opam_adjunct = mydeps.opam_adjunct,
+#           # opam_adjunct = depset(order = "postorder",
+#           #                    direct = opam_adjunct_deps),
+#           nopam = result.nopam,
+#           nopam_adjunct = mydeps.nopam_adjunct
+#           # nopam_adjunct = depset(order = "postorder",
+#           #                    direct = nopam_adjunct_deps),
+#       )
+#   )
 
-  result = [defaultInfo, ppx_provider]
-  if debug:
-      print("PpxModuleProvider RESULT:")
-      print(result)
+#   if result.mli: directs.append(result.mli)
+#   if result.cmt: directs.append(result.cmt)
+#   defaultInfo = DefaultInfo(
+#       files = depset(
+#           order = "postorder",
+#           direct = directs
+#       )
+#   )
 
-  return result
+#   result = [defaultInfo, ppx_provider]
+#   if debug:
+#       print("PpxModuleProvider RESULT:")
+#       print(result)
+
+#   return result
 
 #############################################
 ########## DECL:  PPX_MODULE  ################
 ppx_module = rule(
-    implementation = _ppx_module_impl,
-    # implementation = _ppx_module_compile_test,
+    implementation = impl_module,
+    # implementation = _ppx_module_impl,
     attrs = dict(
         options_ppx,
         deps = attr.label_list(

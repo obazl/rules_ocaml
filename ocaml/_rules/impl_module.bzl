@@ -1,12 +1,35 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
+# load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+
+# load("//ocaml/_transistions:mode_transitions.bzl",
+#      "ocaml_mode_transition_incoming",
+#      "ocaml_mode_transition_outgoing",)
+
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
+# load("//ocaml/_transitions:ns_transitions.bzl",
+#      "ocaml_ns_transition_incoming",
+#      "ocaml_ns_transition_reset")
+
 load("//ocaml/_providers:ocaml.bzl",
+     "CompilationModeSettingProvider",
+     "OcamlDepsetProvider",
+     "OcamlArchiveProvider",
+     "OcamlImportProvider",
      "OcamlInterfaceProvider",
+     "OcamlLibraryProvider",
+     "OcamlModulePayload",
      "OcamlNsModuleProvider",
+     "OcamlModuleProvider",
      "OcamlSDK")
 
+load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
 load("//ppx:_providers.bzl",
+     "PpxArchiveProvider",
      "PpxExecutableProvider",
+     "PpxModuleProvider",
      "PpxNsModuleProvider")
 
 load("//ocaml/_actions:ppx_transform.bzl", "ppx_transform")
@@ -15,6 +38,7 @@ load("//ocaml/_actions:rename.bzl", "rename_module")
 
 load("//ocaml/_actions:utils.bzl", "get_options")
 
+# load("//ocaml/_actions:compile_module.bzl", "compile_module")
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
@@ -22,18 +46,52 @@ load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
 )
 
+load("//ocaml/_deps:depsets.bzl", "get_all_deps")
+
+load(":options_ocaml.bzl", "options_ocaml")
+
+OCAML_IMPL_FILETYPES = [
+    ".ml", ".cmx", ".cmo", ".cma"
+]
+
+tmpdir = "_obazl_/"
+
 ################################################################
-def compile_module(rule, ctx, mode, mydeps):
+########## RULE:  OCAML_MODULE  ################
+def impl_module(ctx):
+
   debug = False
-  # if (ctx.label.name == "snark0.cm_"):
-  # if ctx.label.name == "Register_event":
+  # if ctx.label.name == "structured_log_events":
   #     debug = True
 
-  if debug:
-      print("COMPILE_MODULE: %s" % ctx.label.name)
-      print("DEPSET:")
-      print(mydeps)
+  # for [k, v] in ctx.var.items():
+  #     print("VARS: {k} = {v}".format(k = k, v = v))
 
+  # x = ["STAMPFILES %s" % f.path for f in (ctx.info_file, ctx.version_file)]
+  # print(x)
+
+  if debug:
+      print("MODULE TARGET: %s" % ctx.label.name)
+
+  if ctx.attr._rule == "ocaml_module":
+      mode = ctx.attr._mode[CompilationModeSettingProvider].value
+      if len(ctx.attr.ppx_tags) > 1:
+          fail("Only one ppx_tag allowed currently.")
+  else:
+      mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
+
+  mydeps = get_all_deps(ctx.attr._rule, ctx)
+  # if debug:
+  #     print("ALL DEPS for target %s:" % ctx.label.name)
+  #     print(mydeps)
+
+  # if mode == "dual":
+  #     native_result = compile_module("ocaml_module", ctx, "native", mydeps)
+  #     bc_result     = compile_module("ocaml_module", ctx, "bytecode", mydeps)
+  # else:
+  # result        = compile_module("ocaml_module", ctx, mode, mydeps)
+
+  ################################################################
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx),
@@ -409,23 +467,101 @@ def compile_module(rule, ctx, mode, mydeps):
   )
 
   # if mode == "native":
-  return struct(
-          cmi = obj_cmi,  # ctx.file.intf if ctx.file.intf else None,
-          mli = dep_mli,
-          cmx  = obj_cmx if mode == "native" else None,
-          cmo  = obj_cmo if mode == "bytecode" else None,
-          cmt = obj_cmt,
-          o   = obj_o if mode == "native" else None,
-          opam = mydeps.opam,
-          nopam = mydeps.nopam
-      )
-  # else:
-  #     return struct(
-  #         cmi = obj_cmi,  # ctx.file.intf if ctx.file.intf else None,
-  #         mli = dep_mli,
-  #         cmo  = obj_cmo,
-  #         cmt = obj_cmt,
-  #         opam = mydeps.opam,
-  #         nopam = mydeps.nopam
-  #     )
+  result = struct(
+      cmi = obj_cmi,  # ctx.file.intf if ctx.file.intf else None,
+      mli = dep_mli,
+      cmx  = obj_cmx if mode == "native" else None,
+      cmo  = obj_cmo if mode == "bytecode" else None,
+      cmt = obj_cmt,
+      o   = obj_o if mode == "native" else None,
+      opam = mydeps.opam,
+      nopam = mydeps.nopam,
+      cc_deps = mydeps.cc_deps
+  )
 
+  ################################################################
+
+  if debug:
+      print("OCAML_MODULE COMPILE RESULT:")
+      print(result)
+
+  directs = []
+
+  if ctx.attr._rule == "ocaml_module":
+      if mode == "native":
+          payload = OcamlModulePayload(
+              # if we have an incoming cmi, its in the nopam deps
+              # otherwise, we create it so it goes here(?)
+              # what about the mli?
+              cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
+              mli = result.mli,
+              cmx  = result.cmx,
+              cmt = result.cmt,
+              o   = result.o
+          )
+          # directs = [result.cmx, result.o, result.cmi]
+      else:
+          payload = OcamlModulePayload(
+              # if we have an incoming cmi, its in the nopam deps
+              # otherwise, we create it so it goes here(?)
+              # what about the mli?
+              cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
+              mli = result.mli,
+              cmo  = result.cmo,
+              cmt = result.cmt,
+          )
+          # directs = [result.cmo, result.cmi]
+
+      module_provider = OcamlModuleProvider(
+          payload = payload,
+          deps = OcamlDepsetProvider(
+              opam    = result.opam,
+              nopam   = result.nopam,
+              cc_deps = result.cc_deps
+          )
+      )
+
+  elif ctx.attr._rule == "ppx_module":
+      payload = struct(
+          cmi = result.cmi,  #obj["cmi"] if "cmi" in obj else None,
+          mli = result.mli,
+          cmx  = result.cmx,
+          cmo  = result.cmo,
+          cmt = result.cmt,
+          o   = result.o
+      )
+      module_provider = PpxModuleProvider(
+          payload = payload,
+          deps = struct(
+              opam  = result.opam,
+              opam_adjunct = mydeps.opam_adjunct,
+              # opam_adjunct = depset(order = "postorder",
+              #                    direct = opam_adjunct_deps),
+              nopam = result.nopam,
+              nopam_adjunct = mydeps.nopam_adjunct,
+              # nopam_adjunct = depset(order = "postorder",
+              #                    direct = nopam_adjunct_deps),
+              cc_deps = result.cc_deps
+          )
+      )
+
+  if result.cmo: directs.append(result.cmo)
+  if result.cmx: directs.append(result.cmx)
+  if result.o:   directs.append(result.o)
+  if result.cmi: directs.append(result.cmi)
+  if result.mli: directs.append(result.mli)
+  if result.cmt: directs.append(result.cmt)
+  defaultInfo = DefaultInfo(
+      files = depset(
+          order = "postorder",
+          direct = directs
+      )
+  )
+
+  result = [defaultInfo, module_provider]
+
+  if debug:
+      print("OcamlModuleProvider RESULT:")
+      print(result)
+
+  return result

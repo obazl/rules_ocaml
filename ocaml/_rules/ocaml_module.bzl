@@ -31,11 +31,13 @@ load("//ppx:_providers.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load("//ocaml/_actions:compile_module.bzl", "compile_module")
+# load("//ocaml/_actions:compile_module.bzl", "compile_module")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load(":options_ocaml.bzl", "options_ocaml")
+
+load(":impl_module.bzl", "impl_module")
 
 OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
@@ -43,102 +45,104 @@ OCAML_IMPL_FILETYPES = [
 
 tmpdir = "_obazl_/"
 
-################################################################
-########## RULE:  OCAML_MODULE  ################
-def _ocaml_module_impl(ctx):
+# ################################################################
+# ########## RULE:  OCAML_MODULE  ################
+# def _ocaml_module_impl(ctx):
 
-  debug = False
-  # if ctx.label.name == "structured_log_events":
-  #     debug = True
+#   debug = False
+#   # if ctx.label.name == "structured_log_events":
+#   #     debug = True
 
-  # for [k, v] in ctx.var.items():
-  #     print("VARS: {k} = {v}".format(k = k, v = v))
+#   # for [k, v] in ctx.var.items():
+#   #     print("VARS: {k} = {v}".format(k = k, v = v))
 
-  # x = ["STAMPFILES %s" % f.path for f in (ctx.info_file, ctx.version_file)]
-  # print(x)
+#   # x = ["STAMPFILES %s" % f.path for f in (ctx.info_file, ctx.version_file)]
+#   # print(x)
 
-  if debug:
-      print("MODULE TARGET: %s" % ctx.label.name)
+#   if debug:
+#       print("MODULE TARGET: %s" % ctx.label.name)
 
-  if len(ctx.attr.ppx_tags) > 1:
-      fail("Only one ppx_tag allowed currently.")
+#   if len(ctx.attr.ppx_tags) > 1:
+#       fail("Only one ppx_tag allowed currently.")
 
-  mode = ctx.attr._mode[CompilationModeSettingProvider].value
+#   mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-  mydeps = get_all_deps(ctx.attr._rule, ctx)
-  # if debug:
-  #     print("ALL DEPS for target %s:" % ctx.label.name)
-  #     print(mydeps)
+#   mydeps = get_all_deps(ctx.attr._rule, ctx)
+#   # if debug:
+#   #     print("ALL DEPS for target %s:" % ctx.label.name)
+#   #     print(mydeps)
 
-  # if mode == "dual":
-  #     native_result = compile_module("ocaml_module", ctx, "native", mydeps)
-  #     bc_result     = compile_module("ocaml_module", ctx, "bytecode", mydeps)
-  # else:
-  result        = compile_module("ocaml_module", ctx, mode, mydeps)
+#   # if mode == "dual":
+#   #     native_result = compile_module("ocaml_module", ctx, "native", mydeps)
+#   #     bc_result     = compile_module("ocaml_module", ctx, "bytecode", mydeps)
+#   # else:
+#   result        = compile_module("ocaml_module", ctx, mode, mydeps)
 
-  if debug:
-      print("OCAML_MODULE COMPILE RESULT:")
-      print(result)
+#   if debug:
+#       print("OCAML_MODULE COMPILE RESULT:")
+#       print(result)
 
-  # if hasattr(result, "o"):
-  if mode == "native":
-      payload = OcamlModulePayload(
-          # if we have an incoming cmi, its in the nopam deps
-          # otherwise, we create it so it goes here(?)
-          # what about the mli?
-          cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
-          mli = result.mli,
-          cmx  = result.cmx,
-          cmt = result.cmt,
-          o   = result.o
-      )
-      directs = [result.cmx, result.o, result.cmi]
-  else:
-      payload = OcamlModulePayload(
-          # if we have an incoming cmi, its in the nopam deps
-          # otherwise, we create it so it goes here(?)
-          # what about the mli?
-          cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
-          mli = result.mli,
-          cmo  = result.cmo,
-          cmt = result.cmt,
-      )
-      directs = [result.cmo, result.cmi]
+#   # if hasattr(result, "o"):
+#   if mode == "native":
+#       payload = OcamlModulePayload(
+#           # if we have an incoming cmi, its in the nopam deps
+#           # otherwise, we create it so it goes here(?)
+#           # what about the mli?
+#           cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
+#           mli = result.mli,
+#           cmx  = result.cmx,
+#           cmt = result.cmt,
+#           o   = result.o
+#       )
+#       directs = [result.cmx, result.o, result.cmi]
+#   else:
+#       payload = OcamlModulePayload(
+#           # if we have an incoming cmi, its in the nopam deps
+#           # otherwise, we create it so it goes here(?)
+#           # what about the mli?
+#           cmi = result.cmi,  # ctx.file.intf if ctx.file.intf else None,
+#           mli = result.mli,
+#           cmo  = result.cmo,
+#           cmt = result.cmt,
+#       )
+#       directs = [result.cmo, result.cmi]
 
-  module_provider = OcamlModuleProvider(
-      payload = payload,
-      deps = OcamlDepsetProvider(
-          opam = result.opam,
-          nopam = result.nopam
-      )
-  )
+#   module_provider = OcamlModuleProvider(
+#       payload = payload,
+#       deps = OcamlDepsetProvider(
+#           opam    = result.opam,
+#           nopam   = result.nopam,
+#           cc_deps = result.cc_deps
+#       )
+#   )
 
-  if result.mli: directs.append(result.mli)
-  if result.cmt: directs.append(result.cmt)
-  defaultInfo = DefaultInfo(
-    # payload
-      files = depset(
-          order = "postorder",
-          direct = directs
-        # transitive = depset(mydeps.nopam.to_list())
-      )
-  )
+#   if result.mli: directs.append(result.mli)
+#   if result.cmt: directs.append(result.cmt)
+#   defaultInfo = DefaultInfo(
+#     # payload
+#       files = depset(
+#           order = "postorder",
+#           direct = directs
+#         # transitive = depset(mydeps.nopam.to_list())
+#       )
+#   )
 
-  result = [
-      defaultInfo,
-      module_provider
-  ]
+#   result = [
+#       defaultInfo,
+#       module_provider
+#   ]
 
-  if debug:
-      print("OcamlModuleProvider RESULT:")
-      print(result)
+#   if debug:
+#       print("OcamlModuleProvider RESULT:")
+#       print(result)
 
-  return result
+#   return result
 
 #############################################
 ########## DECL:  OCAML_MODULE  ################
 ocaml_module = rule(
-    implementation = _ocaml_module_impl,
+    implementation = impl_module,
+    # implementation = _ocaml_module_impl,
     doc = """Compiles an OCaml module. Provides: [OcamlModuleProvider](providers_ocaml.md#ocamlmoduleprovider).
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_module`
