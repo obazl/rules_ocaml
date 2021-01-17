@@ -5,14 +5,7 @@ load("//ocaml/_providers:ocaml.bzl",
      "CompilationModeSettingProvider",
      "OcamlArchivePayload",
      "OcamlArchiveProvider",
-     "OcamlDepsetProvider",
-     "OcamlImportProvider",
-     "OcamlInterfaceProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsModuleProvider")
-
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+     "OcamlDepsetProvider")
 
 load("//ppx:_providers.bzl",
      "PpxArchiveProvider",
@@ -26,12 +19,9 @@ load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name"
 )
 
-load("//ocaml/_rules:options_ocaml.bzl", "options_ocaml")
-
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 ##################################################
-# def impl_archive(rule, ctx, mode, mydeps):
 def impl_archive(ctx):
 
   debug = False
@@ -90,56 +80,29 @@ def impl_archive(ctx):
   else:
       args.add(tc.ocamlc.basename)
 
-  cc_linkmode = tc.linkmode            # used below to determine dep linkmode
+  cc_linkmode = tc.linkmode            # used below to determine linkmode for deps
   if ctx.attr._cc_linkmode:
       if ctx.attr._cc_linkmode[BuildSettingInfo].value == "static": # override toolchain default?
           cc_linkmode = "static"
-          if mode == "bytecode":
-              args.add("-custom")
 
   configurable_defaults = get_options(ctx.attr._rule, ctx)
   args.add_all(configurable_defaults)
 
-  args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
-
-  for (dep, linkmode) in ctx.attr.cc_deps.items():
-      # print("CC_DEP: {dep} mode: {m}".format(dep = dep, m = linkmode))
-      if linkmode == "static-linkall":
-          # if debug:
-          # print("CC_DEP STATIC_LINKALL: %s" % dep) # ctx.attr.cc_linkall)
-          for f in dep.files.to_list():
-              if f.extension == "a":
-                  dep_graph.append(f)
-                  path = f.path # relative to execution root
-                  # if tc.os == "macos". path can be relative
-                  args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
-
-          # for cc_dep in ctx.files.cc_linkall:
-          #     if cc_dep.extension == "a":
-          #         dep_graph.append(cc_dep)
-          #         path = cc_dep.path
-          #         # if tc.os == "macos". path can be relative
-          #         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
-                  # elif tc.os == "linux":
-                  # "-Wl,--push-state,-whole-archive",
-                  # "-lrocksdb",
-                  # "-Wl,--pop-state",
-
   ## Do we need opam deps for an archive? Will -linkall take care of this?
   # if len(mydeps.opam.to_list()) > 0:
-  #     ## DO NOT USE -linkpkg, it puts .cmxa files on command, yielding
+  #     ## DO NOT USE -linkpkg, ocamlfind puts .cmxa files on command line, yielding
   #     ## `Option -a cannot be used with .cmxa input files.`
+  #     ## so how do we include OPAM pkgs in an archive file? -linkall?
   #     args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
 
-  # for dep in mydeps.nopam.to_list():
-  #   print("NOPAM DEP: %s" % dep)
-
+  ## No direct cc_deps for archives - they should be attached to archive members
   cc_deps   = []
   link_search  = []
 
   for dep in mydeps.nopam.to_list():
     if debug:
           print("\nNOPAM DEP: %s\n\n" % dep)
+    ## FIXME:
     ## We ignore cma and cmxa deps, since "Option -a cannot be used with .cmxa/.cma input files."
     ## But the depgraph contains everything contained in the archive, so we're covered.
     if dep.extension == "cmxa":
@@ -147,7 +110,7 @@ def impl_archive(ctx):
     elif dep.extension == "cma":
         dep_graph.append(dep)
 
-    ## we include the object file deps instead
+    ## FIXME: we include the object file deps instead
     elif dep.extension == "cmx":
         includes.append(dep.dirname)
         dep_graph.append(dep)
@@ -210,13 +173,6 @@ def impl_archive(ctx):
       args.add_all(cc_deps, before_each="-dllib", uniquify = True)
 
   args.add_all(includes, before_each="-I", uniquify = True)
-
-  ## IMPORTANT!  from the ocamlopt docs:
-  ## -o exec-file   Specify the name of the output file produced by the linker.
-  ## That covers both executables and library archives (-a).
-  ## If you're just compiling (-c), no need to pass -o.
-  ## By contrast, the output files must be listed in the action output arg
-  ## in order to be registered in the action dependency graph.
 
   ## since we're building an archive, we need all members on command line
   args.add_all(build_deps)
@@ -304,55 +260,7 @@ def impl_archive(ctx):
       files = depset(
           order = "postorder", # "preorder",
           direct = directs
-        # transitive = [depset(build_deps + cc_deps)]
       )
     ),
     archiveProvider,
   ]
-
-
-  # if mode == "native":
-  #     return struct(
-  #         cmxa  = obj_cm_a,
-  #         a    = obj_a,
-  #         opam = mydeps.opam,
-  #         nopam = mydeps.nopam
-  #     )
-  # else:
-  #     return struct(
-  #         cma  = obj_cm_a,
-  #         opam = mydeps.opam,
-  #         nopam = mydeps.nopam
-  #     )
-
-  # if mode == "native":
-  #     payload = OcamlArchivePayload(
-  #         archive = ctx.label.name,
-  #         cma = obj_cm_a,
-  #         a    = obj_a,
-  #         # modules = build_deps + cc_deps
-  #     )
-  # else:
-  #     payload = OcamlArchivePayload(
-  #         archive = ctx.label.name,
-  #         cma = obj_cm_a,
-  #     )
-
-  # archiveProvider = OcamlArchiveProvider(
-  #     payload = payload,
-  #     deps = OcamlDepsetProvider(
-  #         opam = mydeps.opam,
-  #         nopam = mydeps.nopam
-  #     )
-  # )
-
-  # # print("ARCHIVEPROVIDER for {arch}: {ap}".format(arch=ctx.label.name, ap=archiveProvider))
-  # return [
-  #   DefaultInfo(
-  #     files = depset(
-  #         order = "preorder",
-  #         direct = obj_files,
-  #       # transitive = [depset(build_deps + cc_deps)]
-  #     )),
-  #   archiveProvider,
-  # ]
