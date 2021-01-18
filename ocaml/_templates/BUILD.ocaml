@@ -36,8 +36,8 @@ ocaml_sdkpath(
 
 cc_library(
     name = "csdk",
-    srcs = glob(["csdk/*.a"]),
-    hdrs = glob(["csdk/**/*.h"]),
+    srcs = glob(["csdk/**/*.*"]),
+    hdrs = glob(["csdk/**/*.*"]),
     visibility = ["//visibility:public"],
 )
 

@@ -18,7 +18,7 @@ cc_library(
 
 cc_library(
     name = "hdrs",
-    hdrs = glob(["ocaml/caml/*.h"]),
+    hdrs = glob(["ocaml/caml/**/*.*"]), # recent sdks include domain_state.tbl
     copts = ["-I."],
     # "-Iexternal",
     # # "-Iexternal/ocaml/csdk/ocaml"
