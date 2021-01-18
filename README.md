@@ -1,11 +1,12 @@
-# obazl
-OBazl: A Bazel Language Support Package for OCaml
+# obazl_rules_ocaml
+Bazel rules for developing OCaml software
 
+Documentation: [docs_ocaml](https://obazl.github.io/docs_ocaml/)
 
-## emacs
+Demos:  [dev_obazl](https://github.com/obazl/dev_obazl)
 
-See .emacs.d/init.el
+See also:
 
-https://github.com/ocaml-opam/opam-user-setup
+* [obazl_rules_opam](https://github.com/obazl/rules_opam)
 
-`$ opam user-setup install`
+* [obazl_tools_bazel](https://github.com/obazl/tools_bazel)
