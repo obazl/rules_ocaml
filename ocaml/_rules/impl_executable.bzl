@@ -60,8 +60,8 @@ def impl_executable(ctx):
   outbinary = ctx.actions.declare_file(outfilename)
 
   dep_graph = []
-
-  includes = []
+  cc_runfiles  = [] ## for shared libs
+  includes  = []
 
   ################################################################
   args = ctx.actions.args()
@@ -152,11 +152,13 @@ def impl_executable(ctx):
 
     elif dep.extension == "so":
         dep_graph.append(dep)
+        cc_runfiles.append(dep)
         link_search.append("-L" + dep.dirname)
         libname = file_to_lib_name(dep)
         dynamic_libs.append("-l" + libname)
     elif dep.extension == "dylib":
         dep_graph.append(dep)
+        cc_runfiles.append(dep)
         link_search.append("-L" + dep.dirname)
         libname = file_to_lib_name(dep)
         dynamic_libs.append("-l" + libname)
@@ -226,6 +228,7 @@ def impl_executable(ctx):
                 args.add("-cclib", "-l" + libname)
                 args.add("-ccopt", "-L" + depfile.dirname)
                 cclib_deps.append(depfile)
+                cc_runfiles.append(dep)
 
   if hasattr(ctx.attr, "cc_linkall"):
       if debug:
@@ -287,13 +290,17 @@ def impl_executable(ctx):
   ## runtime deps go in ctx.runfiles
   if ctx.attr.strip_data_prefixes:
     myrunfiles = ctx.runfiles(
-      files = ctx.files.data,
+      files = ctx.files.data + cc_runfiles,
       symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
     )
   else:
     myrunfiles = ctx.runfiles(
-      files = ctx.files.data,
+      files = ctx.files.data + cc_runfiles,
     )
+
+  for dep in cc_runfiles:
+      print("RUNFILE: %s" % dep.path)
+      # myrunfiles.merge(dep)
 
   ctx.actions.run(
     env = env,
