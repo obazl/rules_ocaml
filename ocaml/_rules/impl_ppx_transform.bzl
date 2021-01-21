@@ -76,7 +76,7 @@ def impl_ppx_transform(rule, ctx, src):
                   fname_len = len(f.basename)
                   datafile_parent = f.short_path[:-fname_len]
                   RUNTIME_FILES = RUNTIME_FILES + "\n".join([
-                      "if [ ! \( -f {tmpdir}/{parent}/{rtf} \) ]".format(tmpdir=tmpdir,
+                      "if [ ! \\( -f {tmpdir}/{parent}/{rtf} \\) ]".format(tmpdir=tmpdir,
                                                                 parent = datafile_parent,
                                                                 rtf = f.basename),
                       "then",
