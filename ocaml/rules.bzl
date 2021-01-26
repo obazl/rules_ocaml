@@ -14,8 +14,8 @@ load("//ocaml/_rules:ocaml_import.bzl",
     _ocaml_import = "ocaml_import")
 load("//ocaml/_rules:ocaml_interface.bzl",
     _ocaml_interface = "ocaml_interface")
-# load("//ocaml/_rules:ocaml_deps.bzl",
-#     _ocaml_deps = "ocaml_deps")
+load("//ocaml/_rules:ocaml_lex.bzl",
+    _ocaml_lex = "ocaml_lex")
 load("//ocaml/_rules:ocaml_library.bzl",
     _ocaml_library = "ocaml_library")
 load("//ocaml/_rules:ocaml_module.bzl",
@@ -61,7 +61,7 @@ load("//ocaml/_rules:ppx_test.bzl",
 
 ocaml_archive = _ocaml_archive
 ocaml_executable = _ocaml_executable
-# ocaml_deps = _ocaml_deps
+ocaml_lex = _ocaml_lex
 ocaml_import = _ocaml_import
 ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library

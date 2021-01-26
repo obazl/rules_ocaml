@@ -39,6 +39,18 @@ _ocaml_tools_attrs = {
         allow_single_file = True,
         cfg = "host",
     ),
+    "_ocamllex": attr.label(
+        default = Label("@ocaml//:ocamllex"),
+        executable = True,
+        allow_single_file = True,
+        cfg = "host",
+    ),
+    "_ocamlyacc": attr.label(
+        default = Label("@ocaml//:ocamlyacc"),
+        executable = True,
+        allow_single_file = True,
+        cfg = "host",
+    ),
     # "_compiler": attr.label(
     #     default = Label("@ocaml//:ocamlopt"),
     #     executable = True,
@@ -119,6 +131,8 @@ def _ocaml_toolchain_impl(ctx):
         # compiler   = ctx.attr._compiler.files.to_list()[0],
         ocamlc     = ctx.attr._ocamlc.files.to_list()[0],
         ocamlopt   = ctx.attr._ocamlopt.files.to_list()[0],
+        ocamllex   = ctx.attr._ocamllex.files.to_list()[0],
+        ocamlyacc  = ctx.attr._ocamlyacc.files.to_list()[0],
         cc_toolchain = ctx.attr.cc_toolchain,
         copts       = ctx.attr._copts,
         # ocamlbuild = ctx.attr._ocamlbuild.files.to_list()[0],

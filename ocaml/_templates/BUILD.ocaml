@@ -162,6 +162,18 @@ filegroup(
 )
 
 filegroup(
+    name = "ocamllex",
+    srcs = ["switch/bin/ocamllex"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "ocamlyacc",
+    srcs = ["switch/bin/ocamlyacc"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
     name = "ocamlfind",
     srcs = ["switch/bin/ocamlfind"],
     visibility = ["//visibility:public"],
