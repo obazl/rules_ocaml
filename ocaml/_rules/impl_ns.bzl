@@ -118,6 +118,7 @@ def impl_ns(ctx):
         )
     )
 
+    directs = []
     provider = None
     if ctx.attr._rule == "ocaml_ns":
         if mode == "native":
@@ -128,6 +129,7 @@ def impl_ns(ctx):
                 cmx  = obj_cm_,
                 o   = obj_o
             )
+            directs.append(obj_o)
         else:
             payload = OcamlNsModulePayload(
                 ns  = ctx.attr.ns,
@@ -152,6 +154,7 @@ def impl_ns(ctx):
                 cmx  = obj_cm_,
                 o   = obj_o
             )
+            directs.append(obj_o)
         else:
             payload = struct(
                 ns  = ctx.attr.ns,
@@ -168,8 +171,14 @@ def impl_ns(ctx):
             )
         )
 
+    directs.append(obj_cmi)
+    directs.append(obj_cm_)
+
     return [
-        DefaultInfo(files = depset(directs)),
+        DefaultInfo(files = depset(
+            order = "postorder",
+            direct = directs
+        )),
         provider
     ]
 
