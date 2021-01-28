@@ -19,15 +19,26 @@ ppx_ns = rule(
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        module_name = attr.string(),
-        ns = attr.string(),
-        ns_sep = attr.string(
-            doc = "Namespace separator.  Default: '__'",
-            default = "__"
+        # module_name = attr.string(),
+        # ns = attr.string(),
+        # ns_sep = attr.string(
+        #     doc = "Namespace separator.  Default: '__'",
+        #     default = "__"
+        # ),
+        main = attr.label(
+            doc = "Code to use as the ns module.",
+            allow_single_file = [".ml"]
+        ),
+        footer = attr.label(
+            doc = "Code to be appended to the generated ns module.",
+            allow_single_file = True
+        ),
+        deps = attr.label_list(
+            doc = "Dependencies"
         ),
         submodules = attr.label_list(
             doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
-            allow_files = OCAML_FILETYPES
+            allow_files = True ## OCAML_FILETYPES
         ),
         _linkall     = attr.label(default = "@ppx//ns:linkall"),
         _threads     = attr.label(default = "@ppx//ns:threads"),

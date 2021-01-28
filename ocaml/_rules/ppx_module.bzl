@@ -50,6 +50,10 @@ TODO: finish docstring
         ns   = attr.label(
             doc = "Label of a [ppx_ns](#ppx_ns) target. Used to derive namespace, output name, -open arg, etc.",
         ),
+        ns_init = attr.label(
+            doc = "Experimental",
+            # default = Label("@ocaml//ns/init")
+        ),
         src = attr.label(
             mandatory = True,  # use ocaml_interface for isolated .mli files
             doc = "A single .ml source file label.",
