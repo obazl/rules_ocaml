@@ -54,7 +54,7 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  # if (ctx.label.name == "sodium_bindgen"):
+  # if (ctx.label.name == "_Red"):
   #     debug = True
 
   if debug:
@@ -185,10 +185,26 @@ def get_all_deps(rule, ctx):
 
   if debug:
       print("DIRECT_DEPS: %s" % ctx.attr.deps)
-  for dep in ctx.attr.deps:
+
+  deps = [] if (ctx.attr.deps == None) else ctx.attr.deps
+
+  if hasattr(ctx.attr, "main"):  ## ocaml_executable, ppx_executable attrib
+      # print("MAIN: %s" % ctx.attr.main)
+      if ctx.attr.main != None:
+          deps = deps + [ctx.attr.main]
+
+  if hasattr(ctx.attr, "submodules"):  ## ocaml_ns attrib
+      if ctx.attr.submodules != None:
+          deps = deps + ctx.attr.submodules.keys()
+
+  if hasattr(ctx.attr, "ns_init"):  ## ocaml_module attrib
+      if ctx.attr.ns_init != None:
+          deps = deps + [ctx.attr.ns_init]
+
+  for dep in deps: # ctx.attr.deps:
     # print()
-    if debug:
-        print(" DIRECT DEP: %s" % dep)
+    # if debug:
+    # print(" DIRECT DEP: %s" % dep)
         # print(" DIRECT DEP files: %s" % dep.files)
         # print(" DIRECT DEP DefaultInfo: %s" % dep[DefaultInfo])
     defaults.append(dep[DefaultInfo])
@@ -212,7 +228,7 @@ def get_all_deps(rule, ctx):
               opam_indirects.append(dep_provider.deps.opam)
 
       if rule == "ocaml_archive":
-          ## this includes both direct deps (submods) and indirect deps!
+          ## this includes both direct deps (submodules) and indirect deps!
           # nopam_directs.extend(dep_provider.deps.nopam.to_list())
           if hasattr(dep_provider.payload, "cma"):
               nopam_directs.append(dep_provider.payload.cma)
@@ -228,7 +244,7 @@ def get_all_deps(rule, ctx):
           #         nopam_directs.append(dep_provider.payload.mli)
       elif rule == "ocaml_executable":
           # print("payload: %s" % dep_provider.payload)
-          ## this includes both direct deps (submods) and indirect deps!
+          ## this includes both direct deps (submodules) and indirect deps!
           if hasattr(dep_provider.payload, "cma"):
               nopam_directs.append(dep_provider.payload.cma)
           if hasattr(dep_provider.payload, "cmxa"):
@@ -289,28 +305,33 @@ def get_all_deps(rule, ctx):
     elif OcamlNsModuleProvider in dep:
       if debug:
           print("OcamlNsModuleProvider: %s" % dep)
-      dep_provider = dep[OcamlNsModuleProvider]
+
+      # ocaml_ns puts everything into DefaultInfo
+      directs = dep[DefaultInfo].files
+      nopam_indirects.append(directs)
+
+      # dep_provider = dep[OcamlNsModuleProvider]
       # print("++++ OcamlNsModuleProvider dep: %s" % dep_provider)
       # print("++++ OcamlNsModuleProvider DefaultInfo: %s" % dep[DefaultInfo])
-      if dep_provider.deps.opam:
-        opam_indirects.append(dep_provider.deps.opam)
-      # opams = opams + d.opam_deps.to_list()
+      # if dep_provider.deps.opam:
+      #   opam_indirects.append(dep_provider.deps.opam)
+      # # opams = opams + d.opam_deps.to_list()
 
-      # if rule != "ppx_archive":
-      #     if rule != "ocaml_archive":
-      if hasattr(dep_provider.payload, "cmx"):
-          nopam_directs.append(dep_provider.payload.cmx)
-      if hasattr(dep_provider.payload, "cmo"):
-          nopam_directs.append(dep_provider.payload.cmo)
-      nopam_directs.append(dep_provider.payload.cmi)
-      if hasattr(dep_provider.payload, "o"):
-          nopam_directs.append(dep_provider.payload.o)
-      if dep_provider.deps.nopam:
-          # nopam_directs.append(dep_provider.payload)
-          # nopam_directs.extend(dep[DefaultInfo].files.to_list())
-          # nopam_directs.extend(dep[DefaultInfo].files.to_list())
-          nopam_indirects.append(dep_provider.deps.nopam)
-          # opam_directs.append(None)
+      # # if rule != "ppx_archive":
+      # #     if rule != "ocaml_archive":
+      # if hasattr(dep_provider.payload, "cmx"):
+      #     nopam_directs.append(dep_provider.payload.cmx)
+      # if hasattr(dep_provider.payload, "cmo"):
+      #     nopam_directs.append(dep_provider.payload.cmo)
+      # nopam_directs.append(dep_provider.payload.cmi)
+      # if hasattr(dep_provider.payload, "o"):
+      #     nopam_directs.append(dep_provider.payload.o)
+      # if dep_provider.deps.nopam:
+      #     # nopam_directs.append(dep_provider.payload)
+      #     # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+      #     # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+      #     nopam_indirects.append(dep_provider.deps.nopam)
+      #     # opam_directs.append(None)
 
     elif OcamlInterfaceProvider in dep:
       ip = dep[OcamlInterfaceProvider]
@@ -472,7 +493,10 @@ def get_all_deps(rule, ctx):
           nopam_indirects.append(dep_provider.deps.nopam)
           # opam_directs.append(None)
     else:
-      fail("UNKNOWN DEP TYPE: %s" % dep)
+        # fail("UNKNOWN DEP TYPE: %s" % dep)
+        # print("NS_INIT: %s" % dep)
+        for f in dep[DefaultInfo].files.to_list():
+            nopam_directs.append(f)
 
     # _deps is a label attribute
     if rule == "ppx_module":
@@ -692,7 +716,10 @@ def get_all_deps(rule, ctx):
                   nopam_directs.append(file)
 
   ## MUST COME LAST!!!
-  if rule !=  "ocaml_test":
+  if ( (rule !=  "ocaml_test") and (rule != "ocaml_ns")):
+    # if ( (rule == "ocaml_ns") or (rule == "ppx_ns")):
+    #     x = 1
+    # else:
     if hasattr(ctx.attr, "main"):
         if debug:
             print("HASATTR MAIN")
@@ -702,19 +729,19 @@ def get_all_deps(rule, ctx):
                 provider = ctx.attr.main[OpamPkgInfo]
                 opam_directs.append(provider)
             else:
-                if (PpxModuleProvider in ctx.attr.main):
-                    provider = ctx.attr.main[PpxModuleProvider]
-                    nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
-                    opam_adjunct_indirects.append(provider.deps.opam_adjunct)
-                elif (OcamlModuleProvider in ctx.attr.main):
+                if (OcamlModuleProvider in ctx.attr.main):
                     provider = ctx.attr.main[OcamlModuleProvider]
                     # else:
                     # fail("Main must be ocaml_module or ppx_module.")
-                if mode == "native":
-                    nopam_directs.append(provider.payload.cmx)
-                else:
+                elif (PpxModuleProvider in ctx.attr.main):
+                    provider = ctx.attr.main[PpxModuleProvider]
+                    nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
+                    opam_adjunct_indirects.append(provider.deps.opam_adjunct)
+                if mode == "bytecode":
                     nopam_directs.append(provider.payload.cmo)
                     nopam_directs.append(provider.payload.cmi)
+                else:
+                    nopam_directs.append(provider.payload.cmx)
                 if hasattr(provider.payload, "o"):
                     nopam_directs.append(provider.payload.o)
                     nopam_indirects.append(provider.deps.nopam)
@@ -726,6 +753,8 @@ def get_all_deps(rule, ctx):
   #         print("DIGESTIF.C: {}".format(ctx.label))
   #     if dep.pkg == Label("@opam//pkg:digestif.ocaml"):
   #         print("DIGESTIF.OCAML: {}".format(ctx.label))
+
+  # print("\n\n\t\t\t NOPAM directs: %s\n\n" % nopam_directs)
 
   opam_depset = depset(
     order      = "postorder",

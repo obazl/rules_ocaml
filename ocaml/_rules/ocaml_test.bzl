@@ -23,7 +23,7 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 def _ocaml_test_impl(ctx):
 
   debug = False
-  # if (ctx.label.name == "gen.exe"):
+  # if (ctx.label.name == "test"):
   #     debug = True
 
   if debug:

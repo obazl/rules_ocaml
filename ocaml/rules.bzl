@@ -20,8 +20,8 @@ load("//ocaml/_rules:ocaml_library.bzl",
     _ocaml_library = "ocaml_library")
 load("//ocaml/_rules:ocaml_module.bzl",
     _ocaml_module = "ocaml_module")
-# load("//ocaml/_rules:ocaml_ns_archive.bzl",
-#     _ocaml_ns_archive = "ocaml_ns_archive")
+load("//ocaml/_rules:ocaml_ns_init.bzl",
+    _ocaml_ns_init = "ocaml_ns_init")
 load("//ocaml/_rules:ocaml_ns.bzl",
     _ocaml_ns = "ocaml_ns")
 load("//ocaml/_rules:ocaml_test.bzl",
@@ -31,9 +31,6 @@ load("//ocaml/_rules:x_cppo_filegroup.bzl",
     _x_cppo_filegroup = "x_cppo_filegroup")
 
 
-# load("//implementation:macros/ns_archive.bzl",
-#      _ocaml_ns_archive_macro = "ocaml_ns_archive_macro"
-# )
 load("//ocaml/_rules:ppx_archive.bzl",
      _ppx_archive = "ppx_archive")
 load("//ocaml/_rules:ppx_executable.bzl",
@@ -66,7 +63,7 @@ ocaml_import = _ocaml_import
 ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
-# ocaml_ns_archive = _ocaml_ns_archive
+ocaml_ns_init = _ocaml_ns_init
 ocaml_ns  = _ocaml_ns
 ocaml_test= _ocaml_test
 

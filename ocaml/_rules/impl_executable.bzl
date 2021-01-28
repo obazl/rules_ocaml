@@ -100,9 +100,7 @@ def impl_executable(ctx):
   dynamic_libs = []
   static_libs  = []
   link_search  = []
-  # print("NOPAMS: %s" % mydeps.nopam)
-  # we need to add the archive components to inputs, the archive is not enough
-  # without these we get "implementation not found"
+
   for dep in mydeps.nopam.to_list():
     if debug:
         print("NOPAM DEP: %s" % dep)

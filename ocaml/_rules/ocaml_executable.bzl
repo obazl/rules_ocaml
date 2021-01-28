@@ -49,6 +49,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
+            # allow_single_file doesn't work - ocaml deps produce at least two files (module + interface)
             providers = [[OcamlModuleProvider], [OpamPkgInfo]],
             default = None
         ),

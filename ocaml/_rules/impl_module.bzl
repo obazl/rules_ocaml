@@ -35,7 +35,7 @@ load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 def impl_module(ctx):
 
   debug = False
-  # if ctx.label.name == "structured_log_events":
+  # if ctx.label.name == "_Red":
   #     debug = True
 
   if debug:
@@ -69,6 +69,9 @@ def impl_module(ctx):
       dep_graph.append(ctx.file.ppx)
       # a ppx executable may have adjunct deps; they are handled by get_all_deps
   elif ctx.attr.ns:
+      # rename this module to put it in the namespace
+      xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
+  elif ctx.attr.ns_init:
       # rename this module to put it in the namespace
       xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   else:
@@ -188,6 +191,7 @@ def impl_module(ctx):
                 includes.append(dep.dirname)
 
   for dep in mydeps.nopam.to_list():
+      # print("NOPAM DEP: %s" % dep)
       if dep.extension == "cmx":
           dep_graph.append(dep)
           includes.append(dep.dirname)
@@ -274,6 +278,26 @@ def impl_module(ctx):
       args.add_all(cc_deps, before_each="-cclib", uniquify = True)
 
   args.add_all(build_deps)
+
+  ns = None
+  ## ns_init target produces two files, module and interface
+  if ctx.files.ns_init:
+      for dep in ctx.files.ns_init:
+          # print("NS_INIT DEP: %s" % dep)
+          bn = dep.basename
+          # print("NS_INIT DEP BASENAME: %s" % bn)
+          ext = dep.extension
+          ns = bn[:-(len(ext)+1)]
+          # print("NS: %s" % ns)
+          if dep.extension == "cmo":
+              dep_graph.append(dep)
+              # args.add(dep)
+          if dep.extension == "cmi":
+              dep_graph.append(dep)
+
+  if ns != None:
+      args.add("-no-alias-deps")
+      args.add("-open", ns)
 
   args.add("-c")
 

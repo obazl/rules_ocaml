@@ -74,6 +74,10 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
             default = None
         ),
+        ns_init = attr.label(
+            doc = "Experimental",
+            # default = Label("@ocaml//ns/init")
+        ),
         # _xns = attr.label(
         #     doc = "Experimental",
         #     default = "@ocaml//ns"

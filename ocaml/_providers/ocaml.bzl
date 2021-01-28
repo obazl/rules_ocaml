@@ -173,14 +173,6 @@ OcamlModuleProvider = provider(
     }
 )
 
-OcamlNsModuleProvider = provider(
-    doc = "OCaml module provider.",
-    fields = {
-        "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
-        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
-    }
-)
-
 OcamlNsModulePayload = provider(
     doc = "OCaml NS Module payload provider.",
     fields = {
@@ -190,5 +182,21 @@ OcamlNsModulePayload = provider(
         "o"   : ".o file produced from the target (native mode)",
         "cmo"  : ".cmo file produced from the target (native mode)",
         "cmi" : ".cmi file produced from the target",
+    }
+)
+
+OcamlNsLibraryProvider = provider(
+    doc = "OCaml NS library provider.",
+    fields = {
+        "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
+        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
+    }
+)
+
+OcamlNsModuleProvider = provider(
+    doc = "OCaml NS module provider.",
+    fields = {
+        "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
+        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
     }
 )

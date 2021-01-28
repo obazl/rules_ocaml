@@ -18,15 +18,27 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     _sdkpath = attr.label(
       default = Label("@ocaml//:path")
     ),
-    # module_name = attr.string(
-    #     doc = "Name of output file. Overrides default, which is derived from _name_ attribute."
-    # ),
-    ns = attr.string(
-        doc = "A namespace name string. The name of namespace is taken from this attribute, not the `name` attribute.  This makes it easier to avoid naming conflicts when a package contains a large number of modules, archives, etc."
+    archive = attr.bool(
+        doc = "Output and archive file containing this namespace module and all submodules.",
+        default = False
     ),
-    ns_sep = attr.string(
-      doc = "Namespace separator.  Default: '__' (double underscore)",
-      default = "__"
+    # ns = attr.string(
+    #     doc = "A namespace name string. The name of namespace is taken from this attribute, not the `name` attribute.  This makes it easier to avoid naming conflicts when a package contains a large number of modules, archives, etc."
+    # ),
+    # ns_sep = attr.string(
+    #   doc = "Namespace separator.  Default: '__' (double underscore)",
+    #   default = "__"
+    # ),
+    main = attr.label(
+        doc = "Code to use as the ns module.",
+        allow_single_file = [".ml"]
+    ),
+    footer = attr.label(
+        doc = "Code to be appended to the generated ns module.",
+        allow_single_file = True
+    ),
+    deps = attr.label_list(
+        doc = "Dependencies"
     ),
       ## experimental transition fns
     # xns = attr.label(
@@ -34,8 +46,8 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     #     default = "@ocaml//ns",
         # doc = "Experimental",
     # ),
-    submods = attr.label_list(
-      doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
+    submodules = attr.label_keyed_string_dict(
+      doc = "Dict from submodule target to name",
       allow_files = True ## OCAML_FILETYPES
         # cfg = ocaml_ns_transition,
     ),
@@ -43,10 +55,10 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
     # ),
       ## end experimental transition fns
-    submodules = attr.label_list(
-      doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
-      allow_files = True ## OCAML_FILETYPES
-    ),
+    # submodules = attr.label_list(
+    #   doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
+    #   allow_files = True ## OCAML_FILETYPES
+    # ),
     _mode = attr.label(
         default = "@ocaml//mode"
     ),
