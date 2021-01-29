@@ -151,7 +151,7 @@ def impl_ns(ctx):
     ## ns module name is always ctx.label.name
     ## if no main, use ns module as resolver (generate it)
     ## otherwise, use main as ns module, and the resolver is computed from package name
-    ns_module_name = ctx.label.name
+    ns_module_name = ctx.label.name.replace("-", "_")
     ## ns module always named from ctx.label.name; if main provided is different, we will copy it.
 
     ns_filename = tmpdir + ns_module_name + ".ml"
