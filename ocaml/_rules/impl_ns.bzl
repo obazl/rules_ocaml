@@ -26,7 +26,7 @@ def get_resolver_name(ctx):
         ws = ctx.workspace_name
         # print("WS: %s" % ws)
     ws = capitalize_initial_char(ws)
-    resolver_name = ws + "_" + ctx.label.package.replace("/", "_")
+    resolver_name = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_")
     return resolver_name
 
 ########################
@@ -73,8 +73,8 @@ def build_resolver(ctx, tc, env, mode, aliases):
     if ctx.attr._warnings:
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
-    # if hasattr(ctx.attr, "opts"):
-    #     args.add_all(ctx.attr.opts)
+    if hasattr(ctx.attr, "opts"):
+        args.add_all(ctx.attr.opts)
 
     ## -no-alias-deps is REQUIRED for ns modules;
     ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
@@ -116,6 +116,10 @@ def build_resolver(ctx, tc, env, mode, aliases):
 #################
 def impl_ns(ctx):
 
+    debug = False
+    # if (ctx.label.name == "stdune"):
+    #     debug = True
+
     if (ctx.attr.footer and ctx.attr.main):
         fail("Attributes 'footer' and 'main' are mutually exclusive.")
 
@@ -124,6 +128,9 @@ def impl_ns(ctx):
            "PATH": get_sdkpath(ctx)}
 
     mydeps = get_all_deps(ctx.attr._rule, ctx)
+
+    if debug:
+        print("MYDEPS.opam: %s" % mydeps.opam)
 
     ## generate content: one alias per submodule
     aliases = []
@@ -137,7 +144,7 @@ def impl_ns(ctx):
     for dep in mydeps.nopam.to_list():
         # print("DEP: %s" % dep)
         dep_graph.append(dep)
-        indirects.append(dep)
+        # indirects.append(dep)
         includes.append(dep.dirname)
 
     ## compute ns names.
@@ -200,12 +207,20 @@ def impl_ns(ctx):
         ## because main ns module will always match ctx.label.name
         ## iow, using 'main' attrib obligates user to provide first-level aliases.
 
+        ## main file has its own deps! use 'deps' attrib for those?
+
         ## FIXME: we already have a resolver file, from ocaml_ns_init!
         ## we just need to add it to the dep graph?
+        ## NOOOO! submodules depend on ocaml_ns_init; we need to reverse the dependency,
+        ## so that the resolver will come after the submodules, otherwise lookups will fail
+        ## with "Required module is unavailable".
 
-        if not clash:
+        ## Unfortunately, if we generate the same file we get an error
+        ## complaining that the same file is generated twice.
+
+        # if not clash:
             # if ctx.file.main.basename != ctx.label.name + ".ml":
-            [resolver_module_name, resolver_files] = build_resolver(ctx, tc, env, mode, aliases)
+        [resolver_module_name, resolver_files] = build_resolver(ctx, tc, env, mode, aliases)
         # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
         # print("Resolver files: %s" % resolver_files)
 
@@ -240,7 +255,9 @@ def impl_ns(ctx):
                 src = ctx.file.footer.path,
                 out = ns_file.path
             )
-        print("CMD: %s" % cmd)
+
+        # print("CMD: %s" % cmd)
+
         infile = None
         if ctx.file.footer:
             infile = ctx.file.footer
@@ -294,6 +311,10 @@ def impl_ns(ctx):
     # if not ctx.file.main:
     dep_graph.append(ns_file)
 
+    # if ctx.attr.ns_init:
+    #     for f in ctx.files.ns_init:
+    #         dep_graph.append(f)
+
     args.add_all(includes, before_each="-I", uniquify = True)
     # for dep in ctx.files.deps:
     #     # dep_graph.append(dep)
@@ -305,15 +326,15 @@ def impl_ns(ctx):
 
     if resolver_files:
         ## only if ctx.attr.main
-        if not clash:
-            for f in resolver_files:
-                print("RESOLVER FILE: %s" % f.extension)
-                dep_graph.append(f)
-                directs.append(f)
-                ## don't put cmi files on cmd line
-                if ((f.extension == "cmo") or (f.extension == "cmx")):
-                    args.add("-I", f.dirname) # without this the cmi file may not be found, giving "Unbound module"
-                    args.add(f)
+        # if not clash:
+        for f in resolver_files:
+            # print("RESOLVER FILE: %s" % f.basename)
+            dep_graph.append(f)
+            directs.append(f)
+            ## don't put cmi files on cmd line
+            if ((f.extension == "cmo") or (f.extension == "cmx")):
+                args.add("-I", f.dirname) # without this the cmi file may not be found, giving "Unbound module"
+                args.add(f)
 
     if resolver_module_name:
         args.add("-open", resolver_module_name)
@@ -396,20 +417,23 @@ def impl_ns(ctx):
 
     directs.append(obj_cm_)
     directs.append(obj_cmi)
-    for k in ctx.attr.submodules.keys():
-        for dep in k.files.to_list():
-            directs.append(dep)
+    # for k in ctx.attr.submodules.keys():
+    #     for dep in k.files.to_list():
+    #         # nopam v. opam
+    #         indirects.append(dep)
 
     # since output may include a generated resolver module, which is not in mydeps,
     # we just put everything into the DefaultInfo depset.
     # we still need the NS provider, for the opam deps at least.
 
+    # print("PROVIDER: %s" % provider)
+
     return [
         DefaultInfo(files = depset(
             order = "postorder",
             direct = directs,
-            transitive = [mydeps.nopam, mydeps.opam]
-            # transitive = [depset( order = "postorder", direct = indirects)]
+            transitive = [mydeps.nopam] # , mydeps.opam]
+                          # depset(order="postorder", direct = indirects)]
         )),
         provider
     ]

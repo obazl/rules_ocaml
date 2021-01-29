@@ -129,36 +129,38 @@ def _ocaml_interface_impl(ctx):
 
   args.add("-c") # interfaces always compile-only?
 
-  if ctx.attr.ns:
-    args.add("-no-alias-deps")
-    if OcamlNsModuleProvider in ctx.attr.ns:
-        provider = ctx.attr.ns[OcamlNsModuleProvider]
-        dep_graph.append(provider.payload.cmi)
-        if hasattr(provider.payload, "cmo"):
-            ns_cm = provider.payload.cmo
-            dep_graph.append(provider.payload.cmo)
-        elif hasattr(provider.payload, "cmx"):
-            ns_cm = provider.payload.cmx
-            dep_graph.append(provider.payload.cmx)
-        else:
-            fail("OcamlNsModuleProvider neither cmo nor cmx: %s" % provider)
-    else:
-        provider = ctx.attr.ns[PpxNsModuleProvider]
-        dep_graph.append(provider.payload.cmi)
-        if hasattr(provider.payload, "cmo"):
-            ns_cm = provider.payload.cmo
-            dep_graph.append(ctx.attr.ns[PpxNsModuleProvider].payload.cmo)
-        elif hasattr(provider.payload, "cmx"):
-            ns_cm = provider.payload.cmx
-            dep_graph.append(ctx.attr.ns[PpxNsModuleProvider].payload.cmx)
-        else:
-            fail("PpxNsModuleProvider payload neither cmo nor cmx: %s" % provider)
+  # if ctx.attr.ns:
+  #   args.add("-no-alias-deps")
+  #   if OcamlNsModuleProvider in ctx.attr.ns:
+  #       provider = ctx.attr.ns[OcamlNsModuleProvider]
+  #       dep_graph.append(provider.payload.cmi)
+  #       if hasattr(provider.payload, "cmo"):
+  #           ns_cm = provider.payload.cmo
+  #           dep_graph.append(provider.payload.cmo)
+  #       elif hasattr(provider.payload, "cmx"):
+  #           ns_cm = provider.payload.cmx
+  #           dep_graph.append(provider.payload.cmx)
+  #       else:
+  #           fail("OcamlNsModuleProvider neither cmo nor cmx: %s" % provider)
+  #   else:
+  #       provider = ctx.attr.ns[PpxNsModuleProvider]
+  #       dep_graph.append(provider.payload.cmi)
+  #       if hasattr(provider.payload, "cmo"):
+  #           ns_cm = provider.payload.cmo
+  #           dep_graph.append(ctx.attr.ns[PpxNsModuleProvider].payload.cmo)
+  #       elif hasattr(provider.payload, "cmx"):
+  #           ns_cm = provider.payload.cmx
+  #           dep_graph.append(ctx.attr.ns[PpxNsModuleProvider].payload.cmx)
+  #       else:
+  #           fail("PpxNsModuleProvider payload neither cmo nor cmx: %s" % provider)
+
+
     # if mode == "native":
     #     ns_cm = ctx.attr.ns[OcamlNsModuleProvider].payload.cmx
     #     dep_graph.append(ctx.attr.ns[OcamlNsModuleProvider].payload.cmx)
     # else:
-    ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
-    args.add("-open", ns_mod)
+    # ns_mod = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
+    # args.add("-open", ns_mod)
 
     # capitalize_initial_char(ctx.attr.ns[PpxNsModuleProvider].payload.ns))
 
@@ -382,14 +384,11 @@ def _ocaml_interface_impl(ctx):
     )
   )
 
+  if debug:
+      print("SIG PROVIDER: %s" % interface_provider)
+
   return [DefaultInfo(files = depset(direct = [obj_cmi])),
           interface_provider]
-
-# (library
-#  (name deriving_hello)
-#  (libraries base ppxlib)
-#  (preprocess (pps ppxlib.metaquot))
-#  (kind ppx_deriver))
 
 #############################################
 ########## DECL:  OCAML_INTERFACE  ################
@@ -434,9 +433,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     doc = "Namespace separator.  Default: '__'",
         #     default = "__"
         # ),
-        ns = attr.label(
-            doc = "Label of an `ocaml_ns` target. Used to derive namespace, output name, -open arg, etc.",
-        ),
+        # ns = attr.label(
+        #     doc = "Label of an `ocaml_ns` target. Used to derive namespace, output name, -open arg, etc.",
+        # ),
         ns_init = attr.label(
             doc = "Experimental"
         ),
@@ -472,6 +471,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
+                         [OcamlInterfaceProvider],
                          [OcamlLibraryProvider],
                          [OcamlNsModuleProvider],
                          [PpxArchiveProvider],

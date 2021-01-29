@@ -70,10 +70,10 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         module_name   = attr.string(
             doc = "Module name. Overrides `name` attribute."
         ),
-        ns = attr.label(
-            doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
-            default = None
-        ),
+        # ns = attr.label(
+        #     doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
+        #     default = None
+        # ),
         ns_init = attr.label(
             doc = "Experimental",
             # default = Label("@ocaml//ns/init")

@@ -68,9 +68,9 @@ def impl_module(ctx):
       (tmpdir, xsrc) = impl_ppx_transform(rule, ctx, ctx.file.src)
       dep_graph.append(ctx.file.ppx)
       # a ppx executable may have adjunct deps; they are handled by get_all_deps
-  elif ctx.attr.ns:
-      # rename this module to put it in the namespace
-      xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
+  # elif ctx.attr.ns:
+  #     # rename this module to put it in the namespace
+  #     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   elif ctx.attr.ns_init:
       # rename this module to put it in the namespace
       xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
@@ -115,21 +115,32 @@ def impl_module(ctx):
   cc_deps  = []
   link_search = []
 
-  if ctx.attr.ns:
-      ## This is a namespaced module
-      if OcamlNsModuleProvider in ctx.attr.ns:
-          if mode == "native":
-              ns_cm = ctx.attr.ns[OcamlNsModuleProvider].payload.cmx
-          else:
-              ns_cm = ctx.attr.ns[OcamlNsModuleProvider].payload.cmo
-      else:
-          if mode == "native":
-              ns_cm = ctx.attr.ns[PpxNsModuleProvider].payload.cmx
-          else:
-              ns_cm = ctx.attr.ns[PpxNsModuleProvider].payload.cmo
-      ns_module = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
-      args.add("-no-alias-deps") ## REQUIRED for namespaced modules
-      args.add("-open", ns_module)
+  directs = []
+  indirects = []
+
+  # if ctx.attr.ns_init:
+  #     for f in ctx.files.ns_init:
+  #         # print("FFFFFFFFFFFFFFFF: %s" % f)
+  #         dep_graph.append(f)
+  #         indirects.append(f)
+
+      # ## This is a namespaced module
+      # if OcamlNsModuleProvider in ctx.attr.ns_init:
+      #     if mode == "native":
+      #         ns_cm = ctx.attr.ns_init[OcamlNsModuleProvider].payload.cmx
+      #     else:
+      #         ns_cm = ctx.attr.ns_init[OcamlNsModuleProvider].payload.cmo
+      # elif PpxNsModuleProvider in ctx.attr.ns_init:
+      #     if mode == "native":
+      #         ns_cm = ctx.attr.ns_init[PpxNsModuleProvider].payload.cmx
+      #     else:
+      #         ns_cm = ctx.attr.ns_init[PpxNsModuleProvider].payload.cmo
+      # else:
+      #     print(ctx.attr.ns_init)
+      #     fail("XXXXXXXXXXXXXXXX")
+      # ns_module = capitalize_initial_char(paths.split_extension(ns_cm.basename)[0])
+      # args.add("-no-alias-deps") ## REQUIRED for namespaced modules
+      # args.add("-open", ns_module)
       # args.add("-w", "-49") # ignore Warning 49: no cmi file was found in path for module x
 
   if ctx.attr.intf:
@@ -358,7 +369,6 @@ def impl_module(ctx):
   )
 
   ################################################################
-  directs = []
 
   if ctx.attr._rule == "ocaml_module":
       if mode == "native":
@@ -413,8 +423,10 @@ def impl_module(ctx):
   defaultInfo = DefaultInfo(
       files = depset(
           order = "postorder",
-          direct = directs
+          direct = directs,
+          # transitive = [depset( order = "postorder", direct = indirects )]
       )
   )
+  # print("DEFAULT: %s" % defaultInfo)
 
   return [defaultInfo, module_provider]

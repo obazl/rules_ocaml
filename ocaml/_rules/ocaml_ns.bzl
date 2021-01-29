@@ -29,6 +29,13 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     #   doc = "Namespace separator.  Default: '__' (double underscore)",
     #   default = "__"
     # ),
+    opts             = attr.string_list(
+        doc          = "List of OCaml options. Will override configurable default options."
+    ),
+    ns_init = attr.label(
+        doc = "Experimental",
+        # default = Label("@ocaml//ns/init")
+    ),
     main = attr.label(
         doc = "Code to use as the ns module.",
         allow_single_file = [".ml"]

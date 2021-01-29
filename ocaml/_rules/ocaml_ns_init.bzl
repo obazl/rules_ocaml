@@ -31,7 +31,7 @@ def _impl_ns_init(ctx):
 
     aliases = []
     ## declare ns module file, as input to compile action
-    ns_sep = "__"
+    ns_sep = ""
 
     if ctx.attr.ns:
         ns_module_name = capitalize_initial_char(ctx.attr.ns)
@@ -42,7 +42,7 @@ def _impl_ns_init(ctx):
             ws = ctx.workspace_name
             # print("WS: %s" % ws)
         ws = capitalize_initial_char(ws) if ws else ""
-        ns_module_name = ws + "_" + ctx.label.package.replace("/", "_")
+        ns_module_name = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_") + "__"
 
     dep_graph = []
     for sm in ctx.files.srcs:
@@ -175,7 +175,7 @@ ns_init(ns = "foobar", srcs = glob(["*.ml"]))
         doc = "String used to separate namespace implementation prefix from submodule name."
     ),
     srcs = attr.label_list(
-        doc = "List of files to be included as submodules in the namespace definition.",
+        doc = "List of files from which submodule names are to be derived for inclusion in the namespace definition. The module name will be formed by truncating the extension and capitalizing the initial character. Module code generated from lex and yacc can be accomodated by using the module name for the source file and generating a .ml source file of the same aname, e.g. lexer.mll -> lexer.ml.",
         allow_files = True,
     ),
     deps = attr.label_list(

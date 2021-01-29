@@ -54,7 +54,7 @@ def get_all_deps(rule, ctx):
   # b. iterate over the deps of the direct dep, adding them to transitive
 
   debug = False
-  # if (ctx.label.name == "_Red"):
+  # if (ctx.label.name == "_Main"):
   #     debug = True
 
   if debug:
@@ -201,6 +201,10 @@ def get_all_deps(rule, ctx):
       if ctx.attr.ns_init != None:
           deps = deps + [ctx.attr.ns_init]
 
+  if hasattr(ctx.attr, "intf"):  ## ocaml_module attrib
+      if ctx.attr.intf != None:
+          deps = deps + [ctx.attr.intf]
+
   for dep in deps: # ctx.attr.deps:
     # print()
     # if debug:
@@ -306,15 +310,14 @@ def get_all_deps(rule, ctx):
       if debug:
           print("OcamlNsModuleProvider: %s" % dep)
 
-      # ocaml_ns puts everything into DefaultInfo
+      # ocaml_ns puts payload and nopam into DefaultInfo, so we do not need to use OcamlNsModuleProvider
       directs = dep[DefaultInfo].files
       nopam_indirects.append(directs)
 
-      # dep_provider = dep[OcamlNsModuleProvider]
-      # print("++++ OcamlNsModuleProvider dep: %s" % dep_provider)
-      # print("++++ OcamlNsModuleProvider DefaultInfo: %s" % dep[DefaultInfo])
-      # if dep_provider.deps.opam:
-      #   opam_indirects.append(dep_provider.deps.opam)
+      # but we do need to pull opam deps from provider
+      dep_provider = dep[OcamlNsModuleProvider]
+      if dep_provider.deps.opam:
+        opam_indirects.append(dep_provider.deps.opam)
       # # opams = opams + d.opam_deps.to_list()
 
       # # if rule != "ppx_archive":
@@ -335,7 +338,6 @@ def get_all_deps(rule, ctx):
 
     elif OcamlInterfaceProvider in dep:
       ip = dep[OcamlInterfaceProvider]
-      # print("OcamlInterfaceProvider dep: %s" % ip)
       nopam_directs.append(ip.payload.cmi)
       nopam_directs.append(ip.payload.mli)
       nopam_indirects.append(ip.deps.nopam)

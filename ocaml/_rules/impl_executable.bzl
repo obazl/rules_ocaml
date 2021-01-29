@@ -172,6 +172,7 @@ def impl_executable(ctx):
       # args.add("-dllpath", dllpath)
 
   opam_deps = mydeps.opam.to_list()
+  print("OPAM DEPS: %s" % opam_deps)
   ## indirect adjunct deps
   opam_deps.extend(mydeps.opam_adjunct.to_list())
 

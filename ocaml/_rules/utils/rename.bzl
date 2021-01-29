@@ -12,17 +12,17 @@ tmpdir = "_obazl_/"
 def get_module_name (ctx, src):
     ns     = None
     ns_sep = ""
-    if ctx.attr.ns:
-        if OcamlNsModuleProvider in ctx.attr.ns:
-            ns  = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
-            ns_sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
-        else:
-            ns = ctx.attr.ns[PpxNsModuleProvider].payload.ns
-            ns_sep = ctx.attr.ns[PpxNsModuleProvider].payload.sep
-            # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
-    elif ctx.attr.ns_init:
+    # if ctx.attr.ns:
+    #     if OcamlNsModuleProvider in ctx.attr.ns:
+    #         ns  = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
+    #         ns_sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
+    #     else:
+    #         ns = ctx.attr.ns[PpxNsModuleProvider].payload.ns
+    #         ns_sep = ctx.attr.ns[PpxNsModuleProvider].payload.sep
+    #         # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
+    if ctx.attr.ns_init:
         ## ns_init target always produces two files, module (cmo or cmx) and interface (cmi)
-        ns_sep = "__"
+        # ns_sep = "__"
         for dep in ctx.files.ns_init:
             if dep.extension == "cmi":
                 bn  = dep.basename
