@@ -4,7 +4,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml/_providers:ocaml.bzl",
     "CompilationModeSettingProvider",
      "OcamlNsModulePayload",
-     "OcamlNsModuleProvider")
+     "OcamlNsResolverProvider")
 load("//ppx:_providers.bzl",
      "PpxNsModuleProvider")
 
@@ -21,7 +21,7 @@ OCAML_FILETYPES = [
 tmpdir = "_obazl_/"
 
 #################
-def _impl_ns_init(ctx):
+def _impl_ns_resolver(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
@@ -140,28 +140,28 @@ def _impl_ns_init(ctx):
         )
     )
 
-    # provider = OcamlNsResolverProvider(
-    #     payload = depset(order = "postorder", direct = outputs)
-    # )
+    provider = OcamlNsResolverProvider(
+        payload = depset(order = "postorder", direct = outputs)
+    )
 
     return [
         DefaultInfo(files = depset(
             order = "postorder",
             direct = outputs
         )),
-        # provider
+        provider
     ]
 
 ################
-ocaml_ns_init = rule(
-  implementation = _impl_ns_init,
+ocaml_ns_resolver = rule(
+  implementation = _impl_ns_resolver,
     doc = """This rule sets the "ns prefix string", which serves as a kind of pseudo-namespace. Submodule names will be formed by prefixing this string to the (original, un-namespaced) module name, separated by 'sep' (default: '__').
 
 The main namespace module will contain aliasing equations that map module names to these prefixed module names.
 
 By default, the ns prefix string is formed from the package name, with '/' replaced by '_'. You can use the 'ns' attribute to change this:
 
-ns_init(ns = "foobar", srcs = glob(["*.ml"]))
+ns(ns = "foobar", srcs = glob(["*.ml"]))
 
     """,
   attrs = dict(
@@ -185,7 +185,7 @@ ns_init(ns = "foobar", srcs = glob(["*.ml"]))
         default = "@ocaml//mode"
     ),
     _warnings  = attr.label(default = "@ocaml//ns:warnings"),
-    _rule = attr.string(default = "ocaml_ns_init")
+    _rule = attr.string(default = "ocaml_ns_resolver")
   ),
   # provides = [DefaultInfo, OcamlNsModuleProvider],
   executable = False,

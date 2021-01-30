@@ -20,10 +20,10 @@ def get_module_name (ctx, src):
     #         ns = ctx.attr.ns[PpxNsModuleProvider].payload.ns
     #         ns_sep = ctx.attr.ns[PpxNsModuleProvider].payload.sep
     #         # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
-    if ctx.attr.ns_init:
-        ## ns_init target always produces two files, module (cmo or cmx) and interface (cmi)
+    if ctx.attr.ns:
+        ## ns target always produces two files, module (cmo or cmx) and interface (cmi)
         # ns_sep = "__"
-        for dep in ctx.files.ns_init:
+        for dep in ctx.files.ns:
             if dep.extension == "cmi":
                 bn  = dep.basename
                 ext = dep.extension

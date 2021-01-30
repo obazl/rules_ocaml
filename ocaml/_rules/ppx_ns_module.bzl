@@ -2,15 +2,15 @@ load("//ppx:_providers.bzl", "PpxNsModuleProvider")
 
 load(":options_ppx.bzl", "options_ppx")
 
-load(":impl_ns.bzl", "impl_ns")
+load(":impl_ns_module.bzl", "impl_ns_module")
 
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
 ]
 
 ##############
-ppx_ns = rule(
-    implementation = impl_ns,
+ppx_ns_module = rule(
+    implementation = impl_ns_module,
     doc = """Generate a PPX namespace module.
 
     """,

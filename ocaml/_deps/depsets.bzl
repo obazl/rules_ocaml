@@ -10,7 +10,8 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlImportProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsModuleProvider")
+     "OcamlNsModuleProvider",
+     "OcamlNsResolverProvider")
 
 # load("//ocaml/_providers:opam.bzl", "OpamPkgInfo")
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
@@ -197,9 +198,9 @@ def get_all_deps(rule, ctx):
       if ctx.attr.submodules != None:
           deps = deps + ctx.attr.submodules.keys()
 
-  if hasattr(ctx.attr, "ns_init"):  ## ocaml_module attrib
-      if ctx.attr.ns_init != None:
-          deps = deps + [ctx.attr.ns_init]
+  if hasattr(ctx.attr, "ns"):  ## ocaml_module attrib
+      if ctx.attr.ns != None:
+          deps = deps + [ctx.attr.ns]
 
   if hasattr(ctx.attr, "intf"):  ## ocaml_module attrib
       if ctx.attr.intf != None:
@@ -551,36 +552,37 @@ def get_all_deps(rule, ctx):
           opam_adjunct_indirects.append(provider.deps.opam_adjunct)
           nopam_adjunct_indirects.append(provider.deps.nopam_adjunct)
 
-  ## ns attribute: label for module and intf, string for ocaml_ns
-  if (rule == "ocaml_module") or (rule == "ocaml_interface") or (rule == "ppx_module"):
-      ## FIXME: do we need to propagate the deps of *.mli files?
-      if hasattr(ctx.attr, "ns"):
-          if ctx.attr.ns != None:
-              if OcamlNsModuleProvider in ctx.attr.ns:
-                  dep_provider = ctx.attr.ns[OcamlNsModuleProvider]
-              else:
-                  dep_provider = ctx.attr.ns[PpxNsModuleProvider]
-              # if rule != "ppx_archive":
-              #     if rule != "ocaml_archive":
-              if hasattr(dep_provider.payload, "cmx"):
-                  nopam_directs.append(dep_provider.payload.cmx)
-              if hasattr(dep_provider.payload, "cmo"):
-                  nopam_directs.append(dep_provider.payload.cmo)
-              if hasattr(dep_provider.payload, "o"):
-                  nopam_directs.append(dep_provider.payload.o)
-              if hasattr(dep_provider.payload, "cmi"):
-                  nopam_directs.append(dep_provider.payload.cmi)
-              if hasattr(dep_provider.payload, "mli"):
-                  nopam_directs.append(dep_provider.payload.mli)
+  # if (rule == "ocaml_module") or (rule == "ocaml_interface") or (rule == "ppx_module"):
+  #     ## FIXME: do we need to propagate the deps of *.mli files?
+  #     if hasattr(ctx.attr, "ns"):
+  #         if ctx.attr.ns != None:
+  #             if OcamlNsResolverProvider in ctx.attr.ns:
+  #                 dep_provider = ctx.attr.ns[OcamlNsResolverProvider]
+  #             elif OcamlNsModuleProvider in ctx.attr.ns:
+  #                 dep_provider = ctx.attr.ns[OcamlNsModuleProvider]
+  #             else:
+  #                 dep_provider = ctx.attr.ns[PpxNsModuleProvider]
+  #             # if rule != "ppx_archive":
+  #             #     if rule != "ocaml_archive":
+  #             if hasattr(dep_provider.payload, "cmx"):
+  #                 nopam_directs.append(dep_provider.payload.cmx)
+  #             if hasattr(dep_provider.payload, "cmo"):
+  #                 nopam_directs.append(dep_provider.payload.cmo)
+  #             if hasattr(dep_provider.payload, "o"):
+  #                 nopam_directs.append(dep_provider.payload.o)
+  #             if hasattr(dep_provider.payload, "cmi"):
+  #                 nopam_directs.append(dep_provider.payload.cmi)
+  #             if hasattr(dep_provider.payload, "mli"):
+  #                 nopam_directs.append(dep_provider.payload.mli)
 
-              if dep_provider.deps.nopam:
-                  # nopam_directs.append(dep_provider.payload)
-                  # nopam_directs.extend(dep[DefaultInfo].files.to_list())
-                  # nopam_directs.extend(dep[DefaultInfo].files.to_list())
-                  nopam_indirects.append(dep_provider.deps.nopam)
-                  # opam_directs.append(None)
-              if dep_provider.deps.opam:
-                  opam_indirects.append(dep_provider.deps.opam)
+  #             if dep_provider.deps.nopam:
+  #                 # nopam_directs.append(dep_provider.payload)
+  #                 # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+  #                 # nopam_directs.extend(dep[DefaultInfo].files.to_list())
+  #                 nopam_indirects.append(dep_provider.deps.nopam)
+  #                 # opam_directs.append(None)
+  #             if dep_provider.deps.opam:
+  #                 opam_indirects.append(dep_provider.deps.opam)
 
   ## FIXME: what if cc_deps says dynamic but a static lib is passed?
   ## the link type val sets a requirement, throw an error if the target key does not match

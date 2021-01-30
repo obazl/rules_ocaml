@@ -65,17 +65,17 @@ def impl_module(ctx):
   tmpdir = "_obazl_/"
   if ctx.attr.ppx:
       ## this will also handle ns
-      (tmpdir, xsrc) = impl_ppx_transform(rule, ctx, ctx.file.src)
+      (tmpdir, xsrc) = impl_ppx_transform(rule, ctx, ctx.file.struct)
       dep_graph.append(ctx.file.ppx)
       # a ppx executable may have adjunct deps; they are handled by get_all_deps
   # elif ctx.attr.ns:
   #     # rename this module to put it in the namespace
-  #     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
-  elif ctx.attr.ns_init:
+  #     xsrc = rename_module(ctx, ctx.file.struct) #, ctx.attr.ns)
+  elif ctx.attr.ns:
       # rename this module to put it in the namespace
-      xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
+      xsrc = rename_module(ctx, ctx.file.struct) #, ctx.attr.ns)
   else:
-      xsrc = ctx.file.src
+      xsrc = ctx.file.struct
 
   if mode == "native":
       cmxfname = paths.replace_extension(xsrc.basename, ".cmx")
@@ -291,12 +291,12 @@ def impl_module(ctx):
   args.add_all(build_deps)
 
   ns = None
-  ## ns_init target produces two files, module and interface
-  if ctx.files.ns_init:
-      for dep in ctx.files.ns_init:
-          # print("NS_INIT DEP: %s" % dep)
+  ## ns target produces two files, module and interface
+  if ctx.files.ns:
+      for dep in ctx.files.ns:
+          # print("NS DEP: %s" % dep)
           bn = dep.basename
-          # print("NS_INIT DEP BASENAME: %s" % bn)
+          # print("NS DEP BASENAME: %s" % bn)
           ext = dep.extension
           ns = bn[:-(len(ext)+1)]
           # print("NS: %s" % ns)

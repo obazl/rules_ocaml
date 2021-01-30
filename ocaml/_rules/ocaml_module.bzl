@@ -4,7 +4,7 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsModuleProvider")
+     "OcamlNsResolverProvider")
 
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
 
@@ -70,14 +70,15 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         module_name   = attr.string(
             doc = "Module name. Overrides `name` attribute."
         ),
-        # ns = attr.label(
-        #     doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
-        #     default = None
-        # ),
-        ns_init = attr.label(
-            doc = "Experimental",
-            # default = Label("@ocaml//ns/init")
+        ns = attr.label(
+            doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
+            providers = [OcamlNsResolverProvider],
+            default = None
         ),
+        # ns = attr.label(
+        #     doc = "Experimental",
+        #     # default = Label("@ocaml//ns/init")
+        # ),
         # _xns = attr.label(
         #     doc = "Experimental",
         #     default = "@ocaml//ns"
@@ -87,7 +88,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     cfg = ocaml_ns_transition_reset,
         #     default = "@ocaml//ns"
         # ),
-        src = attr.label(
+        struct = attr.label(
             mandatory = True,
             doc = "A single .ml source file label.",
             allow_single_file = OCAML_IMPL_FILETYPES
@@ -110,7 +111,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                          [OcamlInterfaceProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
-                         [OcamlNsModuleProvider],
+                         [OcamlNsResolverProvider],
                          [PpxArchiveProvider],
                          [PpxModuleProvider],
                          [CcInfo]],

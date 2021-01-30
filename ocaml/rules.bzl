@@ -18,10 +18,10 @@ load("//ocaml/_rules:ocaml_library.bzl",
     _ocaml_library = "ocaml_library")
 load("//ocaml/_rules:ocaml_module.bzl",
     _ocaml_module = "ocaml_module")
-load("//ocaml/_rules:ocaml_ns_init.bzl",
-    _ocaml_ns_init = "ocaml_ns_init")
-load("//ocaml/_rules:ocaml_ns.bzl",
-    _ocaml_ns = "ocaml_ns")
+load("//ocaml/_rules:ocaml_ns_resolver.bzl",
+    _ocaml_ns_resolver = "ocaml_ns_resolver")
+load("//ocaml/_rules:ocaml_ns_module.bzl",
+    _ocaml_ns_module = "ocaml_ns_module")
 load("//ocaml/_rules:ocaml_test.bzl",
     _ocaml_test = "ocaml_test")
 
@@ -42,8 +42,8 @@ load("//ocaml/_rules:ppx_library.bzl",
      _ppx_library = "ppx_library")
 load("//ocaml/_rules:ppx_module.bzl",
      _ppx_module = "ppx_module")
-load("//ocaml/_rules:ppx_ns.bzl",
-     _ppx_ns = "ppx_ns")
+load("//ocaml/_rules:ppx_ns_module.bzl",
+     _ppx_ns_module = "ppx_ns_module")
 load("//ocaml/_rules:ppx_runner.bzl",
      _ppx_runner = "ppx_runner")
 load("//ocaml/_rules:ppx_test.bzl",
@@ -67,15 +67,15 @@ ocaml_import = _ocaml_import
 ocaml_interface = _ocaml_interface
 ocaml_library = _ocaml_library
 ocaml_module = _ocaml_module
-ocaml_ns_init = _ocaml_ns_init
-ocaml_ns  = _ocaml_ns
+ocaml_ns_resolver = _ocaml_ns_resolver
+ocaml_ns_module  = _ocaml_ns_module
 ocaml_test= _ocaml_test
 
 ppx_archive = _ppx_archive
 ppx_executable = _ppx_executable
 ppx_library = _ppx_library
 ppx_module = _ppx_module
-ppx_ns     = _ppx_ns
+ppx_ns_module     = _ppx_ns_module
 ppx_runner = _ppx_runner
 ppx_x_test = _ppx_x_test
 ppx_test = _ppx_test

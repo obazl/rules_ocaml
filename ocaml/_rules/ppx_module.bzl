@@ -54,7 +54,7 @@ TODO: finish docstring
             doc = "Experimental",
             # default = Label("@ocaml//ns/init")
         ),
-        src = attr.label(
+        struct = attr.label(
             mandatory = True,  # use ocaml_interface for isolated .mli files
             doc = "A single .ml source file label.",
             allow_single_file = OCAML_IMPL_FILETYPES

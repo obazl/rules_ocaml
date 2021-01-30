@@ -114,7 +114,7 @@ def build_resolver(ctx, tc, env, mode, aliases):
 #     return ns_file
 
 #################
-def impl_ns(ctx):
+def impl_ns_module(ctx):
 
     debug = False
     # if (ctx.label.name == "stdune"):

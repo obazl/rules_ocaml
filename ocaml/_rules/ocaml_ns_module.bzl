@@ -1,14 +1,14 @@
 load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
 
-load(":impl_ns.bzl", "impl_ns")
+load(":impl_ns_module.bzl", "impl_ns_module")
 
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
 ]
 
 ################
-ocaml_ns = rule(
-  implementation = impl_ns,
+ocaml_ns_module = rule(
+  implementation = impl_ns_module,
     doc = """Generate a 'namespace' module. [User Guide](../ug/ocaml_ns.md).  Provides: [OcamlNsModuleProvider](providers_ocaml.md#ocamlnsmoduleprovider).
 
 See [Namespacing](../ug/namespacing.md) for more information on namespaces.
