@@ -36,10 +36,15 @@ ppx_ns_module = rule(
         deps = attr.label_list(
             doc = "Dependencies"
         ),
-        submodules = attr.label_list(
-            doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
+        submodules = attr.label_keyed_string_dict(
+            doc = "Dict from submodule target to name",
             allow_files = True ## OCAML_FILETYPES
+            # cfg = ocaml_ns_transition,
         ),
+        # submodules = attr.label_list(
+        #     doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",
+        #     allow_files = True ## OCAML_FILETYPES
+        # ),
         _linkall     = attr.label(default = "@ppx//ns:linkall"),
         _threads     = attr.label(default = "@ppx//ns:threads"),
         _warnings    = attr.label(default = "@ppx//ns:warnings"),
