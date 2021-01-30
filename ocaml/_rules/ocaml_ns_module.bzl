@@ -1,4 +1,4 @@
-load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
+load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider", "OcamlNsResolverProvider")
 
 load(":impl_ns_module.bzl", "impl_ns_module")
 
@@ -22,18 +22,12 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         doc = "Output and archive file containing this namespace module and all submodules.",
         default = False
     ),
-    # ns = attr.string(
-    #     doc = "A namespace name string. The name of namespace is taken from this attribute, not the `name` attribute.  This makes it easier to avoid naming conflicts when a package contains a large number of modules, archives, etc."
-    # ),
-    # ns_sep = attr.string(
-    #   doc = "Namespace separator.  Default: '__' (double underscore)",
-    #   default = "__"
-    # ),
     opts             = attr.string_list(
         doc          = "List of OCaml options. Will override configurable default options."
     ),
-    ns_init = attr.label(
+    ns = attr.label(
         doc = "Experimental",
+        providers = [OcamlNsResolverProvider],
         # default = Label("@ocaml//ns/init")
     ),
     main = attr.label(

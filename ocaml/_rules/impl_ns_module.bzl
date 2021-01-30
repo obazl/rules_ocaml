@@ -3,6 +3,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/_providers:ocaml.bzl",
     "CompilationModeSettingProvider",
+     "OcamlModuleProvider",
      "OcamlNsModulePayload",
      "OcamlNsModuleProvider")
 load("//ppx:_providers.bzl",
@@ -26,11 +27,15 @@ def get_resolver_name(ctx):
         ws = ctx.workspace_name
         # print("WS: %s" % ws)
     ws = capitalize_initial_char(ws)
-    resolver_name = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_")
+    ns_prefix = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_") + "__"
+    ns_main   = ctx.label.name
+    resolver_name = ns_prefix + "_" + ns_main + "_00"
+    # resolver_name = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_")
     return resolver_name
 
 ########################
 def build_resolver(ctx, tc, env, mode, aliases):
+    ## always: <pkg>_<nsmain>_00
     resolver_module_name = get_resolver_name(ctx)
     resolver_filename = tmpdir + resolver_module_name + ".ml"
     resolver_file = ctx.actions.declare_file(resolver_filename)
@@ -151,45 +156,59 @@ def impl_ns_module(ctx):
     ## ns module name is always ctx.label.name
     ## if no main, use ns module as resolver (generate it)
     ## otherwise, use main as ns module, and the resolver is computed from package name
-    ns_module_name = ctx.label.name.replace("-", "_")
     ## ns module always named from ctx.label.name; if main provided is different, we will copy it.
+    # if ctx.attr.ns:
+    #     ns_module_name = resolver_module_name + "__" + ctx.label.name.replace("-", "_")
+    # else:
+
+    ## main ns module name always derived from ocaml_ns_module.name
+    ns_module_name = ctx.label.name.replace("-", "_")
+    print("NS_MODULE_NAME: %s" % ns_module_name)
 
     ns_filename = tmpdir + ns_module_name + ".ml"
     ns_file = None
 
-    resolver_module_name = get_resolver_name(ctx)
-    # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
+    ## make aliases, one per submodule regardless of pkg
+    ## the aliasing equations for this ns module may resolve to any pkg
+    ## We may use main ns or submodules from other pkgs, but we do not use their resolvers.
+    ## one reason for this is that there is no requirement that modules names match file names.
+    ## so the same submodule could go under different submodule names in different packages.
+    ## or even in different main ns modules in the same pkg.
+    ## So: we always need to generate a resolver for the current package.
 
-    ## make aliases
-    clash = False
+    ## Alternatively: module filenames are independent of aliasing
+    ## equations. So to construct a resolver all we need is the
+    ## filename, not the local resolver. In fact a given module may be
+    ## resolved by multiple resolvers local to its own pkg (e.g. if
+    ## the ns_modules use different 'prefix' values.)
+
+    ## In short: deriving alias equations from submodule items will always work.
+
     for (smdep,smname) in ctx.attr.submodules.items():
         # print("SUBMOD: {nm} -> {mod}".format(nm=smname, mod=smdep))
         smimpl = None
+        if OcamlNsModuleProvider in smdep:
+            print("Got OcamlNsModuleProvider")
+        elif OcamlModuleProvider in smdep:
+            print("Got OcamlModuleProvider")
+        else:
+            print("Got ????????????????")
+            print(smdep)
+
         for dep in smdep.files.to_list():
             # print("D: %s" % dep)
             if dep.extension == "cmi":
                 bn = dep.basename
                 ext = dep.extension
                 smimpl = bn[:-(len(ext)+1)]
-                if bn.startswith(resolver_module_name + "__"):
-                    clash = True
 
         # now construct alias statement
-        # sm_parts = paths.split_extension(smdep.basename)
-        # module = sm_parts[0]
         alias = "module {sm} = {smimpl}".format(
             sm=capitalize_initial_char(smname),
             smimpl = capitalize_initial_char(smimpl)
         )
         aliases.append(alias)
-        # if (module.lower() == ns_module_name.lower()):
-        #     ns_module_name = ns_module_name + ctx.attr.ns_sep
-        # else:
-        #     alias = "module {sm} = {pfx}{sm}".format(
-        #         sm=capitalize_initial_char(module),
-        #         pfx = pfx
-        #     )
-        #     aliases.append(alias)
+
     # print("ALIASES: %s" % aliases)
 
     mode = None
@@ -198,6 +217,19 @@ def impl_ns_module(ctx):
     elif ctx.attr._rule == "ppx_ns":
         mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
+    ## now we need to generate the resolver file. if no 'main' has
+    ## been provided, then the generated ns module doubles as the resolver.
+    ## if 'main' has been provided, then:
+    ##     if it has the same name as the ocaml_ns_module, then:
+    ##         use the provided 'main' directly as the ns module
+    ##         generate resolver, named <pkg>_<ns-main>_00
+    ##     if it has a different name, then:
+    ##         copy provided 'main' file to the ocaml_ns_module name
+    ##         generate resolver, named <pkg>_<ns-main>_00
+    ## in sum: the ns module name will always be taken from ocaml_ns_module.name,
+    ## and the resolver will always be generated, with name <pkg>_<nsmain>_00
+
+    resolver_module_name = None
     resolver_files = None
 
     if ctx.file.main:
@@ -209,18 +241,21 @@ def impl_ns_module(ctx):
 
         ## main file has its own deps! use 'deps' attrib for those?
 
-        ## FIXME: we already have a resolver file, from ocaml_ns_init!
-        ## we just need to add it to the dep graph?
-        ## NOOOO! submodules depend on ocaml_ns_init; we need to reverse the dependency,
-        ## so that the resolver will come after the submodules, otherwise lookups will fail
-        ## with "Required module is unavailable".
+        ## RESOLVER module:
+        ## Each pkg has its own resolver.
+        ## The main ns needs one resolver per unique pkg in its submodule list.
+        ## If the pkg of this ns module contains submodules, then we need to generate its resolver.
 
-        ## Unfortunately, if we generate the same file we get an error
-        ## complaining that the same file is generated twice.
+        local_submodules = []
+        for submod in ctx.attr.submodules:
+            if ctx.label.package == submod.label.package:
+                local_submodules.append(submod)
+        for sub in local_submodules:
+            print("Submodule: %s" % sub)
 
-        # if not clash:
-            # if ctx.file.main.basename != ctx.label.name + ".ml":
-        [resolver_module_name, resolver_files] = build_resolver(ctx, tc, env, mode, aliases)
+        ##
+        ## Q: do we need to -open the resolvers in order to compile the main ns module?
+
         # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
         # print("Resolver files: %s" % resolver_files)
 
@@ -228,7 +263,11 @@ def impl_ns_module(ctx):
         ## output: ns_file, same as below
         if ctx.file.main.basename == ctx.label.name + ".ml":
             ns_file = ctx.file.main
+            [resolver_module_name, resolver_files] = build_resolver(ctx, tc, env, mode, aliases)
+            # resolver_module_name = get_resolver_name(ctx)
         else:
+            # resolver_module_name = get_resolver_name(ctx)
+            [resolver_module_name, resolver_files] = build_resolver(ctx, tc, env, mode, aliases)
             ns_file = ctx.actions.declare_file(ns_filename)
             # ns_file = user_main_to_ns_main(ctx, ns_file)
             ctx.actions.run_shell(
@@ -242,7 +281,6 @@ def impl_ns_module(ctx):
     else:
         ## no user-supplied main, so we need to generate main ns module as output,
         ## and concat footer if present. in this case we do not use a separate resolver module
-        resolver_module_name = None
         ns_file = ctx.actions.declare_file(ns_filename)
 
         cmd = ""
@@ -268,6 +306,10 @@ def impl_ns_module(ctx):
             command = cmd,
             progress_message = "Generating namespace module source file."
         )
+
+    # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
+
+
 
     ## at this point, either ns_file contains either a user-supplied main ns
     ## module, or we generated it
@@ -311,11 +353,14 @@ def impl_ns_module(ctx):
     # if not ctx.file.main:
     dep_graph.append(ns_file)
 
-    # if ctx.attr.ns_init:
-    #     for f in ctx.files.ns_init:
+    # if ctx.attr.ns:
+    #     for f in ctx.files.ns:
     #         dep_graph.append(f)
 
+    args.add("-absname")
     args.add_all(includes, before_each="-I", uniquify = True)
+    args.add("-color", "auto")
+
     # for dep in ctx.files.deps:
     #     # dep_graph.append(dep)
     #     args.add("-I", dep.path)
@@ -328,7 +373,7 @@ def impl_ns_module(ctx):
         ## only if ctx.attr.main
         # if not clash:
         for f in resolver_files:
-            # print("RESOLVER FILE: %s" % f.basename)
+            print("RESOLVER FILE: %s" % f.basename)
             dep_graph.append(f)
             directs.append(f)
             ## don't put cmi files on cmd line

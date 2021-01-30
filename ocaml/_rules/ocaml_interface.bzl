@@ -72,7 +72,7 @@ def _ocaml_interface_impl(ctx):
   if ctx.attr.ppx:
       ## this will also handle ns
     (tmpdir, xsrc) = impl_ppx_transform("ocaml_interface", ctx, ctx.file.src)
-  elif ctx.attr.ns_init:
+  elif ctx.attr.ns:
     xsrc = rename_module(ctx, ctx.file.src) #, ctx.attr.ns)
   else:
     xsrc = ctx.file.src
@@ -108,12 +108,12 @@ def _ocaml_interface_impl(ctx):
   # args.add("-thread")
 
   ns = None
-  ## ns_init target produces two files, module and interface
-  if ctx.files.ns_init:
-      for dep in ctx.files.ns_init:
-          # print("NS_INIT DEP: %s" % dep)
+  ## ns target produces two files, module and interface
+  if ctx.files.ns:
+      for dep in ctx.files.ns:
+          # print("NS DEP: %s" % dep)
           bn = dep.basename
-          # print("NS_INIT DEP BASENAME: %s" % bn)
+          # print("NS DEP BASENAME: %s" % bn)
           ext = dep.extension
           ns = bn[:-(len(ext)+1)]
           # print("NS: %s" % ns)
@@ -433,12 +433,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     doc = "Namespace separator.  Default: '__'",
         #     default = "__"
         # ),
-        # ns = attr.label(
-        #     doc = "Label of an `ocaml_ns` target. Used to derive namespace, output name, -open arg, etc.",
-        # ),
-        ns_init = attr.label(
-            doc = "Experimental"
+        ns = attr.label(
+            doc = "Label of an `ocaml_ns_resolver` target. Used to derive namespace, output name, -open arg, etc.",
         ),
+        # ns_init = attr.label(
+        #     doc = "Experimental"
+        # ),
         src = attr.label(
             doc = "A single .mli source file label",
             allow_single_file = OCAML_INTF_FILETYPES

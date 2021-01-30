@@ -4,6 +4,7 @@ load("//ocaml/_providers:ocaml.bzl",
      "OcamlInterfaceProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
+     "OcamlNsModuleProvider",
      "OcamlNsResolverProvider")
 
 load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
@@ -111,7 +112,8 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                          [OcamlInterfaceProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
-                         [OcamlNsResolverProvider],
+                         [OcamlNsModuleProvider],
+                         # [OcamlNsResolverProvider],
                          [PpxArchiveProvider],
                          [PpxModuleProvider],
                          [CcInfo]],

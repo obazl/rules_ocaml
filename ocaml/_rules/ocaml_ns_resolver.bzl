@@ -42,7 +42,10 @@ def _impl_ns_resolver(ctx):
             ws = ctx.workspace_name
             # print("WS: %s" % ws)
         ws = capitalize_initial_char(ws) if ws else ""
-        ns_module_name = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_") + "__"
+        ns_prefix = ws + "_" + ctx.label.package.replace("/", "_").replace("-", "_") + "__"
+        ## module names may not begin with a number, so this module
+        ## name will never clash with a user-defined module:
+        resolver_module_name = ns_prefix + "00"
 
     dep_graph = []
     for sm in ctx.files.srcs:
@@ -51,7 +54,7 @@ def _impl_ns_resolver(ctx):
         alias = "module {mod} = {ns}{sep}{mod}".format(
             mod = module,
             sep    = ns_sep,
-            ns = ns_module_name
+            ns = ns_prefix
         )
         aliases.append(alias)
 
@@ -60,7 +63,7 @@ def _impl_ns_resolver(ctx):
     # elif ctx.attr._rule == "ppx_ns":
     #     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    ns_filename = tmpdir + ns_module_name + ".ml"
+    ns_filename = tmpdir + resolver_module_name + ".ml"
     # print("NS FILE: %s" % ns_filename)
     ns_file = ctx.actions.declare_file(ns_filename)
 
@@ -75,13 +78,13 @@ def _impl_ns_resolver(ctx):
     directs.append(ns_file)
 
     ## now declare compilation outputs. compiling always produces 3 files:
-    obj_cmi_fname = tmpdir + ns_module_name + ".cmi"
+    obj_cmi_fname = tmpdir + resolver_module_name + ".cmi"
     obj_cmi = ctx.actions.declare_file(obj_cmi_fname)
     directs.append(obj_cmi)
     if mode == "native":
-        obj_cm__fname = tmpdir + ns_module_name + ".cmx" # tc.objext
+        obj_cm__fname = tmpdir + resolver_module_name + ".cmx" # tc.objext
     else:
-        obj_cm__fname = tmpdir + ns_module_name + ".cmo" # tc.objext
+        obj_cm__fname = tmpdir + resolver_module_name + ".cmo" # tc.objext
     obj_cm_ = ctx.actions.declare_file(obj_cm__fname)
     directs.append(obj_cm_)
 
@@ -92,7 +95,7 @@ def _impl_ns_resolver(ctx):
         args.add(tc.ocamlc.basename)
     else:
         args.add(tc.ocamlopt.basename)
-        obj_o_fname = ns_module_name + ".o"
+        obj_o_fname = resolver_module_name + ".o"
         obj_o = ctx.actions.declare_file(tmpdir + obj_o_fname)
         outputs.append(obj_o)
         directs.append(obj_o)
@@ -141,6 +144,7 @@ def _impl_ns_resolver(ctx):
     )
 
     provider = OcamlNsResolverProvider(
+        ns = ns_prefix,
         payload = depset(order = "postorder", direct = outputs)
     )
 

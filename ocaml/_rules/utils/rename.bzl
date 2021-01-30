@@ -1,5 +1,5 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider")
+load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider", "OcamlNsResolverProvider")
 load("//ppx:_providers.bzl", "PpxNsModuleProvider")
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
@@ -21,13 +21,15 @@ def get_module_name (ctx, src):
     #         ns_sep = ctx.attr.ns[PpxNsModuleProvider].payload.sep
     #         # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
     if ctx.attr.ns:
+        ns_provider = ctx.attr.ns[OcamlNsResolverProvider]
+        ns = ns_provider.ns
         ## ns target always produces two files, module (cmo or cmx) and interface (cmi)
         # ns_sep = "__"
-        for dep in ctx.files.ns:
-            if dep.extension == "cmi":
-                bn  = dep.basename
-                ext = dep.extension
-                ns = bn[:-(len(ext)+1)]
+        # for dep in ctx.files.ns:
+        #     if dep.extension == "cmi":
+        #         bn  = dep.basename
+        #         ext = dep.extension
+        #         ns = bn[:-(len(ext)+1)]
 
     parts = paths.split_extension(src.basename)
     module = None

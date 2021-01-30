@@ -188,8 +188,9 @@ OcamlNsModulePayload = provider(
 OcamlNsResolverProvider = provider(
     doc = "OCaml NS Resolver provider.",
     fields = {
+        "ns": "Namespace string",
         "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
-        "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
+        # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
     }
 )
 
