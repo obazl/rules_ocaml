@@ -1,14 +1,12 @@
-load("//ocaml/_providers:ocaml.bzl",
-     "OcamlSDK")
-load("@obazl_rules_opam//opam/_providers:opam.bzl",
-     "OpamPkgInfo")
-load("//ppx:_providers.bzl",
+load("//ocaml:providers.bzl",
+     "OcamlSDK",
      "PpxExecutableProvider",
      "PpxModuleProvider")
+     # "OpamPkgInfo")
 
 load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
-load(":options_ppx.bzl", "options_ppx")
+load(":options.bzl", "options")
 
 load(":impl_executable.bzl", "impl_executable")
 
@@ -21,9 +19,9 @@ ppx_executable = rule(
 By default, this rule adds `-predicates ppx_driver` to the command line.
     """,
     attrs = dict(
-        options_ppx,
-        _linkall     = attr.label(default = "@ppx//executable:linkall"),
-        _threads     = attr.label(default = "@ppx//executable:threads"),
+        options("@ppx"),
+        _linkall     = attr.label(default = "@ppx//executable/linkall"),
+        _thread     = attr.label(default = "@ppx//executable/thread"),
         _warnings  = attr.label(default = "@ppx//executable:warnings"),
         _opts = attr.label(
             ## We need this for '-predicates ppx_driver', to avoid hardcoding it in obazl rules
@@ -36,9 +34,9 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         ),
         main = attr.label(
             doc = "A `ppx_module` to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
-            mandatory = True,
+            # mandatory = True,
             # allow_single_file = [".ml", ".cmx"],
-            providers = [[PpxModuleProvider], [OpamPkgInfo]],
+            providers = [[PpxModuleProvider]], # [OpamPkgInfo]],
             default = None
         ),
         ppx  = attr.label(
@@ -46,10 +44,10 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             providers = [PpxExecutableProvider],
             mandatory = False,
         ),
-        print = attr.label(
-            doc = "Format of output of PPX transform, binary (default) or text",
-            default = "@ppx//print"
-        ),
+        # print = attr.label(
+        #     doc = "Format of output of PPX transform, binary (default) or text",
+        #     default = "@ppx//print"
+        # ),
         runtime_args = attr.string_list(
             doc = "List of args that must be passed to the ppx_executable at runtime. E.g. -inline-test-lib."
         ),
@@ -69,9 +67,15 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "Dependency to be added last.",
             default = "@ppx//executable:deps"
         ),
-        adjunct_deps = attr.label_list(
-            doc = """Adjunct dependencies.""",
+        deps_opam = attr.string_list(
+            doc = "List of OPAM package names"
+        ),
+        deps_adjunct = attr.label_list(
+            doc = """List of non-opam adjunct dependencies (labels).""",
             # providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        deps_adjunct_opam = attr.string_list(
+            doc = """List of opam adjunct dependencies (pkg name strings).""",
         ),
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
@@ -92,20 +96,20 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
-        _mode = attr.label(
-            default = "@ppx//mode",
-            cfg     = ppx_mode_transition
-        ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
+        _mode = attr.label(
+            default = "@ppx//mode",
+        ),
+        _rule = attr.string( default = "ppx_executable" ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        _rule = attr.string( default = "ppx_executable" )
     ),
-    provides = [DefaultInfo, PpxExecutableProvider],
+    cfg     = ppx_mode_transition,
+    # provides = [DefaultInfo, PpxExecutableProvider],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

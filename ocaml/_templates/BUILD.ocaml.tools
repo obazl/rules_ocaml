@@ -2,6 +2,6 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(glob(["**"]))
 
-alias(name = "cppo", actual = "//:cppo")
-alias(name = "ocamlc", actual = "//:ocamlc")
-alias(name = "ocaml-crunch", actual = "//:ocaml-crunch")
+# alias(name = "cppo", actual = "//:cppo")
+# alias(name = "ocamlc", actual = "//:ocamlc")
+# alias(name = "ocaml-crunch", actual = "//:ocaml-crunch")

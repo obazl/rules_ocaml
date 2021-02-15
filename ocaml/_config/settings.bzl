@@ -1,7 +1,7 @@
-load("//ocaml/_providers:ocaml.bzl",
+load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
-     "OcamlVerboseFlagProvider")
-load("@obazl_rules_ocaml//ocaml/_providers:ocaml.bzl", "OcamlModuleProvider")
+     "OcamlVerboseFlagProvider",
+     "OcamlModuleProvider")
 
 ################################################################
 def _ocaml_null_module_impl(ctx):

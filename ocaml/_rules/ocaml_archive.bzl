@@ -1,16 +1,16 @@
-load("//ocaml/_providers:ocaml.bzl",
+load("//ocaml:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
-     "OcamlInterfaceProvider",
+     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsModuleProvider")
+     "OcamlNsArchiveProvider",
+     "OcamlNsLibraryProvider",
+     "OpamPkgInfo")
 
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+load("//ocaml:providers.bzl", "PpxArchiveProvider") ## what about PpxModule?
 
-load("//ppx:_providers.bzl", "PpxArchiveProvider") ## what about PpxModule?
-
-load(":options_ocaml.bzl", "options_ocaml")
+load(":options.bzl", "options")
 
 load("impl_archive.bzl", "impl_archive")
 
@@ -19,24 +19,25 @@ ocaml_archive = rule(
     implementation = impl_archive,
     doc = """Generates an OCaml archive file.""",
     attrs = dict(
-        options_ocaml,
+        options("@ocaml"),
         archive_name = attr.string(
             doc = "Name of generated archive file, without extension. Overrides `name` attribute."
         ),
         ## CONFIGURABLE DEFAULTS
-        _linkall     = attr.label(default = "@ocaml//archive:linkall"), # FIXME: call it alwayslink?
-        _threads     = attr.label(default = "@ocaml//archive:threads"),
+        _linkall     = attr.label(default = "@ocaml//archive/linkall"), # FIXME: call it alwayslink?
+        _thread     = attr.label(default = "@ocaml//archive/thread"),
         _warnings  = attr.label(default = "@ocaml//archive:warnings"),
         #### end options ####
         doc = attr.string( doc = "Deprecated" ),
-        deps = attr.label_list(
-            doc = "List of OCaml dependencies.",
+        modules = attr.label_list(
+            doc = "List of component modules.",
             providers = [[OpamPkgInfo],
                          [OcamlImportProvider],
-                         [OcamlInterfaceProvider],
+                         [OcamlSignatureProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
-                         [OcamlNsModuleProvider],
+                         [OcamlNsArchiveProvider],
+                         [OcamlNsLibraryProvider],
                          [OcamlArchiveProvider],
                          [PpxArchiveProvider]
                          ],
@@ -65,6 +66,9 @@ ocaml_archive = rule(
         ),
         _mode = attr.label(
             default = "@ocaml//mode"
+        ),
+        _projroot = attr.label(
+            default = "@ocaml//:projroot"
         ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")

@@ -1,26 +1,28 @@
-load("//ocaml/_providers:ocaml.bzl",
+load("//ocaml:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
-     "OcamlInterfaceProvider",
+     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsModuleProvider",
-     "OcamlNsResolverProvider")
-
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
-
-load("//ppx:_providers.bzl",
+     "OcamlNsArchiveProvider",
+     "OcamlNsLibraryProvider",
+     "OcamlNsEnvProvider",
+     "OpamPkgInfo",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load(":options_ocaml.bzl", "options_ocaml")
+load(":options.bzl", "options", "options_ppx")
 
 load(":impl_module.bzl", "impl_module")
 
 OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
 ]
+
+################################
+rule_options = options("@ocaml")
+rule_options.update(options_ppx)
 
 ####################
 ocaml_module = rule(
@@ -48,7 +50,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 | Label | Default | `opts` attrib |
 | ----- | ------- | ------- |
 | @ocaml//module:linkall | True | `-linkall`, `-no-linkall`|
-| @ocaml//module:threads | True | `-thread`, `-no-thread`|
+| @ocaml//module:thread  | True | `-thread`, `-no-thread`|
 | @ocaml//module:verbose | True | `-verbose`, `-no-verbose`|
 
 **NOTE** These do not support `:enable`, `:disable` syntax.
@@ -56,11 +58,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
  See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
     """,
     attrs = dict(
-        options_ocaml,
+        rule_options,
         ## RULE DEFAULTS
-        _linkall     = attr.label(default = "@ocaml//module:linkall"), # FIXME: call it alwayslink?
-        _threads     = attr.label(default = "@ocaml//module:threads"),
-        _warnings  = attr.label(default = "@ocaml//module:warnings"),
+        _opts     = attr.label(default = "@ocaml//module:opts"),     # string list
+        _linkall  = attr.label(default = "@ocaml//module/linkall"),  # bool
+        _thread   = attr.label(default = "@ocaml//module/thread"),   # bool
+        _warnings = attr.label(default = "@ocaml//module:warnings"), # string list
         #### end options ####
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
@@ -68,12 +71,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         doc = attr.string(
             doc = "Docstring for module. DEPRECATED"
         ),
-        module_name   = attr.string(
-            doc = "Module name. Overrides `name` attribute."
-        ),
-        ns = attr.label(
-            doc = "Label of an ocaml_ns target. Used to derive namespace, output name, -open arg, etc. See [Namepaces](../namespaces.md) for more information.",
-            providers = [OcamlNsResolverProvider],
+        # module_name   = attr.string(
+        #     doc = "Module name. Overrides `name` attribute."
+        # ),
+        ns_env = attr.label(
+            doc = "Label of an ocaml_ns_env target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
+            providers = [OcamlNsEnvProvider],
             default = None
         ),
         # ns = attr.label(
@@ -94,10 +97,13 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "A single .ml source file label.",
             allow_single_file = OCAML_IMPL_FILETYPES
         ),
-        intf = attr.label(
+        module = attr.string(
+            doc = "Name for output file. Use to coerce input file with different name, e.g. for a file generated from a .ml file to a different name, like foo.cppo.ml."
+        ),
+        sig = attr.label(
             doc = "Single label of a target providing a single .cmi or .mli file. Optional. Currently only supports .cmi input.",
-            allow_single_file = [".cmi", ".mli"],
-            # providers = [[DefaultInfo], [OcamlInterfaceProvider]],
+            # allow_single_file = [".cmi", ".mli"],
+            # providers = [[DefaultInfo], [OcamlSignatureProvider]],
         ),
         ################################
         data = attr.label_list(
@@ -109,20 +115,28 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             providers = [[OpamPkgInfo],
                          [OcamlArchiveProvider],
                          [OcamlImportProvider],
-                         [OcamlInterfaceProvider],
+                         [OcamlSignatureProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
-                         [OcamlNsModuleProvider],
-                         # [OcamlNsResolverProvider],
+                         [OcamlNsArchiveProvider],
+                         [OcamlNsLibraryProvider],
+                         # [OcamlNsEnvProvider],
                          [PpxArchiveProvider],
-                         [PpxModuleProvider],
-                         [CcInfo]],
+                         [PpxModuleProvider]]
+                         # [CcInfo]],
         ),
         _deps = attr.label(
             doc = "Global deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
-
+        # deps_adjunct = attr.label_list(
+        #     doc = "List of [adjunct dependencies](../ug/ppx.md#adjunct_deps).",
+        #     # providers = [[DefaultInfo], [PpxModuleProvider]]
+        #     allow_files = True,
+        # ),
+        deps_opam = attr.string_list(
+            doc = "List of OPAM package names"
+        ),
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,
@@ -132,48 +146,33 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Global cc-deps, apply to all instances of rule. Added last.",
             default = "@ocaml//module:deps"
         ),
-        cc_linkall = attr.label_list(
-            ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
-            doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
-            # providers = [CcInfo],
-        ),
-        cc_linkopts = attr.string_list(
-            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
+        # cc_linkall = attr.label_list(
+        #     ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
+        #     doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+        #     # providers = [CcInfo],
+        # ),
+        # cc_linkopts = attr.string_list(
+        #     doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
-        ),
-        cc_linkstatic = attr.bool(
-            ## FIXME: replaced by "static" value for cc_deps dict
-            doc     = "DEPRECATED. Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-            default = True # False  ## false on macos, true on linux?
-        ),
+        # ),
+        # cc_linkstatic = attr.bool(
+        #     ## FIXME: replaced by "static" value for cc_deps dict
+        #     doc     = "DEPRECATED. Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
+        #     default = True # False  ## false on macos, true on linux?
+        # ),
+
         ## TODO:
-        _cc_linkstatic = attr.label(
-            ## FIXME: find a better way
-            doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
-            default = "@ocaml//module:cc_linkstatic"
-        ),
+        # _cc_linkdynamic = attr.label(
+        #     ## FIXME: find a better way
+        #     doc = "Global dynamically linked cc-deps, apply to all instances of rule. Added last.",
+        #     default = "@ocaml//module:cc_linkdynamic"
+        # ),
+        # _cc_linkstatic = attr.label(
+        #     ## FIXME: find a better way
+        #     doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
+        #     default = "@ocaml//module:cc_linkstatic"
+        # ),
 
-        ppx  = attr.label(
-            doc = "PPX binary (executable).  The rule will use this executable to transform the source file before compiling it. For more information on the actions generated by `ocaml_module` when used with a PPX transform see [Action Queries](../ug/transparency.md#action_queries).",
-            executable = True,
-            cfg = "exec",
-            allow_single_file = True,
-            providers = [PpxExecutableProvider]
-        ),
-        ppx_args  = attr.string_list(
-            doc = "Options to pass to PPX binary passed by the `ppx` attribute.",
-        ),
-        ppx_tags  = attr.string_list(
-            doc = "DEPRECATED. List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
-        ),
-        ppx_data  = attr.label_list(
-            doc = "PPX runtime dependencies. List of labels of files needed by the PPX executable passed via the `ppx` attribute when it is executed to transform the source file. For example, a source file using [ppx_optcomp](https://github.com/janestreet/ppx_optcomp) may import a file using extension `[%%import ]`; this file should be listed in this attribute.",
-            allow_files = True,
-        ),
-        ppx_print = attr.label(
-            doc = "Format of output of PPX transform. Value must be one of '@ppx//print:binary', '@ppx//print:text'.  See [PPX Support](../ug/ppx.md#ppx_print) for more information",
-            default = "@ppx//print:binary"
-        ),
         ## CONFIGURATION RULE DEFAULTS ##
         _mode       = attr.label(
             default = "@ocaml//mode",

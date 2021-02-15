@@ -1,10 +1,23 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//ocaml/_providers:ocaml.bzl",
-     "CompilationModeSettingProvider")
-
-load("@obazl_rules_opam//opam/_providers:opam.bzl",
+load("//ocaml:providers.bzl",
+     "AdjunctDepsProvider",
+     "CompilationModeSettingProvider",
+     "DefaultMemo",
+     "OcamlArchiveProvider",
+     "OcamlExecutableProvider",
+     "OcamlModuleProvider",
+     "OcamlNsLibraryProvider",
+     "OcamlSignatureProvider",
+     "OcamlSDK",
+     "OpamDepsProvider",
+     "PpxCompilationModeSettingProvider",
+     "PpxExecutableProvider",
+     "PpxModuleProvider",
      "OpamPkgInfo")
+
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -16,336 +29,570 @@ load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
 )
 
-load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
+load(":options.bzl", "options")
 
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+load(":impl_common.bzl", "merge_deps")
 
-load("//ppx:_providers.bzl",
-     "PpxCompilationModeSettingProvider",
-     "PpxExecutableProvider",
-     "PpxModuleProvider")
+################################################################
+def _handle_cc_deps(ctx,
+                    default_linkmode,
+                    cc_deps_dicts, ## list of dicts
+                    args,
+                    includes,
+                    cclib_deps,
+                    cc_runfiles):
 
-load(":options_ppx.bzl", "options_ppx")
+    debug = False
+    for ccdict in cc_deps_dicts:
+        for [dep, linkmode] in ccdict.items():
+            if debug:
+                print("CCLIB DEP: ")
+                print(dep)
+            if linkmode == "default":
+                if debug: print("DEFAULT LINKMODE: %s" % default_linkmode)
+                for depfile in dep.files.to_list():
+                    if default_linkmode == "static":
+                        if (depfile.extension == "a"):
+                            args.add(depfile)
+                            cclib_deps.append(depfile)
+                            includes.append(depfile.dirname)
+                    else:
+                        for depfile in dep.files.to_list():
+                            if (depfile.extension == "so"):
+                                libname = file_to_lib_name(depfile)
+                                print("so LIBNAME: %s" % libname)
+                                args.add("-ccopt", "-L" + depfile.dirname)
+                                args.add("-cclib", "-l" + libname)
+                                cclib_deps.append(depfile)
+                            elif (depfile.extension == "dylib"):
+                                libname = file_to_lib_name(depfile)
+                                # libname = depfile.basename[:-6]
+                                # libname = libname[3:]
+                                print("dylib LIBNAME: %s:" % libname)
+                                args.add("-cclib", "-l" + libname)
+                                args.add("-ccopt", "-L" + depfile.dirname)
+                                cclib_deps.append(depfile)
+                                cc_runfiles.append(dep)
+            elif linkmode == "static":
+                if debug:
+                    print("STATIC lib: %s:" % dep)
+                for depfile in dep.files.to_list():
+                    if (depfile.extension == "a"):
+                        args.add(depfile)
+                        cclib_deps.append(depfile)
+                        includes.append(depfile.dirname)
+            elif linkmode == "static-linkall":
+                if debug:
+                    print("STATIC LINKALL lib: %s:" % dep)
+                for depfile in dep.files.to_list():
+                    if (depfile.extension == "a"):
+                        args.add(depfile)
+                        cclib_deps.append(depfile)
+                        includes.append(depfile.dirname)
+                # if ctx.attr.cc_linkall:
+                #     if debug:
+                #         print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
+                # for cc_dep in ctx.files.cc_linkall:
+                #     if cc_dep.extension == "a":
+                #         dep_graph.append(cc_dep)
+                #         path = cc_dep.path
 
-#############################################
-####  PPX_EXECUTABLE IMPLEMENTATION
+                #         if tc.cc_toolchain == "clang":
+                #             args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+                #         elif tc.cc_toolchain == "gcc":
+                #             libname = file_to_lib_name(cc_dep)
+                #             args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
+                #             args.add("-ccopt", "-Wl,--push-state,-whole-archive")
+                #             args.add("-ccopt", "-l{lib}".format(lib=libname))
+                #             args.add("-ccopt", "-Wl,--pop-state")
+                #         else:
+                #             fail("NO CC")
+
+            elif linkmode == "dynamic":
+                if debug:
+                    print("DYNAMIC lib: %s" % dep)
+                for depfile in dep.files.to_list():
+                    if (depfile.extension == "so"):
+                        libname = file_to_lib_name(depfile)
+                        print("so LIBNAME: %s" % libname)
+                        args.add("-ccopt", "-L" + depfile.dirname)
+                        args.add("-cclib", "-l" + libname)
+                        cclib_deps.append(depfile)
+                    elif (depfile.extension == "dylib"):
+                        libname = file_to_lib_name(depfile)
+                        print("LIBNAME: %s:" % libname)
+                        args.add("-cclib", "-l" + libname)
+                        args.add("-ccopt", "-L" + depfile.dirname)
+                        cclib_deps.append(depfile)
+                        cc_runfiles.append(dep)
+
+#########################
 def impl_executable(ctx):
 
-  debug = False
-  # if (ctx.label.name == "gen.exe"):
-  #     debug = True
+    debug = False
+    # if (ctx.label.name == "gen.exe"):
+    #     debug = True
 
-  if debug:
-      print("\n\n\tPPX_EXECUTABLE TARGET: %s\n\n" % ctx.label.name)
+    if debug:
+        print("EXECUTABLE TARGET: {kind}: {tgt}".format(
+            kind = ctx.attr._rule,
+            tgt  = ctx.label.name
+        ))
 
-  mydeps = get_all_deps(ctx.attr._rule, ctx)
-  if debug:
-      print("MYDEPS: %s" % mydeps)
+    env = {"OPAMROOT": get_opamroot(),
+           "PATH": get_sdkpath(ctx)}
 
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # if ctx.attr._rule == "ocaml_executable":
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # else:
+    #     mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
 
-  if ctx.attr._rule == "ocaml_executable":
-      mode = ctx.attr._mode[CompilationModeSettingProvider].value
-  else:
-      mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
-
-  if ctx.attr.exe_name:
-    outfilename = ctx.attr.exe_name
-  else:
+    # if ctx.attr.exe_name:
+    #   outfilename = ctx.attr.exe_name
+    # else:
     outfilename = ctx.label.name
 
-  outbinary = ctx.actions.declare_file(outfilename)
+    outbinary = ctx.actions.declare_file(outfilename)
 
-  dep_graph = []
-  cc_runfiles  = [] ## for shared libs
-  includes  = []
+    ################
+    direct_file_deps = []
+    indirect_file_depsets = []
 
-  ################################################################
-  args = ctx.actions.args()
+    indirect_opam_depsets = []
+    # indirect_nopam_depsets = []
 
-  if mode == "bytecode":
-      args.add(tc.ocamlc.basename)
+    indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
 
-      ## FIXME: static v. dynamic linking of cc libs in bytecode mode
-      # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
+    indirect_path_depsets = []
 
-      # default linkmode for toolchain is determined by platform
-      # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
-      # dynamic linking does not currently work on the mac - ocamlrun
-      # wants a file named 'dllfoo.so', which rust cannot produce. to
-      # support this we would need to rename the file using install_name_tool
-      # for macos linkmode is dynamic, so we need to override this for bytecode mode
-      args.add("-custom")
-  else:
-      args.add(tc.ocamlopt.basename)
+    direct_resolver = None
+    indirect_resolver_depsets = []
 
-  for opt in ctx.attr._opts[BuildSettingInfo].value:
-      # print("EXTRA OPT: %s" % opt)
-      args.add(opt)
-  options = get_options(rule, ctx)
-  args.add_all(options)
+    direct_cc_deps    = [] # list of dicts, from the cc_deps attrib
+    indirect_cc_deps  = [] # list of dicts incoming from the deps attrib
+    ################
 
-  if mode == "bytecode":
-      dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
-      args.add("-dllpath", dllpath)
+    # dep_graph = []
+    includes  = []
 
-      # args.add("-dllpath", "/private/var/tmp/_bazel_gar/d8a1bb469d0c2393045b412d4daaa038/execroot/ppx_version/external/ocaml/switch/lib/stublibs")
+    ################################################################
+    args = ctx.actions.args()
 
-      args.add("-I", "external/ocaml/switch/lib/stublibs")
+    if mode == "bytecode":
+        args.add(tc.ocamlc.basename)
 
-  build_deps = []
-  dynamic_libs = []
-  static_libs  = []
-  link_search  = []
+        ## FIXME: static v. dynamic linking of cc libs in bytecode mode
+        # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
 
-  for dep in mydeps.nopam.to_list():
-    if debug:
-        print("NOPAM DEP: %s" % dep)
-        print("DEPGRAPH:  %s" % dep_graph)
+        # default linkmode for toolchain is determined by platform
+        # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
+        # dynamic linking does not currently work on the mac - ocamlrun
+        # wants a file named 'dllfoo.so', which rust cannot produce. to
+        # support this we would need to rename the file using install_name_tool
+        # for macos linkmode is dynamic, so we need to override this for bytecode mode
+        args.add("-custom")
+    else:
+        args.add(tc.ocamlopt.basename)
 
-    if dep.extension == "cmo":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
-      build_deps.append(dep)
-    elif dep.extension == "cmx":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
-      build_deps.append(dep)
-    elif dep.extension == "o":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
+    for opt in ctx.attr._opts[BuildSettingInfo].value:
+        # print("EXTRA OPT: %s" % opt)
+        args.add(opt)
+    options = get_options(rule, ctx)
+    args.add_all(options)
 
-    elif dep.extension == "cmi":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
-    elif dep.extension == "mli":
-      dep_graph.append(dep)
-      includes.append(dep.dirname)
+    # if mode == "bytecode":
+    #     dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
+    #     args.add("-dllpath", dllpath)
 
-    ## FIXME: handle archives
-    elif dep.extension == "cma":
-        includes.append(dep.dirname)
-        dep_graph.append(dep)
-    elif dep.extension == "cmxa":
-        includes.append(dep.dirname)
-        dep_graph.append(dep)
-    elif dep.extension == "a":
-        includes.append(dep.dirname)
-        dep_graph.append(dep)
-        build_deps.append(dep)
-        ## FIXME: implement this?
-        # if dep in mydeps.cc_alwayslink:
-        #     if tc.cc_toolchain == "clang":
-        #         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
-        #     elif tc.cc_toolchain == "gcc":
-        #         libname = file_to_lib_name(cc_dep)
-        #         args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
-        #         args.add("-ccopt", "-Wl,--push-state,-whole-archive")
-        #         args.add("-ccopt", "-l{lib}".format(lib=libname))
-        #         args.add("-ccopt", "-Wl,--pop-state")
-        # else:
+        # args.add("-dllpath", "/private/var/tmp/_bazel_gar/d8a1bb469d0c2393045b412d4daaa038/execroot/ppx_version/external/ocaml/switch/lib/stublibs")
 
-    elif dep.extension == "so":
-        dep_graph.append(dep)
-        cc_runfiles.append(dep)
-        link_search.append("-L" + dep.dirname)
-        libname = file_to_lib_name(dep)
-        dynamic_libs.append("-l" + libname)
-    elif dep.extension == "dylib":
-        dep_graph.append(dep)
-        cc_runfiles.append(dep)
-        link_search.append("-L" + dep.dirname)
-        libname = file_to_lib_name(dep)
-        dynamic_libs.append("-l" + libname)
+        # args.add("-I", "external/ocaml/switch/lib/stublibs")
 
-        ## FIXME
-        if mode == "bytecode":
-            execroot = "/private/var/tmp/_bazel_gar/a96cd3ac87eaeba07bfd00b35d52a61a/execroot/mina"
-            args.add("-dllpath", execroot + "/" + dep.dirname)
+    # build_deps = []
+    dynamic_libs = []
+    static_libs  = []
+    link_search  = []
 
-  # if mode == "bytecode":
-  #     ## FIXME.  REALLY!!!
-  #     dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
-      # args.add("-dllpath", dllpath)
+    # for dep in mydeps.nopam.to_list():
+    #   if debug:
+    #       print("NOPAM DEP: %s" % dep)
+    #       print("DEPGRAPH:  %s" % dep_graph)
 
-  opam_deps = mydeps.opam.to_list()
-  # print("OPAM DEPS: %s" % opam_deps)
-  ## indirect adjunct deps
-  opam_deps.extend(mydeps.opam_adjunct.to_list())
-
-  if len(opam_deps) > 0:
-    # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
-    args.add("-linkpkg") # adds OPAM cmxa files to command
-    args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
-
-  ## cc deps
-  ## FIXME: currently we have both cc_deps dict with static/dynamic/default vals,
-  ## and cc_linkall list. Replace the latter with a "static-linkall" value for the former
-  cclib_deps = []
-  for dep in ctx.attr.cc_deps.items():
-    if debug:
-        print("CCLIB DEP: ")
-        print(dep)
-    if dep[1] == "static":
-        if debug:
-            print("STATIC lib: %s:" % dep[0])
-        for depfile in dep[0].files.to_list():
-            if (depfile.extension == "a"):
-                args.add(depfile)
-                cclib_deps.append(depfile)
-                includes.append(depfile.dirname)
-    elif dep[1] == "static-linkall":
-        if debug:
-            print("STATIC LINKALL lib: %s:" % dep[0])
-        for depfile in dep[0].files.to_list():
-            if (depfile.extension == "a"):
-                args.add(depfile)
-                cclib_deps.append(depfile)
-                includes.append(depfile.dirname)
-    elif dep[1] == "dynamic":
-        if debug:
-            print("DYNAMIC lib: %s" % dep[0])
-        for depfile in dep[0].files.to_list():
-            print("DEPFILE: %s" % depfile)
-            print("DEPFILE extension: %s" % depfile.extension)
-            if (depfile.extension == "so"):
-                libname = depfile.basename[:-3]
-                print("LIBNAME: %s" % libname)
-                # libname = libname[3:]
-                libname = file_to_lib_name(depfile)
-                print("LIBNAME: %s" % libname)
-                args.add("-ccopt", "-L" + depfile.dirname)
-                args.add("-cclib", "-l" + libname)
-                cclib_deps.append(depfile)
-            elif (depfile.extension == "dylib"):
-                libname = depfile.basename[:-6]
-                libname = libname[3:]
-                print("LIBNAME: %s:" % libname)
-                args.add("-cclib", "-l" + libname)
-                args.add("-ccopt", "-L" + depfile.dirname)
-                cclib_deps.append(depfile)
-                cc_runfiles.append(dep)
-
-  if hasattr(ctx.attr, "cc_linkall"):
-      if debug:
-          print("DEPSET CC_LINKALL: %s" % ctx.attr.cc_linkall)
-      for cc_dep in ctx.files.cc_linkall:
-          if cc_dep.extension == "a":
-              dep_graph.append(cc_dep)
-              path = cc_dep.path
-
-              if tc.cc_toolchain == "clang":
-                  args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
-              elif tc.cc_toolchain == "gcc":
-                  libname = file_to_lib_name(cc_dep)
-                  args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
-                  args.add("-ccopt", "-Wl,--push-state,-whole-archive")
-                  args.add("-ccopt", "-l{lib}".format(lib=libname))
-                  args.add("-ccopt", "-Wl,--pop-state")
-              else:
-                  fail("NO CC")
-
-  if debug:
-      print("DEP_GRAPH:")
-      print(dep_graph)
-
-  dep_graph.extend(build_deps)
-  dep_graph = dep_graph + cclib_deps #  srcs_ml + outs_cmi
-
-  ## main must come last!
-  ## FIXME: put deps of main into dep_graph, but also make sure main file itself comes last
-
-  # driver shim source must come after lib deps!
-  # for src in ctx.files.main:
-  #     if src.extension == "cmx":
-  #         args.add(src)
-  #     elif src.extension == "ml":
-  #         args.add(src)
-
-  dep_graph.extend(ctx.files.main)
-
-  if ctx.attr.cc_linkopts:
-      args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
-
-  args.add_all(link_search, before_each="-ccopt", uniquify = True)
-  args.add_all(dynamic_libs, before_each="-cclib", uniquify = True)
-
-  args.add_all(includes, before_each="-I", uniquify = True)
-  args.add_all(build_deps)
-
-        ## opam deps are just strings, we feed them to ocamlfind, which finds the file.
-        ## this means we cannot add them to the dep_graph.
-        ## this makes sense, the exe we build does not depend on these,
-        ## it's the subsequent transform that depends on them.
-    # else:
+    #   if dep.extension == "cmo":
     #     dep_graph.append(dep)
-    #FIXME: also support non-opam transform deps
+    #     includes.append(dep.dirname)
+    #     build_deps.append(dep)
+    #   elif dep.extension == "cmx":
+    #     dep_graph.append(dep)
+    #     includes.append(dep.dirname)
+    #     build_deps.append(dep)
+    #   elif dep.extension == "o":
+    #     dep_graph.append(dep)
+    #     includes.append(dep.dirname)
 
-  args.add("-o", outbinary)
+    #   elif dep.extension == "cmi":
+    #     dep_graph.append(dep)
+    #     includes.append(dep.dirname)
+    #   elif dep.extension == "mli":
+    #     dep_graph.append(dep)
+    #     includes.append(dep.dirname)
 
-  ## runtime deps go in ctx.runfiles
-  if ctx.attr.strip_data_prefixes:
-    myrunfiles = ctx.runfiles(
-      files = ctx.files.data + cc_runfiles,
-      symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
-    )
-  else:
-    myrunfiles = ctx.runfiles(
-      files = ctx.files.data + cc_runfiles,
-    )
+    #   ## FIXME: handle archives
+    #   elif dep.extension == "cma":
+    #       includes.append(dep.dirname)
+    #       dep_graph.append(dep)
+    #   elif dep.extension == "cmxa":
+    #       includes.append(dep.dirname)
+    #       dep_graph.append(dep)
+    #   elif dep.extension == "a":
+    #       includes.append(dep.dirname)
+    #       dep_graph.append(dep)
+    #       build_deps.append(dep)
+    #       ## FIXME: implement this?
+    #       # if dep in mydeps.cc_alwayslink:
+    #       #     if tc.cc_toolchain == "clang":
+    #       #         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = path))
+    #       #     elif tc.cc_toolchain == "gcc":
+    #       #         libname = file_to_lib_name(cc_dep)
+    #       #         args.add("-ccopt", "-L{dir}".format(dir=cc_dep.dirname))
+    #       #         args.add("-ccopt", "-Wl,--push-state,-whole-archive")
+    #       #         args.add("-ccopt", "-l{lib}".format(lib=libname))
+    #       #         args.add("-ccopt", "-Wl,--pop-state")
+    #       # else:
 
-  for dep in cc_runfiles:
-      print("RUNFILE: %s" % dep.path)
-      # myrunfiles.merge(dep)
+    #   elif dep.extension == "so":
+    #       dep_graph.append(dep)
+    #       cc_runfiles.append(dep)
+    #       link_search.append("-L" + dep.dirname)
+    #       libname = file_to_lib_name(dep)
+    #       dynamic_libs.append("-l" + libname)
+    #   elif dep.extension == "dylib":
+    #       dep_graph.append(dep)
+    #       cc_runfiles.append(dep)
+    #       link_search.append("-L" + dep.dirname)
+    #       libname = file_to_lib_name(dep)
+    #       dynamic_libs.append("-l" + libname)
 
-  ctx.actions.run(
-    env = env,
-    executable = tc.ocamlfind,
-    arguments = [args],
-    inputs = dep_graph,
-    outputs = [outbinary],
-    tools = [tc.ocamlfind, tc.ocamlopt], # tc.opam,
-    mnemonic = "OcamlExecutable" if ctx.attr._rule == "ocaml_executable" else "PpxExecutable",
-    progress_message = "{mode} compiling {rule}({target})".format(
-        mode = mode,
-        rule = ctx.attr._rule,
-        target = ctx.label.name,
+    #       ## FIXME
+    #       if mode == "bytecode":
+    #           execroot = "/private/var/tmp/_bazel_gar/a96cd3ac87eaeba07bfd00b35d52a61a/execroot/mina"
+    #           args.add("-dllpath", execroot + "/" + dep.dirname)
+
+    # if mode == "bytecode":
+    #     ## FIXME.  REALLY!!!
+    #     dllpath = ctx.attr._sdkpath[OcamlSDK].path + "/lib/stublibs"
+        # args.add("-dllpath", dllpath)
+
+    merge_deps(ctx.attr.deps,
+               indirect_file_depsets,
+               indirect_path_depsets,
+               indirect_resolver_depsets,
+               indirect_opam_depsets,
+               indirect_adjunct_depsets,
+               indirect_adjunct_opam_depsets,
+               indirect_cc_deps)
+
+    # for dep in ctx.attr.deps:
+    #     if OpamPkgInfo in dep:
+    #           fail("OPAM DEP: %s" % dep)
+
+    #     # first direct deps
+    #     indirect_file_depsets.append(dep[DefaultInfo].files)
+
+    #     # then paths and resolvers providers
+    #     if OcamlModuleProvider in dep:
+    #         # print("MODULE OcamlModuleProvider: %s" % dep[OcamlModuleProvider])
+    #         provider = dep[OcamlModuleProvider]
+    #     elif OcamlSignatureProvider in dep:
+    #         # print("SIG: OcamlSignatureProvider: %s" % dep[OcamlSignatureProvider])
+    #         provider = dep[OcamlSignatureProvider]
+    #     elif OcamlNsLibraryProvider in dep:
+    #         # print("NSLIB: OcamlNsLibraryProvider: %s" % dep[OcamlNsLibraryProvider])
+    #         provider = dep[OcamlNsLibraryProvider]
+
+    # for path in provider.paths.to_list():
+    #     includes.append(path)
+
+    # if provider.resolvers:
+    #     indirect_resolver_depsets.append(provider.resolvers)
+        # for resolver in provider.resolvers.to_list():
+        #     args.add("-open", resolver)
+
+    # then adjunct deps
+        # if AdjunctDepsProvider in dep:
+        #     indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].opam)
+        #     indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].nopam)
+
+    if ctx.attr.deps_opam:
+        args.add("-linkpkg")
+        for dep in ctx.attr.deps_opam:
+            args.add("-package", dep)
+
+    opams = depset(transitive = indirect_opam_depsets).to_list()
+    if len(opams) > 0:
+        args.add("-linkpkg")
+        [args.add("-package", opam) for opam in opams if opams]
+
+    # for dep in ctx.attr.deps:
+    #     if OcamlArchiveProvider in dep:
+    #         print("ARC %s" % dep[DefaultInfo])
+    #         args.add_all(dep[DefaultInfo].files.to_list())
+    #     if OcamlModuleProvider in dep:
+    #         print("MOD %s" % dep[OcamlModuleProvider])
+    #         args.add(dep[OcamlModuleProvider].module)
+
+    # opam_deps = mydeps.opam.to_list()
+    # # print("OPAM DEPS: %s" % opam_deps)
+    # ## indirect adjunct deps
+    # opam_deps.extend(mydeps.opam_adjunct.to_list())
+
+    # if len(opam_deps) > 0:
+    #   # print("Linking OPAM deps for {target}".format(target=ctx.label.name))
+    #   args.add("-linkpkg") # adds OPAM cmxa files to command
+    #   args.add_all([dep.pkg.name for dep in mydeps.opam.to_list()], before_each="-package")
+
+
+    ## main is a dep, just like the deps in 'deps'
+    ## passing it to merge_deps here ensures that it will come last
+    if ctx.attr.main != None:
+        merge_deps([ctx.attr.main],
+                   indirect_file_depsets,
+                   indirect_path_depsets,
+                   indirect_resolver_depsets,
+                   indirect_opam_depsets,
+                   indirect_adjunct_depsets,
+                   indirect_adjunct_opam_depsets,
+                   indirect_cc_deps)
+
+    indirect_paths_depset = depset(transitive = indirect_path_depsets)
+    for path in indirect_paths_depset.to_list():
+        # print("PATH: %s" % path)
+        includes.append(path)
+
+    ## cc deps
+    ## FIXME: currently we have both cc_deps dict with static/dynamic/default vals,
+    ## and cc_linkall list. Replace the latter with a "static-linkall" value for the former
+
+    ## now we need to add cc deps to the cmd line
+    cclib_deps  = []
+    cc_runfiles = []
+    _handle_cc_deps(ctx, tc.linkmode,
+                    direct_cc_deps + indirect_cc_deps,
+                    args,
+                    includes,
+                    cclib_deps,
+                    cc_runfiles)
+
+    # for dep in ctx.attr.cc_deps.items():
+    # debug = True
+    # if indirect_cc_deps != None:
+    #     for d in indirect_cc_deps:  ## .items():
+    #         if False:
+    #             print("XXXXXXXXXXXXXXXX %s" % (len(d) > 0))
+    #             for dep in d.items():
+    #                 if debug:
+    #                     print("CCLIB DEP: ")
+    #                     print(dep)
+    #                 if dep[1] == "default":
+    #                     ## linkmode is set by the toolchain rule
+    #                     if debug:
+    #                         print("LINKMODE: %s" % tc.linkmode)
+    #                     for depfile in dep[0].files.to_list():
+    #                         if tc.linkmode == "static":
+    #                             if (depfile.extension == "a"):
+    #                                 args.add(depfile)
+    #                                 cclib_deps.append(depfile)
+    #                                 includes.append(depfile.dirname)
+    #                         else:
+    #                             for depfile in dep[0].files.to_list():
+    #                                 if (depfile.extension == "so"):
+    #                                     libname = file_to_lib_name(depfile)
+    #                                     print("so LIBNAME: %s" % libname)
+    #                                     args.add("-ccopt", "-L" + depfile.dirname)
+    #                                     args.add("-cclib", "-l" + libname)
+    #                                     cclib_deps.append(depfile)
+    #                                 elif (depfile.extension == "dylib"):
+    #                                     libname = file_to_lib_name(depfile)
+    #                                     # libname = depfile.basename[:-6]
+    #                                     # libname = libname[3:]
+    #                                     print("dylib LIBNAME: %s:" % libname)
+    #                                     args.add("-cclib", "-l" + libname)
+    #                                     args.add("-ccopt", "-L" + depfile.dirname)
+    #                                     cclib_deps.append(depfile)
+    #                                     cc_runfiles.append(dep)
+    #                 elif dep[1] == "static":
+    #                     if debug:
+    #                         print("STATIC lib: %s:" % dep[0])
+    #                     for depfile in dep[0].files.to_list():
+    #                         if (depfile.extension == "a"):
+    #                             args.add(depfile)
+    #                             cclib_deps.append(depfile)
+    #                             includes.append(depfile.dirname)
+    #                 elif dep[1] == "static-linkall":
+    #                     if debug:
+    #                         print("STATIC LINKALL lib: %s:" % dep[0])
+    #                     for depfile in dep[0].files.to_list():
+    #                         if (depfile.extension == "a"):
+    #                             args.add(depfile)
+    #                             cclib_deps.append(depfile)
+    #                             includes.append(depfile.dirname)
+    #                 elif dep[1] == "dynamic":
+    #                     if debug:
+    #                         print("DYNAMIC lib: %s" % dep[0])
+    #                     for depfile in dep[0].files.to_list():
+    #                         if (depfile.extension == "so"):
+    #                             libname = file_to_lib_name(depfile)
+    #                             print("so LIBNAME: %s" % libname)
+    #                             args.add("-ccopt", "-L" + depfile.dirname)
+    #                             args.add("-cclib", "-l" + libname)
+    #                             cclib_deps.append(depfile)
+    #                         elif (depfile.extension == "dylib"):
+    #                             libname = file_to_lib_name(depfile)
+    #                             print("LIBNAME: %s:" % libname)
+    #                             args.add("-cclib", "-l" + libname)
+    #                             args.add("-ccopt", "-L" + depfile.dirname)
+    #                             cclib_deps.append(depfile)
+    #                             cc_runfiles.append(dep)
+
+    # if hasattr(ctx.attr, "cc_linkall"):
+    # dep_graph.extend(build_deps)
+    # dep_graph = dep_graph + cclib_deps #  srcs_ml + outs_cmi
+
+    args.add_all(includes, before_each="-I")
+
+    # if ctx.attr.main == None:
+    modules = depset(transitive = indirect_file_depsets).to_list()
+    if len(modules) > 0:
+        for m in modules:
+            if m.extension in ["cmo", "cmx", "cma", "cmxa"]:
+                args.add(m)
+
+    # else:
+    # # if ctx.attr.main != None:
+    #     # for dep in ctx.attr.main:
+    #     #     if OcamlModuleProvider in dep:
+    #     #         args.add(dep[OcamlModuleProvider].module)
+    #     args.add_all(ctx.attr.main[DefaultMemo].paths, before_each="-I")
+
+    #     ## 'main' must come last! also its entire deptree must be added to cmd line
+    #     for dep in ctx.files.main:
+    #         ## cmi/mli already added to dep graph, but must not be added to cmd line
+    #         ## FIXME: what about cmxs?
+    #         if dep.extension in ["cmo", "cmx", "cma", "cmxa"]:
+    #             args.add(dep)
+
+    # if ctx.attr.cc_linkopts:
+    #     args.add_all(ctx.attr.cc_linkopts, before_each="-ccopt")
+
+    # args.add_all(link_search, before_each="-ccopt", uniquify = True)
+    # args.add_all(dynamic_libs, before_each="-cclib", uniquify = True)
+
+          ## opam deps are just strings, we feed them to ocamlfind, which finds the file.
+          ## this means we cannot add them to the dep_graph.
+          ## this makes sense, the exe we build does not depend on these,
+          ## it's the subsequent transform that depends on them.
+      # else:
+      #     dep_graph.append(dep)
+      #FIXME: also support non-opam transform deps
+
+    args.add("-o", outbinary)
+
+    ## runtime deps go in ctx.runfiles
+    if ctx.attr.strip_data_prefixes:
+      myrunfiles = ctx.runfiles(
+        files = ctx.files.data + cc_runfiles,
+        symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
       )
-  )
-
-  defaultInfo = DefaultInfo(
-      executable=outbinary,
-      runfiles = myrunfiles
-  )
-
-  if ctx.attr._rule == "ppx_executable":
-      provider = PpxExecutableProvider(
-          payload = outbinary,
-          args = depset(direct = ctx.attr.args),
-          deps = struct(
-              opam = mydeps.opam,
-              opam_adjunct = mydeps.opam_adjunct,
-              # opam_adjunct = depset(direct = opam_adjunct_deps),
-                nopam = mydeps.nopam,
-              nopam_adjunct = mydeps.nopam_adjunct
-              # nopam_adjunct = depset(direct = nopam_adjunct_deps)
-            )
+    else:
+      myrunfiles = ctx.runfiles(
+        files = ctx.files.data + cc_runfiles,
       )
-      results = [
-          defaultInfo,
-          provider
-      ]
 
-  elif ctx.attr._rule == "ocaml_executable":
-      results = [
-          defaultInfo,
-      ]
+    for dep in cc_runfiles:
+        print("RUNFILE: %s" % dep.path)
+        # myrunfiles.merge(dep)
 
-  if debug:
-      print("IMPL_EXECUTABLE RESULTS:")
-      print(results)
+    input_depset = depset(
+        direct = direct_file_deps + cclib_deps,
+        transitive = indirect_file_depsets
+    )
 
-  return results
+    ctx.actions.run(
+      env = env,
+      executable = tc.ocamlfind,
+      arguments = [args],
+      inputs = input_depset,
+      outputs = [outbinary],
+      tools = [tc.ocamlfind, tc.ocamlopt], # tc.opam,
+      mnemonic = "OcamlExecutable" if ctx.attr._rule == "ocaml_executable" else "PpxExecutable",
+      progress_message = "{mode} compiling {rule}({target})".format(
+          mode = mode,
+          rule = ctx.attr._rule,
+          target = ctx.label.name,
+        )
+    )
+
+    defaultInfo = DefaultInfo(
+        executable=outbinary,
+        runfiles = myrunfiles
+    )
+
+    adjuncts_provider = AdjunctDepsProvider(
+        opam = depset(
+            direct     = ctx.attr.deps_adjunct_opam,
+            transitive = indirect_adjunct_opam_depsets
+        ),
+        nopam = depset(
+            direct     = ctx.attr.deps_adjunct,
+            transitive = indirect_adjunct_depsets
+        )
+    )
+
+    exe_provider = None
+    if ctx.attr._rule == "ppx_executable":
+        exe_provider = PpxExecutableProvider(
+            args = ctx.attr.args
+        )
+    elif ctx.attr._rule == "ocaml_executable":
+        exe_provider = OcamlExecutableProvider()
+    else:
+        fail("Wrong rule called impl_executable: %s" % ctx.attr._rule)
+
+    results = [
+        defaultInfo,
+        adjuncts_provider,
+        exe_provider
+    ]
+
+    # if ctx.attr._rule == "ppx_executable":
+    #     provider = PpxExecutableProvider(
+    #         payload = outbinary,
+    #         args = depset(direct = ctx.attr.args),
+    #         deps = struct(
+    #             # opam = mydeps.opam,
+    #             # opam_adjunct = mydeps.opam_adjunct,
+    #             # opam_adjunct = depset(direct = opam_adjunct_deps),
+    #             # nopam = mydeps.nopam,
+    #             # nopam_adjunct = mydeps.nopam_adjunct
+    #             # nopam_adjunct = depset(direct = nopam_adjunct_deps)
+    #           )
+    #     )
+    #     results = [
+    #         defaultInfo,
+    #         provider
+    #     ]
+
+    # elif ctx.attr._rule == "ocaml_executable":
+    #     results = [
+    #         defaultInfo,
+    #         adjuncts_provider
+    #     ]
+
+    if debug:
+        print("IMPL_EXECUTABLE RESULTS:")
+        print(results)
+
+    return results

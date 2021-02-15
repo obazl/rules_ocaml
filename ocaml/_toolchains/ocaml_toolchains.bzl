@@ -1,7 +1,11 @@
-load("//ocaml/_providers:ocaml.bzl", "CompilationModeSettingProvider")
+load("//ocaml:providers.bzl",
+     "CompilationModeSettingProvider",
+     "OpamPkgInfo")
+
 # load("//implementation:common.bzl",
 #     "OCAML_VERSION")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
+
+
 # load("//ocaml/_providers:ppx.bzl", "PpxInfo")
 # load("//implementation:utils.bzl",
 #      "strip_ml_extension",
@@ -28,35 +32,35 @@ _ocaml_tools_attrs = {
 
     ## FIXME: these should be provided by the toolchain definition?
     "_ocamlc": attr.label(
-        default = Label("@ocaml//:ocamlc"),
+        default = Label("@ocaml//tools:ocamlc"),
+        executable = True,
+        allow_single_file = True,
+        cfg = "host",
+    ),
+    "_ocamlc_opt": attr.label(
+        default = Label("@ocaml//tools:ocamlc.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "host",
     ),
     "_ocamlopt": attr.label(
-        default = Label("@ocaml//:ocamlopt"),
+        default = Label("@ocaml//tools:ocamlopt"),
         executable = True,
         allow_single_file = True,
         cfg = "host",
     ),
     "_ocamllex": attr.label(
-        default = Label("@ocaml//:ocamllex"),
+        default = Label("@ocaml//tools:ocamllex"),
         executable = True,
         allow_single_file = True,
         cfg = "host",
     ),
     "_ocamlyacc": attr.label(
-        default = Label("@ocaml//:ocamlyacc"),
+        default = Label("@ocaml//tools:ocamlyacc"),
         executable = True,
         allow_single_file = True,
         cfg = "host",
     ),
-    # "_compiler": attr.label(
-    #     default = Label("@ocaml//:ocamlopt"),
-    #     executable = True,
-    #     allow_single_file = True,
-    #     cfg = "host",
-    # ),
     "_copts": attr.string_list(
         default = [
             # "-g", # Record debugging information for exception backtrace
@@ -69,7 +73,7 @@ _ocaml_tools_attrs = {
     ]
     ),
     "_ocamlfind": attr.label(
-        default = Label("@ocaml//:ocamlfind"),
+        default = Label("@ocaml//tools:ocamlfind"),
         executable = True,
         allow_single_file = True,
         cfg = "host",
@@ -130,6 +134,7 @@ def _ocaml_toolchain_impl(ctx):
         # mode       = ctx.attr.mode,
         # compiler   = ctx.attr._compiler.files.to_list()[0],
         ocamlc     = ctx.attr._ocamlc.files.to_list()[0],
+        ocamlc_opt = ctx.attr._ocamlc_opt.files.to_list()[0],
         ocamlopt   = ctx.attr._ocamlopt.files.to_list()[0],
         ocamllex   = ctx.attr._ocamllex.files.to_list()[0],
         ocamlyacc  = ctx.attr._ocamlyacc.files.to_list()[0],

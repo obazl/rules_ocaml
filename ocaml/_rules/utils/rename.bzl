@@ -1,6 +1,9 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//ocaml/_providers:ocaml.bzl", "OcamlNsModuleProvider", "OcamlNsResolverProvider")
-load("//ppx:_providers.bzl", "PpxNsModuleProvider")
+load("//ocaml:providers.bzl",
+     "OcamlNsLibraryProvider",
+     "OcamlNsEnvProvider")
+     # "PpxNsLibraryProvider")
+
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
@@ -9,33 +12,39 @@ load("//ocaml/_functions:utils.bzl",
 
 tmpdir = "_obazl_/"
 
-def get_module_name (ctx, src):
+###################################
+def get_module_filename (ctx, src):
     ns     = None
-    ns_sep = ""
-    # if ctx.attr.ns:
-    #     if OcamlNsModuleProvider in ctx.attr.ns:
-    #         ns  = ctx.attr.ns[OcamlNsModuleProvider].payload.ns
-    #         ns_sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
+    # if ctx.attr.ns_env:
+    #     ns_sep = ctx.attr.ns_env[OcamlNsEnvProvider].sep
+    # else:
+    ns_sep = "__"
+
+    # if ctx.attr.ns_env:
+    #     if OcamlNsLibraryProvider in ctx.attr.ns_env:
+    #         ns  = ctx.attr.ns_env[OcamlNsLibraryProvider].payload.ns_env
+    #         ns_sep = ctx.attr.ns_env[OcamlNsLibraryProvider].payload.sep
     #     else:
-    #         ns = ctx.attr.ns[PpxNsModuleProvider].payload.ns
-    #         ns_sep = ctx.attr.ns[PpxNsModuleProvider].payload.sep
-    #         # sep = ctx.attr.ns[OcamlNsModuleProvider].payload.sep
-    if ctx.attr.ns:
-        ns_provider = ctx.attr.ns[OcamlNsResolverProvider]
-        ns = ns_provider.ns
-        ## ns target always produces two files, module (cmo or cmx) and interface (cmi)
-        # ns_sep = "__"
-        # for dep in ctx.files.ns:
-        #     if dep.extension == "cmi":
-        #         bn  = dep.basename
-        #         ext = dep.extension
-        #         ns = bn[:-(len(ext)+1)]
+    #         ns = ctx.attr.ns_env[PpxNsLibraryProvider].payload.ns_env
+    #         ns_sep = ctx.attr.ns_env[PpxNsLibraryProvider].payload.sep
+    #         # sep = ctx.attr.ns_env[OcamlNsLibraryProvider].payload.sep
+    if hasattr(ctx.attr, "ns_env"):
+        if ctx.attr.ns_env:
+            ns_provider = ctx.attr.ns_env[OcamlNsEnvProvider]
+            ns = ns_provider.prefix
+            ## ns target always produces two files, module (cmo or cmx) and interface (cmi)
+            # ns_sep = "__"
+            # for dep in ctx.files.ns_env:
+            #     if dep.extension == "cmi":
+            #         bn  = dep.basename
+            #         ext = dep.extension
+            #         ns = bn[:-(len(ext)+1)]
 
     parts = paths.split_extension(src.basename)
     module = None
-    if hasattr(ctx.attr, "module_name"):
-        if ctx.attr.module_name:
-            module = ctx.attr.module_name
+    if hasattr(ctx.attr, "module"):
+        if ctx.attr.module:
+            module = ctx.attr.module
         else:
             module = parts[0]
     else:
@@ -59,7 +68,7 @@ def get_module_name (ctx, src):
 
 ################################################################
 def rename_module(ctx, src):  # , pfx):
-  """Rename implementation and interface (if given) using prefix.
+  """Rename implementation and interface (if given) using ns_env.
 
   Inputs: context, src
   Outputs: outfile :: declared File
@@ -68,7 +77,7 @@ def rename_module(ctx, src):  # , pfx):
   # if module name == ns, then output module name
   # otherwise, outputp ns + "__" + module name
 
-  out_filename = get_module_name(ctx, src)
+  out_filename = get_module_filename(ctx, src)
   # if (module == ns):
   #   out_filename = module + extension
   # else:

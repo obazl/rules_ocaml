@@ -1,4 +1,4 @@
-load("//ppx:_providers.bzl",
+load("//ocaml:providers.bzl",
      "PpxCompilationModeSettingProvider",
      "PpxPrintSettingProvider"
      )

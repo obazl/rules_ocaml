@@ -1,7 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-load("//ocaml/_providers:ocaml.bzl", "OcamlVerboseFlagProvider")
+load("//ocaml:providers.bzl", "OcamlVerboseFlagProvider")
 
-NEGATED_OPTS = [
+NEGATION_OPTS = [
     "-no-g", "-no-noassert",
     "-no-linkall",
     "-no-short-paths", "-no-strict-formats", "-no-strict-sequence",
@@ -58,24 +58,31 @@ def get_options(rule, ctx):
                 options.append("-verbose")
 
     ################################################################
-    if ctx.attr._threads[BuildSettingInfo].value:
-        if not "-no-thread" in ctx.attr.opts:
-            if not "-thread" in ctx.attr.opts: # avoid dup, use the one in opts
-                options.append("-thread")
+    if hasattr(ctx.attr, "_thread"):
+        if ctx.attr._thread[BuildSettingInfo].value:
+            if not "-no-thread" in ctx.attr.opts:
+                if not "-thread" in ctx.attr.opts: # avoid dup, use the one in opts
+                    options.append("-thread")
 
-    if ctx.attr._linkall[BuildSettingInfo].value:
-        if not "-no-linkall" in ctx.attr.opts:
-            if not "-linkall" in ctx.attr.opts: # avoid dup
-                options.append("-linkall")
+    if hasattr(ctx.attr, "_linkall"):
+        if ctx.attr._linkall[BuildSettingInfo].value:
+            if not "-no-linkall" in ctx.attr.opts:
+                if not "-linkall" in ctx.attr.opts: # avoid dup
+                    options.append("-linkall")
 
     if ctx.attr._warnings:
         for opt in ctx.attr._warnings[BuildSettingInfo].value:
             options.extend(["-w", opt])
 
+    if hasattr(ctx.attr, "_opts"):
+        for opt in ctx.attr._opts[BuildSettingInfo].value:
+            if opt not in NEGATION_OPTS:
+                options.append(opt)
+
     ################################################################
     ## MUST COME LAST - instance opts override configurable defaults
     for arg in ctx.attr.opts:
-        if arg not in NEGATED_OPTS:
+        if arg not in NEGATION_OPTS:
             options.append(arg)
 
     return options

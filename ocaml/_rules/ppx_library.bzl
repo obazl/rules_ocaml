@@ -1,25 +1,14 @@
 load("@bazel_skylib//lib:collections.bzl", "collections")
-load("//ppx:_providers.bzl", "PpxCompilationModeSettingProvider")
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
-load("//ocaml/_providers:ocaml.bzl", "OcamlSDK")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
-load("//ppx:_providers.bzl",
+load("//ocaml:providers.bzl",
+     "OcamlSDK",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxLibraryProvider",
-     "PpxModuleProvider")
-# load("//implementation/actions:ocamlopt.bzl",
-#      "compile_native_with_ppx",
-#      "link_native")
-# load("//implementation/actions:ppx.bzl",
-#      "apply_ppx",
-#      # "ocaml_ppx_compile",
-#      # # "ocaml_ppx_apply",
-#      # "ocaml_ppx_library_gendeps",
-#      # "ocaml_ppx_library_cmo",
-#      # "ocaml_ppx_library_link"
-# )
+     "PpxCompilationModeSettingProvider",
+     "PpxModuleProvider",
+     "OpamPkgInfo")
+
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
@@ -28,8 +17,12 @@ load("//ocaml/_functions:utils.bzl",
      "split_srcs",
      "strip_ml_extension",
 )
-load(":options_ppx.bzl", "options_ppx")
+load(":options.bzl", "options")
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
+
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+
+load(":impl_library.bzl", "impl_library")
 
 # print("implementation/ocaml.bzl loading")
 
@@ -39,11 +32,7 @@ OCAML_FILETYPES = [
 
 tmpdir = "_obazl_/"
 
-################################################################
-#### Compile/link without preprocessing.
-#### WARNING: this impl is sequential; it passes all source files to
-#### one action, which will compile them (presumably in sequence) and
-#### then link.
+###########################
 def _ppx_library_impl(ctx):
 
   debug = False
@@ -308,71 +297,34 @@ def _ppx_library_impl(ctx):
 
   return result
 
-#############################################
-#### RULE DECL:  PPX_LIBRARY  #########
+###################
 ppx_library = rule(
-    implementation = _ppx_library_impl,
+    implementation = impl_library,
+    doc = """Aggregates a collection of PPX modules/libraries/archives. Does not create anything, just passes dependencies through.  Purpose is to make collection available under a single target.
+    """,
     attrs = dict(
-        options_ppx,
-        libname = attr.string(),
-        # preprocessor = attr.label(
-        #   providers = [PpxExecutableProvider],
-        #   executable = True,
-        #   cfg = "exec",
-        #   # allow_single_file = True
-        # ),
-        msg = attr.string(),
-        # dump_ast = attr.bool(default = True),
-        # srcs = attr.label_list(
-        #   allow_files = OCAML_FILETYPES
-        # ),
-        # linkshared = attr.bool(default = False),
-        # src_root = attr.label(
-        #   allow_single_file = True,
-        #   mandatory = True,
-        # ),
-        ####  OPTIONS  ####
-        ##Flags. We set some flags by default; these params
-        ## allow user to override.
-        ## Problem is, this target registers two actions,
-        ## compile and link, and each has its own params.
-        ## for now, these affect the compile action:
-        # strict_sequence         = attr.bool(default = True),
-        # compile_strict_sequence = attr.bool(default = True),
-        # link_strict_sequence    = attr.bool(default = True),
-        # strict_formats          = attr.bool(default = True),
-        # short_paths             = attr.bool(default = True),
-        # keep_locs               = attr.bool(default = True),
-        # opaque                  = attr.bool(default = True),
-        # no_alias_deps           = attr.bool(default = True),
-        # debug                   = attr.bool(default = True),
-        # linkall                 = attr.bool(default = False),
-        ## use these to pass additional args
-        # opts                   = attr.string_list(),
-        # linkopts                = attr.string_list(),
-        # warnings                = attr.string(
-        #   default               = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
-        # ),
-        #### end options ####
-        deps = attr.label_list(
+        options("@ppx"),
+        modules = attr.label_list(
+            doc = "List of components.",
             providers = [[DefaultInfo], [PpxModuleProvider]]
         ),
-        lazy_deps = attr.label_list(
-            providers = [[DefaultInfo], [PpxModuleProvider]]
+        # deps_adjunct = attr.label_list(
+        #     providers = [[DefaultInfo], [PpxModuleProvider]]
+        # ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
         _mode = attr.label(
             default = "@ppx//mode"
         ),
-        _allowlist_function_transition = attr.label(
-            ## required for transition fn of attribute _mode
-        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        _rule = attr.string( default = "ppx_library" ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
     ),
+    cfg     = ppx_mode_transition,
     provides = [DefaultInfo, PpxLibraryProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
-    cfg     = ppx_mode_transition
 )

@@ -1,4 +1,4 @@
-load("//ocaml/_providers:ocaml.bzl", "OcamlImportProvider")
+load("//ocaml:providers.bzl", "OcamlImportProvider")
 
 load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 

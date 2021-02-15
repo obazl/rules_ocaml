@@ -1,31 +1,31 @@
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
-
-load("//ppx:_providers.bzl",
+load("//ocaml:providers.bzl",
      "PpxArchiveProvider",
      "PpxModuleProvider")
 
-load(":options_ppx.bzl", "options_ppx")
+load(":options.bzl", "options")
+
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
 load(":impl_archive.bzl", "impl_archive")
 
 ###################
 ppx_archive = rule(
     implementation = impl_archive,
-    doc = """Generates an OCaml archive file suitable for use as a PPX dependency.   Provides: [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider).""",
+    doc = """Generates an OCaml archive file suitable for use as a PPX dependency.   Provides: [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider).
+    """,
     attrs = dict(
-        options_ppx,
+        options("@ppx"),
         archive_name = attr.string(
             doc = "Name of generated archive file, without extension. Overrides `name` attribute."
         ),
         ## CONFIGURABLE DEFAULTS
-        _linkall     = attr.label(default = "@ppx//archive:linkall"),
-        _threads     = attr.label(default = "@ppx//archive:threads"),
+        _linkall     = attr.label(default = "@ppx//archive/linkall"),
+        _thread     = attr.label(default = "@ppx//archive/thread"),
         _warnings  = attr.label(default = "@ppx//archive:warnings"),
         #### end options ####
-        msg = attr.string( doc = "DEPRECATED" ),
-        deps = attr.label_list(
-            doc = "List of OCaml dependencies.",
-            ## FIXME: OpamPkgInfo?
+        # msg = attr.string( doc = "DEPRECATED" ),
+        modules = attr.label_list(
+            doc = "List of OCaml build dependencies to include in archive.",
             providers = [[DefaultInfo], [PpxModuleProvider]]
         ),
         cc_deps = attr.label_keyed_string_dict(
@@ -44,19 +44,23 @@ ppx_archive = rule(
             doc     = "Override platform-dependent link mode (static or dynamic). Configurable default is platform-dependent: static on Linux, dynamic on MacOS.",
             # default is os-dependent, but settable to static or dynamic
         ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
         _mode = attr.label(
             default = "@ppx//mode",
             # cfg     = ppx_mode_transition
         ),
-        # _allowlist_function_transition = attr.label(
-        #     ## required for transition fn of attribute _mode
-        # default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _projroot = attr.label(
+            default = "@ocaml//:projroot"
+        ),
+        _rule = attr.string( default = "ppx_archive" ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
-        ),
-        _rule = attr.string( default = "ppx_archive" )
+        )
     ),
+    cfg     = ppx_mode_transition,
     provides = [DefaultInfo, PpxArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

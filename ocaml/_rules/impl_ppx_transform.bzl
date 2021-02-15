@@ -1,11 +1,16 @@
-load("//ocaml/_providers:ocaml.bzl", "OcamlVerboseFlagProvider")
-load("//ppx:_providers.bzl", "PpxExecutableProvider", "PpxPrintSettingProvider")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
+load("//ocaml:providers.bzl", "OcamlVerboseFlagProvider")
+load("//ocaml:providers.bzl", "PpxExecutableProvider", "PpxPrintSettingProvider")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath")
-load("//ocaml/_rules/utils:rename.bzl", "get_module_name")
+load("//ocaml/_rules/utils:rename.bzl", "get_module_filename")
 
-tmpdir = "_obazl_"
+load(":impl_common.bzl",
+     "tmpdir")
+
+# tmpdir = "_obazl_"
 
 ################################################################
 def impl_ppx_transform(rule, ctx, src):
@@ -19,8 +24,8 @@ def impl_ppx_transform(rule, ctx, src):
   # if ctx.label.name == "_Prover":
   #     debug = True
 
-  module_name = get_module_name(ctx, src)
-  outfilename = tmpdir + "/" + module_name
+  module_name = get_module_filename(ctx, src)
+  outfilename = tmpdir + module_name
 
   outfile = ctx.actions.declare_file(outfilename)
   outputs = {"impl": outfile}
@@ -42,7 +47,8 @@ def impl_ppx_transform(rule, ctx, src):
     args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
     args.add_all(ctx.attr.ppx_args)
     if hasattr(ctx.attr, "ppx_print"):
-        if ctx.attr.ppx_print[PpxPrintSettingProvider].value == "binary":
+        if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
+        # if ctx.attr.ppx_print[PpxPrintSettingProvider].value == "binary":
             if "-dump-ast" not in ctx.attr.opts:
                 args.add("-dump-ast")
         else:
@@ -76,14 +82,14 @@ def impl_ppx_transform(rule, ctx, src):
                   fname_len = len(f.basename)
                   datafile_parent = f.short_path[:-fname_len]
                   RUNTIME_FILES = RUNTIME_FILES + "\n".join([
-                      "if [ ! \\( -f {tmpdir}/{parent}/{rtf} \\) ]".format(tmpdir=tmpdir,
+                      "if [ ! \\( -f {tmpdir}{parent}/{rtf} \\) ]".format(tmpdir=tmpdir,
                                                                 parent = datafile_parent,
                                                                 rtf = f.basename),
                       "then",
-                      "    mkdir -p {v} {tmpdir}/{parent}".format(v = "-v" if verbose else "",
+                      "    mkdir -p {v} {tmpdir}{parent}".format(v = "-v" if verbose else "",
                                                               tmpdir=tmpdir,
                                                               parent=datafile_parent),
-                      "    cp {v} {rtf} {tmpdir}/{parent}".format(v = "-v" if verbose else "",
+                      "    cp {v} {rtf} {tmpdir}{parent}".format(v = "-v" if verbose else "",
                                                               rtf = f.path,
                                                               tmpdir=tmpdir,
                                                               parent = datafile_parent),
@@ -93,12 +99,12 @@ def impl_ppx_transform(rule, ctx, src):
   command = "\n".join([
       "#!/bin/sh",
       "set {set}".format(set = "-x" if verbose else "+x"),
-      "mkdir -p {v} {tmpdir}/{path}".format(v = "-v" if verbose else "",
+      "mkdir -p {v} {tmpdir}{path}".format(v = "-v" if verbose else "",
                                             tmpdir=tmpdir,
                                             path = parent),
       RUNTIME_FILES,
       ## copy source to tmp dir for processing. a softlink won't work here.
-      "cp {v} {outfile} {tmpdir}/{path}{renamed}".format(v = "-v" if verbose else "",
+      "cp {v} {outfile} {tmpdir}{path}{renamed}".format(v = "-v" if verbose else "",
                                                           outfile = src.path,
                                                           tmpdir = tmpdir,
                                                           path = parent,
@@ -139,4 +145,5 @@ def impl_ppx_transform(rule, ctx, src):
       )
   )
 
-  return (tmpdir + "/", outfile) # FIXME: omit trailing "/"
+  # return (tmpdir + "/", outfile) # FIXME: omit trailing "/"
+  return outfile # FIXME: omit trailing "/"

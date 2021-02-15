@@ -4,11 +4,5 @@ bzl_library( # for stardoc
     name = "bootstrap",
     srcs = glob(["*.bzl"]),
     visibility = ["//visibility:public"],
-    deps = [
-        "//obazl:obazl",
-        "//ocaml/_debug:debug",
-        "//ocaml/_providers:providers",
-        "//ocaml/_toolchains:toolchains",
-        "//ppx/_bootstrap:bootstrap"
-    ]
 )
+

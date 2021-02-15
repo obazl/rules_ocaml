@@ -1,15 +1,16 @@
-load("//ocaml/_providers:ocaml.bzl",
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
+load("//ocaml:providers.bzl",
      "OcamlSDK",
      "OcamlArchiveProvider",
-     "OcamlInterfaceProvider",
+     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsModuleProvider")
-load("@obazl_rules_opam//opam/_providers:opam.bzl", "OpamPkgInfo")
-load("//ppx:_providers.bzl",
+     "OcamlNsLibraryProvider",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
-     "PpxModuleProvider")
+     "PpxModuleProvider",
+     "OpamPkgInfo")
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 
@@ -63,7 +64,10 @@ def strip_ml_extension(path):
     return path
 
 def get_opamroot():
-  return Label("@ocaml_sdk//opamroot").workspace_root + "/" + Label("@ocaml_sdk//opamroot").package
+    return Label("@ocaml_sdk//opamroot").workspace_root + "/" + Label("@ocaml_sdk//opamroot").package
+
+def get_projroot(ctx):
+    return ctx.attr._projroot[BuildSettingInfo].value
 
 def get_sdkpath(ctx):
   sdkpath = ctx.attr._sdkpath[OcamlSDK].path + "/bin"
@@ -132,18 +136,18 @@ def split_srcs(srcs):
 #       if mp.deps.opam:
 #         opam_transitives.append(mp.deps.opam)
 #       # opams = opams + d.opam_deps.to_list()
-#     elif OcamlNsModuleProvider in dep:
-#       nsmp = dep[OcamlNsModuleProvider]
-#       # print("OcamlNsModuleProvider dep: %s" % nsmp)
-#       # print("OcamlNsModuleProvider dep type: %s" % type(nsmp))
+#     elif OcamlNsLibraryProvider in dep:
+#       nsmp = dep[OcamlNsLibraryProvider]
+#       # print("OcamlNsLibraryProvider dep: %s" % nsmp)
+#       # print("OcamlNsLibraryProvider dep type: %s" % type(nsmp))
 #       nopam_directs.append(nsmp.payload)
 #       nopam_transitives.append(nsmp.deps.nopam)
 #       if nsmp.deps.opam:
 #         opam_transitives.append(nsmp.deps.opam)
 #       # opams = opams + d.opam_deps.to_list()
-#     elif OcamlInterfaceProvider in dep:
-#       ip = dep[OcamlInterfaceProvider]
-#       # print("OcamlInterfaceProvider dep: %s" % ip)
+#     elif OcamlSignatureProvider in dep:
+#       ip = dep[OcamlSignatureProvider]
+#       # print("OcamlSignatureProvider dep: %s" % ip)
 #       nopam_directs.append(ip.payload)
 #       nopam_transitives.append(ip.deps.nopam)
 #       # opams = opams + d.opam_deps.to_list()
@@ -171,13 +175,13 @@ def split_srcs(srcs):
 #       opam_transitives.append(bp.deps.opam)
 #     elif PpxModuleProvider in dep:
 #       pmp = dep[PpxModuleProvider]
-#       # print("OcamlInterfaceProvider dep: %s" % pmp)
+#       # print("OcamlSignatureProvider dep: %s" % pmp)
 #       nopam_directs.append(pmp.payload)
 #       nopam_transitives.append(pmp.deps.nopam)
 #       opam_transitives.append(pmp.deps.opam)
 #     # elif PpxNsModuleProvider in dep:
 #     #   pnmp = dep[PpxNsModuleProvider]
-#     #   # print("OcamlInterfaceProvider dep: %s" % pmp)
+#     #   # print("OcamlSignatureProvider dep: %s" % pmp)
 #     #   nopam_directs.append(pnmp.payload)
 #     #   nopam_transitives.append(pnmp.deps.nopam)
 #     #   opam_transitives.append(pnmp.deps.opam)

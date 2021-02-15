@@ -1,12 +1,12 @@
 load("@bazel_skylib//rules:common_settings.bzl",
      "bool_flag", "bool_setting",
-     "string_flag",
-     "string_list_flag",
-     "string_setting")
+     "string_flag", "string_setting",
+     "string_list_flag")
 
 load("@obazl_rules_ocaml//ocaml/_toolchains:ocaml_toolchains.bzl",
-## FIXME: make a public toolchain ns
+     ## FIXME: make a public toolchain ns
      "ocaml_toolchain")
+
 load("@obazl_rules_ocaml//ocaml/_toolchains:sdk.bzl",
      ## FIXME: put these in public ocaml namespace
      "ocaml_sdkpath",
@@ -19,6 +19,8 @@ package(default_visibility = ["//visibility:public"])
 ocaml_null_module(name="null")
 
 exports_files(glob(["switch/bin/**"]))
+
+string_setting( name = "projroot", build_setting_default = "{projroot}")
 
 platform(
     name = "bytecode",
@@ -41,11 +43,12 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-filegroup(
-    name = "stublibs",
-    srcs = glob(["switch/lib/stublibs/*.so"]),
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "stublibs",
+#     srcs = glob(["runtime/*.so"]),
+#     # srcs = glob(["switch/lib/stublibs/*.so"]),
+#     visibility = ["//visibility:public"],
+# )
 
 # filegroup(
 #     name = "base_stubs",
@@ -143,41 +146,41 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
-filegroup(
-    name = "ocaml-crunch",
-    srcs = ["switch/bin/ocaml-crunch"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ocaml-crunch",
+#     srcs = ["switch/bin/ocaml-crunch"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ocamlc",
-    srcs = ["switch/bin/ocamlc"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ocamlc",
+#     srcs = ["switch/bin/ocamlc"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ocamlopt",
-    srcs = ["switch/bin/ocamlopt"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ocamlopt",
+#     srcs = ["switch/bin/ocamlopt"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ocamllex",
-    srcs = ["switch/bin/ocamllex"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ocamllex",
+#     srcs = ["switch/bin/ocamllex"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ocamlyacc",
-    srcs = ["switch/bin/ocamlyacc"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ocamlyacc",
+#     srcs = ["switch/bin/ocamlyacc"],
+#     visibility = ["//visibility:public"],
+# )
 
-filegroup(
-    name = "ocamlfind",
-    srcs = ["switch/bin/ocamlfind"],
-    visibility = ["//visibility:public"],
-)
+# filegroup(
+#     name = "ocamlfind",
+#     srcs = ["switch/bin/ocamlfind"],
+#     visibility = ["//visibility:public"],
+# )
 
 ## filegroup(
 ##     name = "ocamlbuild",

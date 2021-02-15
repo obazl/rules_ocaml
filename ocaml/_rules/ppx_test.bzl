@@ -1,4 +1,6 @@
-load("//ppx:_providers.bzl", "PpxExecutableProvider")
+load("//ocaml:providers.bzl", "PpxExecutableProvider")
+
+load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
 ##FIXME: "-diff-cmd -" disables diffing - what if user doesn't want that?
 
@@ -319,223 +321,356 @@ fi
            stderr_file = errfile,
            verbose = verbose)
 
-#################################################
-################  PPX_TEST  ################
-def _ppx_test_impl(ctx):
+###################################################
+################  PPX_EXPECT_IMPL  ################
+def _ppx_expect_impl(ctx):
+    print("_ppx_expect_impl")
 
-  # print("EXPECT ATTR: %s" % ctx.attr.expect)
-  if ctx.attr.expect == {}:
-      fail("missing", attr="expect")
-  stdout_expect = None;
-  stderr_expect = None;
-  for item in ctx.attr.expect.items():
-      if item[1] in ["stdout", "1"]:
-          stdout_expect = item[0].files.to_list()[0]
-          # print("STDOUT_EXPECT: %s" % stdout_expect)
-      elif item[1] in ["stderr", "2"]:
-          stderr_expect = item[0].files.to_list()[0]
-          # print("STDERR_EXPECT: %s" % stderr_expect)
-      else:
-          fail("Allowed expect item values: \"stdout\", \"1\", \"stderr\", \"2\"]. Got: '%s'" % item[1])
+    # print("EXPECT ATTR: %s" % ctx.attr.expect)
+    # if ctx.attr.expect == {}:
+    #     fail("missing", attr="expect")
 
-  # cookies are legacy, do we need this?
-  cookies = ""
-  for key in ctx.attr.cookies:
-      # print("key: %s" % key)
-      cookies = cookies + "-cookie '" + key + "=\"" + ctx.attr.cookies[key] + "\"'"
+    stdout_expect = None;
+    stderr_expect = None;
+    for item in ctx.attr.expect.items():
+        if item[1] in ["stdout", "1"]:
+            stdout_expect = item[0].files.to_list()[0]
+            # print("STDOUT_EXPECT: %s" % stdout_expect)
+        elif item[1] in ["stderr", "2"]:
+            stderr_expect = item[0].files.to_list()[0]
+            # print("STDERR_EXPECT: %s" % stderr_expect)
+        else:
+            fail("Allowed expect item values: \"stdout\", \"1\", \"stderr\", \"2\"]. Got: '%s'" % item[1])
 
-  inparam = ""
-  if ctx.file.src.extension == "ml":
-      inparam = "--impl " + ctx.file.src.path
-      stdout_file = ctx.file.src.basename + ".pp.ml"
-      stderr_file = ctx.file.src.basename + ".stderr"
-  else:
-      inparam = "--intf " + ctx.file.src.short_path
-      stdout_file = ctx.file.src.basename + ".pp.mli"
-      stderr_file = ctx.file.src.basename + ".stderr"
+    # cookies are legacy, do we need this?
+    cookies = ""
+    for key in ctx.attr.cookies:
+        # print("key: %s" % key)
+        cookies = cookies + "-cookie '" + key + "=\"" + ctx.attr.cookies[key] + "\"'"
 
-  # print("INPARAM: %s" % inparam)
-  # print("OUTFILE: %s" % outfile)
+    inparam = ""
+    if ctx.file.src.extension == "ml":
+        inparam = "--impl " + ctx.file.src.path
+        stdout_file = ctx.file.src.basename + ".pp.ml"
+        stderr_file = ctx.file.src.basename + ".stderr"
+    else:
+        inparam = "--intf " + ctx.file.src.short_path
+        stdout_file = ctx.file.src.basename + ".pp.mli"
+        stderr_file = ctx.file.src.basename + ".stderr"
 
-  verbose = ""
-  if ctx.attr.verbose:
-      # if debug:
-      #     print("VERBOSE")
-      verbose = "set -x"
-      # print("COOKIES: %s" % cookies)
+    # print("INPARAM: %s" % inparam)
+    # print("OUTFILE: %s" % outfile)
 
-  script = ""
-  # if ctx.attr.expect != None:
-  # if stdout_expect != None:
-  if ctx.attr.expect != None:
-      # print("EXPECT: %s" % stdout_expect) # ctx.attr.expect)
-      run_script = "\n".join(
-          ## def _gen_cmd_script(ppx, cookies, expected, inparam, outfile, errfile, verbose):
-          [_gen_cmd_script(ctx.executable.ppx,
-                           cookies,
-                           stdout_expect.short_path if stdout_expect else "",
-                           stderr_expect.short_path if stderr_expect else "/dev/null",
-                           inparam,
-                           stdout_file,
-                           stderr_file,
-                           verbose)])
-      # print("Embedded file Script:")
-      # print(run_script)
-  # elif ctx.attr.expect_stderr != "":
-  # # elif stderr_expect != None:
-  #     ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
-  #     script = _gen_expect_stderr_script(ctx.file.ppx,
-  #                                        cookies,
-  #                                        # stderr_expect.short_path,
-  #                                        ctx.attr.expect_stderr,
-  #                                        inparam,
-  #                                        stdout_file,
-  #                                        verbose)
-  #     print("Embedded string Script:")
-  #     print(script)
-  #     run_script = _gen_capture_string_script(script, stdout_file, ctx.attr.expect_stderr)
-  #     print("Run Script:")
-  #     print(run_script)
-  #     # run_script = "\n".join(
-  #     #     [_gen_fail_script(ctx.file.ppx,
-  #     #                       ctx.attr.expect_stderr,
-  #     #                       inparam,
-  #     #                       verbose)])
-  #     # print("Run Script:")
-  #     # print(run_script)
-  else:
-      fail("Either expect (file) or expect_stderr (string) required.")
+    verbose = ""
+    if ctx.attr.verbose:
+        # if debug:
+        #     print("VERBOSE")
+        verbose = "set -x"
+        # print("COOKIES: %s" % cookies)
 
-  ctx.actions.write(
-      output = ctx.outputs.executable,
-      is_executable = True,
-      content = run_script,
-  )
+    script = ""
+    # if ctx.attr.expect != None:
+    # if stdout_expect != None:
+    if ctx.attr.expect != None:
+        # print("EXPECT: %s" % stdout_expect) # ctx.attr.expect)
+        run_script = "\n".join(
+            [_gen_cmd_script(ctx.executable.ppx,
+                             cookies,
+                             stdout_expect.short_path if stdout_expect else "",
+                             stderr_expect.short_path if stderr_expect else "/dev/null",
+                             inparam,
+                             stdout_file,
+                             stderr_file,
+                             verbose)])
+        # print("Embedded file Script:")
+        # print(run_script)
+    # elif ctx.attr.expect_stderr != "":
+    # # elif stderr_expect != None:
+    #     ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
+    #     script = _gen_expect_stderr_script(ctx.file.ppx,
+    #                                        cookies,
+    #                                        # stderr_expect.short_path,
+    #                                        ctx.attr.expect_stderr,
+    #                                        inparam,
+    #                                        stdout_file,
+    #                                        verbose)
+    #     print("Embedded string Script:")
+    #     print(script)
+    #     run_script = _gen_capture_string_script(script, stdout_file, ctx.attr.expect_stderr)
+    #     print("Run Script:")
+    #     print(run_script)
+    #     # run_script = "\n".join(
+    #     #     [_gen_fail_script(ctx.file.ppx,
+    #     #                       ctx.attr.expect_stderr,
+    #     #                       inparam,
+    #     #                       verbose)])
+    #     # print("Run Script:")
+    #     # print(run_script)
+    else:
+        fail("Either expect (file) or expect_stderr (string) required.")
 
-  rfiles = [ctx.file.src] + ctx.files.deps
-  # if ctx.file.expect != None:
-  #     rfiles.append(ctx.file.expect)
-  if stdout_expect != None:
-      rfiles.append(stdout_expect)
-  if stderr_expect != None:
-      rfiles.append(stderr_expect)
+    ctx.actions.write(
+        output = ctx.outputs.executable,
+        is_executable = True,
+        content = run_script,
+    )
 
-  for datum in ctx.attr.data:
-      if datum.label.name.startswith(ctx.label.name):
-          fail("Disallowed: target name '{t}' is a prefix of a data file '{d}'.".format(
-              t = ctx.label.name,
-              d = datum.label.name))
-  for datum in ctx.files.data:
-      rfiles.append(datum)
-  runfiles = ctx.runfiles(
-      collect_data = True,
-      files = rfiles
-  ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
+    rfiles = [ctx.file.src] + ctx.files.deps
+    # if ctx.file.expect != None:
+    #     rfiles.append(ctx.file.expect)
+    if stdout_expect != None:
+        rfiles.append(stdout_expect)
+    if stderr_expect != None:
+        rfiles.append(stderr_expect)
 
-  return [DefaultInfo( runfiles = runfiles,
-                      ##runfiles = ctx.runfiles(collect_data = True),
-                      executable = ctx.outputs.executable)]
+    for datum in ctx.attr.data:
+        if datum.label.name.startswith(ctx.label.name):
+            fail("Disallowed: target name '{t}' is a prefix of a data file '{d}'.".format(
+                t = ctx.label.name,
+                d = datum.label.name))
+    for datum in ctx.files.data:
+        rfiles.append(datum)
+    runfiles = ctx.runfiles(
+        collect_data = True,
+        files = rfiles
+    ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
 
-#################################################
-ppx_test = rule(
-  implementation = _ppx_test_impl,
-  test = True,
-  attrs = dict(
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
+    return [DefaultInfo( runfiles = runfiles,
+                        ##runfiles = ctx.runfiles(collect_data = True),
+                        executable = ctx.outputs.executable)]
+
+##################    PPX_EXPECT    ##################
+ppx_expect_test = rule(
+    implementation = _ppx_expect_impl,
+    test = True,
+    attrs = dict(
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        ppx = attr.label(
+            # mandatory = True,
+            providers = [[DefaultInfo], [PpxExecutableProvider]],
+            executable = True,
+            cfg = "host",
+            allow_single_file = True
+        ),
+        verbose = attr.bool(
+            doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",
+            default = False
+        ),
+        # to support legacy stuff. cookies not needed with "modern" ppxlib + OMP
+        ## FIXME: call this "tag" ("ppx_tag" on ocaml_module, ocaml_signature)
+        cookies = attr.string_dict(
+            doc = """
+  Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'name="value"'. Since it is easy to get the quoting wrong due to shell substitutions, this attribute makes it easy. Keys are cookie names, values are cookie vals.
+   """
+        ),
+        # expect = attr.label(
+        #     allow_single_file = True,
+        # ),
+        expect = attr.label_keyed_string_dict(
+            allow_files = True
+        ),
+        # expect_stderr = attr.string(
+        # ),
+        data = attr.label_list(
+            allow_files = True
+        ),
+        # args  = attr.string_list(
+        #   doc = "Options to pass to PPX binary.",
+        # ),
+        src = attr.label(
+            allow_single_file = [".ml", ".mli"]
+        ),
+        output = attr.string(
+            doc = "Format of output of PPX transform, binary (default) or text",
+            values = ["binary", "text"],
+            default = "binary"
+        ),
+        deps = attr.label_list( ),
+        deps_opam = attr.string_list(
+            doc = "List of OPAM package names"
+        ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn 'ppx_mode_transition', for attribute _mode
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+        mode = attr.label(
+            default = "@ppx//mode"
+        ),
+        # mode = attr.string(default = "native"),
+        message = attr.string()
     ),
-    ppx = attr.label(
-        mandatory = True,
-        providers = [[DefaultInfo], [PpxExecutableProvider]],
-        executable = True,
-        cfg = "host",
-        allow_single_file = True
-    ),
-    verbose = attr.bool(
-        doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",
-        default = False
-    ),
-    # to support legacy stuff. cookies not needed with "modern" ppxlib + OMP
-    ## FIXME: call this "tag" ("ppx_tag" on ocaml_module, ocaml_interface)
-    cookies = attr.string_dict(
-        doc = """
-Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'name="value"'. Since it is easy to get the quoting wrong due to shell substitutions, this attribute makes it easy. Keys are cookie names, values are cookie vals.
- """
-    ),
-    # expect = attr.label(
-    #     allow_single_file = True,
-    # ),
-    expect = attr.label_keyed_string_dict(
-        allow_files = True
-    ),
-    # expect_stderr = attr.string(
-    # ),
-    data = attr.label_list(
-        allow_files = True
-    ),
-    # args  = attr.string_list(
-    #   doc = "Options to pass to PPX binary.",
-    # ),
-    src = attr.label(
-      allow_single_file = [".ml", ".mli"]
-    ),
-    output = attr.string(
-      doc = "Format of output of PPX transform, binary (default) or text",
-      values = ["binary", "text"],
-      default = "binary"
-    ),
-    deps = attr.label_list( ),
-    mode = attr.string(default = "native"),
-    message = attr.string()
-  ),
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    cfg     = ppx_mode_transition,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
 
+###################################################
+################  PPX_TEST_IMPL  ################
+def _ppx_test_impl(ctx):
+    print("_ppx_test_impl")
 
-################################################################
-## testing the rules themselves
-## https://docs.bazel.build/versions/master/skylark/testing.html#failure-testing
-# def _ppx_fail_test_impl(ctx):
-#     env = analysistest.begin(ctx)
-#     asserts.expect_failure(env, "This rule should never work")
-#     return analysistest.end(env)
+    # print("EXPECT ATTR: %s" % ctx.attr.expect)
+    # if ctx.attr.expect == {}:
+    #     fail("missing", attr="expect")
 
-# ppx_fail_test = analysistest.make(
-#     _ppx_fail_test_impl,
-#     expect_failure = True,
-# )
+    stdout_expect = None;
+    stderr_expect = None;
+    for item in ctx.attr.expect.items():
+        if item[1] in ["stdout", "1"]:
+            stdout_expect = item[0].files.to_list()[0]
+            # print("STDOUT_EXPECT: %s" % stdout_expect)
+        elif item[1] in ["stderr", "2"]:
+            stderr_expect = item[0].files.to_list()[0]
+            # print("STDERR_EXPECT: %s" % stderr_expect)
+        else:
+            fail("Allowed expect item values: \"stdout\", \"1\", \"stderr\", \"2\"]. Got: '%s'" % item[1])
 
+    # cookies are legacy, do we need this?
+    cookies = ""
+    for key in ctx.attr.cookies:
+        # print("key: %s" % key)
+        cookies = cookies + "-cookie '" + key + "=\"" + ctx.attr.cookies[key] + "\"'"
 
-# def _xfail_test(do_binary, name,
-#                 size = None, timeout = None, shard_count = None,
-#                 visibility = None, **kwargs):
-#   if 'flaky' in kwargs:
-#     fail('not supported for xfail_tests', 'flaky')
-#   if 'args' in kwargs:
-#     fail('not yet implemented for xfail_tests', 'args')
-#   if 'shard_count' in kwargs:
-#     fail('not yet implemented for xfail_tests', 'shard_count')
+    inparam = ""
+    if ctx.file.src.extension == "ml":
+        inparam = "--impl " + ctx.file.src.path
+        stdout_file = ctx.file.src.basename + ".pp.ml"
+        stderr_file = ctx.file.src.basename + ".stderr"
+    else:
+        inparam = "--intf " + ctx.file.src.short_path
+        stdout_file = ctx.file.src.basename + ".pp.mli"
+        stderr_file = ctx.file.src.basename + ".stderr"
 
-#   do_binary(
-#     name = name + '__binary',
-#     visibility = ['//visibility:implementation'],
-#     testonly = True,
-#     **kwargs
-#   )
+    # print("INPARAM: %s" % inparam)
+    # print("OUTFILE: %s" % outfile)
 
-#   native.sh_test(
-#     name = name,
-#     visibility = visibility,
-#     size = size,
-#     timeout = timeout,
-#     shard_count = shard_count,
-#     srcs = [
-#       '//tools/test:run_xfail_test',
-#     ],
-#     data = [
-#       ':%s__binary' % name,
-#     ],
-#     args = [
-#       '$(location :%s__binary)' % name,
-#     ],
-#   )
+    verbose = ""
+    if ctx.attr.verbose:
+        # if debug:
+        #     print("VERBOSE")
+        verbose = "set -x"
+        # print("COOKIES: %s" % cookies)
+
+    script = ""
+    # if ctx.attr.expect != None:
+    # if stdout_expect != None:
+    if ctx.attr.expect != None:
+        # print("EXPECT: %s" % stdout_expect) # ctx.attr.expect)
+        run_script = "\n".join(
+            [_gen_cmd_script(ctx.executable.ppx,
+                             cookies,
+                             stdout_expect.short_path if stdout_expect else "",
+                             stderr_expect.short_path if stderr_expect else "/dev/null",
+                             inparam,
+                             stdout_file,
+                             stderr_file,
+                             verbose)])
+        # print("Embedded file Script:")
+        # print(run_script)
+    # elif ctx.attr.expect_stderr != "":
+    # # elif stderr_expect != None:
+    #     ## _gen_expect_stderr_script(ppx, cookies, expected, inparam, outfile, verbose):
+    #     script = _gen_expect_stderr_script(ctx.file.ppx,
+    #                                        cookies,
+    #                                        # stderr_expect.short_path,
+    #                                        ctx.attr.expect_stderr,
+    #                                        inparam,
+    #                                        stdout_file,
+    #                                        verbose)
+    #     print("Embedded string Script:")
+    #     print(script)
+    #     run_script = _gen_capture_string_script(script, stdout_file, ctx.attr.expect_stderr)
+    #     print("Run Script:")
+    #     print(run_script)
+    #     # run_script = "\n".join(
+    #     #     [_gen_fail_script(ctx.file.ppx,
+    #     #                       ctx.attr.expect_stderr,
+    #     #                       inparam,
+    #     #                       verbose)])
+    #     # print("Run Script:")
+    #     # print(run_script)
+    else:
+        fail("Either expect (file) or expect_stderr (string) required.")
+
+    ctx.actions.write(
+        output = ctx.outputs.executable,
+        is_executable = True,
+        content = run_script,
+    )
+
+    rfiles = [ctx.file.src] + ctx.files.deps
+    # if ctx.file.expect != None:
+    #     rfiles.append(ctx.file.expect)
+    if stdout_expect != None:
+        rfiles.append(stdout_expect)
+    if stderr_expect != None:
+        rfiles.append(stderr_expect)
+
+    for datum in ctx.attr.data:
+        if datum.label.name.startswith(ctx.label.name):
+            fail("Disallowed: target name '{t}' is a prefix of a data file '{d}'.".format(
+                t = ctx.label.name,
+                d = datum.label.name))
+    for datum in ctx.files.data:
+        rfiles.append(datum)
+    runfiles = ctx.runfiles(
+        collect_data = True,
+        files = rfiles
+    ).merge(ctx.attr.ppx[DefaultInfo].default_runfiles)
+
+    return [DefaultInfo( runfiles = runfiles,
+                        ##runfiles = ctx.runfiles(collect_data = True),
+                        executable = ctx.outputs.executable)]
+
+####################################################
+##################    PPX_TEST    ##################
+ppx_test = rule(
+    implementation = _ppx_test_impl,
+    test = True,
+    attrs = dict(
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        verbose = attr.bool(
+            doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",
+            default = False
+        ),
+        # to support legacy stuff. cookies not needed with "modern" ppxlib + OMP
+        ## FIXME: call this "tag" ("ppx_tag" on ocaml_module, ocaml_signature)
+        cookies = attr.string_dict(
+            doc = """
+  Some PPX libs (e.g. foo) take '-cookie' arguments, which must have the form 'name="value"'. Since it is easy to get the quoting wrong due to shell substitutions, this attribute makes it easy. Keys are cookie names, values are cookie vals.
+   """
+        ),
+        # expect = attr.label(
+        #     allow_single_file = True,
+        # ),
+        expect = attr.label_keyed_string_dict(
+            allow_files = True
+        ),
+        # expect_stderr = attr.string(
+        # ),
+        data = attr.label_list(
+            allow_files = True
+        ),
+        # args  = attr.string_list(
+        #   doc = "Options to pass to PPX binary.",
+        # ),
+        src = attr.label(
+            allow_single_file = [".ml", ".mli"]
+        ),
+        output = attr.string(
+            doc = "Format of output of PPX transform, binary (default) or text",
+            values = ["binary", "text"],
+            default = "binary"
+        ),
+        deps = attr.label_list( ),
+        deps_opam = attr.string_list(
+            doc = "List of OPAM package names"
+        ),
+        mode = attr.string(default = "native"),
+        message = attr.string()
+    ),
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+)
