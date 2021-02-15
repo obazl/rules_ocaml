@@ -123,8 +123,8 @@ def _impl_ns_env(ctx):
         outputs.append(obj_cm_)
         outputs.append(obj_cmi)
 
-        # if ctx.attr._warnings:
-        #     args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
+        if ctx.attr._warnings:
+            args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
         # if hasattr(ctx.attr, "opts"):
         #     args.add_all(ctx.attr.opts)

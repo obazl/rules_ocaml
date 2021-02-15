@@ -82,17 +82,17 @@ def _ocaml_test_impl(ctx):
         # a ppx executable may have adjunct deps; they are handled by get_all_deps
     else:
         out_srcfile = ctx.file.main
-    print("OUT SRCFILE: %s" % out_srcfile)
+    # print("OUT SRCFILE: %s" % out_srcfile)
     # if mode == "native":
     #     fname = paths.replace_extension(out_srcfile.basename, ".out")
     # else:
     #     fname = paths.replace_extension(out_srcfile.basename, ".byte")
 
     fname = paths.replace_extension(out_srcfile.basename, "")
-    print("FNAME: %s" % fname)
+    # print("FNAME: %s" % fname)
 
     out_exe = ctx.actions.declare_file(fname)
-    print("OUT_EXE: %s" % out_exe)
+    # print("OUT_EXE: %s" % out_exe)
 
     ################################################################
     args = ctx.actions.args()
@@ -381,7 +381,7 @@ def _ocaml_test_impl(ctx):
     # print("DIRECT_FILE_DEPS: %s" % direct_file_deps)
 
     inputs_depset = depset(direct = direct_file_deps, transitive = indirect_file_depsets)
-    print("INPUTS_DEPSET: %s" % inputs_depset)
+    # print("INPUTS_DEPSET: %s" % inputs_depset)
 
     # then compile implementation files and produce executable
     # if srcs_ml:
