@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
@@ -114,13 +115,21 @@ def _handle_cc_deps(ctx,
 
 #####################
 def impl_module(ctx):
-
+    print("Start:  XIMPL MODULE")
     debug = False
-    # if ctx.label.name == "_Env":
-    #     debug = True
+    # if ctx.label.name in ["_Red", "_Red_helper"]: #, "_Blue"]:
+    if ctx.label.name in ["ppx_message"]:
+        debug = True
 
-    # if debug:
-    #     print("MODULE TARGET: %s" % ctx.label.name)
+    if debug:
+        print("Start: MODULE Label name: %s" % ctx.label.name)
+        print("  _NS_ENV files: %s" % ctx.attr._ns_env[DefaultInfo].files.to_list())
+        print("  _NS_ENV paths: %s" % ctx.attr._ns_env[DefaultMemo].paths)
+        if hasattr(ctx.attr._ns_env[OcamlNsEnvProvider], "resolver"):
+            print("  _NS_ENV resolver: %s" % ctx.attr._ns_env[OcamlNsEnvProvider].resolver)
+            print("  _NS_ENV prefix: %s" % ctx.attr._ns_env[OcamlNsEnvProvider].prefix)
+        print("  _NS_PREFIX: %s" % ctx.attr._ns_prefix[BuildSettingInfo].value)
+        print("  _NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
     # if ctx.attr._rule == "ocaml_module":
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
@@ -172,21 +181,45 @@ def impl_module(ctx):
         out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct)
         direct_file_deps.append(ctx.file.ppx)
         # a ppx executable may have adjunct deps; they are handled by get_all_deps
-    elif ctx.attr.ns_env:
-        # rename this module to put it in the namespace
-        out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr.ns_env)
+    # elif ctx.attr._ns_env:
+    elif ctx.attr._ns_prefix:
+        if len(ctx.attr._ns_submodules[BuildSettingInfo].value) > 0:
+            (this_module, ext) = paths.split_extension(ctx.file.struct.basename)
+            this_module = capitalize_initial_char(this_module)
+            if debug:
+                print("THIS_MODULE: %s" % this_module)
+                print("SUBMODULES:  %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
+            if this_module in ctx.attr._ns_submodules[BuildSettingInfo].value:
+                # rename this module to put it in the namespace
+                out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_env)
+            else:
+                out_srcfile = ctx.file.struct
+        else:
+            out_srcfile = ctx.file.struct
     else:
         out_srcfile = ctx.file.struct
 
+    scope = ""
+
+    if debug:
+        print("OUT_SRCFILE: %s" % out_srcfile)
     if mode == "native":
-        fname = paths.replace_extension(out_srcfile.basename, ".o")
-        out_o = ctx.actions.declare_file(tmpdir + fname)
+        ofname = paths.replace_extension(out_srcfile.basename, ".o")
+        out_o = ctx.actions.declare_file(scope + ofname)
         outputs.append(out_o)
         fname = paths.replace_extension(out_srcfile.basename, ".cmx")
     else:
         fname = paths.replace_extension(out_srcfile.basename, ".cmo")
 
-    out_cm_ = ctx.actions.declare_file(tmpdir + fname)
+    # if ctx.attr._ns_pkg[BuildSettingInfo].value == "":
+    #     scope = tmpdir
+    # else:
+    #     print("NS_PKG: %s" % ctx.attr._ns_pkg[BuildSettingInfo])
+    #     scope = ctx.attr._ns_pkg[BuildSettingInfo].value + "/"
+    # scope = tmpdir
+    # (scope, ext) = paths.split_extension(ctx.file.struct.basename)
+    # scope = ctx.attr._ns_prefix[BuildSettingInfo].value + "/"
+    out_cm_ = ctx.actions.declare_file(scope + fname)
     outputs.append(out_cm_)
     includes.append(out_cm_.dirname)
 
@@ -211,7 +244,11 @@ def impl_module(ctx):
     ## we don't really need direct_cc_deps, just use ctx.attr.cc_deps
     direct_cc_deps.append(ctx.attr.cc_deps)
 
-    merge_deps(ctx.attr.deps,
+    mydeps = ctx.attr.deps + [ctx.attr._ns_env]
+    if debug:
+        print("MERGING DEPS: %s" % mydeps)
+    # mydeps.extend(ctx.attr._ns_env.files.to_list())
+    merge_deps(mydeps,
                indirect_file_depsets,
                indirect_path_depsets,
                indirect_resolver_depsets,
@@ -221,6 +258,11 @@ def impl_module(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
+        # print("NS_ENV paths: %s" % ctx.attr._ns_env[DefaultMemo].paths)
+        # indirect_pa
+
+    if debug:
+        print("FILE DEPSETS: %s" % indirect_file_depsets)
     # print("RULE: %s" % ctx.attr._rule)
     # print("NAME: %s" % ctx.label.name)
     # print("OPAM %s" % indirect_opam_depsets)
@@ -250,12 +292,12 @@ def impl_module(ctx):
     else:
       ## no sigfile provided: compiler will infer and emit .cmi from .ml src
       cmifname = paths.replace_extension(out_srcfile.basename, ".cmi")
-      out_cmi = ctx.actions.declare_file(tmpdir + cmifname)
+      out_cmi = ctx.actions.declare_file(scope + cmifname)
       outputs.append(out_cmi)
 
       if "-bin-annot" in ctx.attr.opts:  ## Issue #17
           ## FIXME: only do this if no cmi intf provided
-          out_cmt = ctx.actions.declare_file(tmpdir + paths.replace_extension(out_srcfile.basename, ".cmt"))
+          out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(out_srcfile.basename, ".cmt"))
           outputs.append(out_cmt)
 
     indirect_paths_depset = depset(transitive = indirect_path_depsets)
@@ -266,8 +308,8 @@ def impl_module(ctx):
     indirect_resolvers_depset = depset(transitive = indirect_resolver_depsets)
 
     ## FIXME: there are cases where we do not want to do this?
-    # for resolver in indirect_resolvers_depset.to_list():
-    #       args.add("-open", resolver)
+    for resolver in indirect_resolvers_depset.to_list():
+        args.add("-open", resolver)
 
     args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -344,17 +386,26 @@ def impl_module(ctx):
         for opam in provider.opam.to_list():
             args.add("-package", opam)
 
-    ## if ocaml_module.ns, then it may depend on something in the ns's resolver,
+    ## if ocaml_module._ns_env, then it may depend on something in the ns_env's resolver,
     ## so we need to add it to our dep graph
     ns = None
-    ## ns target produces two files, module and interface
-    if ctx.attr.ns:
-        indirect_file_depsets.append(ctx.attr.ns[DefaultInfo].files)
-        provider = ctx.attr.ns[OcamlNsEnvProvider]
-        if provider.resolver:
-            direct_resolver = (provider.resolver)
-            args.add("-no-alias-deps")
-            args.add("-open", provider.resolver)
+    ## ns_env target produces two files, module and interface
+    # if ctx.attr._ns_env:
+    #     print("NS_ENV ATR: %s" % ctx.attr._ns_env[OcamlNsEnvProvider])
+    #     print("NS_ENV file: %s" % ctx.attr._ns_env[DefaultInfo].files)
+    #     indirect_file_depsets.append(ctx.attr._ns_env[DefaultInfo].files)
+    #     for path in ctx.attr._ns_env[DefaultMemo].paths.to_list():
+    #         args.add("-I", path)
+    #     provider = ctx.attr._ns_env[OcamlNsEnvProvider]
+        # if provider.resolver:
+        #     direct_resolver = (provider.resolver)
+        #     args.add("-no-alias-deps")
+        #     args.add("-open", provider.resolver)
+
+    if hasattr(ctx.attr._ns_env[OcamlNsEnvProvider], "resolver"):
+        print("OPENING RESOLVER: %s" % ctx.attr._ns_env[OcamlNsEnvProvider].resolver)
+        args.add("-no-alias-deps")
+        args.add("-open", ctx.attr._ns_env[OcamlNsEnvProvider].resolver)
 
     args.add("-c")
 
@@ -390,6 +441,8 @@ def impl_module(ctx):
     #     # print("Dpath: %s" % dep.path)
     #     if dep.extension == "a":
     #         args.add(dep)
+    if debug:
+        print("INPUT_DEPSET: %s" % input_depset)
 
     ctx.actions.run(
         env = env,
@@ -398,14 +451,14 @@ def impl_module(ctx):
         inputs    = input_depset,
         outputs   = outputs,
         tools = [tc.ocamlfind, tc.ocamlopt, tc.ocamlc],
-        mnemonic = "OCamlModuleCompile" if ctx.attr._rule == "ocaml_module" else "PpxModuleCompile",
-        progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}{msg}".format(
+        mnemonic = "xOCamlModuleCompile" if ctx.attr._rule == "ocaml_module" else "PpxModuleCompile",
+        progress_message = "{mode} x compiling {rule}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,
             rule=ctx.attr._rule,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
-            msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
+            # msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
         )
     )
 
@@ -421,11 +474,14 @@ def impl_module(ctx):
     # if out_cmt:
     #     directs.append(out_cmt)
 
-    # if ctx.attr.ns:
-    #     for dep in ctx.files.ns:
+    # if ctx.attr._ns_env:
+    #     for dep in ctx.files._ns_env:
     #         indirects.append(dep)
 
     search_paths = sets.to_list(sets.make(includes))  ## uniqify
+
+    if debug:
+        print("OUTPUTS: %s" % outputs)
 
     defaultInfo = DefaultInfo(
         files = depset(
@@ -437,9 +493,12 @@ def impl_module(ctx):
 
     defaultMemo = DefaultMemo(
         paths     = depset(direct = search_paths, transitive = [indirect_paths_depset]),
+        ## FIXME: pass resolvers using OcamlNsProvider
         resolvers = depset(direct = [direct_resolver] if direct_resolver else [],
                            transitive = [indirect_resolvers_depset]),
     )
+    if debug:
+        print("MPATHS %s" % defaultMemo.paths)
 
     if ctx.attr._rule == "ocaml_module":
         moduleProvider = OcamlModuleProvider(
@@ -474,10 +533,13 @@ def impl_module(ctx):
     # if ctx.label.name == "_Template":
     #     print("MODULE PROVIDER: %s" % module_provider)
 
+    # if ctx.attr._ns_env == none then omit OcamlNsProvider from result
+
     return [
         defaultInfo,
         defaultMemo,
         moduleProvider,
+        # ctx.attr._ns_env[OcamlNsEnvProvider], # ns resolvers
         opamProvider,
         adjunctsProvider,
         ccProvider

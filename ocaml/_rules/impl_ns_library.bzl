@@ -79,14 +79,15 @@ def get_resolver_name(ctx):
     return resolver_name
 
 ########################
-def build_resolvers(ctx, tc, env, mode, aliases):
+def build_resolvers(ctx, tc, env, mode): #, aliases):
     ## return the pkg-level resolver(s)
     ## the submodules list may contain submodules from different packages.
     ## we need to go through them all and deliver their pkg resolvers for output
     ## but some submodules may be ns modules - ???
     resolver_files = []
     indirect_resolver_depsets = []
-    for [target, sm_name] in ctx.attr.submodules.items():
+    # for [target, sm_name] in ctx.attr.submodules.items():
+    for target in ctx.attr.submodules:
         indirect_resolver_depsets.append(target[DefaultMemo].resolvers)
         # if OcamlModuleProvider in target:
         #     indirect_resolver_depsets.append(target[OcamlModuleProvider].resolvers)
@@ -105,10 +106,11 @@ def build_resolvers(ctx, tc, env, mode, aliases):
 #################
 def impl_ns_library(ctx):
 
+    print("SM: %s" % ctx.attr.submodules)
     ## FIXME: call impl_library ???
 
     # print("NS LIB rule: %s" % ctx.label.name)
-    debug = False
+    debug = True
     # if (ctx.label.name == "stdune"):
     #     debug = True
 
@@ -119,13 +121,13 @@ def impl_ns_library(ctx):
     if not ctx.label.name[0].isalpha():
         fail("Name must be a legal OCaml module name: %s" % ctx.label.name)
 
-    if ctx.files.main:
-        if OcamlModuleProvider not in ctx.attr.main:
-        #     print("MAIN MODULE: %s" % ctx.attr.main)
-        # else:
-            # print("MAIN FILES: %s" % len(ctx.files.main))
-            if len(ctx.files.main) > 1:
-                fail("Only one file allow in 'main' attribute.")
+    # if ctx.files.main:
+    #     if OcamlModuleProvider not in ctx.attr.main:
+    #     #     print("MAIN MODULE: %s" % ctx.attr.main)
+    #     # else:
+    #         # print("MAIN FILES: %s" % len(ctx.files.main))
+    #         if len(ctx.files.main) > 1:
+    #             fail("Only one file allow in 'main' attribute.")
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
@@ -152,32 +154,32 @@ def impl_ns_library(ctx):
     indirect_cc_deps  = []
     ################
 
-    ns_resolver = None
+    ns_env_resolver = None
     resolver_files = None
 
     submodules = []
     includes   = []
 
-    if ctx.attr.ns:
-        direct_resolver = get_resolver_name(ctx)
-        # print("DIRECT_RESOLVER: %s" % direct_resolver)
-        ns_library_name = direct_resolver #  + "__" + ctx.label.name.replace("-", "_")
-    else:
-        if ctx.attr.main:
-            # ns_library_name = ctx.file.main.basename.replace("-", "_")[:3]
-            ns_library_name = ctx.label.name.replace("-", "_")
-        elif ctx.attr.includes:
-            ns_library_name = ctx.label.name.replace("-", "_")
-        else:
-            ns_library_name = ctx.label.name.replace("-", "_")
+    # if ctx.attr.ns_env:
+    #     direct_resolver = get_resolver_name(ctx)
+    #     # print("DIRECT_RESOLVER: %s" % direct_resolver)
+    #     ns_library_name = direct_resolver #  + "__" + ctx.label.name.replace("-", "_")
+    # else:
+    #     if ctx.attr.main:
+    #         # ns_library_name = ctx.file.main.basename.replace("-", "_")[:3]
+    #         ns_library_name = ctx.label.name.replace("-", "_")
+    #     elif ctx.attr.includes:
+    #         ns_library_name = ctx.label.name.replace("-", "_")
+    #     else:
+    #         ns_library_name = ctx.label.name.replace("-", "_")
     # print("NS_LIBRARY_NAME: %s" % ns_library_name)
 
     ## if no main, use ns module as resolver (generate it)
     ## otherwise, use main as ns module, and the resolver is computed from package name
 
 
-    ns_filename = tmpdir + ns_library_name + ".ml"
-    ns_file = None
+    # ns_filename = tmpdir + ns_library_name + ".ml"
+    # ns_file = None
 
     ## make aliases, one per submodule regardless of pkg
     ## the aliasing equations for this ns module may resolve to any pkg
@@ -195,7 +197,9 @@ def impl_ns_library(ctx):
 
     ## In short: deriving alias equations from submodule items will always work.
 
-    merge_deps(ctx.attr.submodules.keys(),
+    # mydeps = ctx.attr.submodules.keys()
+    mydeps = ctx.attr.submodules
+    merge_deps(mydeps,
                indirect_file_depsets,
                indirect_path_depsets,
                indirect_resolver_depsets,
@@ -215,33 +219,33 @@ def impl_ns_library(ctx):
     #     if OpamDepsProvider in dep:
     #         indirect_opam_depsets.append(dep[OpamDepsProvider].pkgs)
 
-    indirect_paths_depset = depset(transitive = indirect_path_depsets)
-    for path in indirect_paths_depset.to_list():
-        includes.append(path)
-    # for path in dep[DefaultMemo].paths.to_list():
-    #         includes.append(path)
+    # indirect_paths_depset = depset(transitive = indirect_path_depsets)
+    # for path in indirect_paths_depset.to_list():
+    #     includes.append(path)
+    # # for path in dep[DefaultMemo].paths.to_list():
+    # #         includes.append(path)
 
-    ## compute module name from file name - we have to unroll the depset
-    for (dep,smname) in ctx.attr.submodules.items():
-        if OcamlModuleProvider in dep:
-            smimpl = dep[OcamlModuleProvider].name
-        elif OcamlNsArchiveProvider in dep:
-            smimpl = dep[OcamlNsArchiveProvider].name
-        elif OcamlNsLibraryProvider in dep:
-            smimpl = dep[OcamlNsLibraryProvider].name
-        elif OcamlSignatureProvider in dep:
-            smimpl = dep[OcamlSignatureProvider].name
-        elif PpxModuleProvider in dep:
-            smimpl = dep[PpxModuleProvider].name
-        elif PpxNsLibraryProvider in dep:
-            smimpl = dep[PpxNsLibraryProvider].name
-        else:
-            fail("Unexpected submodule type: %s" % dep)
-        alias = "module {sm} = {smimpl}".format(
-            sm=capitalize_initial_char(smname),
-            smimpl = capitalize_initial_char(smimpl)
-        )
-        aliases.append(alias)
+    # ## compute module name from file name - we have to unroll the depset
+    # for (dep,smname) in ctx.attr.submodules.items():
+    #     if OcamlModuleProvider in dep:
+    #         smimpl = dep[OcamlModuleProvider].name
+    #     elif OcamlNsArchiveProvider in dep:
+    #         smimpl = dep[OcamlNsArchiveProvider].name
+    #     elif OcamlNsLibraryProvider in dep:
+    #         smimpl = dep[OcamlNsLibraryProvider].name
+    #     elif OcamlSignatureProvider in dep:
+    #         smimpl = dep[OcamlSignatureProvider].name
+    #     elif PpxModuleProvider in dep:
+    #         smimpl = dep[PpxModuleProvider].name
+    #     elif PpxNsLibraryProvider in dep:
+    #         smimpl = dep[PpxNsLibraryProvider].name
+    #     else:
+    #         fail("Unexpected submodule type: %s" % dep)
+    #     alias = "module {sm} = {smimpl}".format(
+    #         sm=capitalize_initial_char(smname),
+    #         smimpl = capitalize_initial_char(smimpl)
+    #     )
+    #     aliases.append(alias)
 
         # for depfile in dep.files.to_list():
         #     # if dep.extension == "cmo":
@@ -267,7 +271,7 @@ def impl_ns_library(ctx):
 
     ## we always want the resolvers of submodules?
     [indirect_resolver_depsets, resolver_files] = build_resolvers(
-        ctx, tc, env, mode, aliases
+        ctx, tc, env, mode  # , aliases
     )
 
     ## now we need to generate the resolver file. if no 'main' has
@@ -282,253 +286,286 @@ def impl_ns_library(ctx):
     ## in sum: the ns module name will always be taken from ocaml_ns_library.name,
     ## and the resolver will always be generated, with name <pkg>_<nsmain>_00
 
-    if ctx.attr.main:
-        if OcamlModuleProvider in ctx.attr.main:
-            print("MAIN MODULE: %s" % ctx.attr.main)
-            provider = ctx.attr.main[OcamlModuleProvider]
-            print("MAIN MODULE name: %s" % provider.name)
-            print("MAIN MODULE dep: %s" % provider.module)
-
-        if ctx.files.main:
-            print("MAIN FILE: %s" % ctx.files.main[0])
-
-            ## assumption is that main contains recursive alias equations,
-            ## so we always use a separate resolver module, no matter what 'main' name is,
-            ## because main ns module will always match ctx.label.name
-            ## iow, using 'main' attrib obligates user to provide first-level aliases.
-
-            ## main file has its own deps! use 'deps' attrib for those?
-
-            ## RESOLVER module:
-            ## Each pkg has its own resolver.
-            ## The main ns needs one resolver per unique pkg in its submodule list.
-            ## If the pkg of this ns module contains submodules, then we need to generate its resolver.
-
-            ##
-            ## Q: do we need to -open the resolvers in order to compile the main ns module?
-            ## A: yes! the main module needs the ns resolvers?
-            ## submodules may be enrolled in different ns envs.
-
-            # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
-            # print("Resolver files: %s" % resolver_files)
-
-            ## then we need to copy main to label.name, unless it already has that name
-            ## output: ns_file, same as below
-            if ctx.files.main[0].basename == ctx.label.name + ".ml":
-                ns_file = ctx.files.main[0]
-            else:
-                # user-provided main source file has different name than ns lib,
-                # so copy former to latter
-                ns_file = ctx.actions.declare_file(ns_filename)
-                ctx.actions.run_shell(
-                    inputs  = [ctx.files.main[0]],
-                    outputs = [ns_file],
-                    command = "cp {src} {dest}".format(src = ctx.files.main[0].path, dest = ns_file.path),
-                    progress_message = "Copying user-provided main ns module to {ns}.".format(
-                        ns = ctx.label.name + ".ml"
-                    )
-                )
-    else:
-        ## no user-supplied main, so we need to generate main ns module as output,
-        ## and concat include if present. in this case we do not use a separate resolver module
-        # if ctx.attr.includes:
-        #     # pfx = get_prefix(ctx)
-        #     # ns_library_name = pfx + "__" + ctx.file.include.basename[:-3]
-        #     # print("NSLIBNAME: %s" % ns_library_name)
-        #     ns_filename = tmpdir + ns_library_name + ".ml"
-        #     ns_file = ctx.actions.declare_file(ns_filename)
-        # else:
-        ns_file = ctx.actions.declare_file(ns_filename)
-        # cmd = ""
-        # if not ctx.file.include:
-        cmd = "echo \"(**** GENERATED FILE - DO NOT EDIT ****)\n\" >> " + ns_file.path + "\n"
-
-        for alias in aliases:
-            cmd = cmd + "echo \"{alias}\" >> {out}\n".format(
-                alias = alias,
-                out = ns_file.path
-            )
-
-        if ctx.attr.includes:
-            for incfile in ctx.attr.includes:
-                # print("Including: %s" % incfile)
-                indirect_file_depsets.append(incfile[DefaultInfo].files)
-                if OcamlModuleProvider in incfile:
-                    # print("Includes module: %s" % incfile[OcamlModuleProvider])
-                    cmd = cmd + "echo \"include {m}\" >> {out}".format(
-                        m = incfile[OcamlModuleProvider].name,
-                        out = ns_file.path
-                )
-                # cmd = cmd + "cat {src} >> {out}".format(
-                #     src = ctx.file.include.path,
-                #     out = ns_file.path
-                # )
-
-            # cmd = cmd + "echo \"\n(**** everything above this line was generated ****)\n\" >> " + ns_file.path + "\n"
-
-        # print("CMD: %s" % cmd)
-
-        # infile = None
-        # if ctx.file.include:
-        #     infile = ctx.file.include
-
-        ctx.actions.run_shell(
-            # inputs  = [infile] if infile else [],
-            outputs = [ns_file],
-            command = cmd,
-            progress_message = "Generating namespace module source file."
-        )
-
-    # we always have a direct resolver, either supplied by user or generated by rule
-    direct_resolver = capitalize_initial_char(ns_library_name)
-    # print("NS MOD: %s" % ns_library_name)
-    # print("DIRECT_RESOLVER: %s" % direct_resolver)
-
-    ## at this point, either ns_file contains either a user-supplied main ns
-    ## module, or we generated it
-    # print("NS_LIBRARY_NAME: %s" % ns_library_name)
-    ## now declare compilation outputs. compiling always produces 3 files:
-    outputs = []
-    if mode == "bytecode":
-        obj_cm__fname = ns_library_name + ".cmo" # tc.objext
-    else:
-        obj_cm__fname = ns_library_name + ".cmx" # tc.objext
-        obj_o_fname = ns_library_name + ".o"
-        obj_o = ctx.actions.declare_file(tmpdir + obj_o_fname)
-        outputs.append(obj_o)
-        # directs.append(obj_o)
-
-    obj_cm_ = ctx.actions.declare_file(tmpdir + obj_cm__fname)
-    outputs.append(obj_cm_)
-
-    obj_cmi_fname = ns_library_name + ".cmi"
-    obj_cmi = ctx.actions.declare_file(tmpdir + obj_cmi_fname)
-    outputs.append(obj_cmi)
-
-    # print("OBJ_CM_: %s" % obj_cm_)
-    directs = []
-
-    #### now compile
-    ################################
-    args = ctx.actions.args()
-
-    if mode == "bytecode":
-        args.add(tc.ocamlc.basename)
-    else:
-        args.add(tc.ocamlopt.basename)
-
-    options = get_options(ctx.attr._rule, ctx)
-    args.add_all(options)
-
-    ## No 'deps' for ns libs?
-
-    ## -no-alias-deps is REQUIRED for ns modules;
-    ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
-    args.add("-no-alias-deps")
-
-    if resolver_files:
-        ## only if ctx.attr.main
-        for f in resolver_files:
-            # print("RESOLVER FILE: %s" % f.basename)
-            direct_file_deps.append(f)
-            # directs.append(f)
-            ## don't put cmi files on cmd line
-            if ((f.extension == "cmo") or (f.extension == "cmx")):
-                includes.append(f.dirname)
-                # args.add(f.basename)
-
-    includes.append(obj_cm_.dirname)
-
-    direct_file_deps.append(ns_file)
-
-    args.add_all(includes, before_each="-I", uniquify = True)
-
     # if ctx.attr.main:
-    #     if ctx.file.main.basename != ctx.label.name + ".ml":
-    #         if direct_resolver:
-    #             print("DIRECT RESOLVER: %s" % direct_resolver)
-                # args.add("-open", direct_resolver)
+    #     if OcamlModuleProvider in ctx.attr.main:
+    #         print("MAIN MODULE: %s" % ctx.attr.main)
+    #         provider = ctx.attr.main[OcamlModuleProvider]
+    #         print("MAIN MODULE name: %s" % provider.name)
+    #         print("MAIN MODULE dep: %s" % provider.module)
 
-    if indirect_resolver_depsets != None:
-        # print("INDRS: %s" % indirect_resolver_depsets)
-        # using depset transitive causes merge, removes dups
-        resolvers_depset = depset(transitive = indirect_resolver_depsets)
-        for resolver in resolvers_depset.to_list():
-            if resolver != None:
-                # print("INDIRECT RESOLVER: %s" % resolver)
-                args.add("-open", resolver)
-    else:
-        resolvers_depset = depset(
-            # direct = [direct_resolver]
-        )
+    #     if ctx.files.main:
+    #         print("MAIN FILE: %s" % ctx.files.main[0])
 
+    #         ## assumption is that main contains recursive alias equations,
+    #         ## so we always use a separate resolver module, no matter what 'main' name is,
+    #         ## because main ns module will always match ctx.label.name
+    #         ## iow, using 'main' attrib obligates user to provide first-level aliases.
 
-    # if ctx.attr.ns:
-    #     if ctx.attr.main:
-    #         # this means our we have separate main and resolver modules, so we need to open the latter
-    #         args.add("-open", resolver_module_name)
+    #         ## main file has its own deps! use 'deps' attrib for those?
+
+    #         ## RESOLVER module:
+    #         ## Each pkg has its own resolver.
+    #         ## The main ns needs one resolver per unique pkg in its submodule list.
+    #         ## If the pkg of this ns module contains submodules, then we need to generate its resolver.
+
+    #         ##
+    #         ## Q: do we need to -open the resolvers in order to compile the main ns module?
+    #         ## A: yes! the main module needs the ns_env resolvers?
+    #         ## submodules may be enrolled in different ns envs.
+
+    #         # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
+    #         # print("Resolver files: %s" % resolver_files)
+
+    #         ## then we need to copy main to label.name, unless it already has that name
+    #         ## output: ns_file, same as below
+    #         if ctx.files.main[0].basename == ctx.label.name + ".ml":
+    #             ns_file = ctx.files.main[0]
+    #         else:
+    #             # user-provided main source file has different name than ns lib,
+    #             # so copy former to latter
+    #             ns_file = ctx.actions.declare_file(ns_filename)
+    #             ctx.actions.run_shell(
+    #                 inputs  = [ctx.files.main[0]],
+    #                 outputs = [ns_file],
+    #                 command = "cp {src} {dest}".format(src = ctx.files.main[0].path, dest = ns_file.path),
+    #                 progress_message = "Copying user-provided main ns module to {ns}.".format(
+    #                     ns = ctx.label.name + ".ml"
+    #                 )
+    #             )
     # else:
-    #     if resolver_module_name:
-    #         # this too means our we have separate main and resolver (???)
-    #         args.add("-open", resolver_module_name)
+    #     ## no user-supplied main, so we need to generate main ns module as output,
+    #     ## and concat include if present. in this case we do not use a separate resolver module
+    #     # if ctx.attr.includes:
+    #     #     # pfx = get_prefix(ctx)
+    #     #     # ns_library_name = pfx + "__" + ctx.file.include.basename[:-3]
+    #     #     # print("NSLIBNAME: %s" % ns_library_name)
+    #     #     ns_filename = tmpdir + ns_library_name + ".ml"
+    #     #     ns_file = ctx.actions.declare_file(ns_filename)
+    #     # else:
+    #     ns_file = ctx.actions.declare_file(ns_filename)
+    #     # cmd = ""
+    #     # if not ctx.file.include:
+    #     cmd = "echo \"(**** GENERATED FILE - DO NOT EDIT ****)\n\" >> " + ns_file.path + "\n"
 
-    args.add("-c")
-    args.add("-o", obj_cm_)
-    # if not ctx.file.main:
-    args.add(ns_file.path)
+    #     for alias in aliases:
+    #         cmd = cmd + "echo \"{alias}\" >> {out}\n".format(
+    #             alias = alias,
+    #             out = ns_file.path
+    #         )
 
-    if ctx.attr._rule == "ocaml_ns_library":
-        mnemonic = "OcamlNsLibraryAction"
-    elif ctx.attr._rule == "ocaml_ns_archive":
-        mnemonic = "OcamlNsLibraryArchiveAction"
-    else:
-        mnemonic = "PpxNsModuleAction"
+    #     if ctx.attr.includes:
+    #         for incfile in ctx.attr.includes:
+    #             # print("Including: %s" % incfile)
+    #             indirect_file_depsets.append(incfile[DefaultInfo].files)
+    #             if OcamlModuleProvider in incfile:
+    #                 # print("Includes module: %s" % incfile[OcamlModuleProvider])
+    #                 cmd = cmd + "echo \"include {m}\" >> {out}".format(
+    #                     m = incfile[OcamlModuleProvider].name,
+    #                     out = ns_file.path
+    #             )
+    #             # cmd = cmd + "cat {src} >> {out}".format(
+    #             #     src = ctx.file.include.path,
+    #             #     out = ns_file.path
+    #             # )
 
-    ctx.actions.run(
-        env = env,
-        executable = tc.ocamlfind,
-        arguments = [args],
-        inputs = depset(direct = direct_file_deps, transitive = indirect_file_depsets),
-        outputs = outputs,
-        tools = [tc.ocamlfind, tc.ocamlopt],
-        mnemonic = mnemonic,
-        progress_message = "{mode} compiling: @{ws}//{pkg}:{tgt} (rule {rule})".format(
-            mode = mode,
-            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
-            pkg = ctx.label.package,
-            rule=ctx.attr._rule,
-            tgt=ctx.label.name,
+    #         # cmd = cmd + "echo \"\n(**** everything above this line was generated ****)\n\" >> " + ns_file.path + "\n"
+
+    #     # print("CMD: %s" % cmd)
+
+    #     # infile = None
+    #     # if ctx.file.include:
+    #     #     infile = ctx.file.include
+
+    #     ctx.actions.run_shell(
+    #         # inputs  = [infile] if infile else [],
+    #         outputs = [ns_file],
+    #         command = cmd,
+    #         progress_message = "Generating namespace module source file."
+    #     )
+
+    # # we always have a direct resolver, either supplied by user or generated by rule
+    # direct_resolver = capitalize_initial_char(ns_library_name)
+    # # print("NS MOD: %s" % ns_library_name)
+    # # print("DIRECT_RESOLVER: %s" % direct_resolver)
+
+    # ## at this point, either ns_file contains either a user-supplied main ns
+    # ## module, or we generated it
+    # # print("NS_LIBRARY_NAME: %s" % ns_library_name)
+    # ## now declare compilation outputs. compiling always produces 3 files:
+    # outputs = []
+    # if mode == "bytecode":
+    #     obj_cm__fname = ns_library_name + ".cmo" # tc.objext
+    # else:
+    #     obj_cm__fname = ns_library_name + ".cmx" # tc.objext
+    #     obj_o_fname = ns_library_name + ".o"
+    #     obj_o = ctx.actions.declare_file(tmpdir + obj_o_fname)
+    #     outputs.append(obj_o)
+    #     # directs.append(obj_o)
+
+    # obj_cm_ = ctx.actions.declare_file(tmpdir + obj_cm__fname)
+    # outputs.append(obj_cm_)
+
+    # obj_cmi_fname = ns_library_name + ".cmi"
+    # obj_cmi = ctx.actions.declare_file(tmpdir + obj_cmi_fname)
+    # outputs.append(obj_cmi)
+
+    # # print("OBJ_CM_: %s" % obj_cm_)
+    # directs = []
+
+    # #### now compile
+    # ################################
+    # args = ctx.actions.args()
+
+    # if mode == "bytecode":
+    #     args.add(tc.ocamlc.basename)
+    # else:
+    #     args.add(tc.ocamlopt.basename)
+
+    # options = get_options(ctx.attr._rule, ctx)
+    # args.add_all(options)
+
+    # ## No 'deps' for ns libs?
+
+    # ## -no-alias-deps is REQUIRED for ns modules;
+    # ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
+    # args.add("-no-alias-deps")
+
+    # if resolver_files:
+    #     ## only if ctx.attr.main
+    #     for f in resolver_files:
+    #         # print("RESOLVER FILE: %s" % f.basename)
+    #         direct_file_deps.append(f)
+    #         # directs.append(f)
+    #         ## don't put cmi files on cmd line
+    #         if ((f.extension == "cmo") or (f.extension == "cmx")):
+    #             includes.append(f.dirname)
+    #             # args.add(f.basename)
+
+    # includes.append(obj_cm_.dirname)
+
+    # direct_file_deps.append(ns_file)
+
+    # args.add_all(includes, before_each="-I", uniquify = True)
+
+    # # if ctx.attr.main:
+    # #     if ctx.file.main.basename != ctx.label.name + ".ml":
+    # #         if direct_resolver:
+    # #             print("DIRECT RESOLVER: %s" % direct_resolver)
+    #             # args.add("-open", direct_resolver)
+
+    # if indirect_resolver_depsets != None:
+    #     # print("INDRS: %s" % indirect_resolver_depsets)
+    #     # using depset transitive causes merge, removes dups
+    #     resolvers_depset = depset(transitive = indirect_resolver_depsets)
+    #     for resolver in resolvers_depset.to_list():
+    #         if resolver != None:
+    #             # print("INDIRECT RESOLVER: %s" % resolver)
+    #             args.add("-open", resolver)
+    # else:
+    #     resolvers_depset = depset(
+    #         # direct = [direct_resolver]
+    #     )
+
+
+    # # if ctx.attr.ns_env:
+    # #     if ctx.attr.main:
+    # #         # this means our we have separate main and resolver modules, so we need to open the latter
+    # #         args.add("-open", resolver_module_name)
+    # # else:
+    # #     if resolver_module_name:
+    # #         # this too means our we have separate main and resolver (???)
+    # #         args.add("-open", resolver_module_name)
+
+    # args.add("-c")
+    # args.add("-o", obj_cm_)
+    # # if not ctx.file.main:
+    # args.add(ns_file.path)
+
+    # if ctx.attr._rule == "ocaml_ns_library":
+    #     mnemonic = "OcamlNsLibraryAction"
+    # elif ctx.attr._rule == "ocaml_ns_archive":
+    #     mnemonic = "OcamlNsLibraryArchiveAction"
+    # else:
+    #     mnemonic = "PpxNsModuleAction"
+
+    if ctx.files.main:
+        ## IMPORTANT: main depends on submodules, so it must be built after them so it can find them.
+        ## so they must be added to the depgraph here in the right order:
+        print("DIRECT_FILE_DEPS: %s" % direct_file_deps)
+        print("INDIRECT_FILE_DEPS: %s" % indirect_file_depsets)
+        print("MAIN: %s" % ctx.files.main)
+        # dd = [ctx.files.main] + direct_file_deps
+        inputs_depset = depset(
+            order = "postorder",
+            direct = ctx.files.main,
+            transitive = indirect_file_depsets
         )
+    else:
+        inputs_depset = depset(
+            order = "postorder",
+            # direct = ctx.files.main,
+            transitive = indirect_file_depsets
+        )
+
+    if debug:
+        print("INPUTS_DEPSET: %s" % inputs_depset)
+
+    ctx.actions.do_nothing(
+        mnemonic = "NS_LIB",
+        inputs = inputs_depset
     )
+    # ctx.actions.run(
+    #     env = env,
+    #     executable = tc.ocamlfind,
+    #     arguments = [args],
+    #     inputs = depset(direct = direct_file_deps, transitive = indirect_file_depsets),
+    #     outputs = outputs,
+    #     tools = [tc.ocamlfind, tc.ocamlopt],
+    #     mnemonic = mnemonic,
+    #     progress_message = "{mode} compiling: @{ws}//{pkg}:{tgt} (rule {rule})".format(
+    #         mode = mode,
+    #         ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
+    #         pkg = ctx.label.package,
+    #         rule=ctx.attr._rule,
+    #         tgt=ctx.label.name,
+    #     )
+    # )
 
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            direct = outputs, # directs,
-            transitive = indirect_file_depsets
+            # direct = [inputs_depset],
+            transitive = [inputs_depset] + indirect_file_depsets
             # transitive = [mydeps.nopam] # , mydeps.opam]
             # depset(order="postorder", direct = indirects)]
         )
     )
 
-    search_paths = sets.to_list(sets.make(includes))
-    search_paths.append(obj_cm_.dirname)
+    # search_paths = sets.to_list(sets.make(includes))
+    # search_paths.append(obj_cm_.dirname)
 
     defaultMemo = DefaultMemo(
-        paths  = depset(direct = search_paths, transitive=indirect_path_depsets),
-        resolvers = resolvers_depset,
+        # paths  = depset(direct = search_paths, transitive=indirect_path_depsets),
+        paths  = depset(transitive=indirect_path_depsets),
+        resolvers = depset(transitive = indirect_resolver_depsets)
     )
 
+    # resolvers = []
+    # for dep in ctx.attr.submodules.keys():
+    #     resolvers.append(dep[OcamlNsLibraryProvider].resolver
+
     nslibProvider = None
+
     if ctx.attr._rule == "ocaml_ns_library":
         nslibProvider = OcamlNsLibraryProvider(
-            name      = capitalize_initial_char(paths.split_extension(obj_cm_.basename)[0]),
-            module    = obj_cm_,
+            # name      = capitalize_initial_char(paths.split_extension(obj_cm_.basename)[0]),
+            # resolvers = ... use DefaultMemo???
+            # resolvers are passed up from ocaml_ns to ocaml_modules to ocaml_ns_lib to ocaml_executable
         )
     else:
         nslibProvider = PpxNsLibraryProvider(
-            name      = capitalize_initial_char(paths.split_extension(obj_cm_.basename)[0]),
-            module    = obj_cm_,
+            # name      = capitalize_initial_char(paths.split_extension(obj_cm_.basename)[0]),
+            # module    = obj_cm_,
         )
 
     opam_depset = depset(transitive = indirect_opam_depsets)

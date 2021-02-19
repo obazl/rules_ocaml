@@ -5,6 +5,8 @@ load("//ocaml:providers.bzl",
      "OcamlNsLibraryProvider",
      "OcamlNsEnvProvider")
 
+load("//ocaml/_transitions:ns_transitions.bzl", "ocaml_ns_submodules_transition")
+
 load(":impl_ns_library.bzl", "impl_ns_library")
 
 load(":options.bzl", "options")
@@ -32,6 +34,11 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
+        pkg = attr.label(
+            doc = "Experimental",
+            # default = "@ocaml//ns:package",
+            allow_single_file = True
+        ),
         archive = attr.bool(
             doc = "Output and archive file containing this namespace module and all submodules.",
             default = False
@@ -39,6 +46,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         opts             = attr.string_list(
             doc          = "List of OCaml options. Will override configurable default options."
         ),
+        package = attr.string(),
         ns_env = attr.label(
             doc = "Label of an ocaml_ns_env target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
             providers = [OcamlNsEnvProvider],
@@ -47,7 +55,8 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         main = attr.label(
             doc = "Module (source or compiled) to use as the ns module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
             # allow_single_file = [".ml"]
-            allow_files = True
+            allow_files = True,
+            cfg = ocaml_ns_submodules_transition, # outgoing edge transition
         ),
         includes = attr.label_list(
             doc = "List of modules to be 'include'd in the resolver.",
@@ -70,12 +79,12 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
                 [OcamlNsArchiveProvider],
                 [OcamlNsLibraryProvider],
                 [OcamlSignatureProvider]
-            ]
-            # cfg = ocaml_ns_transition,
+            ],
+            cfg = ocaml_ns_submodules_transition, # outgoing edge transition
         ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
         ## end experimental transition fns
         # submodules = attr.label_list(
         #   doc = "List of all submodule source files, including .ml/.mli file(s) whose name matches the ns.",

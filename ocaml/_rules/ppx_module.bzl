@@ -8,7 +8,7 @@ load("//ocaml:providers.bzl",
 
 load("options.bzl", "options", "options_module", "options_ns", "options_ppx")
 
-load(":x_impl_module.bzl", "impl_module")
+load(":impl_module.bzl", "impl_module")
 
 load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 

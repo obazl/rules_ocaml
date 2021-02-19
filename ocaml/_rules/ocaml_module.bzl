@@ -12,7 +12,9 @@ load("//ocaml:providers.bzl",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load(":options.bzl", "options", "options_ppx")
+load("//ocaml/_transitions:ns_transitions.bzl", "ocaml_module_ns_transition")
+
+load(":options.bzl", "options", "options_module", "options_ns", "options_ppx")
 
 load(":impl_module.bzl", "impl_module")
 
@@ -22,6 +24,8 @@ OCAML_IMPL_FILETYPES = [
 
 ################################
 rule_options = options("@ocaml")
+rule_options.update(options_module("@ocaml"))
+rule_options.update(options_ns("@ocaml"))
 rule_options.update(options_ppx)
 
 ####################
@@ -59,93 +63,10 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     """,
     attrs = dict(
         rule_options,
-        ## RULE DEFAULTS
-        _opts     = attr.label(default = "@ocaml//module:opts"),     # string list
-        _linkall  = attr.label(default = "@ocaml//module/linkall"),  # bool
-        _thread   = attr.label(default = "@ocaml//module/thread"),   # bool
-        _warnings = attr.label(default = "@ocaml//module:warnings"), # string list
-        #### end options ####
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
-        ),
-        doc = attr.string(
-            doc = "Docstring for module. DEPRECATED"
-        ),
-        # module_name   = attr.string(
-        #     doc = "Module name. Overrides `name` attribute."
-        # ),
-        ns = attr.label(
-            doc = "Label of an ocaml_ns target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
-            providers = [OcamlNsEnvProvider],
-            default = None
-        ),
-        # ns = attr.label(
-        #     doc = "Experimental",
-        #     # default = Label("@ocaml//ns/init")
-        # ),
-        # _xns = attr.label(
-        #     doc = "Experimental",
-        #     default = "@ocaml//ns"
-        # ),
-        # xns = attr.label(
-        #     doc = "Experimental",
-        #     cfg = ocaml_ns_transition_reset,
-        #     default = "@ocaml//ns"
-        # ),
-        struct = attr.label(
-            mandatory = True,
-            doc = "A single .ml source file label.",
-            allow_single_file = OCAML_IMPL_FILETYPES
-        ),
-        module = attr.string(
-            doc = "Name for output file. Use to coerce input file with different name, e.g. for a file generated from a .ml file to a different name, like foo.cppo.ml."
-        ),
-        sig = attr.label(
-            doc = "Single label of a target providing a single .cmi or .mli file. Optional. Currently only supports .cmi input.",
-            # allow_single_file = [".cmi", ".mli"],
-            # providers = [[DefaultInfo], [OcamlSignatureProvider]],
-        ),
-        ################################
-        data = attr.label_list(
-            allow_files = True,
-            doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."
-        ),
-        deps = attr.label_list(
-            doc = "List of OCaml dependencies.",
-            providers = [[OpamPkgInfo],
-                         [OcamlArchiveProvider],
-                         [OcamlImportProvider],
-                         [OcamlSignatureProvider],
-                         [OcamlLibraryProvider],
-                         [OcamlModuleProvider],
-                         [OcamlNsArchiveProvider],
-                         [OcamlNsLibraryProvider],
-                         # [OcamlNsEnvProvider],
-                         [PpxArchiveProvider],
-                         [PpxModuleProvider]]
-                         # [CcInfo]],
-        ),
-        _deps = attr.label(
-            doc = "Global deps, apply to all instances of rule. Added last.",
-            default = "@ocaml//module:deps"
-        ),
-        # deps_adjunct = attr.label_list(
-        #     doc = "List of [adjunct dependencies](../ug/ppx.md#adjunct_deps).",
-        #     # providers = [[DefaultInfo], [PpxModuleProvider]]
-        #     allow_files = True,
-        # ),
-        deps_opam = attr.string_list(
-            doc = "List of OPAM package names"
-        ),
-        cc_deps = attr.label_keyed_string_dict(
-            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
-            """,
-            # providers = [[CcInfo]]
-        ),
-        _cc_deps = attr.label(
-            doc = "Global cc-deps, apply to all instances of rule. Added last.",
-            default = "@ocaml//module:deps"
-        ),
+        _rule = attr.string( default = "ocaml_module" ),
+
+        ################
+        ## obsolete:
         # cc_linkall = attr.label_list(
         #     ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
         #     doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
@@ -172,25 +93,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
         #     default = "@ocaml//module:cc_linkstatic"
         # ),
-
-        ## CONFIGURATION RULE DEFAULTS ##
-        _mode       = attr.label(
-            default = "@ocaml//mode",
-            # cfg     = ocaml_mode_transition
-        ),
-        # _ppx_mode       = attr.label(
-        #     default = "@ppx//mode",
-        #     # Attaching to an attribute transitions the configuration of this dependency (and
-        #     # all its dependencies)
-        #     cfg = ocaml_mode_transition_incoming
-        # ),
-        # _allowlist_function_transition = attr.label(
-        #     ## required for transition fn of attribute _mode
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
-
-        msg = attr.string(),
-        _rule = attr.string( default = "ocaml_module" )
     ),
     provides = [OcamlModuleProvider],
     executable = False,
