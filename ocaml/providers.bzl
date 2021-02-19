@@ -107,6 +107,7 @@ AdjunctDepsProvider = provider(
     doc    = "Adjuct dependencies provider.",
     fields = {
         "nopam": "Depset of non-opam adjunct deps.",
+        "nopam_paths": "Depset of paths of nopam adjunct deps",
         "opam" : "Depset of opam adjunct deps."
     }
 )
@@ -138,13 +139,13 @@ Provided by rule: [ocaml_library](rules_ocaml.md#ocaml_library)
     }
 )
 
-OcamlInterfacePayload = provider(
-    doc = "OCaml interface payload.",
-    fields = {
-        "cmi"  : ".cmi file produced by the target",
-        "mli"  :  ".mli source file. without the source file, the cmi file will be ignored!"
-    }
-)
+# OcamlInterfacePayload = provider(
+#     doc = "OCaml interface payload.",
+#     fields = {
+#         "cmi"  : ".cmi file produced by the target",
+#         "mli"  :  ".mli source file. without the source file, the cmi file will be ignored!"
+#     }
+# )
 
 OcamlImportProvider = provider(
     doc = "OCaml import provider.",

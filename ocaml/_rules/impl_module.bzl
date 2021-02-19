@@ -156,6 +156,7 @@ def impl_module(ctx):
 
     ## adjunct deps will be passed on but not used directly by this module
     indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_path_depsets = [] # paths for indirect_adjunct deps
     indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
     ################
 
@@ -216,9 +217,13 @@ def impl_module(ctx):
                indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
+               indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
+    # print("RULE: %s" % ctx.attr._rule)
+    # print("NAME: %s" % ctx.label.name)
+    # print("OPAM %s" % indirect_opam_depsets)
     # if hasattr(ctx.attr, "deps_adjunct"):
     #     print(ctx.attr.deps_adjunct)
 
@@ -259,9 +264,10 @@ def impl_module(ctx):
         includes.append(path)
 
     indirect_resolvers_depset = depset(transitive = indirect_resolver_depsets)
-    for resolver in indirect_resolvers_depset.to_list():
-          args.add("-open", resolver)
 
+    ## FIXME: there are cases where we do not want to do this?
+    # for resolver in indirect_resolvers_depset.to_list():
+    #       args.add("-open", resolver)
 
     args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -333,20 +339,18 @@ def impl_module(ctx):
     ## only the adjunct deps of the ppx are.
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[AdjunctDepsProvider]
+        for nopam in provider.nopam_paths.to_list():
+            args.add("-I", nopam)
         for opam in provider.opam.to_list():
             args.add("-package", opam)
 
-        for nopam in provider.nopam.to_list():
-            ## FIXME: add -I
-            fail("NOAPM adjunct: %s" % nopam)
-
-    ## if ocaml_module.ns_env, then it may depend on something in the ns_env's resolver,
+    ## if ocaml_module.ns, then it may depend on something in the ns's resolver,
     ## so we need to add it to our dep graph
     ns = None
-    ## ns_env target produces two files, module and interface
-    if ctx.attr.ns_env:
-        indirect_file_depsets.append(ctx.attr.ns_env[DefaultInfo].files)
-        provider = ctx.attr.ns_env[OcamlNsEnvProvider]
+    ## ns target produces two files, module and interface
+    if ctx.attr.ns:
+        indirect_file_depsets.append(ctx.attr.ns[DefaultInfo].files)
+        provider = ctx.attr.ns[OcamlNsEnvProvider]
         if provider.resolver:
             direct_resolver = (provider.resolver)
             args.add("-no-alias-deps")
@@ -374,7 +378,7 @@ def impl_module(ctx):
 
     for d in indirect_cc_deps:
         for k in d.keys():
-            print("Indirect CC k %s" % k[DefaultInfo].files.to_list())
+            # print("Indirect CC k %s" % k[DefaultInfo].files.to_list())
             cc_indirect_depfiles.extend(k[DefaultInfo].files.to_list())
 
     input_depset = depset(
@@ -417,8 +421,8 @@ def impl_module(ctx):
     # if out_cmt:
     #     directs.append(out_cmt)
 
-    # if ctx.attr.ns_env:
-    #     for dep in ctx.files.ns_env:
+    # if ctx.attr.ns:
+    #     for dep in ctx.files.ns:
     #         indirects.append(dep)
 
     search_paths = sets.to_list(sets.make(includes))  ## uniqify
@@ -455,8 +459,9 @@ def impl_module(ctx):
     # print("OPAM_PROVIDER: %s" % opam_provider)
 
     adjunctsProvider = AdjunctDepsProvider(
-        opam  = depset(transitive = indirect_adjunct_opam_depsets),
-        nopam = depset(transitive = indirect_adjunct_depsets)
+        opam        = depset(transitive = indirect_adjunct_opam_depsets),
+        nopam       = depset(transitive = indirect_adjunct_depsets),
+        nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
     )
 
     # deps_cc = depset(direct = direct_cc_deps, transitive = indirect_cc_deps)
@@ -469,4 +474,11 @@ def impl_module(ctx):
     # if ctx.label.name == "_Template":
     #     print("MODULE PROVIDER: %s" % module_provider)
 
-    return [defaultInfo, defaultMemo, moduleProvider, opamProvider, adjunctsProvider, ccProvider]
+    return [
+        defaultInfo,
+        defaultMemo,
+        moduleProvider,
+        opamProvider,
+        adjunctsProvider,
+        ccProvider
+    ]

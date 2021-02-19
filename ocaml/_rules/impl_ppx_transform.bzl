@@ -25,6 +25,8 @@ def impl_ppx_transform(rule, ctx, src):
   #     debug = True
 
   module_name = get_module_filename(ctx, src)
+  print("PPX MODULE NAME: %s" % module_name)
+
   outfilename = tmpdir + module_name
 
   outfile = ctx.actions.declare_file(outfilename)

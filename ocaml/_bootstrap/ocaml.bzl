@@ -355,8 +355,8 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     # )
     ##################
     repo_ctx.template(
-        "ns_env/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.ns_env"),
+        "ns/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.ns"),
         executable = False,
     )
     ##################

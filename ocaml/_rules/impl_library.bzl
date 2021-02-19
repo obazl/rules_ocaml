@@ -1,4 +1,5 @@
 load("//ocaml:providers.bzl",
+     "AdjunctDepsProvider",
      "CompilationModeSettingProvider",
      "DefaultMemo",
      "OcamlArchiveProvider",
@@ -10,7 +11,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsArchiveProvider",
      "OcamlNsLibraryProvider",
      "OcamlSDK",
-     "OpamPkgInfo")
+     "OpamDepsProvider")
 
 load("//ocaml:providers.bzl", "PpxArchiveProvider")
 
@@ -52,6 +53,7 @@ def impl_library(ctx):
     indirect_opam_depsets  = []
 
     indirect_adjunct_depsets = []
+    indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets  = []
 
     indirect_path_depsets  = []
@@ -69,6 +71,7 @@ def impl_library(ctx):
                indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
+               indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
@@ -104,9 +107,22 @@ def impl_library(ctx):
     else:
         fail("Unexpected rule type: %s" % ctx.attr._rule)
 
+    adjunctsProvider = AdjunctDepsProvider(
+        opam        = depset(transitive = indirect_adjunct_opam_depsets),
+        nopam       = depset(transitive = indirect_adjunct_depsets),
+        nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
+    )
+
+    opam_depset = depset(transitive = indirect_opam_depsets)
+    opamProvider = OpamDepsProvider(
+        pkgs = opam_depset
+    )
+
     return [
         defaultInfo,
         defaultMemo,
         libraryProvider,
+        opamProvider,
+        adjunctsProvider,
     ]
 

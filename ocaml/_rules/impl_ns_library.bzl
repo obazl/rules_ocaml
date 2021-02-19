@@ -37,22 +37,26 @@ def get_module_name(f):
     return mname
 
 ###########################
-def get_prefix(ctx):
-    if ctx.workspace_name == "__main__": # default, if not explicitly named
-        ws = "Main"
-    else:
-        ws = ctx.workspace_name
-        # print("WS: %s" % ws)
-    ws = capitalize_initial_char(ws)
+# def get_prefix(ctx):
+#     print("LABEL: %s" % ctx.label)
+#     print("WS: %s" % ctx.label.workspace_name)
+#     # if ctx.workspace_name == "__main__": # default, if not explicitly named
+#     #     ws = "Main"
+#     # else:
+#     #     # ws = ctx.workspace_name
+#     #     # print("WS: %s" % ws)
+#     ws = ctx.label.workspace_name
+#     ws = capitalize_initial_char(ws)
 
-    ns_sep = "_" ## ctx.attr.sep
-    pathsegs = [x.replace("-", "_").capitalize() for x in ctx.label.package.split('/')]
-    ns_prefix = ws + ns_sep + ns_sep.join(pathsegs)
+#     ns_sep = "_" ## ctx.attr.sep
+#     pathsegs = [x.replace("-", "_").capitalize() for x in ctx.label.package.split('/')]
+#     ns_prefix = ws + ns_sep + ns_sep.join(pathsegs)
 
-    return ns_prefix
+#     return ns_prefix
 
 ###########################
 def get_resolver_name(ctx):
+
     ns_sep = "_" ## ctx.attr.sep
 
     if ctx.attr.ns_env:
@@ -115,6 +119,14 @@ def impl_ns_library(ctx):
     if not ctx.label.name[0].isalpha():
         fail("Name must be a legal OCaml module name: %s" % ctx.label.name)
 
+    if ctx.files.main:
+        if OcamlModuleProvider not in ctx.attr.main:
+        #     print("MAIN MODULE: %s" % ctx.attr.main)
+        # else:
+            # print("MAIN FILES: %s" % len(ctx.files.main))
+            if len(ctx.files.main) > 1:
+                fail("Only one file allow in 'main' attribute.")
+
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
@@ -128,6 +140,7 @@ def impl_ns_library(ctx):
     indirect_opam_depsets  = []
 
     indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_path_depsets = [] # paths for indirect_adjunct deps
     indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
 
     indirect_path_depsets  = []
@@ -139,13 +152,13 @@ def impl_ns_library(ctx):
     indirect_cc_deps  = []
     ################
 
-    ns_env_resolver = None
+    ns_resolver = None
     resolver_files = None
 
     submodules = []
     includes   = []
 
-    if ctx.attr.ns_env:
+    if ctx.attr.ns:
         direct_resolver = get_resolver_name(ctx)
         # print("DIRECT_RESOLVER: %s" % direct_resolver)
         ns_library_name = direct_resolver #  + "__" + ctx.label.name.replace("-", "_")
@@ -188,6 +201,7 @@ def impl_ns_library(ctx):
                indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
+               indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
@@ -243,11 +257,13 @@ def impl_ns_library(ctx):
 
     # print("ALIASES: %s" % aliases)
 
-    mode = "bytecode" # default
-    if ctx.attr._rule == "ocaml_ns_library":
-        mode = ctx.attr._mode[CompilationModeSettingProvider].value
-    elif ctx.attr._rule == "ppx_ns_library":
-        mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = "bytecode" # default
+    # if ctx.attr._rule == "ocaml_ns_library":
+    #     mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # elif ctx.attr._rule == "ppx_ns_library":
+    #     mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # print("NS LIB MODE %s" % mode)
 
     ## we always want the resolvers of submodules?
     [indirect_resolver_depsets, resolver_files] = build_resolvers(
@@ -266,55 +282,52 @@ def impl_ns_library(ctx):
     ## in sum: the ns module name will always be taken from ocaml_ns_library.name,
     ## and the resolver will always be generated, with name <pkg>_<nsmain>_00
 
-    if ctx.file.main:
+    if ctx.attr.main:
+        if OcamlModuleProvider in ctx.attr.main:
+            print("MAIN MODULE: %s" % ctx.attr.main)
+            provider = ctx.attr.main[OcamlModuleProvider]
+            print("MAIN MODULE name: %s" % provider.name)
+            print("MAIN MODULE dep: %s" % provider.module)
 
-        ## assumption is that main contains recursive alias equations,
-        ## so we always use a separate resolver module, no matter what 'main' name is,
-        ## because main ns module will always match ctx.label.name
-        ## iow, using 'main' attrib obligates user to provide first-level aliases.
+        if ctx.files.main:
+            print("MAIN FILE: %s" % ctx.files.main[0])
 
-        ## main file has its own deps! use 'deps' attrib for those?
+            ## assumption is that main contains recursive alias equations,
+            ## so we always use a separate resolver module, no matter what 'main' name is,
+            ## because main ns module will always match ctx.label.name
+            ## iow, using 'main' attrib obligates user to provide first-level aliases.
 
-        ## RESOLVER module:
-        ## Each pkg has its own resolver.
-        ## The main ns needs one resolver per unique pkg in its submodule list.
-        ## If the pkg of this ns module contains submodules, then we need to generate its resolver.
+            ## main file has its own deps! use 'deps' attrib for those?
 
-        # local_submodules = []
-        # for submod in ctx.attr.submodules:
-        #     if ctx.label.package == submod.label.package:
-        #         local_submodules.append(submod)
-        # for sub in local_submodules:
-        #     print("Submodule: %s" % sub)
+            ## RESOLVER module:
+            ## Each pkg has its own resolver.
+            ## The main ns needs one resolver per unique pkg in its submodule list.
+            ## If the pkg of this ns module contains submodules, then we need to generate its resolver.
 
-        ##
-        ## Q: do we need to -open the resolvers in order to compile the main ns module?
-        ## A: yes! the main module needs the ns_env resolvers?
-        ## submodules may be enrolled in different ns envs.
+            ##
+            ## Q: do we need to -open the resolvers in order to compile the main ns module?
+            ## A: yes! the main module needs the ns resolvers?
+            ## submodules may be enrolled in different ns envs.
 
-        # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
-        # print("Resolver files: %s" % resolver_files)
+            # print("RESOLVER_MODULE_NAME: %s" % resolver_module_name)
+            # print("Resolver files: %s" % resolver_files)
 
-        ## then we need to copy main to label.name, unless it already has that name
-        ## output: ns_file, same as below
-        if ctx.file.main.basename == ctx.label.name + ".ml":
-            ns_file = ctx.file.main
-        else:
-            # resolver_module_name = get_resolver_name(ctx)
-            # [indirect_resolver_depsets, resolver_files] = build_resolvers(
-            #     ctx, tc, env, mode, aliases, indirect_resolver_depsets
-            # )
-            # [resolver_module_name, resolver_files] = build_resolver(ctx, tc, env, mode, aliases)
-            ns_file = ctx.actions.declare_file(ns_filename)
-            # ns_file = user_main_to_ns_main(ctx, ns_file)
-            ctx.actions.run_shell(
-                inputs  = [ctx.file.main],
-                outputs = [ns_file],
-                command = "cp {src} {dest}".format(src = ctx.file.main.path, dest = ns_file.path),
-                progress_message = "Copying user-provided main ns module to {ns}.".format(
-                    ns = ctx.label.name + ".ml"
+            ## then we need to copy main to label.name, unless it already has that name
+            ## output: ns_file, same as below
+            if ctx.files.main[0].basename == ctx.label.name + ".ml":
+                ns_file = ctx.files.main[0]
+            else:
+                # user-provided main source file has different name than ns lib,
+                # so copy former to latter
+                ns_file = ctx.actions.declare_file(ns_filename)
+                ctx.actions.run_shell(
+                    inputs  = [ctx.files.main[0]],
+                    outputs = [ns_file],
+                    command = "cp {src} {dest}".format(src = ctx.files.main[0].path, dest = ns_file.path),
+                    progress_message = "Copying user-provided main ns module to {ns}.".format(
+                        ns = ctx.label.name + ".ml"
+                    )
                 )
-            )
     else:
         ## no user-supplied main, so we need to generate main ns module as output,
         ## and concat include if present. in this case we do not use a separate resolver module
@@ -450,7 +463,7 @@ def impl_ns_library(ctx):
         )
 
 
-    # if ctx.attr.ns_env:
+    # if ctx.attr.ns:
     #     if ctx.attr.main:
     #         # this means our we have separate main and resolver modules, so we need to open the latter
     #         args.add("-open", resolver_module_name)

@@ -73,6 +73,7 @@ def impl_archive(ctx):
     indirect_opam_depsets = []
 
     indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
 
     indirect_path_depsets = []
@@ -110,6 +111,7 @@ def impl_archive(ctx):
                indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
+               indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 

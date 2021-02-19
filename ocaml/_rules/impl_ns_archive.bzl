@@ -34,11 +34,12 @@ def impl_ns_archive(ctx):
     # if (ctx.label.name == "stdune"):
     #     debug = True
 
-    mode = "bytecode" # default
-    if ctx.attr._rule == "ocaml_ns_archive":
-        mode = ctx.attr._mode[CompilationModeSettingProvider].value
-    elif ctx.attr._rule == "ppx_ns_archive":
-        mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = "bytecode" # default
+    # if ctx.attr._rule == "ocaml_ns_archive":
+    #     mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # elif ctx.attr._rule == "ppx_ns_archive":
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # print("NS ARCHIVE MODE %s" % mode)
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
@@ -53,15 +54,18 @@ def impl_ns_archive(ctx):
 
     ################################################################
     ns_archive_name = ctx.label.name.replace("-", "_")
-    ns_archive_filename = tmpdir + ns_archive_name + ".cma" if mode == "bytecode" else ".cmxa"
+    ns_ext = ".cma" if mode == "bytecode" else ".cmxa"
+    ns_archive_filename = tmpdir + ns_archive_name + ns_ext
     ns_archive_file = ctx.actions.declare_file(ns_archive_filename)
 
     #########################
     args = ctx.actions.args()
 
     if mode == "native":
+        # print("NATIVE")
         args.add(tc.ocamlopt.basename)
     else:
+        # print("BC")
         args.add(tc.ocamlc.basename)
 
     options = get_options(ctx.attr._rule, ctx)
@@ -74,7 +78,16 @@ def impl_ns_archive(ctx):
             args.add(dep)
 
     args.add("-a")
+
+    # print("NS ARCHIVE FILE: %s" % ns_archive_file)
     args.add("-o", ns_archive_file)
+
+    if ctx.attr._rule == "ocaml_ns_archive":
+        mnemonic = "OcamlNsArchive"
+    elif ctx.attr._rule == "ppx_ns_archive":
+        mnemonic = "PpxNsArchive"
+    else:
+        fail("Unexpected rule type for impl_ns_archive: %s" % ctx.attr_rule)
 
     ctx.actions.run(
         env = env,
@@ -83,9 +96,10 @@ def impl_ns_archive(ctx):
         inputs = defaultInfo.files,
         outputs = [ns_archive_file],
         # tools = [tc.ocamlfind, tc.ocamlopt],
-        mnemonic = "OcamlNsArchive",
-        progress_message = "{mode} compiling ocaml_ns_archive: @{ws}//{pkg}:{tgt}".format(
+        mnemonic = mnemonic,
+        progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,
+            rule = ctx.attr._rule,
             ws  = ctx.label.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
@@ -97,7 +111,7 @@ def impl_ns_archive(ctx):
         files = depset(
             order  = "postorder",
             direct = [ns_archive_file],
-            # transitive = [defaultInfo.files]
+            transitive = [defaultInfo.files]
         )
     )
 

@@ -74,8 +74,8 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         # module_name   = attr.string(
         #     doc = "Module name. Overrides `name` attribute."
         # ),
-        ns_env = attr.label(
-            doc = "Label of an ocaml_ns_env target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
+        ns = attr.label(
+            doc = "Label of an ocaml_ns target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
             providers = [OcamlNsEnvProvider],
             default = None
         ),

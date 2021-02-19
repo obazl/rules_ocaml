@@ -39,8 +39,8 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         opts             = attr.string_list(
             doc          = "List of OCaml options. Will override configurable default options."
         ),
-        ns_env = attr.label(
-            doc = "Label of an ocaml_ns_env target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
+        ns = attr.label(
+            doc = "Label of an ocaml_ns target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
             providers = [OcamlNsEnvProvider],
             # default = Label("@ocaml//ns/init")
         ),

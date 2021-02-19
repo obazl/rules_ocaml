@@ -1,3 +1,5 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "OcamlNsLibraryProvider",
@@ -20,18 +22,12 @@ def get_module_filename (ctx, src):
     # else:
     ns_sep = "__"
 
-    # if ctx.attr.ns_env:
-    #     if OcamlNsLibraryProvider in ctx.attr.ns_env:
-    #         ns  = ctx.attr.ns_env[OcamlNsLibraryProvider].payload.ns_env
-    #         ns_sep = ctx.attr.ns_env[OcamlNsLibraryProvider].payload.sep
-    #     else:
-    #         ns = ctx.attr.ns_env[PpxNsLibraryProvider].payload.ns_env
-    #         ns_sep = ctx.attr.ns_env[PpxNsLibraryProvider].payload.sep
-    #         # sep = ctx.attr.ns_env[OcamlNsLibraryProvider].payload.sep
-    if hasattr(ctx.attr, "ns_env"):
-        if ctx.attr.ns_env:
-            ns_provider = ctx.attr.ns_env[OcamlNsEnvProvider]
-            ns = ns_provider.prefix
+    if hasattr(ctx.attr, "_ns_prefix"): # "ns_env"):
+        if ctx.attr._ns_prefix[BuildSettingInfo].value != "":
+            ns = ctx.attr._ns_prefix[BuildSettingInfo].value
+        # if ctx.attr.ns_env:
+        #     ns_provider = ctx.attr.ns_env[OcamlNsEnvProvider]
+        #     ns = ns_provider.prefix
             ## ns target always produces two files, module (cmo or cmx) and interface (cmi)
             # ns_sep = "__"
             # for dep in ctx.files.ns_env:
@@ -39,6 +35,8 @@ def get_module_filename (ctx, src):
             #         bn  = dep.basename
             #         ext = dep.extension
             #         ns = bn[:-(len(ext)+1)]
+
+    print("XXXXXXXXXXXXXXXX ns: %s" % ns)
 
     parts = paths.split_extension(src.basename)
     module = None
@@ -74,6 +72,8 @@ def rename_module(ctx, src):  # , pfx):
   Outputs: outfile :: declared File
   """
 
+  # print("RENAME module %s" % src)
+
   # if module name == ns, then output module name
   # otherwise, outputp ns + "__" + module name
 
@@ -91,7 +91,16 @@ def rename_module(ctx, src):  # , pfx):
   # outputs = []
   outputs = {}
   inputs.append(src)
-  outfile = ctx.actions.declare_file(tmpdir + out_filename)
+  # if ctx.attr._ns_pkg[BuildSettingInfo].value == "":
+  #     scope = tmpdir
+  # else:
+  #     print("NS_PKG: %s" % ctx.attr._ns_pkg[BuildSettingInfo])
+  #     scope = ctx.attr._ns_pkg[BuildSettingInfo].value + "/"
+  # scope = tmpdir
+  # (scope, ext) = paths.split_extension(src.basename)
+  # scope = ctx.attr._ns_prefix[BuildSettingInfo].value
+  # outfile = ctx.actions.declare_file(scope + "/" + out_filename)
+  outfile = ctx.actions.declare_file(out_filename)
 
   destdir = paths.normalize(outfile.dirname)
   # print("DESTDIR: %s" % destdir)

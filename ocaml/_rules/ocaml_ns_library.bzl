@@ -45,8 +45,9 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
             # default = Label("@ocaml//ns/init")
         ),
         main = attr.label(
-            doc = "Code to use as the ns module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
-            allow_single_file = [".ml"]
+            doc = "Module (source or compiled) to use as the ns module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
+            # allow_single_file = [".ml"]
+            allow_files = True
         ),
         includes = attr.label_list(
             doc = "List of modules to be 'include'd in the resolver.",

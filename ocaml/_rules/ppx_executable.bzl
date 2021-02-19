@@ -108,7 +108,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             default = Label("@ocaml//:path")
         ),
     ),
-    cfg     = ppx_mode_transition,
+    cfg     = ppx_mode_transition, # "incoming edge" transition
     # provides = [DefaultInfo, PpxExecutableProvider],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'

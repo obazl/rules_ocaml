@@ -1,4 +1,4 @@
-load( "//ocaml:rules.bzl", "ocaml_ns_env", _ppx_ns_env = "ppx_ns_env")
+load( ":rules.bzl", "ocaml_ns_env", _ppx_ns_env = "ppx_ns_env")
 
 def ns_env(name="_ns_env", prefix=None, sep="_", aliases=[]):
     """Expands to instance of rule [ocaml_ns_env](rules_ocaml.md#ocaml_ns_env), which initializes a namespace evaluation environment consisting of a pseudo-namespace prefix string and optionally an ns resolver module.

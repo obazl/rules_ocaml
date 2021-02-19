@@ -60,6 +60,7 @@ def _ocaml_test_impl(ctx):
     indirect_opam_depsets = []
 
     indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
 
     indirect_path_depsets = []
@@ -210,6 +211,7 @@ def _ocaml_test_impl(ctx):
                indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
+               indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
@@ -354,9 +356,19 @@ def _ocaml_test_impl(ctx):
     # deps of an executable must be enumerated on the cmd line, so OCaml
     # knows they're needed.
     # we use a depset to remove dups while preserving order.
-    for dep in depset(transitive = indirect_file_depsets).to_list():
+    # for dep in depset(transitive = indirect_file_depsets).to_list():
+    #     if dep.extension not in ["cmi", "mli", "o"]:
+    #         args.add(dep)
+    for dep in ctx.files.deps:
+        # if OcamlNsEnvProvider in dep:
+        #     args.add_all(dep[OcamlNsEnvProvider].resolver)
+
         if dep.extension not in ["cmi", "mli", "o"]:
             args.add(dep)
+
+        # does not work: color.cmo does not depend on the submodules, they depend on it
+        # if dep.basename == "Color.cmo":
+        #     args.add(dep)
 
     # args.add_all(resolvers, before_each="-open")
 

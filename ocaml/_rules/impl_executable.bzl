@@ -164,6 +164,7 @@ def impl_executable(ctx):
     # indirect_nopam_depsets = []
 
     indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
 
     indirect_path_depsets = []
@@ -292,6 +293,7 @@ def impl_executable(ctx):
                indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
+               indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
@@ -331,6 +333,7 @@ def impl_executable(ctx):
         for dep in ctx.attr.deps_opam:
             args.add("-package", dep)
 
+    # print("EXEC OPAMS: %s" % indirect_opam_depsets)
     opams = depset(transitive = indirect_opam_depsets).to_list()
     if len(opams) > 0:
         args.add("-linkpkg")
@@ -364,6 +367,7 @@ def impl_executable(ctx):
                    indirect_resolver_depsets,
                    indirect_opam_depsets,
                    indirect_adjunct_depsets,
+                   indirect_adjunct_path_depsets,
                    indirect_adjunct_opam_depsets,
                    indirect_cc_deps)
 
@@ -540,6 +544,12 @@ def impl_executable(ctx):
         runfiles = myrunfiles
     )
 
+    nopam_direct_paths = []
+    for dep in ctx.files.deps_adjunct:
+        nopam_direct_paths.append(dep.dirname)
+    nopam_paths = depset(direct = nopam_direct_paths,
+                         transitive = indirect_adjunct_path_depsets)
+
     adjuncts_provider = AdjunctDepsProvider(
         opam = depset(
             direct     = ctx.attr.deps_adjunct_opam,
@@ -548,8 +558,11 @@ def impl_executable(ctx):
         nopam = depset(
             direct     = ctx.attr.deps_adjunct,
             transitive = indirect_adjunct_depsets
-        )
+        ),
+        nopam_paths = nopam_paths
     )
+    # print("TGT: %s" % ctx.label.name)
+    # print("ADJUNCT P: %s" % adjuncts_provider)
 
     exe_provider = None
     if ctx.attr._rule == "ppx_executable":
