@@ -220,7 +220,6 @@ def impl_module(ctx):
         out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct)
         direct_file_deps.append(ctx.file.ppx)
     elif ctx.attr.ns:  # we're hand-rolling an ns lib
-        print("HANDROLLING SUBMODULE %s" % ctx.file.struct)
         out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
 
     elif hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "prefix"):

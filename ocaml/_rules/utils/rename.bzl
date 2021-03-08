@@ -19,8 +19,8 @@ tmpdir = "_obazl_/"
 def get_module_filename (ctx, src):
 
     debug = False
-    if ctx.label.name in ["_Red", "_Green", "_Blue"]:
-        debug = True
+    # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
+    #     debug = True
     #     print("GET_MODULE_FILENAME for src: %s" % src)
 
     ns     = None

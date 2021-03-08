@@ -88,7 +88,6 @@ def _ocaml_test_impl(ctx):
     #     fname = paths.replace_extension(out_srcfile.basename, ".byte")
 
     fname = paths.replace_extension(out_srcfile.basename, "")
-    print("Test FNAME: %s" % fname)
 
     out_exe = ctx.actions.declare_file(fname)
     # print("OUT_EXE: %s" % out_exe)

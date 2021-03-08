@@ -49,8 +49,8 @@ nslib_in_transition = transition(
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     debug = False
-    if attr.name in ["color"]:
-        debug = True
+    # if attr.name in ["color"]:
+    #     debug = True
 
     if debug:
         print("")

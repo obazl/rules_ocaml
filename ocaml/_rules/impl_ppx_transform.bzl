@@ -21,8 +21,8 @@ def impl_ppx_transform(rule, ctx, src):
   """
 
   debug = False
-  if ctx.label.name == "test":
-      debug = True
+  # if ctx.label.name == "test":
+  #     debug = True
 
   module_name = get_module_filename(ctx, src)
   if debug:
