@@ -12,16 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-OpamPkgInfo = provider(
-    doc = "Provider for OPAM packages.",
-    fields = {
-        ## clients must write: dep[OpamPkgInfo].pkg.to_list()[0].name
-        ## FIXME: make pkg contain just the label? no need for a depset.
-        "pkg": "Label depset containing package name string used by ocamlfind.",
-        "ppx_driver": "True if ocamlfind would generate -ppx command line arg when this lib is listed as a dep."
-    }
-)
-
 OpamConfig = provider(
     doc = """OPAM configuration structure.
 
@@ -112,6 +102,7 @@ BuildConfig(
         "switch"   : "OPAM switch Id",
         "compiler" : "OCaml compiler version",
         "packages" : "Dictionary mapping package names to package specs.",
+        "tools"    : "List of tool names.",
         "verify"   : "Verify packages and versions or not (Boolean).",
         "verify_pinning"   : "Verify pinning of all packages (Boolean).",
         "install"  : "Implies verify, installs missing packages.",

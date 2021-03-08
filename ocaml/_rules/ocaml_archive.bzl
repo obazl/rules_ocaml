@@ -5,8 +5,7 @@ load("//ocaml:providers.bzl",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OpamPkgInfo")
+     "OcamlNsLibraryProvider")
 
 load("//ocaml:providers.bzl", "PpxArchiveProvider") ## what about PpxModule?
 
@@ -19,7 +18,7 @@ ocaml_archive = rule(
     implementation = impl_archive,
     doc = """Generates an OCaml archive file.""",
     attrs = dict(
-        options("@ocaml"),
+        options("ocaml"),
         archive_name = attr.string(
             doc = "Name of generated archive file, without extension. Overrides `name` attribute."
         ),
@@ -31,8 +30,7 @@ ocaml_archive = rule(
         doc = attr.string( doc = "Deprecated" ),
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OpamPkgInfo],
-                         [OcamlImportProvider],
+            providers = [[OcamlImportProvider],
                          [OcamlSignatureProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],

@@ -3,13 +3,13 @@ load("//ocaml:providers.bzl",
      "DefaultMemo",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
-     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
+     "OcamlNsResolverProvider",
      "OcamlNsArchiveProvider",
      "OcamlNsLibraryProvider",
      "OcamlSDK",
-     "OpamPkgInfo",
+     "OcamlSignatureProvider",
      "PpxArchiveProvider")
 
 load(":impl_library.bzl", "impl_library")
@@ -44,8 +44,7 @@ Packages](../ug/collections.md).
         # opts                    = attr.string_list(),
         ## FIXME: 'srcs' instead of 'deps'
         srcs = attr.label_list(
-            providers = [[OpamPkgInfo],
-                         [OcamlImportProvider],
+            providers = [[OcamlImportProvider],
                          [OcamlSignatureProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
@@ -55,11 +54,11 @@ Packages](../ug/collections.md).
         ),
         modules = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = [[OpamPkgInfo],
-                         [OcamlImportProvider],
+            providers = [[OcamlImportProvider],
                          [OcamlSignatureProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
+                         [OcamlNsResolverProvider],
                          [OcamlNsArchiveProvider],
                          [OcamlNsLibraryProvider],
                          [OcamlArchiveProvider],

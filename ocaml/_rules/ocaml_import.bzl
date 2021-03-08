@@ -1,7 +1,5 @@
 load("//ocaml:providers.bzl", "OcamlImportProvider")
 
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
-
 ##################################################
 ######## RULE DECL:  OCAML_IMPORT  #########
 ##################################################
@@ -12,7 +10,6 @@ def _ocaml_import_impl(ctx):
   debug = False
 
   # make all deps direct for client of this rule
-  # mydeps = get_all_deps("ocaml_import", ctx)
 
   # provider = OcamlImportProvider(
   #     payload = struct(

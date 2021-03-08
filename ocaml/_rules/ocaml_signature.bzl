@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
@@ -7,24 +8,25 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "DefaultMemo",
      "OcamlArchiveProvider",
-     # "OcamlDepsetProvider",
-     "OcamlSignatureProvider",
-     # "OcamlInterfacePayload",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsEnvProvider",
+     "OcamlNsResolverProvider",
      "OcamlNsArchiveProvider",
      "OcamlNsLibraryProvider",
+     "OcamlSDK",
+     "OcamlSignatureProvider",
      "OpamDepsProvider",
-     "OpamPkgInfo",
      "PpxArchiveProvider",
+     "PpxModuleProvider",
+     "PpxNsLibraryProvider",
      "PpxExecutableProvider")
 
 load("//ocaml/_rules/utils:rename.bzl", "rename_module")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
+load("//ocaml/_transitions:transitions.bzl",
+    "ocaml_signature_deps_out_transition")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
@@ -33,7 +35,10 @@ load("//ocaml/_functions:utils.bzl",
      "get_sdkpath",
 )
 
-load(":options.bzl", "options", "options_ppx")
+load(":options.bzl",
+     "options",
+     "options_ns_opts",
+     "options_ppx")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -49,17 +54,40 @@ OCAML_INTF_FILETYPES = [
 def _ocaml_signature_impl(ctx):
 
     debug = False
-    # if (ctx.label.name == "_Impl"):
+    # if ctx.label.name in ["_Base58_check.cmi"]:
     #     debug = True
 
+    ns_submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
+    ns_prefix     = ctx.attr._ns_prefix[BuildSettingInfo].value
+    if ns_prefix in ns_submodules:
+        ns_resolver = ns_prefix + "__0Resolver"
+    else:
+        ns_resolver = ns_prefix
+
     if debug:
-        print("OCAML INTERFACE TARGET: %s" % ctx.label.name)
+        print("")
+        if ctx.attr._rule == "ocaml_signature":
+            print("Start: OCAMLSIG %s" % ctx.label)
+        else:
+            fail("Unexpected rule for 'ocaml_signature_impl': %s" % ctx.attr._rule)
+        print("  ns_prefix: %s" % ns_prefix)
+        print("  ns_submodules: %s" % ns_submodules)
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-    env = {"OPAMROOT": get_opamroot(),
-           "PATH": get_sdkpath(ctx)}
+    OCAMLFIND_IGNORE = ""
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
+
+    env = {
+        "OPAMROOT": get_opamroot(),
+        "PATH": get_sdkpath(ctx),
+        "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
+    }
 
     ################
     direct_files = []
@@ -76,8 +104,8 @@ def _ocaml_signature_impl(ctx):
     direct_resolver = None
     indirect_resolver_depsets = []
 
-    direct_cc_deps  = []
-    indirect_cc_deps  = []
+    direct_cc_deps  = {}
+    indirect_cc_deps  = {}
     ################
 
     dep_graph = []
@@ -90,17 +118,36 @@ def _ocaml_signature_impl(ctx):
     dso_deps = []
     includes   = []
 
+    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "files"):
+        ns_files_depset = ctx.attr._ns_resolver[OcamlNsResolverProvider].files
+    else:
+        ns_files_depset = depset()
+
     if ctx.attr.ppx:
         ## this will also handle ns
         sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src)
         # (tmpdir, sigfile) = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src)
-    elif ctx.attr.ns_env:
-        sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_env)
-    else:
-        if ctx.attr.module:
-            sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_env)
+    # elif ctx.attr.ns_resolver:
+    #     sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
+    elif len(ns_submodules) > 0:
+        (this_module, ext) = paths.split_extension(ctx.file.src.basename)
+        this_module = capitalize_initial_char(this_module)
+        if debug:
+            print("THIS_MODULE: %s" % this_module)
+            print("SUBMODULES:  %s" % ns_submodules)
+        if this_module in ns_submodules:
+            # rename this module to put it in the namespace
+            sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr._ns_resolver)
         else:
             sigfile = ctx.file.src
+    else:
+    #     if ctx.attr.module:
+    #         sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
+        sigfile = ctx.file.src
+    if debug:
+        print("SOURCE SIGFILE: %s" % sigfile)
+
+    scope = ""  ## replaces tmpdir, in case we want to support 'pkg'
 
     # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
     if debug:
@@ -109,7 +156,7 @@ def _ocaml_signature_impl(ctx):
     if debug:
         print("CMIFNAME: %s" % cmifname)
 
-    obj_cmi = ctx.actions.declare_file(tmpdir + cmifname)
+    obj_cmi = ctx.actions.declare_file(scope + cmifname)
 
     if debug:
         print("OBJ_CMI: %s" % obj_cmi)
@@ -132,27 +179,13 @@ def _ocaml_signature_impl(ctx):
     options = get_options(rule, ctx)
     args.add_all(options)
 
-    ns = None
-    ## ns target produces two files, module and interface
-    if ctx.files.ns_env:
-        for dep in ctx.files.ns_env:
-            # print("NS DEP: %s" % dep)
-            bn = dep.basename
-            # print("NS DEP BASENAME: %s" % bn)
-            ext = dep.extension
-            ns = bn[:-(len(ext)+1)]
-            # print("NS: %s" % ns)
-            if dep.extension == "cmo":
-                dep_graph.append(dep)
-                # args.add(dep)
-            if dep.extension == "cmi":
-                dep_graph.append(dep)
-
-    if ns != None:
+    if ns_resolver:
         args.add("-no-alias-deps")
-        args.add("-open", ns)
+        args.add("-open", ns_resolver)
 
-    merge_deps(ctx.attr.deps,
+    mydeps = ctx.attr.deps + [ctx.attr._ns_resolver]
+
+    merge_deps(mydeps,
                indirect_file_depsets,
                indirect_path_depsets,
                indirect_resolver_depsets,
@@ -167,8 +200,8 @@ def _ocaml_signature_impl(ctx):
             includes.append(path)
 
     indirect_resolvers_depset = depset(transitive = indirect_resolver_depsets)
-    for resolver in indirect_resolvers_depset.to_list():
-          args.add("-open", resolver)
+    # for resolver in indirect_resolvers_depset.to_list():
+    #       args.add("-open", resolver)
 
     args.add("-c") # interfaces always compile-only?
 
@@ -183,7 +216,8 @@ def _ocaml_signature_impl(ctx):
             args.add("-package", opam)
 
         for nopam in provider.nopam.to_list():
-            print("NOAPM adjunct: %s" % nopam)
+            if debug:
+                print("NOAPM adjunct: %s" % nopam)
       # if PpxExecutableProvider in ctx.attr.ppx:
       #     ppx_opam_adjunct_deps = ctx.attr.ppx[PpxExecutableProvider].deps.opam_adjunct
       #     for dep in ppx_opam_adjunct_deps.to_list():
@@ -228,7 +262,7 @@ def _ocaml_signature_impl(ctx):
 
     intf_dep = None
 
-    cc_deps  = []
+    cc_deps  = {}
     link_search = []
 
     # for dep in mydeps.nopam.to_list():
@@ -350,8 +384,8 @@ def _ocaml_signature_impl(ctx):
     #             #   dep_graph.append(g)
     #             includes.append(g.dirname)
 
-    args.add_all(link_search, before_each="-ccopt", uniquify = True)
-    args.add_all(cc_deps, before_each="-cclib", uniquify = True)
+    # args.add_all(link_search, before_each="-ccopt", uniquify = True)
+    # args.add_all(cc_deps, before_each="-cclib", uniquify = True)
 
     args.add_all(includes, before_each="-I", uniquify = True)
     args.add_all(build_deps)
@@ -362,11 +396,11 @@ def _ocaml_signature_impl(ctx):
     args.add("-intf", sigfile)
 
     dep_graph.append(sigfile) #] + build_deps
-    # if ctx.attr.ns_env:
+    # if ctx.attr.ns_resolver:
     #     if mode == "native":
-    #         dep_graph.append(ctx.attr.ns_env[OcamlNsLibraryProvider].payload.cmx)
+    #         dep_graph.append(ctx.attr.ns_resolver[OcamlNsLibraryProvider].payload.cmx)
     #     else:
-    #         dep_graph.append(ctx.attr.ns_env[OcamlNsLibraryProvider].payload.cmo)
+    #         dep_graph.append(ctx.attr.ns_resolver[OcamlNsLibraryProvider].payload.cmo)
 
     input_depset = depset(direct = dep_graph, # direct_files,
                           transitive = indirect_file_depsets)
@@ -379,9 +413,9 @@ def _ocaml_signature_impl(ctx):
         outputs = [obj_cmi],
         tools = [tc.ocamlopt],
         mnemonic = "OcamlInterface",
-        progress_message = "{mode} compiling ocaml_signature: @{ws}//{pkg}:{tgt}{msg}".format(
+        progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}{msg}".format(
             mode = mode,
-            ws  = ctx.label.workspace_name,
+            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
             msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
@@ -419,6 +453,7 @@ def _ocaml_signature_impl(ctx):
         module    = obj_cmi,
     )
 
+    ## FIXME: add CcDepsProvider
     return [
         defaultInfo,
         defaultMemo,
@@ -426,7 +461,8 @@ def _ocaml_signature_impl(ctx):
         opamProvider]
 
 ################################
-rule_options = options("@ocaml")
+rule_options = options("ocaml")
+rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
 #######################
@@ -457,27 +493,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _warnings  = attr.label(default = "@ocaml//signature:warnings"),
         #### end options ####
 
-        ## FIXME: does this make sense for signature files?
-        ## No: just use opts
-        # linkall = attr.bool(default = True),
-
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
-        ),
         # module_name   = attr.string(
         #     doc = "Module name."
         # ),
         # ns_sep = attr.string(
         #     doc = "Namespace separator.  Default: '__'",
         #     default = "__"
-        # ),
-        ns_env = attr.label(
-            doc = "Label of an ocaml_ns_env target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
-            providers = [OcamlNsEnvProvider],
-            default = None
-        ),
-        # ns_init = attr.label(
-        #     doc = "Experimental"
         # ),
         src = attr.label(
             doc = "A single .mli source file label",
@@ -488,25 +509,44 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
-            providers = [[OpamPkgInfo],
-                         [OcamlArchiveProvider],
+            providers = [[OcamlArchiveProvider],
                          [OcamlSignatureProvider],
                          [OcamlLibraryProvider],
                          [OcamlNsArchiveProvider],
                          [OcamlNsLibraryProvider],
                          [PpxArchiveProvider],
-                         [OcamlModuleProvider]]
+                         [PpxModuleProvider],
+                         [PpxNsLibraryProvider],
+                         [OcamlModuleProvider]],
+            # cfg = ocaml_signature_deps_out_transition
         ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
         deps_opam = attr.string_list(
             doc = "List of OPAM package names"
         ),
+        ################################################################
+        _ns_resolver = attr.label(
+            doc = "Experimental",
+            providers = [OcamlNsResolverProvider],
+            default = "@ocaml//ns",
+        ),
+        _ns_submodules = attr.label( # _list(
+            doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+            default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
+        ),
+
         _mode       = attr.label(
             default = "@ocaml//mode",
         ),
         msg = attr.string(
             doc = "Deprecated"
         ),
-        _rule = attr.string( default = "ocaml_signature" )
+        _rule = attr.string( default = "ocaml_signature" ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
     ),
     provides = [OcamlSignatureProvider],
     executable = False,

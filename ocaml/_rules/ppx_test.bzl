@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl", "PpxExecutableProvider")
 
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+load("//ocaml/_transitions:transitions.bzl", "ppx_mode_transition")
 
 ##FIXME: "-diff-cmd -" disables diffing - what if user doesn't want that?
 

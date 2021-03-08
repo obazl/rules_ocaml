@@ -3,7 +3,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "OcamlNsLibraryProvider",
-     "OcamlNsEnvProvider")
+     "OcamlNsResolverProvider")
      # "PpxNsLibraryProvider")
 
 load("//ocaml/_functions:utils.bzl",
@@ -15,40 +15,80 @@ load("//ocaml/_functions:utils.bzl",
 tmpdir = "_obazl_/"
 
 ###################################
+## FIXME: we don't need this for executables (including test rules)
 def get_module_filename (ctx, src):
+
+    debug = False
+    if ctx.label.name in ["_Red", "_Green", "_Blue"]:
+        debug = True
+    #     print("GET_MODULE_FILENAME for src: %s" % src)
+
     ns     = None
-    # if ctx.attr.ns_env:
-    #     ns_sep = ctx.attr.ns_env[OcamlNsEnvProvider].sep
+    # if ctx.attr.ns_resolver:
+    #     ns_sep = ctx.attr.ns_resolver[OcamlNsResolverProvider].sep
     # else:
     ns_sep = "__"
 
-    if hasattr(ctx.attr, "_ns_prefix"): # "ns_env"):
-        if ctx.attr._ns_prefix[BuildSettingInfo].value != "":
-            ns = ctx.attr._ns_prefix[BuildSettingInfo].value
-        # if ctx.attr.ns_env:
-        #     ns_provider = ctx.attr.ns_env[OcamlNsEnvProvider]
-        #     ns = ns_provider.prefix
-            ## ns target always produces two files, module (cmo or cmx) and interface (cmi)
-            # ns_sep = "__"
-            # for dep in ctx.files.ns_env:
-            #     if dep.extension == "cmi":
-            #         bn  = dep.basename
-            #         ext = dep.extension
-            #         ns = bn[:-(len(ext)+1)]
+    if hasattr(ctx.attr, "_ns_resolver"):  # ocaml_module, ocaml_ns_library
+        hidden_provider = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+        if hasattr(ctx.attr, "ns"): ## ocaml_module only
+            # print("HASATTR NS: %s" % ctx.attr.ns)
+            if ctx.attr.ns: # we're hand-rolling; make sure we're not also using ocaml_ns_library
+                if hasattr(hidden_provider, "prefix"):
+                    if hidden_provider.prefix:
+                        if debug:
+                            print("hidden_provider.prefix: {ap}, rule.ns: {ns}".format(
+                                ap = hidden_provider.prefix, ns = ctx.attr.ns
+                            ))
+                        fail("Attribute 'ns' disallowed for ocaml_ns_library submodules.")
+                    else:
+                        ns = ctx.attr.ns[OcamlNsResolverProvider].prefix
+                        if debug:
+                            print("NS A %s" % ns)
+                else:
+                    ns = ctx.attr.ns[OcamlNsResolverProvider].prefix
+                    if debug:
+                        print("NS B %s" % ns)
+            elif hasattr(hidden_provider, "prefix"):  ## we're using ocaml_ns_library
+                ns = hidden_provider.prefix
+                if debug:
+                    print("NS C %s" % ns)
+            # else:  ## not using any ns
 
-    print("XXXXXXXXXXXXXXXX ns: %s" % ns)
-
-    parts = paths.split_extension(src.basename)
-    module = None
-    if hasattr(ctx.attr, "module"):
-        if ctx.attr.module:
-            module = ctx.attr.module
-        else:
-            module = parts[0]
+        elif hasattr(ctx.attr, "_ns_prefix"):
+            if debug:
+                print("_NS_PREFIX: %s" % ctx.attr._ns_prefix[BuildSettingInfo].value)
+            _apfx = ctx.attr._ns_prefix[BuildSettingInfo].value
+            _pkg = paths.basename(ctx.label.package)
+            if _apfx != "":
+                if _apfx == _pkg:
+                    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX _pkg %s" % _pkg)
+                    print("LABEL: %s" % ctx.label)
+                    ns = _apfx
+                else:
+                    ns = _apfx
+    elif hasattr(ctx.attr, "_ns_prefix"):  # ocaml_signature
+        ns = ctx.attr._ns_prefix[BuildSettingInfo].value
+    elif ctx.attr._rule == "ocaml_test":
+        ns = None
     else:
-        module = parts[0]
+        fail("GET MODULE NAME unexpected condition")
 
-    extension = parts[1]
+    if debug:
+        print("NS for renaming: %s" % ns)
+
+    (basename, extension) = paths.split_extension(src.basename)
+    # module = None
+    # if hasattr(ctx.attr, "module"):
+    #     if ctx.attr.module:
+    #         module = ctx.attr.module
+    #     else:
+    #         module = basename
+    # else:
+    if ctx.attr._rule in ["ocaml_test", "ocaml_executable", "ppx_executable"]:
+        module = basename
+    else:
+        module = capitalize_initial_char(basename)
 
     if ns == None: ## no ns
         out_filename = module
@@ -58,19 +98,25 @@ def get_module_filename (ctx, src):
         else:
             if ns.lower() == module.lower():
                 out_filename = module
+            elif ns != "":
+                out_filename = capitalize_initial_char(ns) + ns_sep + module
             else:
-                out_filename = capitalize_initial_char(ns) + ns_sep + capitalize_initial_char(module)
+                out_filename = module
 
     out_filename = out_filename + extension
     return out_filename
 
 ################################################################
 def rename_module(ctx, src):  # , pfx):
-  """Rename implementation and interface (if given) using ns_env.
+  """Rename implementation and interface (if given) using ns_resolver.
 
   Inputs: context, src
   Outputs: outfile :: declared File
   """
+
+  debug = False
+  # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
+  #     debug = True
 
   # print("RENAME module %s" % src)
 
@@ -82,7 +128,8 @@ def rename_module(ctx, src):  # , pfx):
   #   out_filename = module + extension
   # else:
   #   out_filename = ns + capitalize_initial_char(module) + extension
-  # print("RENAMED MODULE %s" % out_filename)
+  if debug:
+      print("RENAMED MODULE %s" % out_filename)
 
   # if pfx.find("/") > 0:
   #   fail("ERROR: ns contains '/' : '%s'" % pfx)

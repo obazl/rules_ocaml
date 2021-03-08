@@ -3,7 +3,7 @@ load("//ocaml:providers.bzl",
      "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
      "OcamlNsLibraryProvider",
-     "OcamlNsEnvProvider")
+     "OcamlNsResolverProvider")
 
 load(":impl_ns_archive.bzl", "impl_ns_archive")
 
@@ -24,7 +24,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
 
     """,
     attrs = dict(
-        options("@ocaml"),
+        options("ocaml"),
         _linkall     = attr.label(default = "@ocaml//ns_archive/linkall"), # FIXME: call it alwayslink?
         # _thread     = attr.label(default = "@ocaml//library/thread"),
         _warnings  = attr.label(default = "@ocaml//ns_archive:warnings"),
@@ -41,7 +41,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         ),
         ns = attr.label(
             doc = "Label of an ocaml_ns target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
-            providers = [OcamlNsEnvProvider],
+            providers = [OcamlNsResolverProvider],
             # default = Label("@ocaml//ns/init")
         ),
         main = attr.label(

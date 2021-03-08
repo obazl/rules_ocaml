@@ -4,7 +4,7 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options")
 
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+# load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
 
 load(":impl_archive.bzl", "impl_archive")
 
@@ -14,7 +14,7 @@ ppx_archive = rule(
     doc = """Generates an OCaml archive file suitable for use as a PPX dependency.   Provides: [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider).
     """,
     attrs = dict(
-        options("@ppx"),
+        options("ocaml"),
         archive_name = attr.string(
             doc = "Name of generated archive file, without extension. Overrides `name` attribute."
         ),
@@ -44,10 +44,6 @@ ppx_archive = rule(
             doc     = "Override platform-dependent link mode (static or dynamic). Configurable default is platform-dependent: static on Linux, dynamic on MacOS.",
             # default is os-dependent, but settable to static or dynamic
         ),
-        _allowlist_function_transition = attr.label(
-            ## required for transition fn of attribute _mode
-        default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
         _mode = attr.label(
             default = "@ppx//mode",
             # cfg     = ppx_mode_transition
@@ -59,8 +55,11 @@ ppx_archive = rule(
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         )
+        # _allowlist_function_transition = attr.label(
+        # default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
     ),
-    cfg     = ppx_mode_transition,
+    # cfg     = ppx_mode_transition,
     provides = [DefaultInfo, PpxArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

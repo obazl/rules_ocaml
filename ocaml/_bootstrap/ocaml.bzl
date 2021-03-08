@@ -5,7 +5,7 @@ load("@bazel_skylib//lib:types.bzl", "types")
 # load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
 
 # load("//implementation:sdk.bzl", "ocaml_home_sdk")
-load("//obazl:obazl.bzl", "obazl_repo")
+# load("//obazl:obazl.bzl", "obazl_repo")
 
 load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
@@ -452,6 +452,7 @@ def _symlink_compilers(repo_ctx, opam_switch_prefix):
     _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlopt.opt")
 
 ########################################################
+## FIXME: parameterize with tool names from BuildConfig file
 def _symlink_extra_tools(repo_ctx, opam_switch_prefix):
 
     _symlink_tool(repo_ctx, opam_switch_prefix, "ocamllex")
@@ -469,6 +470,7 @@ def _symlink_extra_tools(repo_ctx, opam_switch_prefix):
     _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo.opt")
     _symlink_tool(repo_ctx, opam_switch_prefix, "cppo")
     _symlink_tool(repo_ctx, opam_switch_prefix, "menhir")
+    _symlink_tool(repo_ctx, opam_switch_prefix, "ocaml-crunch")
 
 #####################################
 def _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix):
@@ -869,7 +871,7 @@ def ocaml_configure(
 
     ppx_repo(name="ppx")
 
-    obazl_repo(name="obazl")
+    # obazl_repo(name="obazl")
 
     default_build = None
     if opam:

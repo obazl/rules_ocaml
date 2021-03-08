@@ -81,8 +81,8 @@ def impl_archive(ctx):
     direct_resolver = None
     indirect_resolver_depsets = []
 
-    direct_cc_deps  = []
-    indirect_cc_deps  = []
+    direct_cc_deps  = {}
+    indirect_cc_deps  = {}
     ################
 
     ################################################################

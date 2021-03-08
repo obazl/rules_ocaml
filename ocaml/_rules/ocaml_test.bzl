@@ -15,16 +15,18 @@ load("//ocaml:providers.bzl",
      "PpxArchiveProvider",
      "PpxLibraryProvider",
      "PpxModuleProvider",
-     "OpamPkgInfo")
+     "PpxNsArchiveProvider",
+     "PpxNsLibraryProvider")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 load("//ocaml/_functions:utils.bzl",
      "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
 )
+
+load("//ocaml/_transitions:transitions.bzl", "ocaml_test_deps_out_transition")
 
 load(":options.bzl", "options", "options_ppx")
 
@@ -43,10 +45,6 @@ def _ocaml_test_impl(ctx):
 
     if debug:
         print("EXECUTABLE TARGET: %s" % ctx.label.name)
-
-    # mydeps = get_all_deps("ocaml_test", ctx) # ctx.attr.deps)
-    # print("ALL DEPS for %s" % ctx.label.name)
-    # print(mydeps)
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
@@ -68,8 +66,8 @@ def _ocaml_test_impl(ctx):
     direct_resolver = None
     indirect_resolver_depsets = []
 
-    direct_cc_deps  = []
-    indirect_cc_deps  = []
+    direct_cc_deps  = {}
+    indirect_cc_deps  = {}
     ################
 
     includes = []
@@ -77,7 +75,7 @@ def _ocaml_test_impl(ctx):
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
     if ctx.attr.ppx:
-        ## this will also handle ns_env
+        ## this will also handle ns_resolver
         out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.main)
         # direct_file_deps.append(ctx.file.ppx)
         # a ppx executable may have adjunct deps; they are handled by get_all_deps
@@ -90,7 +88,7 @@ def _ocaml_test_impl(ctx):
     #     fname = paths.replace_extension(out_srcfile.basename, ".byte")
 
     fname = paths.replace_extension(out_srcfile.basename, "")
-    # print("FNAME: %s" % fname)
+    print("Test FNAME: %s" % fname)
 
     out_exe = ctx.actions.declare_file(fname)
     # print("OUT_EXE: %s" % out_exe)
@@ -417,7 +415,7 @@ def _ocaml_test_impl(ctx):
                         executable = ctx.outputs.executable)]
 
 ################################
-rule_options = options("@ocaml")
+rule_options = options("ocaml")
 rule_options.update(options_ppx)
 
 ##################
@@ -491,8 +489,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         # ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = [[OpamPkgInfo],
-                         [OcamlArchiveProvider],
+            providers = [[OcamlArchiveProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
                          [OcamlNsArchiveProvider],
@@ -500,7 +497,13 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                          [PpxArchiveProvider],
                          [PpxLibraryProvider],
                          [PpxModuleProvider],
+                         [PpxNsArchiveProvider],
+                         [PpxNsLibraryProvider],
                          [CcInfo]],
+            cfg     = ocaml_test_deps_out_transition,  # outgoing
+        ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
         deps_opam = attr.string_list(
             doc = "List of OPAM package names."

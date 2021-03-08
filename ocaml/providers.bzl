@@ -5,17 +5,6 @@ load("//ocaml/_providers:opam.bzl", _OpamConfig = "OpamConfig", _BuildConfig = "
 OpamConfig = _OpamConfig
 BuildConfig = _BuildConfig
 
-## FIXME: remove
-OpamPkgInfo = provider(
-    doc = "Provider for OPAM packages.",
-    fields = {
-        ## clients must write: dep[OpamPkgInfo].pkg.to_list()[0].name
-        ## FIXME: make pkg contain just the label? no need for a depset.
-        "pkg": "Label depset containing package name string used by ocamlfind.",
-        "ppx_driver": "True if ocamlfind would generate -ppx command line arg when this lib is listed as a dep."
-    }
-)
-
 ################ Config Settings ################
 CompilationModeSettingProvider = provider(
     doc = "Raw value of compilation_mode_flag or setting",
@@ -164,7 +153,7 @@ OcamlImportProvider = provider(
 CcDepsProvider = provider(
     doc =" OPAM deps provider.",
     fields = {
-        "libs": "Dictionary of cc deps. Keys: labels; values: linkmode (static | dynamic | default)."
+        "libs": "List of dictionaries of cc deps. Keys: labels; values: linkmode (static | dynamic | default)."
     }
 )
 
@@ -173,12 +162,27 @@ OcamlModuleProvider = provider(
     fields = module_fields
 )
 
-OcamlNsEnvProvider = provider(
-    doc = "OCaml NS Environment provider.",
+# OcamlNsEnvProvider = provider(
+#     doc = "OCaml NS Environment provider.",
+#     fields = {
+#         "resolver": "Name of resolver module",
+#         "ap": "Alias prefix",
+#         "rp": "Resolver prefix",
+#         "sep": "Path separator",
+#         # "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
+#         # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
+#     }
+# )
+
+OcamlNsResolverProvider = provider(
+    doc = "OCaml NS Resolver provider.",
     fields = {
+        "files"   : "Depset, instead of DefaultInfo.files",
+        "submodules": "List of submodules in this ns",
         "resolver": "Name of resolver module",
-        "prefix": "Pseudo-namespace prefix string",
-        "sep": "Path separator",
+        "prefix": "Alias prefix",
+        # "rp": "Resolver prefix",
+        # "sep": "Path separator",
         # "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
         # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
     }
@@ -328,8 +332,8 @@ DefaultMemo = provider(
     """,
     ## Used by: ns lib, signature, module (ocaml & ppx)
     fields = {
-        "paths": "List of filesystem directory paths (string).",
-        "resolvers": "List of resolver module names (string)."
+        "paths": "List of filesystem directory paths (strings).",
+        "resolvers": "List of resolver module names (strings)."
     }
 )
 

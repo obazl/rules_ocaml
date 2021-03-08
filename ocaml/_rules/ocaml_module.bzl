@@ -1,20 +1,21 @@
 load("//ocaml:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
-     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlNsEnvProvider",
-     "OpamPkgInfo",
+     "OcamlSignatureProvider",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load("//ocaml/_transitions:ns_transitions.bzl", "ocaml_module_ns_transition")
+load("//ocaml/_transitions:transitions.bzl",
+     "module_in_transition")
 
-load(":options.bzl", "options", "options_module", "options_ns", "options_ppx")
+load(":options.bzl",
+     "options",
+     "options_module",
+     "options_ns_opts",
+     "options_ppx")
 
 load(":impl_module.bzl", "impl_module")
 
@@ -23,9 +24,9 @@ OCAML_IMPL_FILETYPES = [
 ]
 
 ################################
-rule_options = options("@ocaml")
-rule_options.update(options_module("@ocaml"))
-rule_options.update(options_ns("@ocaml"))
+rule_options = options("ocaml")
+rule_options.update(options_module("ocaml"))
+rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
 ####################
@@ -64,7 +65,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default = "ocaml_module" ),
-
+        # gen = attr.label_keyed_string_dict(
+        #     doc = "Experimental. Key is executable target, value is command-line arg string."
+        # ),
         ################
         ## obsolete:
         # cc_linkall = attr.label_list(
@@ -93,7 +96,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
         #     default = "@ocaml//module:cc_linkstatic"
         # ),
+        # here = attr.label(
+        #     allow_single_file = True,
+        #     default = ":BUILD.bazel"
+        # )
     ),
+    cfg     = module_in_transition,  # incoming
     provides = [OcamlModuleProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

@@ -21,16 +21,20 @@ def impl_ppx_transform(rule, ctx, src):
   """
 
   debug = False
-  # if ctx.label.name == "_Prover":
-  #     debug = True
+  if ctx.label.name == "test":
+      debug = True
 
   module_name = get_module_filename(ctx, src)
-  print("PPX MODULE NAME: %s" % module_name)
+  if debug:
+      print("PPX MODULE NAME: %s" % module_name)
 
   outfilename = tmpdir + module_name
 
   outfile = ctx.actions.declare_file(outfilename)
   outputs = {"impl": outfile}
+
+  if debug:
+      print("PPX OUTFILE: %s" % outfile)
 
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -139,7 +143,7 @@ def impl_ppx_transform(rule, ctx, src):
       outputs = [outfile],
       tools = [ctx.executable.ppx],
       mnemonic = "PpxTransformAction",
-      progress_message = "ppx transform: @{ws}//{pkg}:{tgt} (rule: {rule})".format(
+      progress_message = "ppx transform {rule}: {ws}//{pkg}:{tgt}".format(
           ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
           pkg = ctx.label.package,
           rule=ctx.attr._rule,

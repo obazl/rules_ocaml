@@ -1,14 +1,11 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
-     "OpamPkgInfo")
+     "CompilationModeSettingProvider")
 
 load("//ocaml/_rules/utils:rename.bzl", "rename_module")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
-
-load("//ocaml/_deps:depsets.bzl", "get_all_deps")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",

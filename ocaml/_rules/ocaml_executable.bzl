@@ -4,14 +4,16 @@ load("//ocaml:providers.bzl",
      "OcamlNsArchiveProvider",
      "OcamlNsLibraryProvider",
      "OcamlModuleProvider",
-     "PpxModuleProvider",
-     "OpamPkgInfo")
+     "PpxModuleProvider")
 
 load("//ocaml:providers.bzl", "PpxInfo", "PpxArchiveProvider")
 
 load(":options.bzl", "options")
 
 load(":impl_executable.bzl", "impl_executable")
+
+load("//ocaml/_transitions:transitions.bzl",
+     "executable_in_transition")
 
 ########################
 ocaml_executable = rule(
@@ -35,7 +37,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
  See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
     """,
     attrs = dict(
-        options("@ocaml"),
+        options("ocaml"),
         _linkall     = attr.label(default = "@ocaml//executable/linkall"),
         _thread     = attr.label(default = "@ocaml//executable/thread"),
         _warnings  = attr.label(default   = "@ocaml//executable:warnings"),
@@ -64,14 +66,14 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = [[OpamPkgInfo],
-                         [OcamlArchiveProvider],
+            providers = [[OcamlArchiveProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
                          [OcamlNsArchiveProvider],
                          [OcamlNsLibraryProvider],
                          [PpxArchiveProvider],
                          [CcInfo]],
+            # cfg = ocaml_executable_deps_out_transition
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
@@ -108,13 +110,21 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
+        mode = attr.string(
+            # default = "@ocaml//mode"
+            # cfg     = ocaml_mode_transition
+        ),
         _mode = attr.label(
             default = "@ocaml//mode"
             # cfg     = ocaml_mode_transition
         ),
         message = attr.string( doc = "Deprecated" ),
-        _rule = attr.string( default  = "ocaml_executable" )
+        _rule = attr.string( default  = "ocaml_executable" ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
+    cfg = executable_in_transition,
     executable = True,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

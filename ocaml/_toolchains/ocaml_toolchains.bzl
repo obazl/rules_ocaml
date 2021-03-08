@@ -1,22 +1,8 @@
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
-     "OpamPkgInfo")
-
-# load("//implementation:common.bzl",
-#     "OCAML_VERSION")
-
-
-# load("//ocaml/_providers:ppx.bzl", "PpxInfo")
-# load("//implementation:utils.bzl",
-#      "strip_ml_extension",
-#      "OCAML_FILETYPES"
-# )
+     "CompilationModeSettingProvider")
 
 ## obtaining CC toolchain:  https://github.com/bazelbuild/bazel/issues/7260
 
-# print("private/ocaml.bzl loading")
-
-# load("/:repo.bzl", "OPAM_ROOT_DIR", "OCAML_VERSION", "COMPILER_NAME")
 _ocaml_tools_attrs = {
     "path": attr.string(),
     "sdk_home": attr.string(),
@@ -45,6 +31,12 @@ _ocaml_tools_attrs = {
     ),
     "_ocamlopt": attr.label(
         default = Label("@ocaml//tools:ocamlopt"),
+        executable = True,
+        allow_single_file = True,
+        cfg = "host",
+    ),
+    "_ocamlopt_opt": attr.label(
+        default = Label("@ocaml//tools:ocamlopt.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "host",
@@ -136,6 +128,7 @@ def _ocaml_toolchain_impl(ctx):
         ocamlc     = ctx.attr._ocamlc.files.to_list()[0],
         ocamlc_opt = ctx.attr._ocamlc_opt.files.to_list()[0],
         ocamlopt   = ctx.attr._ocamlopt.files.to_list()[0],
+        ocamlopt_opt = ctx.attr._ocamlopt_opt.files.to_list()[0],
         ocamllex   = ctx.attr._ocamllex.files.to_list()[0],
         ocamlyacc  = ctx.attr._ocamlyacc.files.to_list()[0],
         cc_toolchain = ctx.attr.cc_toolchain,

@@ -1,15 +1,16 @@
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
+     "CcDepsProvider",
      "DefaultMemo",
-     "OcamlDepsetProvider",
+     # "OcamlDepsetProvider",
      "OcamlSignatureProvider",
      "OcamlModuleProvider",
      "OcamlNsLibraryProvider",
-     "OcamlNsEnvProvider",
+     "OcamlNsResolverProvider",
      "OpamDepsProvider",
-     "OcamlSDK",
-     "OpamPkgInfo")
+     "OcamlSDK")
 
+####################################
 def _print_aspect_impl(target, ctx):
     print("TARGET: %s" % target)
     if hasattr(ctx.rule.attr, 'deps'):
@@ -47,4 +48,36 @@ def _print_aspect_impl(target, ctx):
 print_aspect = aspect(
     implementation = _print_aspect_impl,
     attr_aspects = ["submodules", "struct", "sig", "src", "deps", "deps_opam"],
+)
+
+####################################
+def _providers_impl(target, ctx):
+    print("TARGET: %s" % target)
+    for dep in target[DefaultInfo].files.to_list():
+        print(dep)
+
+    report = "REPORT "
+    if CcDepsProvider in target:
+        report = report + "CC DEPS:"
+        for cc in target[CcDepsProvider].libs:
+            report = report + str(cc)
+
+    report_file = ctx.actions.declare_file("providers.txt")
+    print("WRITING file: %s" % report_file.path)
+    print("CONTENT: %s" % report)
+
+    ctx.actions.write(
+        report_file,
+        report
+    )
+
+    return [
+        OutputGroupInfo(
+            providers = depset([report_file])
+        )
+    ]
+
+providers = aspect(
+    implementation = _providers_impl,
+    attr_aspects = [],
 )

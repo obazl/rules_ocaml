@@ -1,165 +1,210 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@bazel_skylib//lib:structs.bzl", "structs")
 
 load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char")
+     "capitalize_initial_char",
+     "normalize_module_name")
 
-################################################################
-def _ocaml_ns_transition_reset_impl(settings, attr):
-    ocaml_ns_val = settings["@ocaml//ns:ns"]
+#######################################
+def print_config_state(settings, attr):
 
-    print("Incoming NS: %s" % ocaml_ns_val)
+    print("  rule name: %s" % attr.name)
+    # print("  ns:trace: %s" % settings["@ocaml//ns:trace"])
+    # print("  ns_resolver ws: %s" % attr._ns_resolver.workspace_name)
+    print("  ns:prefix: %s" % settings["@ocaml//ns:prefix"])
+    print("  ns:submodules: %s" % settings["@ocaml//ns:submodules"])
+    if hasattr(attr, "submodules"):
+        print("  attr.submodules: %s" % attr.submodules)
 
-    # print("////////////////////////////////////////////////////////////////")
-    # print("ns OUTGOING: {ns}".format(
-    #     ns = ocaml_ns_val
-    # ))
-    # attrs = structs.to_dict(attr)
-    # for k in sorted(attrs.keys()):
-    #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
-
-    # ns_string = attrs["ns"]
-    # print("NS: %s" % ns_string)
-
-    return { "@ocaml//ns:ns": "RESET" }
-
-## out transistion
-ocaml_ns_transition_reset = transition(
-    implementation = _ocaml_ns_transition_reset_impl,
-    inputs = ["@ocaml//ns:ns"], # "@ppx//:ns"],
-    outputs = ["@ocaml//ns:ns"]  #, "@ppx//:ns"]
-)
-
-################################################################
-def _ocaml_ns_transition_impl(settings, attr):
-    ocaml_ns_val = settings["@ocaml//ns:ns"]
-
-    # print("////////////////////////////////////////////////////////////////")
-    # print("ns OUTGOING: {ns}".format(
-    #     ns = ocaml_ns_val
-    # ))
-    attrs = structs.to_dict(attr)
-    # for k in sorted(attrs.keys()):
-    #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
-    ns_string = attrs["ns"]
-    print("NS: %s" % ns_string)
-
-    return { "@ocaml//ns:ns": ns_string }
-
-## out transistion
-ocaml_ns_transition = transition(
-    implementation = _ocaml_ns_transition_impl,
-    inputs = ["@ocaml//ns:ns"], # "@ppx//:ns"],
-    outputs = ["@ocaml//ns:ns"]  #, "@ppx//:ns"]
-)
-
-################################################################
-def _ocaml_ns_transition_incoming_impl(settings, attr):
-    _ignore = settings, attr
-    # ocaml_ns_val = settings["@ocaml//:ns"]
-    # # ppx_ns_val = settings["@ppx//:ns"]
-
-    # print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-    # print("ns INCOMING: {ns}".format(
-    #     ns = ocaml_ns_val
-    # ))
-    # attrs = structs.to_dict(attr)
-    # for k in sorted(attrs.keys()):
-    #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
-
-    return { "@ocaml//ns:ns": "RESET" }
-
-## incoming transistion
-ocaml_ns_transition_incoming = transition(
-    implementation = _ocaml_ns_transition_incoming_impl,
-    inputs = ["@ocaml//ns:ns"], # "@ppx//:ns"],
-    outputs = ["@ocaml//ns:ns"]  #, "@ppx//:ns"]
-)
-
-################################################################
-def _ocaml_ns_submodules_transition_impl(settings, attr):
-
-    print("tsn ns_env: %s" % attr.ns_env)
-    pfx = settings["@ocaml//ns:prefix"]
-    if pfx != "": pfx = pfx + "__"
-    print("tsn ns:prefix: %s" % pfx)
-    submodules = attr.submodules.values()
-    print("txn SUBMODS: %s" % submodules)
-
-    # attrs = structs.to_dict(attr)
-    # for k in sorted(attrs.keys()):
-    #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
-
-    if hasattr(attr, "pkg"):
-        if attr.pkg == None:
-            pkg = ""
-        else:
-            print("PKG: %s" % attr.pkg.package)
-            pkg = attr.pkg.package
-    else:
-        pkg = ""
-
-    if attr.main:
-        resolver = attr.name + "__0Resolver"
-    else:
-        resolver = capitalize_initial_char(attr.name)
-
+##############################################
+def _nslib_in_transition_impl(settings, attr):
     return {
-        "@ocaml//ns:pkg": pkg,
-        "@ocaml//ns:prefix": attr.name,
-        "@ocaml//ns:resolver": pfx + resolver,
-        "@ocaml//ns:submodules": submodules
+        "@ocaml//ns:prefix"        : "",
+        "@ocaml//ns:submodules": [],
+        # "@ppx//ns:prefix"          : "",
+        # "@ppx//ns:submodules"  : []
     }
 
-## incoming transistion
-ocaml_ns_submodules_transition = transition(
-    implementation = _ocaml_ns_submodules_transition_impl,
+###################
+nslib_in_transition = transition(
+    ## """Reset ConfigState for both @ocaml and @ppx.""",
+    implementation = _nslib_in_transition_impl,
     inputs = [
         "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        # "@ppx//ns:prefix",
+        # "@ppx//ns:submodules",
     ],
     outputs = [
-        "@ocaml//ns:pkg",
         "@ocaml//ns:prefix",
-        "@ocaml//ns:resolver",
-        "@ocaml//ns:submodules"
+        "@ocaml//ns:submodules",
+        # "@ppx//ns:prefix",
+        # "@ppx//ns:submodules",
     ]
 )
 
 ################################################################
-def _ocaml_module_ns_transition_impl(settings, attr):
+def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
-    print("SETTINGS %s" % settings)
-    # print("xSUBMODS %s" % attr._ns_submodules)
+    debug = False
+    if attr.name in ["color"]:
+        debug = True
 
-    # attrs = structs.to_dict(attr)
-    # for k in sorted(attrs.keys()):
-    #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
+    if debug:
+        print("")
+        print(">>> " + transition)
+        print_config_state(settings, attr)
 
-    if hasattr(attr, "pkg"):
-        if attr.pkg == None:
-            pkg = ""
-        else:
-            print("PKG: %s" % attr.pkg.package)
-            pkg = attr.pkg.package
-    else:
-        pkg = ""
+    nslib_name = attr.name
+    ns_prefix = settings["@ocaml//ns:prefix"]
+    ns_submodules = settings["@ocaml//ns:submodules"]
+    ns_sublibs = settings["@ocaml//ns:sublibs"]
+
+    ## convert submodules label list to module name list
+    attr_submodules = []
+    for submod_label in attr.submodules:
+        submod = normalize_module_name(submod_label.name)
+        attr_submodules.append(submod)
+    # attr_submodules = attr.submodules
+
+    if debug:
+        print("SUBLIBS attr: %s" % attr.sublibs)
+    attr_sublibs = []
+    for sublib_label in attr.sublibs:
+        sublib = normalize_module_name(sublib_label.name)
+        attr_sublibs.append(sublib)
+    if debug:
+        print("SUBLIBS: %s" % attr_sublibs)
+
+    if ns_prefix == "" and ns_submodules == []:
+        ## new ns lib
+        ns_prefix     = capitalize_initial_char(nslib_name)
+        ns_submodules = attr_submodules
+    # elif ns_prefix == "":
+    #     ns_prefix = nslib_name
+    elif capitalize_initial_char(nslib_name) in ns_submodules:
+        ## this is an ns lib submodule of a parent nslib
+        ns_prefix   = capitalize_initial_char(ns_prefix) + "__" + capitalize_initial_char(nslib_name)
+        # ns_prefix   = nslib_name
+    elif capitalize_initial_char(nslib_name) in attr_submodules: ## ns_submodules:
+        ## this is an ns lib listed as one of its own submodules
+        ## remove from submodule list?
+        ns_prefix     = nslib_name
+    # else: # not a submodule - params are inherited from remote ns lib
+
+    # if attr.main:
+    #     ns_resolver = capitalize_initial_char(nslib_name) + "__0Resolver"
+    # elif capitalize_initial_char(nslib_name) in ns_submodules:
+    #     ## this is an ns lib serving as a submodule
+    # else:
+    #     resolver = capitalize_initial_char(nslib_name)
+
+    if debug:
+        print(" setting ConfigState:")
+        print("  @ocaml//ns:prefix: %s" % ns_prefix)
+        print("  @ocaml//ns:submodules: %s" % attr_submodules)
+        print("  @ocaml//ns:sublibs: %s" % attr_sublibs)
+        # print("  @ocaml//ns:trace: %s" % trace)
 
     return {
-        "@ocaml//ns:pkg": pkg,
-        # "@ocaml//ns:prefix": attr.name,
-        "@ocaml//ns:resolver": attr.name,
-        # "@ocaml//ns:submodules": submods
+        "@ocaml//ns:prefix": ns_prefix,
+        "@ocaml//ns:submodules": attr_submodules,
+        "@ocaml//ns:sublibs": attr_sublibs,
+        # "@ocaml//ns:trace": trace
     }
 
-## incoming transistion
-ocaml_module_ns_transition = transition(
-    implementation = _ocaml_module_ns_transition_impl,
-    inputs = ["@ocaml//ns:submodules"],
+################################################################
+## ocaml_nslib transistions
+
+################
+def _ocaml_nslib_main_out_transition_impl(settings, attr):
+    return _ocaml_nslib_out_transition_impl("ocaml_nslib_main_out_transition", settings, attr)
+
+ocaml_nslib_main_out_transition = transition(
+    implementation = _ocaml_nslib_main_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        "@ocaml//ns:sublibs"
+        # "@ocaml//ns:trace",
+    ],
     outputs = [
-        "@ocaml//ns:pkg",
-        # "@ocaml//ns:prefix",
-        "@ocaml//ns:resolver",
-        # "@ocaml//ns:submodules"
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        "@ocaml//ns:sublibs"
+        # "@ocaml//ns:trace",
     ]
 )
+
+################
+def _ocaml_nslib_submodules_out_transition_impl(settings, attr):
+    return _ocaml_nslib_out_transition_impl("ocaml_nslib_submodules_out_transition", settings, attr)
+
+ocaml_nslib_submodules_out_transition = transition(
+    implementation = _ocaml_nslib_submodules_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        "@ocaml//ns:sublibs"
+        # "@ocaml//ns:trace",
+    ],
+    outputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        "@ocaml//ns:sublibs"
+        # "@ocaml//ns:trace",
+    ]
+)
+
+################
+def _ocaml_nslib_ns_out_transition_impl(settings, attr):
+    return _ocaml_nslib_out_transition_impl("ocaml_nslib_ns_out_transition", settings, attr)
+
+ocaml_nslib_ns_out_transition = transition(
+    implementation = _ocaml_nslib_ns_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        "@ocaml//ns:sublibs"
+        # "@ocaml//ns:trace",
+    ],
+    outputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        "@ocaml//ns:sublibs"
+        # "@ocaml//ns:trace",
+    ]
+)
+
+##############################################################
+def _ocaml_module_cc_deps_out_transition_impl(settings, attr):
+
+    debug = False
+    if attr.name == "":
+        debug = True
+        print(">>> ocaml_module_ns_transition")
+        print_config_state(settings, attr)
+
+    return {
+        # "@ocaml//ns:pkg": settings["@ocaml//ns:pkg"],
+        "@ocaml//ns:prefix"        : "",
+        "@ocaml//ns:submodules": []
+    }
+
+################
+ocaml_module_cc_deps_out_transition = transition(
+    implementation = _ocaml_module_cc_deps_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+        # "@ocaml//ns:trace"
+    ],
+    outputs = [
+        "@ocaml//ns:prefix",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+################################################################

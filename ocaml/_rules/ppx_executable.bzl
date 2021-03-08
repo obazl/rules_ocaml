@@ -2,9 +2,14 @@ load("//ocaml:providers.bzl",
      "OcamlSDK",
      "PpxExecutableProvider",
      "PpxModuleProvider")
-     # "OpamPkgInfo")
 
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+# load("//ppx/_transitions:transitions.bzl",
+#      # "ppx_exe_deps_out_transition",
+#      "ppx_exe_in_transition"
+#      )
+
+load("//ocaml/_transitions:transitions.bzl",
+     "executable_in_transition")
 
 load(":options.bzl", "options")
 
@@ -19,7 +24,7 @@ ppx_executable = rule(
 By default, this rule adds `-predicates ppx_driver` to the command line.
     """,
     attrs = dict(
-        options("@ppx"),
+        options("ocaml"),
         _linkall     = attr.label(default = "@ppx//executable/linkall"),
         _thread     = attr.label(default = "@ppx//executable/thread"),
         _warnings  = attr.label(default = "@ppx//executable:warnings"),
@@ -36,7 +41,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "A `ppx_module` to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
             # mandatory = True,
             # allow_single_file = [".ml", ".cmx"],
-            providers = [[PpxModuleProvider]], # [OpamPkgInfo]],
+            providers = [[PpxModuleProvider]],
             default = None
         ),
         ppx  = attr.label(
@@ -61,7 +66,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         ),
         deps = attr.label_list(
             doc = "Deps needed to build this ppx executable.",
-            providers = [[DefaultInfo], [PpxModuleProvider]]
+            providers = [[DefaultInfo], [PpxModuleProvider]],
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
@@ -96,9 +101,8 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
-        _allowlist_function_transition = attr.label(
-            ## required for transition fn of attribute _mode
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        mode = attr.string(
+            # default = "@ppx//mode",
         ),
         _mode = attr.label(
             default = "@ppx//mode",
@@ -107,8 +111,12 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
-    cfg     = ppx_mode_transition, # "incoming edge" transition
+    cfg     = executable_in_transition,
     # provides = [DefaultInfo, PpxExecutableProvider],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'

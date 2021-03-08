@@ -2,7 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl",
      "string_setting",
      "string_list_flag", "string_list_setting")
 load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_verbose_flag")
-load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_ns")
+# load("@obazl_rules_ocaml//ocaml:rules.bzl", "ppx_ns_resolver")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -14,29 +14,29 @@ string_list_flag( name = "warnings",
                   ]
 )
 
-string_setting( name = "pkg", build_setting_default = "foo")
-string_setting( name = "prefix", build_setting_default = "")
-string_setting( name = "sep", build_setting_default = "_")
-string_setting( name = "resolver", build_setting_default = "resolver")
-string_list_setting( name = "submodules", build_setting_default = [])
+# string_setting( name = "pkg", build_setting_default = "")
+# string_setting( name = "sep", build_setting_default = "_")
+# string_setting( name = "prefix", build_setting_default = "")
 
-# label_setting( name = "resolver", build_setting_default = "")
-# label_setting( name = "submodules", build_setting_default = "")
+# string_setting( name = "prefix", build_setting_default = "") ## alias prefix
+# string_list_setting( name = "submodules", build_setting_default = [])
+# string_list_setting( name = "sublibs", build_setting_default = [])
 
-ocaml_ns(
-    name    = "ns_default",
-    # prefix  = "",
-    sep     = "_",
-    # aliases = "foo" #, "bar"]
-)
+# string_setting( name = "resolver", build_setting_default = "")
+# string_setting( name = "trace", build_setting_default = "")
 
-# ocaml_module.ns defaults to this; ns_lib transitions change it
-label_setting(
-    name="ns",
-    build_setting_default = ":ns_default"
-)
+# ppx_ns_resolver(
+#     name    = "ns_default",
+#     sep     = "_",
+# )
 
-label_setting(
-    name="package",
-    build_setting_default = ":BUILD.bazel"
-)
+# ppx_module.ns defaults to this; ns_lib transitions change it
+# label_setting(
+#     name="ns",
+#     build_setting_default = ":ns_default"
+# )
+
+# label_setting(
+#     name="package",
+#     build_setting_default = ":BUILD.bazel"
+# )

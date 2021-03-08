@@ -1,25 +1,30 @@
 load("//ocaml:providers.bzl",
      "OcamlSignatureProvider",
-     "OcamlNsEnvProvider",
-     "OpamPkgInfo",
      "OpamDepsProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-load("options.bzl", "options", "options_module", "options_ns", "options_ppx")
+load("options.bzl",
+     "options",
+     "options_module",
+     "options_ns_opts",
+     "options_ppx")
 
 load(":impl_module.bzl", "impl_module")
 
-load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+load("//ocaml/_transitions:transitions.bzl",
+     "module_in_transition")
+# load("//ppx/_transitions:transitions.bzl",
+#      "ppx_module_in_transition")
 
 OCAML_IMPL_FILETYPES = [
     ".ml", ".cmx", ".cmo", ".cma"
 ]
 
 ################################
-rule_options = options("@ppx")
-rule_options.update(options_module("@ppx"))
-rule_options.update(options_ns("@ppx"))
+rule_options = options("ocaml")
+rule_options.update(options_module("ocaml"))
+rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
 ##################
@@ -38,12 +43,15 @@ TODO: finish docstring
         deps_adjunct_opam = attr.string_list(
             doc = "List of OPAM adjunct deps.",
         ),
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
+        # gen = attr.label_keyed_string_dict(
+        #     doc = "Experimental. Key is executable target, value is command-line arg string."
+        # ),
         _rule = attr.string( default = "ppx_module" ),
     ),
-    cfg     = ppx_mode_transition,
+    cfg     = module_in_transition,  # incoming
     provides = [DefaultInfo, PpxModuleProvider, OpamDepsProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

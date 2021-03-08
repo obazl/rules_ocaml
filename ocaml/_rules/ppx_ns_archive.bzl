@@ -1,5 +1,5 @@
 load("//ocaml:providers.bzl",
-     "OcamlNsEnvProvider",
+     "OcamlNsResolverProvider",
      "PpxNsArchiveProvider")
 
 load(":options.bzl", "options")
@@ -17,7 +17,7 @@ ppx_ns_archive = rule(
 
     """,
     attrs = dict(
-        options("@ppx"),
+        options("ocaml"),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
@@ -27,9 +27,9 @@ ppx_ns_archive = rule(
         #     doc = "Namespace separator.  Default: '__'",
         #     default = "__"
         # ),
-        ns_env = attr.label(
-            doc = "Label of an ocaml_ns_env target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
-            providers = [OcamlNsEnvProvider],
+        ns_resolver = attr.label(
+            doc = "Label of an ocaml_ns_resolver target. Used for renaming struct source file. See [Namepaces](../namespaces.md) for more information.",
+            providers = [OcamlNsResolverProvider],
             # default = Label("@ocaml//ns/init")
         ),
         main = attr.label(

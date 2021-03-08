@@ -4,7 +4,7 @@ load("@obazl_rules_ocaml//ocaml/_config:settings.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-compilation_mode_flag( name = "mode", build_setting_default = "bytecode")
+compilation_mode_flag( name = "mode", build_setting_default = "native")
 
 # compilation_mode_setting( name = "bytecode", build_setting_default = "bytecode")
 # compilation_mode_setting( name = "native", build_setting_default = "native")

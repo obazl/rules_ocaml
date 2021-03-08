@@ -19,12 +19,11 @@ bzl_library( # for stardoc
     visibility = ["//visibility:public"],
     srcs = [
         ":bootstrap.bzl",
-        ":macros.bzl",
+        # ":macros.bzl",
         ":providers.bzl",
         ":rules.bzl",
     ],
     deps = [
-        "//obazl",
         "//ocaml/_debug",
         "//ocaml/_bootstrap:bootstrap",
         "//ocaml/_providers:providers",
@@ -32,8 +31,8 @@ bzl_library( # for stardoc
         "//ocaml/_rules:ppx_rules",
         "//ocaml/_rules/utils",
         "//ocaml/_toolchains:toolchains",
+        "//ocaml/_transitions:transitions",
         "//ppx/_bootstrap:bootstrap",
-        "//ppx/_transitions:transitions",
     ]
 )
 

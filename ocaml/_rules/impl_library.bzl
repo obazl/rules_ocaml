@@ -1,5 +1,6 @@
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
+     "CcDepsProvider",
      "CompilationModeSettingProvider",
      "DefaultMemo",
      "OcamlArchiveProvider",
@@ -61,8 +62,8 @@ def impl_library(ctx):
     direct_resolver = None
     indirect_resolver_depsets = []
 
-    direct_cc_deps  = []
-    indirect_cc_deps  = []
+    direct_cc_deps  = {}
+    indirect_cc_deps  = {}
     ################
 
     merge_deps(ctx.attr.modules,
@@ -118,11 +119,26 @@ def impl_library(ctx):
         pkgs = opam_depset
     )
 
+    ## FIXME: add CcDepsProvider
+    cclibs = {}
+    # cclibs.update(ctx.attr.cc_deps)
+    if len(indirect_cc_deps) > 0:
+        if debug:
+            print("cc deps for %s" % ctx.label)
+            print(indirect_cc_deps)
+        cclibs.update(indirect_cc_deps)
+    ccProvider = CcDepsProvider(
+        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
+        libs = cclibs
+
+    )
+
     return [
         defaultInfo,
         defaultMemo,
         libraryProvider,
         opamProvider,
         adjunctsProvider,
+        ccProvider
     ]
 
