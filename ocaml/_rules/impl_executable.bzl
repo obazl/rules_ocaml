@@ -3,19 +3,11 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
-     "OcamlArchiveProvider",
      "OcamlExecutableProvider",
-     "OcamlModuleProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlSignatureProvider",
      "OcamlSDK",
-     "OpamDepsProvider",
-     "PpxCompilationModeSettingProvider",
-     "PpxExecutableProvider",
-     "PpxModuleProvider")
-
-# load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
+     "OcamlTestProvider",
+     "PpxExecutableProvider"
+)
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -158,8 +150,6 @@ def impl_executable(ctx):
     debug = False
     # if ctx.attr._rule == "ocaml_executable":
     #     debug = True
-    # if ctx.label in ["//src/lib/crypto_params/gen:gen.exe"]:
-    #     debug = True
 
     if debug:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -182,17 +172,11 @@ def impl_executable(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    # if ctx.attr._rule == "ocaml_executable":
-    if ctx.attr.mode:
-        mode = ctx.attr.mode
-    else:
-        mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # if ctx.attr.mode:
+    #     mode = ctx.attr.mode
     # else:
-    #     mode = ctx.attr._mode[0][CompilationModeSettingProvider].value
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    # if ctx.attr.exe_name:
-    #   outfilename = ctx.attr.exe_name
-    # else:
     outfilename = ctx.label.name
 
     outbinary = ctx.actions.declare_file(outfilename)
@@ -380,17 +364,6 @@ def impl_executable(ctx):
         #     indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].opam)
         #     indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].nopam)
 
-    if ctx.attr.deps_opam:
-        args.add("-linkpkg")
-        for dep in ctx.attr.deps_opam:
-            args.add("-package", dep)
-
-    # print("EXEC OPAMS: %s" % indirect_opam_depsets)
-    opams = depset(transitive = indirect_opam_depsets).to_list()
-    if len(opams) > 0:
-        args.add("-linkpkg")
-        [args.add("-package", opam) for opam in opams if opams]
-
     # for dep in ctx.attr.deps:
     #     if OcamlArchiveProvider in dep:
     #         print("ARC %s" % dep[DefaultInfo])
@@ -429,6 +402,17 @@ def impl_executable(ctx):
     for path in indirect_paths_depset.to_list():
         # print("PATH: %s" % path)
         includes.append(path)
+
+    if ctx.attr.deps_opam:
+        args.add("-linkpkg")
+        for dep in ctx.attr.deps_opam:
+            args.add("-package", dep)
+
+    # print("EXEC OPAMS: %s" % indirect_opam_depsets)
+    opams = depset(transitive = indirect_opam_depsets).to_list()
+    if len(opams) > 0:
+        args.add("-linkpkg")
+        [args.add("-package", opam) for opam in opams if opams]
 
     ## cc deps
     ## FIXME: currently we have both cc_deps dict with static/dynamic/default vals,
@@ -592,6 +576,16 @@ def impl_executable(ctx):
         transitive = indirect_file_depsets
     )
 
+    if ctx.attr.strip_data_prefixes:
+      myrunfiles = ctx.runfiles(
+        files = ctx.files.data,
+        symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
+      )
+    else:
+      myrunfiles = ctx.runfiles(
+        files = ctx.files.data,
+      )
+
     ctx.actions.run(
       env = env,
       executable = tc.ocamlfind,
@@ -611,7 +605,7 @@ def impl_executable(ctx):
 
     defaultInfo = DefaultInfo(
         executable=outbinary,
-        # runfiles = myrunfiles
+        runfiles = myrunfiles
     )
 
     nopam_direct_paths = []
@@ -631,8 +625,6 @@ def impl_executable(ctx):
         ),
         nopam_paths = nopam_paths
     )
-    # print("TGT: %s" % ctx.label.name)
-    # print("ADJUNCT P: %s" % adjuncts_provider)
 
     exe_provider = None
     if ctx.attr._rule == "ppx_executable":
@@ -641,6 +633,8 @@ def impl_executable(ctx):
         )
     elif ctx.attr._rule == "ocaml_executable":
         exe_provider = OcamlExecutableProvider()
+    elif ctx.attr._rule == "ocaml_test":
+        exe_provider = OcamlTestProvider()
     else:
         fail("Wrong rule called impl_executable: %s" % ctx.attr._rule)
 
@@ -649,30 +643,6 @@ def impl_executable(ctx):
         adjuncts_provider,
         exe_provider
     ]
-
-    # if ctx.attr._rule == "ppx_executable":
-    #     provider = PpxExecutableProvider(
-    #         payload = outbinary,
-    #         args = depset(direct = ctx.attr.args),
-    #         deps = struct(
-    #             # opam = mydeps.opam,
-    #             # opam_adjunct = mydeps.opam_adjunct,
-    #             # opam_adjunct = depset(direct = opam_adjunct_deps),
-    #             # nopam = mydeps.nopam,
-    #             # nopam_adjunct = mydeps.nopam_adjunct
-    #             # nopam_adjunct = depset(direct = nopam_adjunct_deps)
-    #           )
-    #     )
-    #     results = [
-    #         defaultInfo,
-    #         provider
-    #     ]
-
-    # elif ctx.attr._rule == "ocaml_executable":
-    #     results = [
-    #         defaultInfo,
-    #         adjuncts_provider
-    #     ]
 
     if debug:
         print("IMPL_EXECUTABLE RESULTS:")

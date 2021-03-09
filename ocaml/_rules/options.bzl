@@ -9,7 +9,9 @@ load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
+     "PpxLibraryProvider",
      "PpxModuleProvider",
+     "PpxNsArchiveProvider",
      "PpxNsLibraryProvider")
 
 load("//ocaml/_transitions:transitions.bzl",
@@ -22,20 +24,6 @@ load("//ocaml/_transitions:ns_transitions.bzl",
      # "ocaml_nslib_sublibs_out_transition",
      "ocaml_nslib_ns_out_transition",
      )
-
-# load("//ppx/_transitions:transitions.bzl",
-#      "ppx_module_deps_out_transition")
-
-# load("//ppx/_transitions:ns_transitions.bzl",
-#      # "ppx_module_ns_transition",
-#      "ppx_nslib_main_out_transition",
-#      "ppx_nslib_submodules_out_transition",
-#      # "ppx_nslib_sublibs_out_transition",
-#      "ppx_nslib_ns_out_transition")
-
-OCAML_IMPL_FILETYPES = [
-    ".ml", ".cmx", ".cmo", ".cma"
-]
 
 ## Naming conventions:
 #
@@ -72,6 +60,108 @@ def options(ws):
     )
 
 #######################
+def options_executable(ws):
+    attrs = dict(
+        _linkall     = attr.label(default = "@ocaml//executable/linkall"),
+        _thread     = attr.label(default = "@ocaml//executable/thread"),
+        _warnings  = attr.label(default   = "@ocaml//executable:warnings"),
+        _opts = attr.label(
+            doc = "Hidden options.",
+            default = "@ocaml//executable:opts"
+        ),
+        # exe_name = attr.string(
+        #     doc = "Name for output executable file.  Overrides 'name' attribute."
+        # ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:path")
+        ),
+        main = attr.label(
+            doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
+            providers = [[OcamlModuleProvider], [PpxModuleProvider]],
+            default = None
+        ),
+        data = attr.label_list(
+            allow_files = True,
+            doc = "Runtime dependencies: list of labels of data files needed by this executable at runtime."
+        ),
+        strip_data_prefixes = attr.bool(
+            doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
+            default = False
+        ),
+        deps = attr.label_list(
+            doc = "List of OCaml dependencies.",
+            providers = [[OcamlArchiveProvider],
+                         [OcamlLibraryProvider],
+                         [OcamlModuleProvider],
+                         [OcamlNsArchiveProvider],
+                         [OcamlNsLibraryProvider],
+                         [PpxArchiveProvider],
+                         [PpxLibraryProvider],
+                         [PpxModuleProvider],
+                         [PpxNsArchiveProvider],
+                         [PpxNsLibraryProvider],
+                         [CcInfo]],
+        ),
+        _deps = attr.label(
+            doc = "Dependency to be added last.",
+            default = "@ocaml//executable:deps"
+        ),
+        deps_opam = attr.string_list(
+            doc = "List of OPAM package names"
+        ),
+        deps_adjunct = attr.label_list(
+            doc = """List of non-opam adjunct dependencies (labels).""",
+            # providers = [[DefaultInfo], [PpxModuleProvider]]
+        ),
+        deps_adjunct_opam = attr.string_list(
+            doc = """List of opam adjunct dependencies (pkg name strings).""",
+        ),
+        cc_deps = attr.label_keyed_string_dict(
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            """,
+            ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
+            # providers = [[CcInfo]]
+        ),
+        _cc_deps = attr.label(
+            doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_executable.",
+            ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
+            # providers = [[CcInfo]]
+            default = "@ocaml//executable:cc_deps"
+        ),
+        cc_linkall = attr.label_list(
+            ## equivalent to cc_library's "alwayslink"
+            doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+            # providers = [CcInfo],
+        ),
+        cc_linkopts = attr.string_list(
+            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
+
+        ),
+        _mode = attr.label(
+            default = "@ocaml//mode"
+        ),
+        # _dllpaths = attr.label_list(
+        #     # default = "@opam//:bin/cppo"
+        #     default = [ # FIXME
+        #         # "@ocaml//:base_stubs",
+        #         # "@ocaml//:base_bigstring_stubs",
+        #         # "@ocaml//:bin_prot_stubs",
+        #         # "@ocaml//:core_kernel_stubs",
+        #         # "@ocaml//:ctypes_stubs",
+        #         # "@ocaml//:ctypes-foreign-base_stubs",
+        #         # "@ocaml//:expect_test_collector_stubs",
+        #         # "@ocaml//:integers_stubs",
+        #         # "@ocaml//:time_now_stubs",
+        #     ]
+        # ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+    )
+    return attrs
+
+
+#######################
 def options_module(ws):
 
     if ws == "ocaml":
@@ -103,13 +193,10 @@ def options_module(ws):
         _thread   = attr.label(default = ws + "//module/thread"),   # bool
         _warnings = attr.label(default = ws + "//module:warnings"), # string list
         struct = attr.label(
-            # mandatory = True,  # use ocaml_signature for isolated .mli files
-            doc = "A single .ml source file label.",
-            allow_single_file = OCAML_IMPL_FILETYPES
+            doc = "A single module (struct) source file label.",
+            mandatory = True,
+            allow_single_file = True # no constraints on extension
         ),
-        # module = attr.string(
-        #     doc = "Name for output file. Use to coerce input file with different name, e.g. for a file generated from a .ml file to a different name, like foo.cppo.ml."
-        # ),
         sig = attr.label(
             doc = "Single label of a target producing OcamlSignatureProvider (i.e. rule 'ocaml_signature'). Optional.",
             # allow_single_file = [".cmi"],

@@ -18,10 +18,10 @@ def print_config_state(settings, attr):
 
 ##################################################
 def _executable_in_transition_impl(settings, attr):
-    if attr.mode:
-        mode = attr.mode
-    else:
-        mode = settings["@ocaml//mode:mode"]
+    # if attr.mode:
+    #     mode = attr.mode
+    # else:
+    mode = settings["@ocaml//mode:mode"]
 
     return {
         # "@ppx//mode"            : mode,
@@ -311,31 +311,31 @@ ocaml_signature_deps_out_transition = transition(
 # )
 
 ################################################
-def _ocaml_test_deps_out_transition_impl(settings, attr):
-    ocaml_mode_val = settings["@ocaml//mode:mode"]
-    # ppx_mode_val = settings["@ppx//mode:mode"]
+# def _ocaml_test_deps_out_transition_impl(settings, attr):
+#     ocaml_mode_val = settings["@ocaml//mode:mode"]
+#     # ppx_mode_val = settings["@ppx//mode:mode"]
 
-    # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    # print("OCAML_TEST_DEPS_OUT_TRANSITION_IN: ocaml mode = {ocaml}, ppx mode = {ppx}".format( #, ocaml = {ocaml}
-    #     ocaml = ocaml_mode_val, ppx = ppx_mode_val
-    # ))
-    # attrs = structs.to_dict(attr)
-    # for k in sorted(attrs.keys()):
-    #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
+#     # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+#     # print("OCAML_TEST_DEPS_OUT_TRANSITION_IN: ocaml mode = {ocaml}, ppx mode = {ppx}".format( #, ocaml = {ocaml}
+#     #     ocaml = ocaml_mode_val, ppx = ppx_mode_val
+#     # ))
+#     # attrs = structs.to_dict(attr)
+#     # for k in sorted(attrs.keys()):
+#     #     print("ATTR: {k} = {v}".format(k = k, v = attrs[k]))
 
-    return {
-        "@ocaml//mode": ocaml_mode_val,
-        "@ppx//mode": ocaml_mode_val
-    }
+#     return {
+#         "@ocaml//mode": ocaml_mode_val,
+#         "@ppx//mode": ocaml_mode_val
+#     }
 
-ocaml_test_deps_out_transition = transition(
-    implementation = _ocaml_test_deps_out_transition_impl,
-    inputs = ["@ocaml//mode:mode"], # "@ppx//mode:mode"],
-    outputs = [
-        "@ocaml//mode",
-        "@ppx//mode"
-    ]  #, "@ocaml//mode"]
-)
+# ocaml_test_deps_out_transition = transition(
+#     implementation = _ocaml_test_deps_out_transition_impl,
+#     inputs = ["@ocaml//mode:mode"], # "@ppx//mode:mode"],
+#     outputs = [
+#         "@ocaml//mode",
+#         "@ppx//mode"
+#     ]  #, "@ocaml//mode"]
+# )
 
 ################################################################
 # def _ocaml_mode_transition_out_impl(settings, attr):

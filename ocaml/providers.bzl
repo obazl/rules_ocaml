@@ -110,6 +110,10 @@ OcamlExecutableProvider = provider(
     doc = "OCaml executable provider. Marker interface."
 )
 
+OcamlTestProvider = provider(
+    doc = "ocaml_test provider. Marker interface."
+)
+
 OcamlLibraryProvider = provider(
     doc = """OCaml library provider. A library is a collection of modules, not to be confused with an archive.
 
