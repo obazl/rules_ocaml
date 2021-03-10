@@ -202,7 +202,9 @@ def impl_ns_library(ctx):
     ## In short: deriving alias equations from submodule items will always work.
 
     # mydeps = ctx.attr.submodules.keys()
-    mydeps = ctx.attr.submodules + ctx.attr.sublibs
+    mydeps = ctx.attr.submodules + ctx.attr.sublibs + ctx.attr._ns_resolver
+    # print("NS_R: %s" % ctx.attr._ns_resolver)
+    # print("MYDEPS: %s" % mydeps)
     merge_deps(mydeps,
                indirect_file_depsets,
                indirect_path_depsets,
@@ -227,6 +229,8 @@ def impl_ns_library(ctx):
         ctx, tc, env, mode  # , aliases
     )
 
+    resolver_dep = ctx.files._ns_resolver
+
     if ctx.files.main:
         ## FIXME: verify that main module is also listed in submodules
         if debug:
@@ -236,13 +240,13 @@ def impl_ns_library(ctx):
         # dd = [ctx.files.main] + direct_file_deps
         inputs_depset = depset(
             order = "postorder",
-            direct = ctx.files.main,
+            direct = ctx.files.main + resolver_dep,
             transitive = indirect_file_depsets
         )
     else:
         inputs_depset = depset(
             order = "postorder",
-            # direct = ctx.files.main,
+            direct = resolver_dep,
             transitive = indirect_file_depsets
         )
 

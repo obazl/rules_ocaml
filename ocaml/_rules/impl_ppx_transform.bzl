@@ -5,7 +5,8 @@ load("//ocaml:providers.bzl", "PpxExecutableProvider", "PpxPrintSettingProvider"
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath")
-load("//ocaml/_rules/utils:rename.bzl", "get_module_filename")
+
+# load("//ocaml/_rules/utils:rename.bzl", "get_module_filename")
 
 load(":impl_common.bzl",
      "tmpdir")
@@ -13,143 +14,145 @@ load(":impl_common.bzl",
 # tmpdir = "_obazl_"
 
 ################################################################
-def impl_ppx_transform(rule, ctx, src):
-  """Apply a PPX to source file.
+def impl_ppx_transform(rule, ctx, src, to):
+    """Apply a PPX to source file.
 
-  Inputs: rule, context, src
-  Outputs: struct(intf :: declared File, maybe impl :: declared File)
-  """
+    Inputs: rule, context, src
+    Outputs: struct(intf :: declared File, maybe impl :: declared File)
+    """
 
-  debug = False
-  # if ctx.label.name == "test":
-  #     debug = True
+    debug = False
+    # if ctx.label.name == "test":
+    #     debug = True
 
-  module_name = get_module_filename(ctx, src)
-  if debug:
-      print("PPX MODULE NAME: %s" % module_name)
+    # if module == ns_prefix
 
-  outfilename = tmpdir + module_name
+    # to = get_module_filename(ctx, src)  # with renaming...
+    if debug:
+        print("PPX MODULE NAME: %s" % to)
 
-  outfile = ctx.actions.declare_file(outfilename)
-  outputs = {"impl": outfile}
+    outfilename = tmpdir + to
 
-  if debug:
-      print("PPX OUTFILE: %s" % outfile)
+    outfile = ctx.actions.declare_file(outfilename)
+    outputs = {"impl": outfile}
 
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+    if debug:
+        print("PPX OUTFILE: %s" % outfile)
 
-  verbose = False
-  if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
-      if not "-no-verbose" in ctx.attr.opts:
-          verbose = True
-  elif "-verbose" in ctx.attr.opts:
-          verbose = True
+    env = {"OPAMROOT": get_opamroot(),
+           "PATH": get_sdkpath(ctx)}
 
-  ################################################################
-  args = ctx.actions.args()
+    verbose = False
+    if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
+        if not "-no-verbose" in ctx.attr.opts:
+            verbose = True
+    elif "-verbose" in ctx.attr.opts:
+            verbose = True
 
-  if ctx.attr.ppx: # isn't this always true here?
-    args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
-    args.add_all(ctx.attr.ppx_args)
-    if hasattr(ctx.attr, "ppx_print"):
-        if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
-        # if ctx.attr.ppx_print[PpxPrintSettingProvider].value == "binary":
-            if "-dump-ast" not in ctx.attr.opts:
-                args.add("-dump-ast")
-        else:
-            if "-dump-ast" in ctx.attr.opts:
-                args.add("-dump-ast")
+    ################################################################
+    args = ctx.actions.args()
 
-  ## in our shell script, we cd to _obazl_/ before executing this, so we need "../"
-  args.add("-o", "../" + outfile.path)
-  if src.path.endswith(".mli"):
-      args.add("-intf", src)
-  if src.path.endswith(".ml"):
-      ## shell script copies src to _obazl_/, cds there, then runs the ppx
-      args.add("-impl", src.path)
+    if ctx.attr.ppx: # isn't this always true here?
+      args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
+      args.add_all(ctx.attr.ppx_args)
+      if hasattr(ctx.attr, "ppx_print"):
+          if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
+          # if ctx.attr.ppx_print[PpxPrintSettingProvider].value == "binary":
+              if "-dump-ast" not in ctx.attr.opts:
+                  args.add("-dump-ast")
+          else:
+              if "-dump-ast" in ctx.attr.opts:
+                  args.add("-dump-ast")
 
-  dep_graph = [src]
+    ## in our shell script, we cd to _obazl_/ before executing this, so we need "../"
+    args.add("-o", "../" + outfile.path)
+    if src.path.endswith(".mli"):
+        args.add("-intf", src)
+    if src.path.endswith(".ml"):
+        ## shell script copies src to _obazl_/, cds there, then runs the ppx
+        args.add("-impl", src.path)
 
-  # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
-  # if "@opama//pkg:ppx_inline_test" in ctx.files.deps:
-  if hasattr(ctx.attr, "ppx_tags"):
-      if len(ctx.attr.ppx_tags) > 0:
-          args.add("--cookie", "library=" + ctx.attr.ppx_tags[0])
-          args.add("-inline-test-lib", ctx.attr.ppx_tags[0]) # FIXME
+    dep_graph = [src]
 
-  parent = src.dirname
-  RUNTIME_FILES = ""
-  if hasattr(ctx.attr, "ppx_data"):
-      if len(ctx.attr.ppx_data) > 0:
-          for dep in ctx.attr.ppx_data:
-              for f in dep[DefaultInfo].files.to_list():
-                  dep_graph.append(f)
-                  fname_len = len(f.basename)
-                  datafile_parent = f.short_path[:-fname_len]
-                  RUNTIME_FILES = RUNTIME_FILES + "\n".join([
-                      "if [ ! \\( -f {tmpdir}{parent}/{rtf} \\) ]".format(tmpdir=tmpdir,
-                                                                parent = datafile_parent,
-                                                                rtf = f.basename),
-                      "then",
-                      "    mkdir -p {v} {tmpdir}{parent}".format(v = "-v" if verbose else "",
-                                                              tmpdir=tmpdir,
-                                                              parent=datafile_parent),
-                      "    cp {v} {rtf} {tmpdir}{parent}".format(v = "-v" if verbose else "",
-                                                              rtf = f.path,
-                                                              tmpdir=tmpdir,
-                                                              parent = datafile_parent),
-                      "fi"
-                  ])
+    # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
+    # if "@opama//pkg:ppx_inline_test" in ctx.files.deps:
+    if hasattr(ctx.attr, "ppx_tags"):
+        if len(ctx.attr.ppx_tags) > 0:
+            args.add("--cookie", "library=" + ctx.attr.ppx_tags[0])
+            args.add("-inline-test-lib", ctx.attr.ppx_tags[0]) # FIXME
 
-  command = "\n".join([
-      "#!/bin/sh",
-      "set {set}".format(set = "-x" if verbose else "+x"),
-      "mkdir -p {v} {tmpdir}{path}".format(v = "-v" if verbose else "",
-                                            tmpdir=tmpdir,
-                                            path = parent),
-      RUNTIME_FILES,
-      ## copy source to tmp dir for processing. a softlink won't work here.
-      "cp {v} {outfile} {tmpdir}{path}{renamed}".format(v = "-v" if verbose else "",
-                                                          outfile = src.path,
-                                                          tmpdir = tmpdir,
-                                                          path = parent,
-                                                          renamed = "/"
-                                                          # renamed = "/" + module_name
-                                                          ),
+    parent = src.dirname
+    RUNTIME_FILES = ""
+    if hasattr(ctx.attr, "ppx_data"):
+        if len(ctx.attr.ppx_data) > 0:
+            for dep in ctx.attr.ppx_data:
+                for f in dep[DefaultInfo].files.to_list():
+                    dep_graph.append(f)
+                    fname_len = len(f.basename)
+                    datafile_parent = f.short_path[:-fname_len]
+                    RUNTIME_FILES = RUNTIME_FILES + "\n".join([
+                        "if [ ! \\( -f {tmpdir}{parent}/{rtf} \\) ]".format(tmpdir=tmpdir,
+                                                                  parent = datafile_parent,
+                                                                  rtf = f.basename),
+                        "then",
+                        "    mkdir -p {v} {tmpdir}{parent}".format(v = "-v" if verbose else "",
+                                                                tmpdir=tmpdir,
+                                                                parent=datafile_parent),
+                        "    cp {v} {rtf} {tmpdir}{parent}".format(v = "-v" if verbose else "",
+                                                                rtf = f.path,
+                                                                tmpdir=tmpdir,
+                                                                parent = datafile_parent),
+                        "fi"
+                    ])
 
-      "cd _obazl_",
-      "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
-      "cd .."
-  ])
+    command = "\n".join([
+        "#!/bin/sh",
+        "set {set}".format(set = "-x" if verbose else "+x"),
+        "mkdir -p {v} {tmpdir}{path}".format(v = "-v" if verbose else "",
+                                              tmpdir=tmpdir,
+                                              path = parent),
+        RUNTIME_FILES,
+        ## copy source to tmp dir for processing. a softlink won't work here.
+        "cp {v} {outfile} {tmpdir}{path}{renamed}".format(v = "-v" if verbose else "",
+                                                            outfile = src.path,
+                                                            tmpdir = tmpdir,
+                                                            path = parent,
+                                                            renamed = "/"
+                                                            # renamed = "/" + to
+                                                            ),
 
-  runner = ctx.actions.declare_file(ctx.attr.name + "_ppx.sh")
+        "cd _obazl_",
+        "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
+        "cd .."
+    ])
 
-  if debug:
-      print("RUNNER:")
-      print(command)
+    runner = ctx.actions.declare_file(ctx.attr.name + "_ppx.sh")
 
-  ctx.actions.write(
-      output  = runner,
-      content = command,
-      is_executable = True,
-  )
+    if debug:
+        print("RUNNER:")
+        print(command)
 
-  ctx.actions.run(
-      env = env,
-      executable = runner,
-      arguments = [args],
-      inputs = dep_graph,
-      outputs = [outfile],
-      tools = [ctx.executable.ppx],
-      mnemonic = "PpxTransformAction",
-      progress_message = "ppx transform {rule}: {ws}//{pkg}:{tgt}".format(
-          ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
-          pkg = ctx.label.package,
-          rule=ctx.attr._rule,
-          tgt=ctx.label.name,
-      )
-  )
+    ctx.actions.write(
+        output  = runner,
+        content = command,
+        is_executable = True,
+    )
 
-  # return (tmpdir + "/", outfile) # FIXME: omit trailing "/"
-  return outfile # FIXME: omit trailing "/"
+    ctx.actions.run(
+        env = env,
+        executable = runner,
+        arguments = [args],
+        inputs = dep_graph,
+        outputs = [outfile],
+        tools = [ctx.executable.ppx],
+        mnemonic = "PpxTransformAction",
+        progress_message = "ppx transform {rule}: {ws}//{pkg}:{tgt}".format(
+            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
+            pkg = ctx.label.package,
+            rule=ctx.attr._rule,
+            tgt=ctx.label.name,
+        )
+    )
+
+    # return (tmpdir + "/", outfile) # FIXME: omit trailing "/"
+    return outfile # FIXME: omit trailing "/"

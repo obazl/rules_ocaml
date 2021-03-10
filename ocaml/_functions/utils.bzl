@@ -14,6 +14,47 @@ load("//ocaml:providers.bzl",
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 
+#######################
+def get_fs_prefix(lbl):
+    ## lbl is a string, not a label
+
+    # if ctx.workspace_name == "__main__": # default, if not explicitly named
+    #     ws = ctx.workspace_name
+    # else:
+    #     ws = ctx.label.workspace_name
+    # print("WS: %s" % ws)
+    # ws = capitalize_initial_char(ws) if ws else ""
+
+    l = Label(lbl)
+    pathsegs = [x.replace("-", "_").capitalize() for x in l.package.split('/')]
+    # ns_prefix = ws + ctx.attr.sep + ctx.attr.sep.join(pathsegs)
+
+    prefix = "_".join(pathsegs)
+    # print("FS PREFIX: %s" % prefix)
+    return prefix
+
+###############################
+def submodule_from_label_string(s):
+    """Derive module name from label string."""
+    lbl = Label(s)
+    target = lbl.name
+    # (segs, sep, basename) = s.rpartition(":")
+    # (basename, ext) = paths.split_extension(basename)
+    basename = target.strip("_")
+    submod = basename[:1].capitalize() + basename[1:]
+    return lbl.package, submod
+
+################################
+def normalize_module_label(lbl):
+    """Normalize module label: remove leading path segs, extension and prefixed underscores, capitalize first char."""
+    # print("NORMALIZING LBL: %s" % lbl)
+    (segs, sep, basename) = lbl.rpartition(":")
+    (basename, ext) = paths.split_extension(basename)
+    basename = basename.strip("_")
+    result = basename[:1].capitalize() + basename[1:]
+    # print("RESULT: %s" % result)
+    return result
+
 ###############################
 def normalize_module_name(s):
     """Normalize module name: remove leading path segs, extension and prefixed underscores, capitalize first char."""

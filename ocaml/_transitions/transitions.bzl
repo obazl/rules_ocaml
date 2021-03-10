@@ -2,7 +2,8 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 # load("@bazel_skylib//lib:structs.bzl", "structs")
 
 load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char")
+     "capitalize_initial_char",
+     "normalize_module_label")
 
 #######################################
 def print_config_state(settings, attr):
@@ -79,7 +80,7 @@ ocaml_executable_deps_out_transition = transition(
 def _module_in_transition_impl(settings, attr):
 
     debug = False
-    # if attr.name in ["_Filter"]:
+    # if attr.name in ["_Red"]:
     #     debug = True
 
     if debug:
@@ -112,14 +113,12 @@ def _module_in_transition_impl(settings, attr):
         module = capitalize_initial_char(basename)
         # print("MODULE: %s" % module)
 
-    submodules =  settings["@ocaml//ns:submodules"]
-    # for submodule_label in settings["@ocaml//ns:submodules"]:
-    #     print("SUBMODULE_LABEL: %s" % submodule_label)
-    #     submodule = normalize_module_name(submodule_label.name)
-    #     submodules.append(submodule)
-    if debug:
-        print("NORMALIZED SUBMODS: %s" % submodules)
-        print("TESTING MODULE: %s" % module)
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        # print("SUBMODULE_LABEL: %s" % submodule_label)
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
     if module in submodules:
         # if module == settings["@ocaml//ns:prefix"]:
         #     ## this is a user-compiled main module, also listed as a submodule
@@ -201,7 +200,13 @@ def _ocaml_module_deps_out_transition_impl(settings, attr):
     module = capitalize_initial_char(basename)
     # print("MODULE: %s" % module)
 
-    if module in settings["@ocaml//ns:submodules"]:
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        # print("SUBMODULE_LABEL: %s" % submodule_label)
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
+    if module in submodules:
         prefix     = settings["@ocaml//ns:prefix"]
         submodules = settings["@ocaml//ns:submodules"]
     else:
@@ -266,7 +271,13 @@ def _ocaml_signature_deps_out_transition_impl(settings, attr):
     module = capitalize_initial_char(basename)
     # print("MODULE: %s" % module)
 
-    if module in settings["@ocaml//ns:submodules"]:
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        print("SUBMODULE_LABEL: %s" % submodule_label)
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
+    if module in submodules:
         prefix     = settings["@ocaml//ns:prefix"]
         submodules = settings["@ocaml//ns:submodules"]
     else:

@@ -18,12 +18,17 @@ load("//ocaml:providers.bzl",
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_rules/utils:rename.bzl", "rename_module")
+load("//ocaml/_rules/utils:rename.bzl",
+     "get_module_name",
+     "rename_module",
+     "rename_srcfile")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
+     "get_fs_prefix",
+     "normalize_module_label",
      "normalize_module_name",
      "get_opamroot",
      "get_sdkpath",
@@ -120,12 +125,20 @@ load(":impl_common.bzl",
 #                         cclib_deps.append(depfile)
 #                         cc_runfiles.append(dep)
 
+def _submod_labels_to_submod_names(submod_labels):
+    submods = []
+    for lbl in submod_labels:
+        submod = normalize_module_label(lbl)
+        submods.append(submod)
+    return submods
+
 #####################
 def impl_module(ctx):
 
     debug = False
-    # if ctx.label.name in ["_Field"]: # ["_Red", "_Green", "_Blue"]:
-    #     debug = True
+    if ctx.label.name in ["_Color"]: # ["_Red", "_Green", "_Blue"]:
+        debug = True
+        print("Start: ocaml_module %s" % ctx.label)
     # if str(ctx.label) in ["//src/lib/allocation_functor:_Make"]:
         # ["remove_keys_trigger"]:
         # ["_Constraint", "_Cvar"]:
@@ -215,49 +228,49 @@ def impl_module(ctx):
     else:
         ns_files_depset = depset()
 
+    (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
+    print("GOT FROM NAME: %s" % from_name)
+    print("GOT MODULE NAME: %s" % module_name)
+    # fail("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
     if ctx.attr.ppx:
         ## this will also handle ns_resolver
-        out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct)
+        out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name)
         direct_file_deps.append(ctx.file.ppx)
-    elif ctx.attr.ns:  # we're hand-rolling an ns lib
-        out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
+    # elif ctx.attr.ns:  # we're hand-rolling an ns lib
+    #     out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
 
-    elif hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "prefix"):
-        ## or just use ctx.attr._ns_prefix? no, resolver could be null
+    elif module_name != from_name:
+        out_srcfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
+    else:
+        out_srcfile = ctx.file.struct
 
-        ns_provider = ctx.attr._ns_resolver[OcamlNsResolverProvider]
-        if len(ns_provider.submodules) > 0:
-            (this_module, ext) = paths.split_extension(ctx.file.struct.basename)
-            this_module = capitalize_initial_char(this_module)
-            if debug:
-                print("THIS_MODULE: %s" % this_module)
-                print("SUBMODULES:  %s" % ns_provider.submodules)
+    # elif hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "prefix"):
+    #     ## or just use ctx.attr._ns_prefix? no, resolver could be null
 
-            ## FIXME: use _ns_submodules instead of _ns_resolver[OcamlNsResolverProvider].submodules?
-            if this_module in ns_provider.submodules:
-                # rename this module to put it in the namespace
-                out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
-            else:
-                out_srcfile = ctx.file.struct
-        else:
-            out_srcfile = ctx.file.struct
-
-    # elif ctx.attr._ns_prefix:
-    #     if len(ctx.attr._ns_submodules[BuildSettingInfo].value) > 0:
+    #     ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+    #     if len(ns_resolver.submodules) > 0:
     #         (this_module, ext) = paths.split_extension(ctx.file.struct.basename)
     #         this_module = capitalize_initial_char(this_module)
     #         if debug:
     #             print("THIS_MODULE: %s" % this_module)
-    #             print("SUBMODULES:  %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
-    #         if this_module in ctx.attr._ns_submodules[BuildSettingInfo].value:
+    #             print("SUBMODULES:  %s" % ns_resolver.submodules)
+
+    #         ## FIXME: use _ns_submodules instead of _ns_resolver[OcamlNsResolverProvider].submodules?
+    #         submod_names = _submod_labels_to_submod_names(ns_resolver.submodules)
+    #         print("SUBMOD_NAMES: %s" % submod_names)
+    #         if this_module in submod_names:
+    #         # if this_module in ns_resolver.submodules:
     #             # rename this module to put it in the namespace
-    #             out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
+    #             # out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
+    #             fs_prefix = get_fs_prefix(str(ctx.label))
+    #             out_srcfile = rename_submodule(ctx, fs_prefix, ctx.file.struct)
     #         else:
     #             out_srcfile = ctx.file.struct
     #     else:
     #         out_srcfile = ctx.file.struct
-    else:
-        out_srcfile = ctx.file.struct
+    # else:
+    #     out_srcfile = ctx.file.struct
 
     scope = ""
 
@@ -366,7 +379,7 @@ def impl_module(ctx):
       out_cmi = ctx.actions.declare_file(scope + cmifname)
       outputs.append(out_cmi)
 
-      if "-bin-annot" in ctx.attr.opts:  ## Issue #17
+      if "-bin-annot" in options: #  ctx.attr.opts:  ## Issue #17
           ## FIXME: only do this if no cmi intf provided
           out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(out_srcfile.basename, ".cmt"))
           outputs.append(out_cmt)

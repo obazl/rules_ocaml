@@ -14,23 +14,20 @@ string_list_flag( name = "warnings",
                   ]
 )
 
-# string_setting( name = "pkg", build_setting_default = "")
-# string_setting( name = "sep", build_setting_default = "_")
-# string_setting( name = "prefix", build_setting_default = "")
+string_flag( name = "prefix", build_setting_default = "")
+string_flag( name = "strategy", build_setting_default = "fs",
+             values = [
+                 "fs",  ## derive ns prefix from filesystem path
+                 "ns"    ## derive ns prefix from ns names
+             ])
 
-# string_setting( name = "prefix", build_setting_default = "") ## alias prefix
-string_flag( name = "prefix", build_setting_default = "") ## alias prefix
 string_list_flag( name = "submodules", build_setting_default = [])
+# string_list_flag( name = "includes", build_setting_default = [])
 string_list_setting( name = "sublibs", build_setting_default = [])
-
-# string_setting( name = "resolver", build_setting_default = "")
-# string_setting( name = "trace", build_setting_default = "")
-
-# label_setting( name = "submodules", build_setting_default = "")
 
 ocaml_ns_resolver(
     name    = "ns_default",
-    sep     = "_",
+    # sep     = "_",
 )
 
 # ocaml_module.ns defaults to this; ns_lib transitions change it
@@ -38,8 +35,3 @@ label_setting(
     name="ns",
     build_setting_default = ":ns_default"
 )
-
-# label_setting(
-#     name="package",
-#     build_setting_default = ":BUILD.bazel"
-# )

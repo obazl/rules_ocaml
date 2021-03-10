@@ -21,7 +21,10 @@ load("//ocaml:providers.bzl",
      "PpxNsLibraryProvider",
      "PpxExecutableProvider")
 
-load("//ocaml/_rules/utils:rename.bzl", "rename_module")
+load("//ocaml/_rules/utils:rename.bzl",
+     "get_module_name",
+     "rename_module",
+     "rename_srcfile")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -31,8 +34,10 @@ load("//ocaml/_transitions:transitions.bzl",
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "file_to_lib_name",
+     "get_fs_prefix",
      "get_opamroot",
      "get_sdkpath",
+     "normalize_module_label",
 )
 
 load(":options.bzl",
@@ -57,7 +62,12 @@ def _ocaml_signature_impl(ctx):
     # if ctx.label.name in ["_Base58_check.cmi"]:
     #     debug = True
 
-    ns_submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
+    ns_submodules = []
+    for lbl in ctx.attr._ns_submodules[BuildSettingInfo].value:
+        submod = normalize_module_label(lbl)
+        ns_submodules.append(submod)
+
+    print("SIG SUBMODS: %s" % ns_submodules)
     ns_prefix     = ctx.attr._ns_prefix[BuildSettingInfo].value
     if ns_prefix in ns_submodules:
         ns_resolver = ns_prefix + "__0Resolver"
@@ -90,7 +100,7 @@ def _ocaml_signature_impl(ctx):
     }
 
     ################
-    direct_files = []
+    direct_file_deps = []
     indirect_file_depsets = [] # will be added to inputs and passed on as transitive outputs
 
     indirect_opam_depsets = []
@@ -123,27 +133,41 @@ def _ocaml_signature_impl(ctx):
     else:
         ns_files_depset = depset()
 
+    (from_name, module_name) = get_module_name(ctx, ctx.file.src)
+    print("GOT FROM NAME: %s" % from_name)
+    print("GOT MODULE NAME: %s" % module_name)
+
     if ctx.attr.ppx:
         ## this will also handle ns
         sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src)
+        direct_file_deps.append(ctx.file.ppx)
         # (tmpdir, sigfile) = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src)
     # elif ctx.attr.ns_resolver:
     #     sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
-    elif len(ns_submodules) > 0:
-        (this_module, ext) = paths.split_extension(ctx.file.src.basename)
-        this_module = capitalize_initial_char(this_module)
-        if debug:
-            print("THIS_MODULE: %s" % this_module)
-            print("SUBMODULES:  %s" % ns_submodules)
-        if this_module in ns_submodules:
-            # rename this module to put it in the namespace
-            sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr._ns_resolver)
-        else:
-            sigfile = ctx.file.src
+
+    elif module_name != from_name:
+        sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
     else:
-    #     if ctx.attr.module:
-    #         sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
-        sigfile = ctx.file.src
+        sigfile = ctx.file.struct
+
+    # elif len(ns_submodules) > 0:
+    #     (this_module, ext) = paths.split_extension(ctx.file.src.basename)
+    #     this_module = capitalize_initial_char(this_module)
+    #     if debug:
+    #         print("THIS_MODULE: %s" % this_module)
+    #         print("SUBMODULES:  %s" % ns_submodules)
+    #     if this_module in ns_submodules:
+    #         # rename this module to put it in the namespace
+    #         # sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr._ns_resolver)
+    #         fs_prefix = get_fs_prefix(str(ctx.label))
+    #         sigfile = rename_submodule(ctx, fs_prefix, ctx.file.src)
+    #     else:
+    #         sigfile = ctx.file.src
+    # else:
+    # #     if ctx.attr.module:
+    # #         sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
+    #     sigfile = ctx.file.src
+
     if debug:
         print("SOURCE SIGFILE: %s" % sigfile)
 
@@ -402,7 +426,7 @@ def _ocaml_signature_impl(ctx):
     #     else:
     #         dep_graph.append(ctx.attr.ns_resolver[OcamlNsLibraryProvider].payload.cmo)
 
-    input_depset = depset(direct = dep_graph, # direct_files,
+    input_depset = depset(direct = dep_graph, # direct_file_deps,
                           transitive = indirect_file_depsets)
 
     ctx.actions.run(
@@ -535,6 +559,10 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _ns_submodules = attr.label( # _list(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
             default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
+        ),
+        _ns_strategy = attr.label(
+            doc = "Experimental",
+            default = "@ocaml//ns:strategy"
         ),
 
         _mode       = attr.label(

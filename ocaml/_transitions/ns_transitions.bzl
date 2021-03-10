@@ -5,6 +5,7 @@ load("@bazel_skylib//lib:structs.bzl", "structs")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
+     "normalize_module_label",
      "normalize_module_name")
 
 #######################################
@@ -64,13 +65,13 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     ## convert submodules label list to module name list
     attr_submodules = []
+    attr_submodule_labels = []
     for submod_label in attr.submodules:
         submod = normalize_module_name(submod_label.name)
         attr_submodules.append(submod)
+        attr_submodule_labels.append(str(submod_label))
     # attr_submodules = attr.submodules
 
-    if debug:
-        print("SUBLIBS attr: %s" % attr.sublibs)
     attr_sublibs = []
     for sublib_label in attr.sublibs:
         sublib = normalize_module_name(sublib_label.name)
@@ -104,13 +105,13 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     if debug:
         print(" setting ConfigState:")
         print("  @ocaml//ns:prefix: %s" % ns_prefix)
-        print("  @ocaml//ns:submodules: %s" % attr_submodules)
+        print("  @ocaml//ns:submodules: %s" % attr_submodule_labels)
         print("  @ocaml//ns:sublibs: %s" % attr_sublibs)
         # print("  @ocaml//ns:trace: %s" % trace)
 
     return {
         "@ocaml//ns:prefix": ns_prefix,
-        "@ocaml//ns:submodules": attr_submodules,
+        "@ocaml//ns:submodules": attr_submodule_labels,
         "@ocaml//ns:sublibs": attr_sublibs,
         # "@ocaml//ns:trace": trace
     }
