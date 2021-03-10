@@ -1,19 +1,15 @@
-load("@bazel_skylib//rules:common_settings.bzl",
-     "BuildSettingInfo")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "DefaultMemo",
      "OcamlArchiveProvider",
-     # "OcamlDepsetProvider",
-     "PpxArchiveProvider",
-     "PpxDepsetProvider")
+     "PpxArchiveProvider")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
      "get_projroot",
-     "file_to_lib_name"
 )
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
@@ -48,7 +44,7 @@ def impl_archive(ctx):
             fail("-linkpkg option not supported for ppx_archive rule")
 
     ## declare outputs
-    tmpdir = "_obazl_/"
+    tmpdir = "" # "_obazl_/"
     obj_files = []
     obj_cm_a = None
     obj_a    = None

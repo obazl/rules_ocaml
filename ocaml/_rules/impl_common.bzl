@@ -3,14 +3,8 @@
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CcDepsProvider",
-     "CompilationModeSettingProvider",
      "DefaultMemo",
-     "OcamlArchiveProvider",
-     "OcamlSignatureProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
      "OcamlNsResolverProvider",
-     "OcamlNsLibraryProvider",
      "OpamDepsProvider")
 
 tmpdir = "_obazl_/"
@@ -35,17 +29,20 @@ def merge_deps(deps,
         indirect_path_depsets.append(dep[DefaultMemo].paths)
 
         if OcamlNsResolverProvider in dep:
-            if hasattr(dep[OcamlNsResolverProvider], "files"):
-                indirect_file_depsets.append(dep[OcamlNsResolverProvider].files)
-                paths = []
-                for file in dep[OcamlNsResolverProvider].files.to_list():
-                    paths.append(file.dirname)
-                indirect_path_depsets.append(
-                    depset(direct = paths)
-                )
-                indirect_resolver_depsets.append(
-                    depset(direct = [dep[OcamlNsResolverProvider].resolver])
-                )
+            indirect_file_depsets.append(dep[DefaultInfo].files)
+            indirect_path_depsets.append(dep[DefaultMemo].paths)
+
+            # if hasattr(dep[OcamlNsResolverProvider], "files"):
+            #     indirect_file_depsets.append(dep[OcamlNsResolverProvider].files)
+            #     paths = []
+            #     for file in dep[OcamlNsResolverProvider].files.to_list():
+            #         paths.append(file.dirname)
+            #     indirect_path_depsets.append(
+            #         depset(direct = paths)
+            #     )
+            #     indirect_resolver_depsets.append(
+            #         depset(direct = [dep[OcamlNsResolverProvider].resolver])
+            #     )
 
         ## FIXME: use OcamlNsResolverProvider to pass resolvers
         indirect_resolver_depsets.append(dep[DefaultMemo].resolvers)
@@ -59,9 +56,6 @@ def merge_deps(deps,
             indirect_opam_depsets.append(dep[OpamDepsProvider].pkgs)
 
         if CcDepsProvider in dep:
-            # if len(dep[CcDepsProvider].libs) > 0:
-                # print("CCDEPS for %s" % dep)
-            # for ccdict in dep[CcDepsProvider].libs:
             for [dep, linkmode] in dep[CcDepsProvider].libs.items():  ## ccdict.items():
                 if dep.label in ccdeps_labels.keys():
                     if linkmode != ccdeps_labels[dep.label]:
@@ -77,6 +71,3 @@ def merge_deps(deps,
                     ccdeps_labels.update({dep.label: linkmode})
                     ccdeps.update({dep: linkmode})
             indirect_cc_deps.update(ccdeps)
-
-    # if len(indirect_cc_deps) > 0:
-    #     print("INDIRECT_CC_DEPS out: %s" % indirect_cc_deps)
