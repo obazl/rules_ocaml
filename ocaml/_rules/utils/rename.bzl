@@ -18,34 +18,47 @@ tmpdir = "_obazl_/"
 
 ######################################################
 def _this_module_in_submod_list(ctx, src, submodules):
+    ## NB: src is a File, from a label attrib (struct/src), not to be confused with the rule name.
+    # src.owner is the label of the rule that produces the file.
+    # By obazl rules, module names after normalization must match the filename in their src/struct attrib.
+    # print("_this_module_in_submod_list, src: %s" % src)
     # print("XXXX SRC PATH: %s" % src.path)
     (this_module, ext) = paths.split_extension(src.basename)
     this_module = capitalize_initial_char(this_module)
+    this_label  = src.owner
     this_path   = paths.dirname(src.path)
 
-    # print("THIS PATH: %s" % this_path)
+    # print("THIS LABEL: %s" % this_label)
     # print("THIS_MODULE: %s" % this_module)
+    # print("THIS PATH: %s" % src.path)
+    # print("THIS DIRNAME: %s" % src.dirname)
+    # print("THIS SHORTPATH: %s" % src.short_path)
 
     ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
     # print("SUBMODULES:  %s" % ns_resolver.submodules)
 
+    result = False
+
     submods = []
     for lbl_string in submodules:
         # print("Submod label: %s" % lbl_string)
-        # print("Submod path: %s" % Label(lbl_string).package)
-        # print("Submod target: %s" % Label(lbl_string).name)
+        submod = Label(lbl_string + ".ml")
+        # print("Submod ws: %s" % submod.workspace_name)
+        # print("Submod path: %s" % submod.package)
+        # print("Submod target: %s" % submod.name)
         (submod_path, submod_name) = submodule_from_label_string(lbl_string)
         # print("Normalized submod path: %s" % submod_path)
         # print("Normalized submod name: %s" % submod_name)
 
+        # print("THIS_LABEL.PACKAGE: %s" % this_label.package)
+        # print("SUBMOD_LABEL.PACKAGE: %s" % submod.package)
         if this_module == submod_name:
-            if this_path == submod_path:
-                return True
+            if this_label.package == submod.package:
+                result = True
 
-    return False
-    # submod_names = _submod_labels_to_submod_names(ns_resolver.submodules)
-    # print("SUBMOD_NAMES: %s" % submod_names)
-    # if this_module in submod_names:
+
+    # print("RESULT: %s" % result)
+    return result
 
 ###################################
 ## FIXME: we don't need this for executables (including test rules)
@@ -56,7 +69,8 @@ def get_module_name (ctx, src):
     debug = False
     # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
     #     debug = True
-    #     print("GET_MODULE_FILENAME for src: %s" % src)
+    # print("GET_MODULE_FILENAME for src: %s" % src)
+    # print("RESOLVER: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
 
     ns     = None
     ns_sep = "__"
@@ -66,8 +80,8 @@ def get_module_name (ctx, src):
 
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "prefix"):
         ns = ctx.attr._ns_resolver[OcamlNsResolverProvider].prefix
-        print("AAAAAAAAAAAAAAAA ns %s" % ns)
-        print("AAAAAAAAAAAAAAAA this %s" % this_module)
+        # print("NS RESOLVER PREFIX: %s" % ns)
+        # print("THIS: %s" % this_module)
         if this_module == ns:
             out_module = this_module
         else:
@@ -75,13 +89,8 @@ def get_module_name (ctx, src):
             if len(ns_resolver.submodules) > 0:
                 # (this_module, ext) = paths.split_extension(src.basename)
                 # this_module = capitalize_initial_char(this_module)
-                # if debug:
-                #     print("THIS_MODULE: %s" % this_module)
-                #     print("SUBMODULES:  %s" % ns_resolver.submodules)
-
-                # submod_names = _submod_labels_to_submod_names(ns_resolver.submodules)
-                # print("SUBMOD_NAMES: %s" % submod_names)
-                # if this_module in submod_names:
+                if debug:
+                    print("SUBMODULES:  %s" % ns_resolver.submodules)
 
                 if _this_module_in_submod_list(ctx, src, ns_resolver.submodules):
                     if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
@@ -213,70 +222,24 @@ def rename_module(ctx, src):  # , pfx):
   return outfile
 
 ################################################################
-def rename_srcfile(ctx, src, to):
-    """Rename implementation and interface (if given) using ns_resolver.
+def rename_srcfile(ctx, src, dest):
+    """Rename src file.  Copies input src to output dest"""
 
-    Inputs: context, prefix
-    Outputs: outfile :: declared File
-    """
-
-    debug = True
-    # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
-    #     debug = True
-
-    print("RENAME submodule {src} to {dest}".format(src=src, dest=to))
-
-    # if module name == ns, then output module name
-    # otherwise, outputp ns + "__" + module name
-
-    # (basename, extension) = paths.split_extension(src.basename)
-    # if ctx.attr._rule in ["ocaml_test", "ocaml_executable", "ppx_executable"]:
-    #     module = basename
-    # else:
-    #     module = capitalize_initial_char(basename)
-
-    # if module == ctx.attr._ns_prefix[BuildSettingInfo].value:
-    #     out_filename = module + extension
-    # else:
-    #     out_filename = prefix + "__" + module + extension
-
-    # if debug:
-    #     print("RENAMED MODULE %s" % out_filename)
-
-    # if pfx.find("/") > 0:
-    #   fail("ERROR: ns contains '/' : '%s'" % pfx)
-
-    inputs  = []
-    # outputs = []
-    outputs = {}
-    inputs.append(src)
-    # if ctx.attr._ns_pkg[BuildSettingInfo].value == "":
-    #     scope = tmpdir
-    # else:
-    #     print("NS_PKG: %s" % ctx.attr._ns_pkg[BuildSettingInfo])
-    #     scope = ctx.attr._ns_pkg[BuildSettingInfo].value + "/"
-    # scope = tmpdir
-    # (scope, ext) = paths.split_extension(src.basename)
-    # scope = ctx.attr._ns_prefix[BuildSettingInfo].value
-    # outfile = ctx.actions.declare_file(scope + "/" + out_filename)
-    outfile = ctx.actions.declare_file(to) # out_filename)
+    inputs  = [src]
+    # inputs.append(src)
+    outfile = ctx.actions.declare_file(dest)
 
     destdir = paths.normalize(outfile.dirname)
-    # print("DESTDIR: %s" % destdir)
 
     cmd = ""
-    dest = outfile.path
-    # print("DEST: %s" % dest)
-    # cmd = cmd + "touch {dest}; ".format(dest = bindir + "/" + tmpdir + src.path)
+    destpath = outfile.path
     cmd = cmd + "mkdir -p {destdir} && cp {src} {dest} && ".format(
       src = src.path,
       destdir = destdir,
-      dest = dest
+      dest = destpath
     )
 
     cmd = cmd + " true;"
-    # print("CMD: %s" % cmd)
-    # print("CP SRCS")
 
     ctx.actions.run_shell(
       # env = env,
@@ -288,7 +251,3 @@ def rename_srcfile(ctx, src, to):
       )
     )
     return outfile
-
-################################################################
-# def to_libarg(lib):
-#   return "'library-name=\"{}\"'".format(lib)

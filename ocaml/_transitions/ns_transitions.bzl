@@ -21,8 +21,28 @@ def print_config_state(settings, attr):
 
 ##############################################
 def _nslib_in_transition_impl(settings, attr):
+    debug = False
+    # if attr.name in ["color"]:
+    #     debug = True
+
+    if debug:
+        print("")
+        print(">>> nslib_in_transition")
+        print_config_state(settings, attr)
+        print(attr)
+
+    # if this in ns:submodules
+    #     pass on prefix but not ns:submodules
+    # else
+    #     reset ConfigState
+    pfx = ""
+    for submod_lbl in settings["@ocaml//ns:submodules"]:
+        if attr.name == Label(submod_lbl).name:
+            pfx = settings["@ocaml//ns:prefix"] + "__" + normalize_module_name(attr.name)
+            break
+
     return {
-        "@ocaml//ns:prefix"        : "",
+        "@ocaml//ns:prefix"        : pfx,
         "@ocaml//ns:submodules": [],
         # "@ppx//ns:prefix"          : "",
         # "@ppx//ns:submodules"  : []
@@ -35,14 +55,10 @@ nslib_in_transition = transition(
     inputs = [
         "@ocaml//ns:prefix",
         "@ocaml//ns:submodules",
-        # "@ppx//ns:prefix",
-        # "@ppx//ns:submodules",
     ],
     outputs = [
         "@ocaml//ns:prefix",
         "@ocaml//ns:submodules",
-        # "@ppx//ns:prefix",
-        # "@ppx//ns:submodules",
     ]
 )
 
@@ -58,7 +74,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         print(">>> " + transition)
         print_config_state(settings, attr)
 
-    nslib_name = attr.name
+    nslib_name = normalize_module_name(attr.name)
     ns_prefix = settings["@ocaml//ns:prefix"]
     ns_submodules = settings["@ocaml//ns:submodules"]
     ns_sublibs = settings["@ocaml//ns:sublibs"]
@@ -70,7 +86,6 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         submod = normalize_module_name(submod_label.name)
         attr_submodules.append(submod)
         attr_submodule_labels.append(str(submod_label))
-    # attr_submodules = attr.submodules
 
     attr_sublibs = []
     for sublib_label in attr.sublibs:
@@ -83,24 +98,14 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         ## new ns lib
         ns_prefix     = capitalize_initial_char(nslib_name)
         ns_submodules = attr_submodules
-    # elif ns_prefix == "":
-    #     ns_prefix = nslib_name
     elif capitalize_initial_char(nslib_name) in ns_submodules:
         ## this is an ns lib submodule of a parent nslib
         ns_prefix   = capitalize_initial_char(ns_prefix) + "__" + capitalize_initial_char(nslib_name)
-        # ns_prefix   = nslib_name
     elif capitalize_initial_char(nslib_name) in attr_submodules: ## ns_submodules:
-        ## this is an ns lib listed as one of its own submodules
+        ## this is an ns lib listed as one of its own submodules, i.e. an nslib main module
         ## remove from submodule list?
         ns_prefix     = nslib_name
     # else: # not a submodule - params are inherited from remote ns lib
-
-    # if attr.main:
-    #     ns_resolver = capitalize_initial_char(nslib_name) + "__0Resolver"
-    # elif capitalize_initial_char(nslib_name) in ns_submodules:
-    #     ## this is an ns lib serving as a submodule
-    # else:
-    #     resolver = capitalize_initial_char(nslib_name)
 
     if debug:
         print(" setting ConfigState:")

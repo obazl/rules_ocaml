@@ -67,10 +67,10 @@ def _ocaml_signature_impl(ctx):
         submod = normalize_module_label(lbl)
         ns_submodules.append(submod)
 
-    print("SIG SUBMODS: %s" % ns_submodules)
     ns_prefix     = ctx.attr._ns_prefix[BuildSettingInfo].value
-    if ns_prefix in ns_submodules:
-        ns_resolver = ns_prefix + "__0Resolver"
+
+    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
+        ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver
     else:
         ns_resolver = ns_prefix
 
@@ -134,21 +134,14 @@ def _ocaml_signature_impl(ctx):
         ns_files_depset = depset()
 
     (from_name, module_name) = get_module_name(ctx, ctx.file.src)
-    print("GOT FROM NAME: %s" % from_name)
-    print("GOT MODULE NAME: %s" % module_name)
 
     if ctx.attr.ppx:
-        ## this will also handle ns
-        sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src)
+        sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src, module_name + ".mli")
         direct_file_deps.append(ctx.file.ppx)
-        # (tmpdir, sigfile) = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src)
-    # elif ctx.attr.ns_resolver:
-    #     sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
-
     elif module_name != from_name:
         sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
     else:
-        sigfile = ctx.file.struct
+        sigfile = ctx.file.src
 
     # elif len(ns_submodules) > 0:
     #     (this_module, ext) = paths.split_extension(ctx.file.src.basename)

@@ -15,8 +15,9 @@ load("//ocaml:providers.bzl",
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 
 #######################
-def get_fs_prefix(lbl):
-    ## lbl is a string, not a label
+def get_fs_prefix(lbl_string):
+    # print("GET_FS_PREFIX: %s" % lbl_string)
+    ## lbl_string is a string, not a label
 
     # if ctx.workspace_name == "__main__": # default, if not explicitly named
     #     ws = ctx.workspace_name
@@ -25,12 +26,18 @@ def get_fs_prefix(lbl):
     # print("WS: %s" % ws)
     # ws = capitalize_initial_char(ws) if ws else ""
 
-    l = Label(lbl)
-    pathsegs = [x.replace("-", "_").capitalize() for x in l.package.split('/')]
+    lbl = Label(lbl_string)
+    if lbl_string.startswith("@"):
+        ws  = capitalize_initial_char(lbl.workspace_name) + "_"
+    else:
+        ws  = ""
+    # print(" FS WS: %s" % ws)
+    pathsegs = [x.replace("-", "_").capitalize() for x in lbl.package.split('/')]
     # ns_prefix = ws + ctx.attr.sep + ctx.attr.sep.join(pathsegs)
 
-    prefix = "_".join(pathsegs)
+    prefix = ws + "_".join(pathsegs)
     # print("FS PREFIX: %s" % prefix)
+
     return prefix
 
 ###############################

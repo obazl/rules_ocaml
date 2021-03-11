@@ -231,24 +231,11 @@ def impl_ns_library(ctx):
 
     resolver_dep = ctx.files._ns_resolver
 
-    if ctx.files.main:
-        ## FIXME: verify that main module is also listed in submodules
-        if debug:
-            print("DIRECT_FILE_DEPS: %s" % direct_file_deps)
-            print("INDIRECT_FILE_DEPS: %s" % indirect_file_depsets)
-            print("MAIN: %s" % ctx.files.main)
-        # dd = [ctx.files.main] + direct_file_deps
-        inputs_depset = depset(
-            order = "postorder",
-            direct = ctx.files.main + resolver_dep,
-            transitive = indirect_file_depsets
-        )
-    else:
-        inputs_depset = depset(
-            order = "postorder",
-            direct = resolver_dep,
-            transitive = indirect_file_depsets
-        )
+    inputs_depset = depset(
+        order = "postorder",
+        direct = resolver_dep,
+        transitive = indirect_file_depsets
+    )
 
     if debug:
         print("INPUTS_DEPSET: %s" % inputs_depset)

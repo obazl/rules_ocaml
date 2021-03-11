@@ -15,7 +15,7 @@ string_list_flag( name = "warnings",
 )
 
 string_flag( name = "prefix", build_setting_default = "")
-string_flag( name = "strategy", build_setting_default = "fs",
+string_flag( name = "strategy", build_setting_default = "ns",
              values = [
                  "fs",  ## derive ns prefix from filesystem path
                  "ns"    ## derive ns prefix from ns names

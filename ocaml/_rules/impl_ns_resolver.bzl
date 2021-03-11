@@ -131,25 +131,16 @@ def impl_ns_resolver(ctx):
             fs_prefix = "" # ns_prefix + "__"
             alias_prefix = ns_prefix
 
-        # submodule = normalize_module_name(submodule_label)
         if submodule == ns_prefix:  # submodule is 'main'
-            resolver_module_name = fs_prefix + resolver_module_name + "_0Resolver"
+            resolver_module_name = fs_prefix + resolver_module_name + "__0Resolver"
             continue ## no alias for main module
-        # elif submodule.startswith("__"):
-        #     ## submodule is an nslib submodule
-        #     pfx = ""
-        #     submodule = submodule[2:]
-        #     continue
+
         else:
             pfx = ns_prefix
-        print("XXXX %s" % submodule)
+
         pfx = fs_prefix
         submodule = capitalize_initial_char(submodule)
 
-        # if submodule == ns_prefix:
-        #     # we skipped this above
-        #     fail("Unexpected condition")
-        # else:
         alias = "module {mod} = {ns}{sep}{mod}".format(
             mod = submodule,
             sep = "" if fs_prefix != "" else module_sep,

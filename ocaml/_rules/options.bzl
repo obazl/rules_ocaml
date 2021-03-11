@@ -243,11 +243,11 @@ def options_module(ws):
         _ns_resolver = attr.label(
             doc = "Experimental",
             providers = [OcamlNsResolverProvider],
-            default = ws + "//ns",
+            default = "@ocaml//ns",
         ),
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = ws + "//ns:submodules",  # => string_list_setting
+            default = "@ocaml//ns:submodules",  # => string_list_setting
             # allow_files = True,
             # mandatory = True
         ),
@@ -260,7 +260,7 @@ def options_module(ws):
 ###################
 def options_ns_resolver(ws):
 
-    ws = "@" + ws
+    ws = "@ocaml" #  + ws
 
     return dict(
 
@@ -318,6 +318,7 @@ def options_ns_library(ws):
     if ws == "ocaml":
         _submod_providers   = [
             [OcamlModuleProvider],
+            [OcamlNsLibraryProvider],
             [PpxModuleProvider],
             # [OcamlSignatureProvider]
         ]
@@ -331,7 +332,7 @@ def options_ns_library(ws):
         _submod_providers = [PpxModuleProvider]
         _sublib_providers = [PpxNsLibraryProvider]
 
-    ws_prefix = "@" + ws
+    ws_prefix = "@ocaml" ## + ws
 
     _main_transition_out_fn = ocaml_nslib_main_out_transition
     _submodules_transition_out_fn = ocaml_nslib_submodules_out_transition
@@ -342,12 +343,12 @@ def options_ns_library(ws):
         _thread   = attr.label(default = ws_prefix + "//module/thread"),   # bool
         _warnings = attr.label(default = ws_prefix + "//module:warnings"), # string list
 
-        main = attr.label(
-            doc = "Module (source or compiled) to use as the ns module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
-            # allow_single_file = [".ml"]
-            # allow_files = True,
-            cfg = _main_transition_out_fn, # outgoing edge transition
-        ),
+        # main = attr.label(
+        #     doc = "Module (source or compiled) to use as the ns module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
+        #     # allow_single_file = [".ml"]
+        #     # allow_files = True,
+        #     cfg = _main_transition_out_fn, # outgoing edge transition
+        # ),
 
         ## we need this when we have sublibs but no direct submodules
         _ns_resolver = attr.label(
@@ -395,7 +396,7 @@ def options_ns_library(ws):
 ###################
 def options_ns_opts(ws):
 
-    ws = "@" + ws
+    ws = "@ocaml" # + ws
 
     return dict(
 

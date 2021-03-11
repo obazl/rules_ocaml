@@ -9,7 +9,7 @@ load("//ocaml:providers.bzl",
      "DefaultMemo",
      "OcamlArchiveProvider",
      "OcamlModuleProvider",
-     "OcamlNsLibraryProvider",
+     # "OcamlNsLibraryProvider",
      "OcamlNsResolverProvider",
      "OcamlSignatureProvider",
      "OpamDepsProvider",
@@ -229,13 +229,13 @@ def impl_module(ctx):
         ns_files_depset = depset()
 
     (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
-    print("GOT FROM NAME: %s" % from_name)
-    print("GOT MODULE NAME: %s" % module_name)
+    # print("GOT FROM NAME: %s" % from_name)
+    # print("GOT MODULE NAME: %s" % module_name)
     # fail("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
     if ctx.attr.ppx:
         ## this will also handle ns_resolver
-        out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name)
+        out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
         direct_file_deps.append(ctx.file.ppx)
     # elif ctx.attr.ns:  # we're hand-rolling an ns lib
     #     out_srcfile = rename_module(ctx, ctx.file.struct) #, ctx.attr._ns_resolver)
