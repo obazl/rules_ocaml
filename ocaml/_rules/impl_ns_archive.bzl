@@ -1,19 +1,10 @@
-load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-load("@bazel_skylib//lib:new_sets.bzl", "sets")
-load("@bazel_skylib//lib:paths.bzl", "paths")
-
 load("//ocaml:providers.bzl",
     "CompilationModeSettingProvider",
      "DefaultMemo",
-     "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
-     "OcamlSignatureProvider",
-     "OpamDepsProvider",
-     "PpxModuleProvider",
      "PpxNsArchiveProvider")
 
 load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
      "get_opamroot",
      "get_projroot",
      "get_sdkpath",
@@ -28,17 +19,11 @@ load(":impl_common.bzl", "tmpdir")
 #################
 def impl_ns_archive(ctx):
 
-    # print("NS LIB rule: %s" % ctx.label.name)
     debug = False
     # if (ctx.label.name == "stdune"):
     #     debug = True
 
-    # mode = "bytecode" # default
-    # if ctx.attr._rule == "ocaml_ns_archive":
-    #     mode = ctx.attr._mode[CompilationModeSettingProvider].value
-    # elif ctx.attr._rule == "ppx_ns_archive":
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
-    # print("NS ARCHIVE MODE %s" % mode)
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
@@ -51,6 +36,8 @@ def impl_ns_archive(ctx):
      opamProvider] = impl_ns_library(ctx)
     ####
 
+    ## now archive the lib
+
     ################################################################
     ns_archive_name = ctx.label.name.replace("-", "_")
     ns_ext = ".cma" if mode == "bytecode" else ".cmxa"
@@ -61,10 +48,8 @@ def impl_ns_archive(ctx):
     args = ctx.actions.args()
 
     if mode == "native":
-        # print("NATIVE")
         args.add(tc.ocamlopt.basename)
     else:
-        # print("BC")
         args.add(tc.ocamlc.basename)
 
     options = get_options(ctx.attr._rule, ctx)
@@ -78,7 +63,6 @@ def impl_ns_archive(ctx):
 
     args.add("-a")
 
-    # print("NS ARCHIVE FILE: %s" % ns_archive_file)
     args.add("-o", ns_archive_file)
 
     if ctx.attr._rule == "ocaml_ns_archive":
@@ -94,7 +78,6 @@ def impl_ns_archive(ctx):
         arguments = [args],
         inputs = defaultInfo.files,
         outputs = [ns_archive_file],
-        # tools = [tc.ocamlfind, tc.ocamlopt],
         mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,
@@ -102,7 +85,6 @@ def impl_ns_archive(ctx):
             ws  = ctx.label.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
-            # msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
         )
     )
 
@@ -116,13 +98,9 @@ def impl_ns_archive(ctx):
 
     execroot = get_projroot(ctx)
     apath = execroot + "/" + ctx.workspace_name + "/" + ns_archive_file.dirname
-    # print("APATH %s" % apath)
 
     newDefaultMemo = DefaultMemo(
         paths     = depset(direct = [apath], transitive = [defaultMemo.paths]),
-        resolvers = depset()
-        # resolvers = depset(direct = [direct_resolver] if direct_resolver else [],
-        #                    transitive = [indirect_resolvers_depset]),
     )
 
     if ctx.attr._rule == "ocaml_ns_archive":
@@ -148,11 +126,10 @@ def impl_ns_archive(ctx):
     else:
         fail("Unrecognized ctx.attr._rule: %s" % ctx.attr._rule)
 
-    return [newDefaultInfo,
-            newDefaultMemo,
-            # nslibProvider,
-            # opamProvider,
-            nsArchiveProvider
-            ]
+    return [
+        newDefaultInfo,
+        newDefaultMemo,
+        nsArchiveProvider
+    ]
 
 

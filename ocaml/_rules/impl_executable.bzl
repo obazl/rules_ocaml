@@ -30,6 +30,16 @@ def _handle_cc_deps(ctx,
                     cclib_deps,
                     cc_runfiles):
 
+    ## FIXME: static v. dynamic linking of cc libs in bytecode mode
+    # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
+
+    # default linkmode for toolchain is determined by platform
+    # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
+    # dynamic linking does not currently work on the mac - ocamlrun
+    # wants a file named 'dllfoo.so', which rust cannot produce. to
+    # support this we would need to rename the file using install_name_tool
+    # for macos linkmode is dynamic, so we need to override this for bytecode mode
+
     debug = False
     # if ctx.attr._rule == "ocaml_executable":
     #     debug = True
@@ -47,7 +57,7 @@ def _handle_cc_deps(ctx,
             else:
                 ccdeps.update({dep: linkmode})
 
-    for [dep, linkmode] in cc_deps_dict.items(): ## ccdict.items():
+    for [dep, linkmode] in cc_deps_dict.items():
         if debug:
             print("CCLIB DEP: ")
             print(dep)
@@ -144,9 +154,6 @@ def impl_executable(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    # if ctx.attr.mode:
-    #     mode = ctx.attr.mode
-    # else:
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     outfilename = ctx.label.name
@@ -159,24 +166,19 @@ def impl_executable(ctx):
 
     indirect_opam_depsets = []
 
-    indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
+    indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
+    indirect_adjunct_opam_depsets = []
 
     indirect_path_depsets = []
 
     direct_resolver = None
-    indirect_resolver_depsets = []
 
     direct_cc_deps    = {}
     direct_cc_deps.update(ctx.attr.cc_deps) # if ctx.attr.cc_deps else []
     indirect_cc_deps  = {}
-    if debug:
-        print("CCDEPSx: %s" % ctx.attr.cc_deps)
-        print("INDIRECT_CC_DEPS x: %s" % indirect_cc_deps)
     ################
 
-    # dep_graph = []
     includes  = []
 
     ################################################################
@@ -184,16 +186,6 @@ def impl_executable(ctx):
 
     if mode == "bytecode":
         args.add(tc.ocamlc.basename)
-
-        ## FIXME: static v. dynamic linking of cc libs in bytecode mode
-        # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
-
-        # default linkmode for toolchain is determined by platform
-        # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
-        # dynamic linking does not currently work on the mac - ocamlrun
-        # wants a file named 'dllfoo.so', which rust cannot produce. to
-        # support this we would need to rename the file using install_name_tool
-        # for macos linkmode is dynamic, so we need to override this for bytecode mode
         args.add("-custom")
     else:
         args.add(tc.ocamlopt.basename)
@@ -211,7 +203,6 @@ def impl_executable(ctx):
 
         # args.add("-I", "external/ocaml/switch/lib/stublibs")
 
-    # build_deps = []
     dynamic_libs = []
     static_libs  = []
     link_search  = []
@@ -219,7 +210,6 @@ def impl_executable(ctx):
     merge_deps(ctx.attr.deps,
                indirect_file_depsets,
                indirect_path_depsets,
-               indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -232,7 +222,6 @@ def impl_executable(ctx):
         merge_deps([ctx.attr.main],
                    indirect_file_depsets,
                    indirect_path_depsets,
-                   indirect_resolver_depsets,
                    indirect_opam_depsets,
                    indirect_adjunct_depsets,
                    indirect_adjunct_path_depsets,
@@ -256,9 +245,6 @@ def impl_executable(ctx):
     ## now we need to add cc deps to the cmd line
     cclib_deps  = []
     cc_runfiles = []
-    if debug:
-        print("xDIRECT_CC_DEPS: %s" % direct_cc_deps)
-        print("xINDIRECT_CC_DEPS: %s" % indirect_cc_deps)
     cc_deps_dict = {}
     cc_deps_dict.update(direct_cc_deps)
     cc_deps_dict.update(indirect_cc_deps)
@@ -268,11 +254,6 @@ def impl_executable(ctx):
                     includes,
                     cclib_deps,
                     cc_runfiles)
-
-    if debug:
-        print("LBL: %s" % ctx.label)
-        print("CCLIB_DEPS: %s" % cclib_deps)
-        print("CC_RUNFILES: %s" % cc_runfiles)
 
     args.add_all(includes, before_each="-I")
 
@@ -356,9 +337,5 @@ def impl_executable(ctx):
         adjuncts_provider,
         exe_provider
     ]
-
-    if debug:
-        print("IMPL_EXECUTABLE RESULTS:")
-        print(results)
 
     return results

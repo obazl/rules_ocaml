@@ -7,13 +7,13 @@ load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider",
      "OpamDepsProvider")
 
-tmpdir = "_obazl_/"
+tmpdir = "__obazl/"
 
 #########################################
 def merge_deps(deps,
                indirect_file_depsets,
                indirect_path_depsets,
-               indirect_resolver_depsets,
+               # indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -31,21 +31,6 @@ def merge_deps(deps,
         if OcamlNsResolverProvider in dep:
             indirect_file_depsets.append(dep[DefaultInfo].files)
             indirect_path_depsets.append(dep[DefaultMemo].paths)
-
-            # if hasattr(dep[OcamlNsResolverProvider], "files"):
-            #     indirect_file_depsets.append(dep[OcamlNsResolverProvider].files)
-            #     paths = []
-            #     for file in dep[OcamlNsResolverProvider].files.to_list():
-            #         paths.append(file.dirname)
-            #     indirect_path_depsets.append(
-            #         depset(direct = paths)
-            #     )
-            #     indirect_resolver_depsets.append(
-            #         depset(direct = [dep[OcamlNsResolverProvider].resolver])
-            #     )
-
-        ## FIXME: use OcamlNsResolverProvider to pass resolvers
-        indirect_resolver_depsets.append(dep[DefaultMemo].resolvers)
 
         if AdjunctDepsProvider in dep:
             indirect_adjunct_depsets.append(dep[AdjunctDepsProvider].nopam)

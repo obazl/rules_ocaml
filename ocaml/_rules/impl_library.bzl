@@ -3,18 +3,9 @@ load("//ocaml:providers.bzl",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
      "DefaultMemo",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
-     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "PpxLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlSDK",
      "OpamDepsProvider")
-
-load("//ocaml:providers.bzl", "PpxArchiveProvider")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
@@ -23,8 +14,6 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":impl_common.bzl",
      "merge_deps")
-     # "tmpdir")
-
 
 #############################
 def impl_library(ctx):
@@ -44,8 +33,8 @@ def impl_library(ctx):
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     build_deps = []  # for the command line
-    includes = []
-    dep_graph = []  # for the run action inputs
+    includes   = []
+    dep_graph  = []  # for the run action inputs
 
     ################
     direct_file_deps = []
@@ -60,7 +49,6 @@ def impl_library(ctx):
     indirect_path_depsets  = []
 
     direct_resolver = None
-    indirect_resolver_depsets = []
 
     direct_cc_deps  = {}
     indirect_cc_deps  = {}
@@ -69,34 +57,29 @@ def impl_library(ctx):
     merge_deps(ctx.attr.modules,
                indirect_file_depsets,
                indirect_path_depsets,
-               indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    # ctx.actions.do_nothing(
-    #     mnemonic = "OcamlLibrary",
-    #     inputs = depset(transitive=indirect_file_depsets)
-    # )
+    ## Library targets do not produce anything, they just pass on their deps.
+    #######################
+    ctx.actions.do_nothing(
+        mnemonic = "OcamlLibrary" if ctx.attr._rule == "ocaml_library" else "PpxLibrary",
+        inputs = depset(transitive=indirect_file_depsets)
+    )
+    #######################
 
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            # direct = outputs, # directs,
             transitive = indirect_file_depsets
-            # transitive = [mydeps.nopam] # , mydeps.opam]
-            # depset(order="postorder", direct = indirects)]
         )
     )
 
-    # search_paths = sets.to_list(sets.make(includes))
-    # search_paths.append(obj_cm_.dirname)
-
     defaultMemo = DefaultMemo(
         paths  = depset(transitive=indirect_path_depsets),
-        resolvers = depset(transitive=indirect_resolver_depsets)
     )
 
     if ctx.attr._rule == "ocaml_library":
@@ -119,7 +102,6 @@ def impl_library(ctx):
         pkgs = opam_depset
     )
 
-    ## FIXME: add CcDepsProvider
     cclibs = {}
     # cclibs.update(ctx.attr.cc_deps)
     if len(indirect_cc_deps) > 0:
