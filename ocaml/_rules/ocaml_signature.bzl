@@ -4,37 +4,32 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
-     "CcDepsProvider",
      "CompilationModeSettingProvider",
      "DefaultMemo",
+
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsResolverProvider",
      "OcamlNsArchiveProvider",
      "OcamlNsLibraryProvider",
+     "OcamlNsResolverProvider",
      "OcamlSDK",
      "OcamlSignatureProvider",
      "OpamDepsProvider",
      "PpxArchiveProvider",
      "PpxModuleProvider",
-     "PpxNsLibraryProvider",
-     "PpxExecutableProvider")
+     "PpxNsLibraryProvider")
 
 load("//ocaml/_rules/utils:rename.bzl",
      "get_module_name",
-     "rename_module",
      "rename_srcfile")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_transitions:transitions.bzl",
-    "ocaml_signature_deps_out_transition")
+# load("//ocaml/_transitions:transitions.bzl", "ocaml_signature_deps_out_transition")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "file_to_lib_name",
-     "get_fs_prefix",
      "get_opamroot",
      "get_sdkpath",
      "normalize_module_label",
@@ -47,13 +42,7 @@ load(":options.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_common.bzl",
-     "merge_deps",
-     "tmpdir")
-
-OCAML_INTF_FILETYPES = [
-    ".mli", ".cmi"
-]
+load(":impl_common.bzl", "merge_deps", "tmpdir")
 
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
@@ -101,13 +90,13 @@ def _ocaml_signature_impl(ctx):
 
     ################
     direct_file_deps = []
-    indirect_file_depsets = [] # will be added to inputs and passed on as transitive outputs
+    indirect_file_depsets = []
 
     indirect_opam_depsets = []
 
-    indirect_adjunct_depsets = []  # list of depsets gathered from direct deps
-    indirect_adjunct_path_depsets = []  # list of depsets gathered from direct deps
-    indirect_adjunct_opam_depsets  = []  # list of depsets gathered from direct deps
+    indirect_adjunct_depsets      = []
+    indirect_adjunct_path_depsets = []
+    indirect_adjunct_opam_depsets = []
 
     indirect_path_depsets = []
 
@@ -140,58 +129,22 @@ def _ocaml_signature_impl(ctx):
     else:
         sigfile = ctx.file.src
 
-    # elif len(ns_submodules) > 0:
-    #     (this_module, ext) = paths.split_extension(ctx.file.src.basename)
-    #     this_module = capitalize_initial_char(this_module)
-    #     if debug:
-    #         print("THIS_MODULE: %s" % this_module)
-    #         print("SUBMODULES:  %s" % ns_submodules)
-    #     if this_module in ns_submodules:
-    #         # rename this module to put it in the namespace
-    #         # sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr._ns_resolver)
-    #         fs_prefix = get_fs_prefix(str(ctx.label))
-    #         sigfile = rename_submodule(ctx, fs_prefix, ctx.file.src)
-    #     else:
-    #         sigfile = ctx.file.src
-    # else:
-    # #     if ctx.attr.module:
-    # #         sigfile = rename_module(ctx, ctx.file.src) #, ctx.attr.ns_resolver)
-    #     sigfile = ctx.file.src
-
-    if debug:
-        print("SOURCE SIGFILE: %s" % sigfile)
-
     scope = tmpdir
 
-    # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
-    if debug:
-        print("SIGFILE: %s" % sigfile)
-    cmifname = sigfile.basename.rstrip("mli") + "cmi"
-    if debug:
-        print("CMIFNAME: %s" % cmifname)
+    cmifname = paths.replace_extension(sigfile.basename, ".cmi")
 
     obj_cmi = ctx.actions.declare_file(scope + cmifname)
-
-    if debug:
-        print("OBJ_CMI: %s" % obj_cmi)
 
     ################################################################
     args = ctx.actions.args()
 
-    # args.add("ocamlc")
     if mode == "native":
         args.add(tc.ocamlopt.basename)
     else:
         args.add(tc.ocamlc.basename)
-    # options = tc.opts + ctx.attr.opts
-    # args.add_all(options)
-    args.add_all(ctx.attr.opts)
-    # for opt in ctx.attr._opts[BuildSettingInfo].value:
-    #     # print("EXTRA OPT: %s" % opt)
-    #     args.add(opt)
 
-    options = get_options(rule, ctx)
-    args.add_all(options)
+    _options = get_options(rule, ctx)
+    args.add_all(_options)
 
     if ns_resolver:
         args.add("-no-alias-deps")
@@ -236,16 +189,6 @@ def _ocaml_signature_impl(ctx):
         for path in provider.nopam_paths.to_list():
             args.add("-I", path)
 
-
-    # indirect_opams_depset = depset(transitive = indirect_opam_depsets)
-    # for opam in indirect_opams_depset.to_list():
-    #     args.add("-package", opam)
-
-    # if ctx.attr.deps_opam:
-    #     args.add("-linkpkg")  ## add files to cmd line
-    #     for dep in ctx.attr.deps_opam:
-    #         args.add("-package", dep)  ## add dirs to search path
-
     opam_depset = depset(direct = ctx.attr.deps_opam,
                          transitive = indirect_opam_depsets)
     for dep in opam_depset.to_list():
@@ -256,174 +199,44 @@ def _ocaml_signature_impl(ctx):
     cc_deps  = {}
     link_search = []
 
-    # for dep in mydeps.nopam.to_list():
-    #   if debug:
-    #       print("NOPAM DEP: %s" % dep)
-    #       print("NOPAM DEP ext: %s" % dep.extension)
-    #   # if dep.basename.startswith("ppx"):
-    #   #     print("OMITTING PPX dep: %s" % dep)
-    #   if dep.extension == "cmx":
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #       # ocamlc chokes on cmx when building cmi
-    #       # build_deps.append(dep)
-    #   elif dep.extension == "cmo":
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #       # ocamlc chokes on cmx when building cmi
-    #       # build_deps.append(dep)
-    #   elif dep.extension == "cmi":
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #   elif dep.extension == "mli":
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #   elif dep.extension == "cma":
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #       build_deps.append(dep)
-    #   elif dep.extension == "cmxa":
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #       # build_deps.append(dep)
-    #       # build_deps.append(dep) ## compiler "don't know what to do with" cmxa files
-    #       # for g in dep[OcamlArchiveProvider].deps.nopam.to_list():
-    #       #     if g.path.endswith(".cmx"):
-    #       #         includes.append(g.dirname)
-    #       #         build_deps.append(g)
-    #       #         dep_graph.append(g)
-    #   elif dep.extension == "o":
-    #       # build_deps.append(dep)
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #   elif dep.extension == "a":
-    #       # build_deps.append(dep)
-    #       includes.append(dep.dirname)
-    #       dep_graph.append(dep)
-    #   elif dep.extension == "lo":
-    #       if debug:
-    #           print("NOPAM .lo DEP: %s" % dep)
-    #           dep_graph.append(dep)
-    #           args.add("-ccopt", "-l" + dep.path)
-    #   elif dep.extension == "so":
-    #       if debug:
-    #           print("ADDING DSO FILE: %s" % dep)
-    #       dep_graph.append(dep)
-    #       link_search.append("-L" + dep.dirname)
-    #       libname = file_to_lib_name(dep)
-    #       cc_deps.append("-l" + libname)
-    #       # libname = dep.basename[:-3]
-    #       # libname = libname[3:]
-    #       # args.add("-ccopt", "-L" + dep.dirname)
-    #       # args.add("-cclib", "-l" + libname)
-    #       # cclib_deps.append(dep)
-    #   elif dep.extension == "dylib":
-    #       if debug:
-    #           print("ADDING DYLIB: %s" % dep)
-    #       dep_graph.append(dep)
-    #       link_search.append("-L" + dep.dirname)
-    #       libname = file_to_lib_name(dep)
-    #       cc_deps.append("-l" + libname)
-    #       # libname = dep.basename[:-6]
-    #       # libname = libname[3:]
-    #       # args.add("-ccopt", "-L" + dep.dirname)
-    #       # args.add("-cclib", "-l" + libname)
-    #       # includes.append(dep.dirname)
-    #       # cclib_deps.append(dep)
-    #   elif dep.extension == ".cmxs":
-    #       includes.append(dep.dirname)
-    #   else:
-    #       if debug:
-    #           print("NOMAP DEP not .cmx, ,cmxa, .o, .so: %s" % dep.path)
-
-    # print("XXXX DEPS for %s" % ctx.label.name)
-    # for dep in ctx.attr.deps:
-    #     if debug:
-    #         print("DEP: %s" % dep)
-    #     # if OpamPkgInfo in dep:
-    #     #   g = dep[OpamPkgInfo].pkg.to_list()[0]
-    #     #   args.add("-package", dep[OpamPkgInfo].pkg.to_list()[0].name)
-    #     # else:
-    #     for g in dep[DefaultInfo].files.to_list():
-    #         if debug:
-    #             print("DEPFILE %s" % g)
-    #         # print(g)
-    #         # if g.path.endswith(".o"):
-    #         #   dep_graph.append(g)
-    #         #   includes.append(g.dirname)
-    #         if g.path.endswith(".cmx"):
-    #             dep_graph.append(g)
-    #             includes.append(g.dirname)
-    #         elif g.path.endswith(".cmxa"):
-    #             dep_graph.append(g)
-    #             includes.append(g.dirname)
-    #             ## expose cmi files of deps for linking
-    #             if OcamlArchiveProvider in dep:
-    #                 for h in dep[OcamlArchiveProvider].deps.nopam.to_list():
-    #                     # print("LIBDEP: %s" % h)
-    #                     if h.path.endswith(".cmx"):
-    #                         dep_graph.append(h)
-    #                         includes.append(h.dirname)
-    #             elif PpxArchiveProvider in dep:
-    #                 for h in dep[PpxArchiveProvider].deps.nopam.to_list():
-    #                     # print("LIBDEP: %s" % h)
-    #                     if h.path.endswith(".cmx"):
-    #                         dep_graph.append(h)
-    #                         includes.append(h.dirname)
-    #         elif g.path.endswith(".cmi"):
-    #             intf_dep = g
-    #             #   dep_graph.append(g)
-    #             includes.append(g.dirname)
-
-    # args.add_all(link_search, before_each="-ccopt", uniquify = True)
-    # args.add_all(cc_deps, before_each="-cclib", uniquify = True)
-
     args.add_all(includes, before_each="-I", uniquify = True)
     args.add_all(build_deps)
 
     args.add("-o", obj_cmi)
 
-    # args.add(ctx.file.src)
     args.add("-intf", sigfile)
 
-    dep_graph.append(sigfile) #] + build_deps
-    # if ctx.attr.ns_resolver:
-    #     if mode == "native":
-    #         dep_graph.append(ctx.attr.ns_resolver[OcamlNsLibraryProvider].payload.cmx)
-    #     else:
-    #         dep_graph.append(ctx.attr.ns_resolver[OcamlNsLibraryProvider].payload.cmo)
+    dep_graph.append(sigfile)
 
-    input_depset = depset(direct = dep_graph, # direct_file_deps,
+    input_depset = depset(direct = dep_graph,
                           transitive = indirect_file_depsets)
 
     ctx.actions.run(
         env = env,
         executable = tc.ocamlfind,
         arguments = [args],
-        inputs = input_depset, # dep_graph,
+        inputs = input_depset,
         outputs = [obj_cmi],
         tools = [tc.ocamlopt],
-        mnemonic = "OcamlInterface",
-        progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}{msg}".format(
+        mnemonic = "OcamlSignature",
+        progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}".format(
             mode = mode,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
-            tgt=ctx.label.name,
-            msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
+            tgt=ctx.label.name
         )
-        # progress_message = "ocaml_signature compile {}".format(
-        #     # ctx.label.name,
-        #     ctx.attr.msg
-        #   )
     )
 
     defaultInfo = DefaultInfo(
-        files = depset(order="postorder",
-                       direct = [obj_cmi],
-                       transitive = [depset(order="postorder",
-                                            direct = [sigfile],
-                                            transitive = indirect_file_depsets
-                                            )])
+        files = depset(
+            order="postorder",
+            direct = [obj_cmi],
+            transitive = [depset(
+                order="postorder",
+                direct = [sigfile],
+                transitive = indirect_file_depsets
+            )]
+        )
     )
 
     search_paths = sets.to_list(sets.make(includes))  ## uniqify
@@ -481,31 +294,26 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _warnings  = attr.label(default = "@ocaml//signature:warnings"),
         #### end options ####
 
-        # module_name   = attr.string(
-        #     doc = "Module name."
-        # ),
-        # ns_sep = attr.string(
-        #     doc = "Namespace separator.  Default: '__'",
-        #     default = "__"
-        # ),
         src = attr.label(
             doc = "A single .mli source file label",
-            allow_single_file = OCAML_INTF_FILETYPES
+            allow_single_file = [".mli", ".cmi"]
         ),
-        module = attr.string(
-            doc = "Name for output file. Use to coerce input file with different name, e.g. for a file generated from a .mli file to a different name, like foo.cppo.mli."
-        ),
+        # module = attr.string(
+        #     doc = "Name for output file. Use to coerce input file with different name, e.g. for a file generated from a .mli file to a different name, like foo.cppo.mli."
+        # ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
-            providers = [[OcamlArchiveProvider],
-                         [OcamlSignatureProvider],
-                         [OcamlLibraryProvider],
-                         [OcamlNsArchiveProvider],
-                         [OcamlNsLibraryProvider],
-                         [PpxArchiveProvider],
-                         [PpxModuleProvider],
-                         [PpxNsLibraryProvider],
-                         [OcamlModuleProvider]],
+            providers = [
+                [OcamlArchiveProvider],
+                [OcamlLibraryProvider],
+                [OcamlModuleProvider],
+                [OcamlNsArchiveProvider],
+                [OcamlNsLibraryProvider],
+                [OcamlSignatureProvider],
+                [PpxArchiveProvider],
+                [PpxModuleProvider],
+                [PpxNsLibraryProvider],
+            ],
             # cfg = ocaml_signature_deps_out_transition
         ),
         # _allowlist_function_transition = attr.label(
@@ -531,9 +339,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 
         _mode       = attr.label(
             default = "@ocaml//mode",
-        ),
-        msg = attr.string(
-            doc = "Deprecated"
         ),
         _rule = attr.string( default = "ocaml_signature" ),
         _sdkpath = attr.label(

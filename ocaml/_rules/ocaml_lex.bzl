@@ -3,20 +3,12 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",)
 
-load("//ocaml/_rules/utils:rename.bzl", "rename_module")
-
-load(":impl_ppx_transform.bzl", "impl_ppx_transform")
-
 load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
 )
 
-OCAML_INTF_FILETYPES = [
-    ".mli", ".cmi"
-]
+load(":impl_common.bzl", "tmpdir")
 
 ########## RULE:  OCAML_INTERFACE  ################
 def _ocaml_lex_impl(ctx):
@@ -36,14 +28,9 @@ def _ocaml_lex_impl(ctx):
 
   lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
 
-  tmpdir = "_obazl_/"
-
   lexer = ctx.actions.declare_file(lexer_fname)
 
-  if debug:
-      print("lexer: %s" % lexer)
-
-  ################################################################
+  #########################
   args = ctx.actions.args()
 
   if mode == "native":

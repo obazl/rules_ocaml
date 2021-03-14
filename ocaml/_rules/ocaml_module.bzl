@@ -1,15 +1,6 @@
-load("//ocaml:providers.bzl",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlSignatureProvider",
-     "PpxArchiveProvider",
-     "PpxExecutableProvider",
-     "PpxModuleProvider")
+load("//ocaml:providers.bzl", "OcamlModuleProvider")
 
-load("//ocaml/_transitions:transitions.bzl",
-     "module_in_transition")
+load("//ocaml/_transitions:transitions.bzl", "module_in_transition")
 
 load(":options.bzl",
      "options",
@@ -18,10 +9,6 @@ load(":options.bzl",
      "options_ppx")
 
 load(":impl_module.bzl", "impl_module")
-
-OCAML_IMPL_FILETYPES = [
-    ".ml", ".cmx", ".cmo", ".cma"
-]
 
 ################################
 rule_options = options("ocaml")

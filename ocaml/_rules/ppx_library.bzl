@@ -4,11 +4,7 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options", "options_library")
 
-# load("//ocaml/_transitions:transitions.bzl", "ppx_mode_transition")
-
 load(":impl_library.bzl", "impl_library")
-
-# print("implementation/ocaml.bzl loading")
 
 ###############################
 rule_options = options("ocaml")
@@ -23,7 +19,7 @@ ppx_library = rule(
         rule_options,
         modules = attr.label_list(
             doc = "List of components.",
-            providers = [[DefaultInfo], [PpxModuleProvider]]
+            providers = [[PpxModuleProvider]]
         ),
         _rule = attr.string( default = "ppx_library" ),
     ),

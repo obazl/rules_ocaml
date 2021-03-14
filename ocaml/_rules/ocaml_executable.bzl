@@ -1,11 +1,3 @@
-load("//ocaml:providers.bzl",
-     "OcamlArchiveProvider",
-     "OcamlLibraryProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlModuleProvider",
-     "PpxModuleProvider")
-
 load("//ocaml:providers.bzl", "PpxInfo", "PpxArchiveProvider")
 
 load(":options.bzl", "options", "options_executable")

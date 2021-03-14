@@ -1,38 +1,8 @@
-load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-
-load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
-     # "DefaultMemo",
-     "OcamlArchiveProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlSDK",
-     "PpxArchiveProvider",
-     "PpxLibraryProvider",
-     "PpxModuleProvider",
-     "PpxNsArchiveProvider",
-     "PpxNsLibraryProvider")
-
 load(":impl_executable.bzl", "impl_executable")
 
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
-load(":impl_ppx_transform.bzl", "impl_ppx_transform")
-
-load("//ocaml/_functions:utils.bzl",
-     "file_to_lib_name",
-     "get_opamroot",
-     "get_sdkpath",
-)
-
 load(":options.bzl", "options", "options_executable")
-
-load("//ocaml/_rules/utils:utils.bzl", "get_options")
-
-load(":impl_common.bzl", "merge_deps")
 
 ################################
 rule_options = options("ocaml")

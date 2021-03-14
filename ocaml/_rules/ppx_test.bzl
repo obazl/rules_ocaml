@@ -70,7 +70,7 @@ ppx_x_test = rule(
     ),
     ppx = attr.label(
         mandatory = True,
-        providers = [[DefaultInfo], [PpxExecutableProvider]],
+        providers = [[PpxExecutableProvider]],
         executable = True,
         cfg = "host",
         allow_single_file = True

@@ -1,13 +1,12 @@
 load("//ocaml:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlImportProvider",
-     "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider")
-
-load("//ocaml:providers.bzl", "PpxArchiveProvider") ## what about PpxModule?
+     "OcamlNsLibraryProvider",
+     "OcamlSignatureProvider",
+     "PpxArchiveProvider") ## what about PpxModule?
 
 load(":options.bzl", "options")
 
@@ -23,20 +22,20 @@ ocaml_archive = rule(
             doc = "Name of generated archive file, without extension. Overrides `name` attribute."
         ),
         ## CONFIGURABLE DEFAULTS
-        _linkall     = attr.label(default = "@ocaml//archive/linkall"), # FIXME: call it alwayslink?
+        _linkall     = attr.label(default = "@ocaml//archive/linkall"),
         _thread     = attr.label(default = "@ocaml//archive/thread"),
         _warnings  = attr.label(default = "@ocaml//archive:warnings"),
         #### end options ####
         doc = attr.string( doc = "Deprecated" ),
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OcamlImportProvider],
-                         [OcamlSignatureProvider],
+            providers = [[OcamlArchiveProvider],
+                         [OcamlImportProvider],
                          [OcamlLibraryProvider],
                          [OcamlModuleProvider],
                          [OcamlNsArchiveProvider],
                          [OcamlNsLibraryProvider],
-                         [OcamlArchiveProvider],
+                         [OcamlSignatureProvider],
                          [PpxArchiveProvider]
                          ],
         ),

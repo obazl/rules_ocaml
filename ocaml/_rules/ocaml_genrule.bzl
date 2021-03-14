@@ -3,7 +3,6 @@ def impl_genrule(ctx):
 
     debug = False
     if ctx.label.name in ["remove_snark_keys_trigger"]:
-    # if ctx.label.name in ["_Constraint", "_Cvar"]: ## ,  "_Tags"]:
         debug = True
 
     if debug:
@@ -88,9 +87,6 @@ A list of tool dependencies for this rule.
             """,
             mandatory = True
             ),
-        # gen = attr.label_keyed_string_dict(
-        #     doc = "Experimental. Key is executable target, value is command-line arg string."
-        # ),
         _rule = attr.string( default = "ocaml_genrule" ),
     )
 )

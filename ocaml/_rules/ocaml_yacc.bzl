@@ -1,22 +1,11 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider")
-
-load("//ocaml/_rules/utils:rename.bzl", "rename_module")
-
-load(":impl_ppx_transform.bzl", "impl_ppx_transform")
+load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
 
 load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
 )
-
-OCAML_INTF_FILETYPES = [
-    ".mli", ".cmi"
-]
 
 ########## RULE:  OCAML_INTERFACE  ################
 def _ocaml_yacc_impl(ctx):
@@ -42,16 +31,6 @@ def _ocaml_yacc_impl(ctx):
   yaccer = ctx.actions.declare_file(tmpdir + yaccer_fname)
   yacceri = ctx.actions.declare_file(tmpdir + yacceri_fname)
 
-  # if debug:
-  #     print("yaccer: %s" % yaccer)
-
-  ################################################################
-  # args = ctx.actions.args()
-
-  # args.add_all(ctx.attr.opts)
-
-  # args.add(ctx.file.src)
-
   ctx.actions.run_shell(
       inputs  = [ctx.file.src],
       outputs = [yaccer, yacceri],
@@ -67,19 +46,6 @@ def _ocaml_yacc_impl(ctx):
           ),
 
       ])
-      # env = env,
-      # executable = tc.ocamlyacc,
-      # arguments = [args],
-      # inputs = [ctx.file.src],
-      # outputs = [yaccer],
-      # tools = [tc.ocamlyacc],
-      # mnemonic = "OcamlYacc",
-      # progress_message = "{mode} ocaml_yacc: @{ws}//{pkg}:{tgt}".format(
-      #     mode = mode,
-      #     ws  = ctx.label.workspace_name,
-      #     pkg = ctx.label.package,
-      #     tgt=ctx.label.name
-      # )
   )
 
   return [DefaultInfo(files = depset(direct = [yaccer]))]

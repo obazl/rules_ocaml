@@ -1,15 +1,8 @@
 load("//ocaml:providers.bzl",
-     "OcamlSDK",
      "PpxExecutableProvider",
      "PpxModuleProvider")
 
-# load("//ppx/_transitions:transitions.bzl",
-#      # "ppx_exe_deps_out_transition",
-#      "ppx_exe_in_transition"
-#      )
-
-load("//ocaml/_transitions:transitions.bzl",
-     "executable_in_transition")
+load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
 load(":options.bzl", "options")
 

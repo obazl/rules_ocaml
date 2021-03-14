@@ -4,8 +4,6 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options")
 
-# load("//ppx/_transitions:transitions.bzl", "ppx_mode_transition")
-
 load(":impl_archive.bzl", "impl_archive")
 
 ###################
@@ -23,10 +21,10 @@ ppx_archive = rule(
         _thread     = attr.label(default = "@ppx//archive/thread"),
         _warnings  = attr.label(default = "@ppx//archive:warnings"),
         #### end options ####
-        # msg = attr.string( doc = "DEPRECATED" ),
+
         modules = attr.label_list(
             doc = "List of OCaml build dependencies to include in archive.",
-            providers = [[DefaultInfo], [PpxModuleProvider]]
+            providers = [[PpxModuleProvider]]
         ),
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
@@ -60,7 +58,7 @@ ppx_archive = rule(
         # ),
     ),
     # cfg     = ppx_mode_transition,
-    provides = [DefaultInfo, PpxArchiveProvider],
+    provides = [PpxArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

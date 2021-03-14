@@ -10,17 +10,12 @@ load(":impl_ns_library.bzl", "impl_ns_library")
 
 load("//ocaml/_transitions:ns_transitions.bzl", "nslib_in_transition")
 
-OCAML_FILETYPES = [
-    ".ml", ".mli", ".cmx", ".cmo", ".cma"
-]
-
-################################
+###############################
 rule_options = options("ocaml")
 rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ns_library("ocaml"))
-# rule_options.update(options_ppx)
 
-##############
+######################
 ppx_ns_library = rule(
     implementation = impl_ns_library,
     doc = """Generate a PPX namespace module.
@@ -31,7 +26,7 @@ ppx_ns_library = rule(
         _rule = attr.string(default = "ppx_ns_library"),
     ),
     cfg     = nslib_in_transition,
-    provides = [DefaultInfo, PpxNsLibraryProvider],
+    provides = [PpxNsLibraryProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
