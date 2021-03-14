@@ -1,20 +1,14 @@
-load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
-     "DefaultMemo",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsResolverProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlSDK",
-     "OcamlSignatureProvider",
-     "PpxArchiveProvider")
+load("//ocaml:providers.bzl", "OcamlLibraryProvider")
+
+load(":options.bzl", "options", "options_library")
 
 load(":impl_library.bzl", "impl_library")
 
-################################################################
+###############################
+rule_options = options("ocaml")
+rule_options.update(options_library("ocaml"))
+
+#####################
 ocaml_library = rule(
     implementation = impl_library,
     doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OcamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider).
@@ -35,39 +29,7 @@ more information see [Collections: Libraries, Archives and
 Packages](../ug/collections.md).
     """,
     attrs = dict(
-       _sdkpath = attr.label( ## FIXME: delete?
-            default = Label("@ocaml//:path")
-        ),
-        # lib_name = attr.string(),
-        # doc = attr.string(),
-        ## FIXME: remove opts
-        # opts                    = attr.string_list(),
-        ## FIXME: 'srcs' instead of 'deps'
-        srcs = attr.label_list(
-            providers = [[OcamlImportProvider],
-                         [OcamlSignatureProvider],
-                         [OcamlLibraryProvider],
-                         [OcamlModuleProvider],
-                         [OcamlNsLibraryProvider],
-                         [OcamlArchiveProvider],
-                         [PpxArchiveProvider]],
-        ),
-        modules = attr.label_list(
-            doc = "List of OCaml dependencies.",
-            providers = [[OcamlImportProvider],
-                         [OcamlSignatureProvider],
-                         [OcamlLibraryProvider],
-                         [OcamlModuleProvider],
-                         [OcamlNsResolverProvider],
-                         [OcamlNsArchiveProvider],
-                         [OcamlNsLibraryProvider],
-                         [OcamlArchiveProvider],
-                         [PpxArchiveProvider]],
-        ),
-        _mode = attr.label(  ## FIXME: not needed?
-            default = "@ocaml//mode"
-        ),
-        msg = attr.string( doc = "DEPRECATED" ),
+        rule_options,
         _rule = attr.string( default = "ocaml_library" )
     ),
     provides = [OcamlLibraryProvider],
