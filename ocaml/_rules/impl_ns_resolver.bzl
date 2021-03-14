@@ -44,19 +44,14 @@ def impl_ns_resolver(ctx):
 
     ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
     submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
-    sublibs = ctx.attr._ns_sublibs[BuildSettingInfo].value
 
     if len(submodules) < 1:
         if debug:
             print("NO SUBMODULES")
-        if len(sublibs) < 1:
-            if debug:
-                print("NO SUBLIBS: returning null ns")
-                print()
-            return [DefaultInfo(files = depset()),
-                    DefaultMemo(paths=depset(), resolvers=depset()),
-                    OcamlNsResolverProvider(
-                    )]
+        return [DefaultInfo(files = depset()),
+                DefaultMemo(paths=depset(), resolvers=depset()),
+                OcamlNsResolverProvider(
+                )]
 
     user_main = False
 

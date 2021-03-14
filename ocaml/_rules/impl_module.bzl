@@ -47,9 +47,8 @@ def _submod_labels_to_submod_names(submod_labels):
 def impl_module(ctx):
 
     debug = False
-    if ctx.label.name in ["_Color", "_Demo__Red"]: # ["_Red", "_Green", "_Blue"]:
-        debug = True
-        print("XY")
+    # if ctx.label.name in ["_Color", "_Demo__Red"]: # ["_Red", "_Green", "_Blue"]:
+    #     debug = True
 
     if normalize_module_name(ctx.label.name) != normalize_module_name(ctx.file.struct.basename):
         print("Rule name: %s" % normalize_module_name(ctx.label.name))

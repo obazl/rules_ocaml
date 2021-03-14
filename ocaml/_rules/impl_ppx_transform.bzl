@@ -8,10 +8,7 @@ load("//ocaml/_functions:utils.bzl",
 
 # load("//ocaml/_rules/utils:rename.bzl", "get_module_filename")
 
-load(":impl_common.bzl",
-     "tmpdir")
-
-# tmpdir = "_obazl_"
+load(":impl_common.bzl", "tmpdir")
 
 ################################################################
 def impl_ppx_transform(rule, ctx, src, to):
@@ -29,15 +26,16 @@ def impl_ppx_transform(rule, ctx, src, to):
 
     # to = get_module_filename(ctx, src)  # with renaming...
     if debug:
-        print("PPX MODULE NAME: %s" % to)
+        print()
+        print("Start: impl_ppx_transform: %s" % to)
 
-    outfilename = tmpdir + to
+    scope = tmpdir
 
-    outfile = ctx.actions.declare_file(outfilename)
+    outfile = ctx.actions.declare_file(scope + to)
     outputs = {"impl": outfile}
 
-    if debug:
-        print("PPX OUTFILE: %s" % outfile)
+    # if debug:
+    #     print("PPX OUTFILE: %s" % outfile)
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
@@ -121,7 +119,7 @@ def impl_ppx_transform(rule, ctx, src, to):
                                                             # renamed = "/" + to
                                                             ),
 
-        "cd _obazl_",
+        "cd {tmp}".format(tmp = tmpdir),
         "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
         "cd .."
     ])

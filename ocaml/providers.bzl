@@ -184,11 +184,7 @@ OcamlNsResolverProvider = provider(
         "files"   : "Depset, instead of DefaultInfo.files",
         "submodules": "List of submodules in this ns",
         "resolver": "Name of resolver module",
-        "prefix": "Alias prefix",
-        # "rp": "Resolver prefix",
-        # "sep": "Path separator",
-        # "payload": "An [OcamlNsModulePayload](#ocamlnsmodulepayload) structure.",
-        # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
+        "prefixes": "List of alias prefix segs",
     }
 )
 

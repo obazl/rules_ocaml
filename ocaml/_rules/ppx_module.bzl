@@ -51,7 +51,7 @@ TODO: finish docstring
         # ),
         _rule = attr.string( default = "ppx_module" ),
     ),
-    cfg     = module_in_transition,  # incoming
+    cfg     = module_in_transition,
     provides = [DefaultInfo, PpxModuleProvider, OpamDepsProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

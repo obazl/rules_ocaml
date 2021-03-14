@@ -67,12 +67,12 @@ def _ocaml_signature_impl(ctx):
         submod = normalize_module_label(lbl)
         ns_submodules.append(submod)
 
-    ns_prefix     = ctx.attr._ns_prefix[BuildSettingInfo].value
+    ns_prefixes     = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
         ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver
     else:
-        ns_resolver = ns_prefix
+        ns_resolver = False
 
     if debug:
         print("")
@@ -80,7 +80,7 @@ def _ocaml_signature_impl(ctx):
             print("Start: OCAMLSIG %s" % ctx.label)
         else:
             fail("Unexpected rule for 'ocaml_signature_impl': %s" % ctx.attr._rule)
-        print("  ns_prefix: %s" % ns_prefix)
+        print("  ns_prefixes: %s" % ns_prefixes)
         print("  ns_submodules: %s" % ns_submodules)
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
@@ -112,7 +112,6 @@ def _ocaml_signature_impl(ctx):
     indirect_path_depsets = []
 
     direct_resolver = None
-    indirect_resolver_depsets = []
 
     direct_cc_deps  = {}
     indirect_cc_deps  = {}
@@ -121,8 +120,6 @@ def _ocaml_signature_impl(ctx):
     dep_graph = []
 
     sigfile = None
-    opam_deps = []
-    nopam_deps = []
 
     build_deps = []
     dso_deps = []
@@ -164,7 +161,7 @@ def _ocaml_signature_impl(ctx):
     if debug:
         print("SOURCE SIGFILE: %s" % sigfile)
 
-    scope = ""  ## replaces tmpdir, in case we want to support 'pkg'
+    scope = tmpdir
 
     # cmifname = ctx.file.src.basename.rstrip("mli") + "cmi"
     if debug:
@@ -205,7 +202,6 @@ def _ocaml_signature_impl(ctx):
     merge_deps(mydeps,
                indirect_file_depsets,
                indirect_path_depsets,
-               indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -216,10 +212,6 @@ def _ocaml_signature_impl(ctx):
     for path in indirect_paths_depset.to_list():
             includes.append(path)
 
-    indirect_resolvers_depset = depset(transitive = indirect_resolver_depsets)
-    # for resolver in indirect_resolvers_depset.to_list():
-    #       args.add("-open", resolver)
-
     args.add("-c") # interfaces always compile-only?
 
     includes.append(obj_cmi.dirname)
@@ -227,6 +219,10 @@ def _ocaml_signature_impl(ctx):
     ppx_opam_adjunct_deps = []
     ppx_nopam_adjunct_deps = []
 
+    ## add adjunct_deps from ppx provider
+    ## adjunct deps in the dep graph are NOT compile deps of this module.
+    ## only the adjunct deps of the ppx are.
+    adjunct_deps = []
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[AdjunctDepsProvider]
         for opam in provider.opam.to_list():
@@ -235,47 +231,25 @@ def _ocaml_signature_impl(ctx):
         for nopam in provider.nopam.to_list():
             if debug:
                 print("NOAPM adjunct: %s" % nopam)
-      # if PpxExecutableProvider in ctx.attr.ppx:
-      #     ppx_opam_adjunct_deps = ctx.attr.ppx[PpxExecutableProvider].deps.opam_adjunct
-      #     for dep in ppx_opam_adjunct_deps.to_list():
-      #         opam_deps.append(dep.pkg.name)
-      #         # for p in dep.pkg.to_list():
-      #         #     opam_deps.append(p.name)
-      #     ppx_nopam_adjunct_deps = ctx.attr.ppx[PpxExecutableProvider].deps.nopam_adjunct
-      #     for adjunct_dep in ppx_nopam_adjunct_deps.to_list():
-      #         # if debug:
-      #         #     print("ADJUNCT DEP: %s" % adjunct_dep)
-      #         nopam_deps.append(adjunct_dep)
-      #         includes.append(adjunct_dep.dirname)
+            for nopamfile in nopam.files.to_list():
+                adjunct_deps.append(nopamfile)
+        for path in provider.nopam_paths.to_list():
+            args.add("-I", path)
 
-    # for dep in mydeps.opam.to_list():
-    #     if not dep.ppx_driver: ## FIXME: is this correct?
-    #         opam_deps.append(dep.pkg.name)
-        # for x in dep.pkg.to_list():
-        #     opam_deps.append(x.name)
 
-    if len(opam_deps) > 0:
-        ## linking not needed to produce .cmi files
-        # args.add("-linkpkg")
-        for dep in opam_deps:  # mydeps.opam.to_list():
-            ## FIXME: we do not want to add opam ppx deps, they cause
-            ## ocamlfind to inject a -ppx option that introduces ppx_deriving
-            # if ctx.label.name == "_Parallel_scan.cmi":
-            #     if dep.startswith("ppx"):
-            #         print("OMITTING PPX dep: %s" % dep)
-            #     else:
-            #         args.add("-package", dep)
-            # else:
-            args.add("-package", dep)
+    # indirect_opams_depset = depset(transitive = indirect_opam_depsets)
+    # for opam in indirect_opams_depset.to_list():
+    #     args.add("-package", opam)
 
-    indirect_opams_depset = depset(transitive = indirect_opam_depsets)
-    for opam in indirect_opams_depset.to_list():
-        args.add("-package", opam)
+    # if ctx.attr.deps_opam:
+    #     args.add("-linkpkg")  ## add files to cmd line
+    #     for dep in ctx.attr.deps_opam:
+    #         args.add("-package", dep)  ## add dirs to search path
 
-    if ctx.attr.deps_opam:
-        args.add("-linkpkg")  ## add files to cmd line
-        for dep in ctx.attr.deps_opam:
-            args.add("-package", dep)  ## add dirs to search path
+    opam_depset = depset(direct = ctx.attr.deps_opam,
+                         transitive = indirect_opam_depsets)
+    for dep in opam_depset.to_list():
+        args.add("-package", dep)  ## add dirs to search path
 
     intf_dep = None
 
@@ -456,13 +430,10 @@ def _ocaml_signature_impl(ctx):
 
     defaultMemo = DefaultMemo(
         paths     = depset(direct = search_paths, transitive = [indirect_paths_depset]),
-        resolvers = depset(direct = [direct_resolver] if direct_resolver else [],
-                           transitive = [indirect_resolvers_depset]),
     )
 
-    deps_opam = depset(direct = ctx.attr.deps_opam, transitive = indirect_opam_depsets)
     opamProvider = OpamDepsProvider(
-        pkgs = deps_opam
+        pkgs = opam_depset
     )
 
     sigProvider = OcamlSignatureProvider(

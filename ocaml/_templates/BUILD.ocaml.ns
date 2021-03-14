@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag",
      "string_flag", "string_setting",
      "string_list_flag", "string_list_setting")
 load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_verbose_flag")
@@ -14,7 +15,10 @@ string_list_flag( name = "warnings",
                   ]
 )
 
-string_flag( name = "prefix", build_setting_default = "")
+string_list_flag( name = "prefixes", build_setting_default = [])
+
+bool_flag( name = "transitivity", build_setting_default = False)
+
 string_flag( name = "strategy", build_setting_default = "ns",
              values = [
                  "fs",  ## derive ns prefix from filesystem path
@@ -22,8 +26,6 @@ string_flag( name = "strategy", build_setting_default = "ns",
              ])
 
 string_list_flag( name = "submodules", build_setting_default = [])
-# string_list_flag( name = "includes", build_setting_default = [])
-string_list_setting( name = "sublibs", build_setting_default = [])
 
 ocaml_ns_resolver(
     name    = "ns_default",

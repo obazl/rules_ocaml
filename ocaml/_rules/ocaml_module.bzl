@@ -65,43 +65,8 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default = "ocaml_module" ),
-        # gen = attr.label_keyed_string_dict(
-        #     doc = "Experimental. Key is executable target, value is command-line arg string."
-        # ),
-        ################
-        ## obsolete:
-        # cc_linkall = attr.label_list(
-        #     ## FIXME: make this sticky; replace with "static-linkall" value for cc_deps dict entry
-        #     doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
-        #     # providers = [CcInfo],
-        # ),
-        # cc_linkopts = attr.string_list(
-        #     doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
-
-        # ),
-        # cc_linkstatic = attr.bool(
-        #     ## FIXME: replaced by "static" value for cc_deps dict
-        #     doc     = "DEPRECATED. Control linkage of C/C++ dependencies. True: link to .a file; False: link to shared object file (.so or .dylib)",
-        #     default = True # False  ## false on macos, true on linux?
-        # ),
-
-        ## TODO:
-        # _cc_linkdynamic = attr.label(
-        #     ## FIXME: find a better way
-        #     doc = "Global dynamically linked cc-deps, apply to all instances of rule. Added last.",
-        #     default = "@ocaml//module:cc_linkdynamic"
-        # ),
-        # _cc_linkstatic = attr.label(
-        #     ## FIXME: find a better way
-        #     doc = "Global statically linked cc-deps, apply to all instances of rule. Added last.",
-        #     default = "@ocaml//module:cc_linkstatic"
-        # ),
-        # here = attr.label(
-        #     allow_single_file = True,
-        #     default = ":BUILD.bazel"
-        # )
     ),
-    cfg     = module_in_transition,  # incoming
+    cfg     = module_in_transition,
     provides = [OcamlModuleProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
