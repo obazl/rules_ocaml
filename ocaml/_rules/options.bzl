@@ -262,7 +262,7 @@ def options_module(ws):
         ),
         _ns_strategy = attr.label(
             doc = "Experimental",
-            default = ws + "//ns:strategy"
+            default = "@ocaml//ns:strategy"
         ),
     )
 
@@ -393,7 +393,7 @@ def options_ns_resolver(ws):
         ),
         _ns_strategy = attr.label(
             doc = "Experimental",
-            default = ws + "//ns:strategy"
+            default = "@ocaml//ns:strategy"
         ),
         _ns_submodules = attr.label( # _list(
             default = ws + "//ns:submodules", # => string_list_setting

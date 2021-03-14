@@ -15,7 +15,7 @@ load("//ocaml/_transitions:transitions.bzl",
 
 ################################
 rule_options = options("ocaml")
-rule_options.update(options_module("ocaml"))
+rule_options.update(options_module("ppx"))
 rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
