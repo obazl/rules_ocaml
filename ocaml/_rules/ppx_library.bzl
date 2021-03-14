@@ -17,10 +17,6 @@ ppx_library = rule(
     """,
     attrs = dict(
         rule_options,
-        modules = attr.label_list(
-            doc = "List of components.",
-            providers = [[PpxModuleProvider]]
-        ),
         _rule = attr.string( default = "ppx_library" ),
     ),
     # cfg     = ppx_mode_transition,

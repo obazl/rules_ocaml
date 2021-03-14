@@ -160,6 +160,7 @@ def options_library(ws):
         ]
     else:
         _providers =[
+            [PpxLibraryProvider],
             [PpxModuleProvider],
             [PpxArchiveProvider]
         ]
