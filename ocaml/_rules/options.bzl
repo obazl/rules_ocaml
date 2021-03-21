@@ -60,10 +60,13 @@ def options(ws):
 
 #######################
 def options_executable(ws):
+
+    ws = "@" + ws
+
     attrs = dict(
-        _linkall     = attr.label(default = "@ocaml//executable/linkall"),
-        _thread     = attr.label(default = "@ocaml//executable/thread"),
-        _warnings  = attr.label(default   = "@ocaml//executable:warnings"),
+        _linkall     = attr.label(default = ws + "//executable/linkall"),
+        _thread     = attr.label(default = ws + "//executable/thread"),
+        _warnings  = attr.label(default   = ws + "//executable:warnings"),
         _opts = attr.label(
             doc = "Hidden options.",
             default = "@ocaml//executable:opts"
@@ -136,9 +139,9 @@ def options_executable(ws):
         _mode = attr.label(
             default = "@ocaml//mode"
         ),
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
     )
     return attrs
 
@@ -186,13 +189,12 @@ def options_module(ws):
                      # [OcamlNsResolverProvider],
                      [PpxArchiveProvider],
                      [PpxModuleProvider],
+                     [PpxNsArchiveProvider],
                      [PpxNsLibraryProvider]]
 
     else:
         ## FIXME: providers for ppx_module
         providers = []
-
-    _module_deps_out_transition = ocaml_module_deps_out_transition
 
     ws = "@" + ws
 
@@ -210,14 +212,14 @@ def options_module(ws):
             doc = "Single label of a target producing OcamlSignatureProvider (i.e. rule 'ocaml_signature'). Optional.",
             # allow_single_file = [".cmi"],
             providers = [OcamlSignatureProvider],
-            cfg = _module_deps_out_transition
+            cfg = ocaml_module_deps_out_transition
         ),
         ################
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = providers,
             # transition undoes changes that may have been made by ns_lib
-            cfg = _module_deps_out_transition
+            cfg = ocaml_module_deps_out_transition
         ),
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -272,30 +274,56 @@ def options_ns_archive(ws):
     ws = "@" + ws
 
     if ws == "ocaml":
-        _providers   = [
+        _submod_providers   = [
             [OcamlModuleProvider],
             [OcamlNsArchiveProvider],
             [OcamlNsLibraryProvider],
             [OcamlSignatureProvider]
         ]
     else:
-        _providers   = [
+        _submod_providers   = [
             [OcamlModuleProvider],
             [OcamlNsArchiveProvider],
             [OcamlNsLibraryProvider],
-            [OcamlSignatureProvider]
+            [OcamlSignatureProvider],
+            [PpxModuleProvider],
         ]
 
     return dict(
-        _linkall     = attr.label(default = ws +  "//ns/linkall"),
+        _linkall     = attr.label(default = ws +  "//archive/linkall"),
         # _thread     = attr.label(default = ws + "//ns/thread"),
-        _warnings    = attr.label(default = ws + "//ns:warnings"),
+        _warnings    = attr.label(default = ws + "//archive:warnings"),
 
-        submodules = attr.label_keyed_string_dict(
-            doc = "Dict from submodule target to name",
-            allow_files = [".cmo", ".cmx", ".cmi", "cma", "cmxa"],
-            providers   = _providers
+        _ns_resolver = attr.label(
+            doc = "Experimental",
+            providers = [OcamlNsResolverProvider],
+            default = "@ocaml//ns",
+            cfg = ocaml_nslib_submodules_out_transition
         ),
+
+        submodules = attr.label_list(
+            doc = "List of *_module submodules",
+            allow_files = [".cmo", ".cmx", ".cmi"],
+            providers   = _submod_providers,
+            cfg = ocaml_nslib_submodules_out_transition
+        ),
+
+        ## so we can dump ConfigState
+        _ns_prefixes   = attr.label(
+            doc = "Experimental",
+            default = "@ocaml//ns:prefixes"
+        ),
+        _ns_submodules = attr.label(
+            doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+            default = "@ocaml//ns:submodules",  # => string_list_setting
+            # allow_files = True,
+            # mandatory = True
+        ),
+
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+
         _mode = attr.label(
             default = "@ocaml//mode"
             # default = ws + "//mode"
@@ -337,19 +365,10 @@ def options_ns_library(ws):
         _ns_resolver = attr.label(
             doc = "Experimental",
             providers = [OcamlNsResolverProvider],
-            default = ws_prefix + "//ns",
+            default = "@ocaml//ns",
             cfg = ocaml_nslib_submodules_out_transition
         ),
 
-        _ns_pkg = attr.label(
-            doc = "Experimental",
-            # default = ws_prefix + "//ns:package",
-            allow_single_file = True
-        ),
-        _ns_prefixes   = attr.label(
-            doc = "Experimental",
-            default = ws_prefix + "//ns:prefixes"
-        ),
         ## Note: this is for the user; transition fn uses it to populate ns:submodules
         # submodules = attr.label_keyed_string_dict(
         submodules = attr.label_list(
@@ -357,6 +376,18 @@ def options_ns_library(ws):
             allow_files = [".cmo", ".cmx", ".cmi"],
             providers   = _submod_providers,
             cfg = ocaml_nslib_submodules_out_transition
+        ),
+
+        ## so we can dump ConfigState
+        _ns_prefixes   = attr.label(
+            doc = "Experimental",
+            default = "@ocaml//ns:prefixes"
+        ),
+        _ns_submodules = attr.label(
+            doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+            default = "@ocaml//ns:submodules",  # => string_list_setting
+            # allow_files = True,
+            # mandatory = True
         ),
 
         _allowlist_function_transition = attr.label(
@@ -371,12 +402,10 @@ def options_ns_library(ws):
 ###################
 def options_ns_opts(ws):
 
-    ws = "@ocaml" # + ws
-
     return dict(
         _ns_prefixes   = attr.label(
             doc = "Experimental",
-            default = ws + "//ns:prefixes"
+            default = "@ocaml//ns:prefixes"
         ),
     )
 

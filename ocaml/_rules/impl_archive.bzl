@@ -1,9 +1,11 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
+     "CcDepsProvider",
      "CompilationModeSettingProvider",
      "DefaultMemo",
      "OcamlArchiveProvider",
+     "OcamlSDK",
      "PpxArchiveProvider")
 
 load("//ocaml/_functions:utils.bzl",
@@ -14,7 +16,11 @@ load("//ocaml/_functions:utils.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_common.bzl", "merge_deps", "tmpdir")
+load("//ocaml/_functions:utils.bzl", "normalize_module_name")
+
+load(":impl_common.bzl",
+     "merge_deps",
+     "tmpdir")
 
 ##################################################
 def impl_archive(ctx):
@@ -31,8 +37,19 @@ def impl_archive(ctx):
     else:
         mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    env = {"OPAMROOT": get_opamroot(),
-           "PATH": get_sdkpath(ctx)}
+    ## topdirs.cmi, digestif.cmi, ...
+    OCAMLFIND_IGNORE = ""
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
+
+    env = {
+        "OPAMROOT": get_opamroot(),
+        "PATH": get_sdkpath(ctx),
+        "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
+    }
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
@@ -45,31 +62,28 @@ def impl_archive(ctx):
     obj_files = []
     obj_cm_a = None
     obj_a    = None
-    if ctx.attr.archive_name:
-      obj_cm_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ext)
-      if mode == "native":
-          obj_a = ctx.actions.declare_file(tmpdir + ctx.attr.archive_name + ".a")
-    else:
-      obj_cm_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ext)
-      if mode == "native":
-          obj_a = ctx.actions.declare_file(tmpdir + ctx.label.name + ".a")
+
+    module_name = normalize_module_name(ctx.label.name)
+    obj_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext) # ctx.label.name + ext)
+    if mode == "native":
+        obj_a = ctx.actions.declare_file(tmpdir + module_name + ".a") # ctx.label.name + ".a")
 
     build_deps = []  # for the command line
     includes = []
     dep_graph = []  # for the run action inputs
 
     ################
-    direct_file_deps = []
-    indirect_file_depsets = []
-    indirect_archive_depsets = []
+    merged_module_links_depsets = []
+    merged_archive_links_depsets = []
+    merged_paths_depsets = []
+    merged_depgraph_depsets = []
+    merged_archived_modules_depsets = []
 
     indirect_opam_depsets = []
 
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets = []
-
-    indirect_path_depsets = []
 
     direct_resolver = None
 
@@ -98,8 +112,11 @@ def impl_archive(ctx):
     link_search  = []
 
     merge_deps(ctx.attr.modules,
-               indirect_file_depsets,
-               indirect_path_depsets,
+               merged_module_links_depsets,
+               merged_archive_links_depsets,
+               merged_paths_depsets,
+               merged_depgraph_depsets,
+               merged_archived_modules_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -117,18 +134,21 @@ def impl_archive(ctx):
 
     args.add("-a")
 
-    indirect_paths_depset = depset(transitive = indirect_path_depsets)
+    indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
         # print("PATH: %s" % path)
         includes.append(path)
     args.add_all(includes, before_each="-I", uniquify = True)
 
-    ## modules to include must be on command line
-    files_depset = depset(transitive = indirect_file_depsets)
-    for dep in files_depset.to_list():
-        ## 'Option -a cannot be used with .cmxa input files.'
-        if dep.extension in ["cmo", "cmx"]: ## "cma", "cmxa"]:
+    ## modules to include in archive must be on command line
+    ## use depsets to get the right ordering, then select to get only direct deps
+    ## module links only; archives cannot depend on archives
+    module_links_depset = depset(transitive = merged_module_links_depsets)
+    for dep in module_links_depset.to_list():
+        if dep in ctx.files.modules:
             args.add(dep)
+
+    inputs_depset = depset(transitive = merged_depgraph_depsets)
 
     args.add_all(link_search, before_each="-ccopt", uniquify = True)
 
@@ -143,7 +163,7 @@ def impl_archive(ctx):
         env = env,
         executable = tc.ocamlfind,
         arguments = [args],
-        inputs = files_depset,
+        inputs = inputs_depset,
         outputs = obj_files,
         tools = [tc.ocamlfind, tc.ocamlopt],
         mnemonic = "OcamlArchiveImpl" if ctx.attr._rule == "ocaml_archive" else "PpxArchiveImpl",
@@ -158,27 +178,94 @@ def impl_archive(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
+            ## this maintains dep ordering of archive files among all deps
             direct = [obj_cm_a, obj_a] if obj_a else [obj_cm_a],
         )
     )
 
-    execroot = get_projroot(ctx)
-    apath = execroot + "/" + ctx.workspace_name + "/" + obj_cm_a.dirname
-
     defaultMemo = DefaultMemo(
-        paths     = depset(direct = [apath]),
+        paths     = indirect_paths_depset,
     )
 
+    ## ArchiveProvider.archives used for command line construction
+    ## ArchiveProvider.deps for depgraph construction
     if ctx.attr._rule == "ocaml_archive":
         archiveProvider = OcamlArchiveProvider(
+            module_links     = depset(
+                order = "postorder",
+                # transitive = merged_module_links_depsets
+            ),
+            archive_links = depset(
+                order = "postorder",
+                direct = [obj_cm_a],
+                transitive = merged_archive_links_depsets
+            ),
+            paths    = depset( ## cmd line
+                direct = [obj_cm_a.dirname],
+                transitive = merged_paths_depsets
+            ),
+            depgraph = depset( ## includes link files?
+                order = "postorder",
+                direct = obj_files,
+                transitive = merged_depgraph_depsets
+            ),
+            archived_modules = depset( ## augments depgraph
+                order = "postorder",
+                transitive = merged_archived_modules_depsets
+            ),
+
+            # archives = depset(
+            #     order = "postorder",
+            #     direct = [obj_cm_a, obj_a] if obj_a else [obj_cm_a],
+            # ),
+            # deps  = depset(order = "postorder",
+            #                transitive = indirect_archive_depsets)
         )
     else:
         archiveProvider = PpxArchiveProvider(
+            ## do NOT pass on component module links, only the archive links
+            module_links     = depset(
+                order = "postorder",
+                # transitive = merged_module_links_depsets
+            ),
+            archive_links = depset(
+                order = "postorder",
+                direct = [obj_cm_a],
+                transitive = merged_archive_links_depsets
+            ),
+            paths    = depset( ## cmd line
+                direct = [obj_cm_a.dirname],
+                transitive = merged_paths_depsets
+            ),
+            depgraph = depset( ## includes link files?
+                order = "postorder",
+                direct = obj_files,
+                transitive = merged_depgraph_depsets
+            ),
+            archived_modules = depset( ## augments depgraph
+                order = "postorder",
+                transitive = merged_archived_modules_depsets
+            ),
+            # archives = [obj_cm_a, obj_a] if obj_a else [obj_cm_a],
+            # deps  = depset(order = "postorder",
+            #                transitive = indirect_archive_depsets)
         )
+
+    cclibs = {}
+    if len(indirect_cc_deps) > 0:
+        cclibs.update(indirect_cc_deps)
+    ccProvider = CcDepsProvider(
+        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
+        libs = cclibs
+    )
+
+    # print("ARCHIVE: %s" % ctx.label)
+    # print(archiveProvider)
 
     return [defaultInfo,
             defaultMemo,
             archiveProvider,
+            ccProvider
             ]
 
 

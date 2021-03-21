@@ -6,6 +6,8 @@ load(":options.bzl", "options", "options_ns_archive", "options_ns_opts")
 
 load(":impl_ns_archive.bzl", "impl_ns_archive")
 
+load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+
 OCAML_FILETYPES = [
     ".ml", ".mli", ".cmx", ".cmo", ".cma"
 ]
@@ -25,6 +27,7 @@ ppx_ns_archive = rule(
         rule_options,
         _rule = attr.string(default = "ppx_ns_archive")
     ),
+    cfg     = nsarchive_in_transition,
     provides = [PpxNsArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

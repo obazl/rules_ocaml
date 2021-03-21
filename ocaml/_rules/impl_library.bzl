@@ -37,8 +37,16 @@ def impl_library(ctx):
     dep_graph  = []  # for the run action inputs
 
     ################
-    direct_file_deps = []
-    indirect_file_depsets  = []
+    merged_module_links_depsets = []
+    merged_archive_links_depsets = []
+
+    merged_paths_depsets = []
+    merged_depgraph_depsets = []
+    merged_archived_modules_depsets = []
+
+    # direct_file_deps = []
+    # indirect_file_depsets  = []
+    # indirect_archive_depsets  = []
 
     indirect_opam_depsets  = []
 
@@ -55,8 +63,14 @@ def impl_library(ctx):
     ################
 
     merge_deps(ctx.attr.modules,
-               indirect_file_depsets,
-               indirect_path_depsets,
+               merged_module_links_depsets,
+               merged_archive_links_depsets,
+               merged_paths_depsets,
+               merged_depgraph_depsets,
+               merged_archived_modules_depsets,
+               # indirect_file_depsets,
+               # indirect_archive_depsets,
+               # indirect_path_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -67,14 +81,14 @@ def impl_library(ctx):
     #######################
     ctx.actions.do_nothing(
         mnemonic = "OcamlLibrary" if ctx.attr._rule == "ocaml_library" else "PpxLibrary",
-        inputs = depset(transitive=indirect_file_depsets)
+        inputs = depset(transitive=merged_depgraph_depsets) # indirect_file_depsets)
     )
     #######################
 
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            transitive = indirect_file_depsets
+            transitive = merged_module_links_depsets
         )
     )
 
@@ -84,9 +98,47 @@ def impl_library(ctx):
 
     if ctx.attr._rule == "ocaml_library":
         libraryProvider = OcamlLibraryProvider(
+            module_links     = depset(
+                order = "postorder",
+                transitive = merged_module_links_depsets
+            ),
+            archive_links = depset(
+                order = "postorder",
+                transitive = merged_archive_links_depsets
+            ),
+            paths    = depset(
+                transitive = merged_paths_depsets
+            ),
+            depgraph = depset(
+                order = "postorder",
+                transitive = merged_depgraph_depsets
+            ),
+            archived_modules = depset(
+                order = "postorder",
+                transitive = merged_archived_modules_depsets
+            ),
         )
     elif ctx.attr._rule == "ppx_library":
         libraryProvider = PpxLibraryProvider(
+            module_links     = depset(
+                order = "postorder",
+                transitive = merged_module_links_depsets
+            ),
+            archive_links = depset(
+                order = "postorder",
+                transitive = merged_archive_links_depsets
+            ),
+            paths    = depset(
+                transitive = merged_paths_depsets
+            ),
+            depgraph = depset(
+                order = "postorder",
+                transitive = merged_depgraph_depsets
+            ),
+            archived_modules = depset(
+                order = "postorder",
+                transitive = merged_archived_modules_depsets
+            ),
         )
     else:
         fail("Unexpected rule type: %s" % ctx.attr._rule)

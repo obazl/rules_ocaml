@@ -18,6 +18,53 @@ def print_config_state(settings, attr):
         print("  attr.submodules: %s" % attr.submodules)
 
 ##############################################
+def _nsarchive_in_transition_impl(settings, attr):
+    debug = False
+    # if attr.name in ["color"]:
+    #     debug = True
+
+    if debug:
+        print("")
+        print(">>> nsarchive_in_transition")
+        print_config_state(settings, attr)
+        print(attr)
+
+    # # if this in ns:submodules
+    # #     pass on prefix but not ns:submodules
+    # # else
+    # #     reset ConfigState
+
+    # pfx = ""
+    # prefixes = []
+
+    # if settings["@ocaml//ns:transitivity"]:
+    #     prefixes.extend(settings["@ocaml//ns:prefixes"])
+    #     for submod_lbl in settings["@ocaml//ns:submodules"]:
+    #         if attr.name == Label(submod_lbl).name:
+    #             prefixes.append(normalize_module_name(attr.name))
+    #             break
+
+    return {
+        "@ocaml//ns:prefixes"  : [],
+        "@ocaml//ns:submodules": [],
+    }
+
+###################
+nsarchive_in_transition = transition(
+    ## """Reset ConfigState for both @ocaml and @ppx.""",
+    implementation = _nsarchive_in_transition_impl,
+    inputs = [
+        # "@ocaml//ns:transitivity",
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+##############################################
 def _nslib_in_transition_impl(settings, attr):
     debug = False
     # if attr.name in ["color"]:
@@ -34,18 +81,17 @@ def _nslib_in_transition_impl(settings, attr):
     # else
     #     reset ConfigState
 
-    pfx = ""
     prefixes = []
 
-    if settings["@ocaml//ns:transitivity"]:
-        prefixes.extend(settings["@ocaml//ns:prefixes"])
-        for submod_lbl in settings["@ocaml//ns:submodules"]:
-            if attr.name == Label(submod_lbl).name:
-                prefixes.append(normalize_module_name(attr.name))
-                break
+    # if settings["@ocaml//ns:transitivity"]:
+    #     prefixes.extend(settings["@ocaml//ns:prefixes"])
+    #     for submod_lbl in settings["@ocaml//ns:submodules"]:
+    #         if attr.name == Label(submod_lbl).name:
+    #             prefixes.append(normalize_module_name(attr.name))
+    #             break
 
     return {
-        "@ocaml//ns:prefixes"  : prefixes,
+        "@ocaml//ns:prefixes"  : [], # prefixes,
         "@ocaml//ns:submodules": [],
     }
 
@@ -54,7 +100,7 @@ nslib_in_transition = transition(
     ## """Reset ConfigState for both @ocaml and @ppx.""",
     implementation = _nslib_in_transition_impl,
     inputs = [
-        "@ocaml//ns:transitivity",
+        # "@ocaml//ns:transitivity",
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",
     ],

@@ -13,10 +13,6 @@ load(":options.bzl",
      "options_ns_opts",
      "options_ns_library")
 
-OCAML_FILETYPES = [
-    ".ml", ".mli", ".cmx", ".cmo", ".cma"
-]
-
 ################################
 rule_options = options("ocaml")
 rule_options.update(options_ns_opts("ocaml"))

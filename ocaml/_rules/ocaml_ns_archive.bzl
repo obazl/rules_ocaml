@@ -7,6 +7,8 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options", "options_ns_archive", "options_ns_opts")
 
+load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+
 load(":impl_ns_archive.bzl", "impl_ns_archive")
 
 ###############################
@@ -28,6 +30,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         rule_options,
         _rule = attr.string(default = "ocaml_ns_archive")
     ),
+    cfg     = nsarchive_in_transition,
     provides = [OcamlNsArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

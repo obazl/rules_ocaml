@@ -12,6 +12,8 @@ load(":options.bzl", "options")
 
 load("impl_archive.bzl", "impl_archive")
 
+load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+
 #####################
 ocaml_archive = rule(
     implementation = impl_archive,
@@ -70,8 +72,14 @@ ocaml_archive = rule(
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        _rule = attr.string( default = "ocaml_archive" )
+        _rule = attr.string( default = "ocaml_archive" ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
+    ## this is not an ns archive, and it does not use ns ConfigState,
+    ## but we need to reset the ConfigState anyway, so the deps are not affected.
+    cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

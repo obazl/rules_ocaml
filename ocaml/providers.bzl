@@ -103,7 +103,17 @@ AdjunctDepsProvider = provider(
 
 OcamlArchiveProvider = provider(
     doc = "OCaml archive provider.",
-    fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
+    # fields = {
+    #     "archives": "Depset of archive files.",
+    #     "deps": "Depset of archive deps (components) excluding the archive files themselves. To be added to depgraph but not command line."
+    # }
 )
 
 OcamlExecutableProvider = provider(
@@ -120,16 +130,24 @@ OcamlLibraryProvider = provider(
 Provided by rule: [ocaml_library](rules_ocaml.md#ocaml_library)
     """,
     fields = {
-        "payload": """A struct with the following fields:
-            library: Name of library
-            modules : vector of modules in lib
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            nopam: direct and transitive non-opam deps (Files) of target
-            cclib: c/c++ lib deps
-        """
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
     }
+
+    # fields = {
+    #     "payload": """A struct with the following fields:
+    #         library: Name of library
+    #         modules : vector of modules in lib
+    #     """,
+    #     "deps"   : """A pair of depsets:
+    #         opam : direct and transitive opam deps (Labels) of target
+    #         nopam: direct and transitive non-opam deps (Files) of target
+    #         cclib: c/c++ lib deps
+    #     """
+    # }
 )
 
 # OcamlInterfacePayload = provider(
@@ -163,7 +181,14 @@ CcDepsProvider = provider(
 
 OcamlModuleProvider = provider(
     doc = "OCaml module provider.",
-    fields = module_fields
+    # fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
 )
 
 # OcamlNsEnvProvider = provider(
@@ -190,17 +215,38 @@ OcamlNsResolverProvider = provider(
 
 OcamlNsArchiveProvider = provider(
     doc = "OCaml NS Archive provider.",
-    fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
+    # fields = module_fields
 )
 
 OcamlNsLibraryProvider = provider(
     doc = "OCaml NS Library provider.",
-    fields = module_fields
+    # fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
 )
 
 OcamlSignatureProvider = provider(
     doc = "OCaml interface provider.",
-    fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
+    # fields = module_fields
     # {
     #     # "ns_module": "Name of ns module (string)",
     #     "paths"    : "Depset of search path strings",
@@ -245,12 +291,26 @@ PpxCompilationModeSettingProvider = provider(
 
 PpxNsArchiveProvider = provider(
     doc = "OCaml PPX NS Archive provider.",
-    fields = module_fields
+    # fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
 )
 
 PpxNsLibraryProvider = provider(
     doc = "OCaml PPX NS Library provider.",
-    fields = module_fields
+    # fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
 )
 
 # PpxNsModuleProvider = provider(
@@ -286,9 +346,16 @@ PpxDepsetProvider = provider(
 PpxArchiveProvider = provider(
     doc = "OCaml PPX archive provider.",
     fields = {
-        "payload": "An [OcamlArchivePayload](providers_ocaml.md#OcamlArchivePayload) provider",
-        "deps"   : "A [PpxDepsetProvider](#ppxdepsetprovider) provider."
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
     }
+    # fields = {
+    #     "payload": "An [OcamlArchivePayload](providers_ocaml.md#OcamlArchivePayload) provider",
+    #     "deps"   : "A [PpxDepsetProvider](#ppxdepsetprovider) provider."
+    # }
 )
 
 PpxExecutableProvider = provider(
@@ -308,22 +375,36 @@ PpxExecutableProvider = provider(
 PpxLibraryProvider = provider(
     doc = "PPX library provider. A PPX library is a collection of ppx modules.",
     fields = {
-        "payload": """A struct with the following fields:
-            name: Name of library
-            modules : vector of modules in lib
-        """,
-        "deps"   : """A pair of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            opam_adjunct_deps : extension output deps; needed when transformed source is compiled
-            nopam: direct and transitive non-opam deps (Files) of target
-            nopam_adjunct_deps : extension output deps; needed when transformed source is compiled
-        """
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
     }
+    # fields = {
+    #     "payload": """A struct with the following fields:
+    #         name: Name of library
+    #         modules : vector of modules in lib
+    #     """,
+    #     "deps"   : """A pair of depsets:
+    #         opam : direct and transitive opam deps (Labels) of target
+    #         opam_adjunct_deps : extension output deps; needed when transformed source is compiled
+    #         nopam: direct and transitive non-opam deps (Files) of target
+    #         nopam_adjunct_deps : extension output deps; needed when transformed source is compiled
+    #     """
+    # }
 )
 
 PpxModuleProvider = provider(
     doc = "OCaml PPX module provider.",
-    fields = module_fields
+    # fields = module_fields
+    fields = {
+        "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        "paths":    "Depset of paths for -I params",
+        "depgraph": "Depset containing transitive closure of deps",
+        "archived_modules": "Depset containing archive contents"
+    }
 )
 
 DefaultMemo = provider(
@@ -333,7 +414,8 @@ DefaultMemo = provider(
     ## Used by: ns lib, signature, module (ocaml & ppx)
     fields = {
         "paths": "List of filesystem directory paths (strings).",
-        "resolvers": "List of resolver module names (strings)."
+        "files": "Depset of file deps to be added to inputs depgraph but not cmd line."
+        # "resolvers": "List of resolver module names (strings)."
     }
 )
 

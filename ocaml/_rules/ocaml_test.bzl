@@ -32,7 +32,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         rule_options,
         _rule = attr.string( default = "ocaml_test" ),
     ),
-    cfg = executable_in_transition,
+    # cfg = executable_in_transition,
     test = True,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

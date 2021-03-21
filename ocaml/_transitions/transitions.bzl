@@ -20,6 +20,7 @@ def _executable_in_transition_impl(settings, attr):
     ## FIXME: not needed
     return {
         "@ocaml//mode"          : settings["@ocaml//mode:mode"],
+        "@ppx//mode"            : settings["@ocaml//mode:mode"],
         "@ocaml//ns:prefixes"   : [],
         "@ocaml//ns:submodules" : [],
     }
@@ -32,6 +33,7 @@ executable_in_transition = transition(
     ],
     outputs = [
         "@ocaml//mode",
+        "@ppx//mode",
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",
     ]
@@ -133,8 +135,8 @@ def _ocaml_module_deps_out_transition_impl(settings, attr):
         print(">>> ocaml_module_deps_out_transition")
         print_config_state(settings, attr)
 
-    structfile = attr.struct.name
-    (basename, ext) = paths.split_extension(structfile)
+    srcfile = attr.struct.name if hasattr(attr, "struct") else attr.src.name
+    (basename, ext) = paths.split_extension(srcfile)
     module = capitalize_initial_char(basename)
 
     submodules = []
@@ -142,10 +144,16 @@ def _ocaml_module_deps_out_transition_impl(settings, attr):
         submodule = normalize_module_label(submodule_label)
         submodules.append(submodule)
 
-    if module in submodules: ## this is a main nslib module
+    if module in submodules:
+        ## this is an nslib submodule; we need to propagate configstate set by nslib,
+        ## in case we depend on a sibling.
+        # print("OUT_T mod: %s" % module)
+        # print("OUT_T pfx: %s" % settings["@ocaml//ns:prefixes"])
+        # if module == settings["@ocaml//ns:prefixes"][-1]:
         prefixes   = settings["@ocaml//ns:prefixes"]
         submodules = settings["@ocaml//ns:submodules"]
     else:
+        ## we're not in an nslib context
         prefixes   = []
         submodules = []
 
@@ -210,7 +218,8 @@ def _ocaml_signature_deps_out_transition_impl(settings, attr):
 
 ################
 ocaml_signature_deps_out_transition = transition(
-    implementation = _ocaml_signature_deps_out_transition_impl,
+    # implementation = _ocaml_signature_deps_out_transition_impl,
+    implementation = _ocaml_module_deps_out_transition_impl,
     inputs = [
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",

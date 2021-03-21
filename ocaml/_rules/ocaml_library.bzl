@@ -4,6 +4,8 @@ load(":options.bzl", "options", "options_library")
 
 load(":impl_library.bzl", "impl_library")
 
+load("//ocaml/_transitions:ns_transitions.bzl", "nslib_in_transition")
+
 ###############################
 rule_options = options("ocaml")
 rule_options.update(options_library("ocaml"))
@@ -30,8 +32,14 @@ Packages](../ug/collections.md).
     """,
     attrs = dict(
         rule_options,
-        _rule = attr.string( default = "ocaml_library" )
+        _rule = attr.string( default = "ocaml_library" ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
+    ## this is not an ns library, and it does not use ns ConfigState,
+    ## but we need to reset the ConfigState anyway, so the deps are not affected.
+    cfg     = nslib_in_transition,
     provides = [OcamlLibraryProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

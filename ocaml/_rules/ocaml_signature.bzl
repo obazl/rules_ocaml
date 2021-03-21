@@ -18,6 +18,7 @@ load("//ocaml:providers.bzl",
      "OpamDepsProvider",
      "PpxArchiveProvider",
      "PpxModuleProvider",
+     "PpxNsArchiveProvider",
      "PpxNsLibraryProvider")
 
 load("//ocaml/_rules/utils:rename.bzl",
@@ -26,7 +27,7 @@ load("//ocaml/_rules/utils:rename.bzl",
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-# load("//ocaml/_transitions:transitions.bzl", "ocaml_signature_deps_out_transition")
+load("//ocaml/_transitions:transitions.bzl", "ocaml_signature_deps_out_transition")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
@@ -48,7 +49,7 @@ load(":impl_common.bzl", "merge_deps", "tmpdir")
 def _ocaml_signature_impl(ctx):
 
     debug = False
-    # if ctx.label.name in ["_Base58_check.cmi"]:
+    # if ctx.label.name in ["_Impl.cmi"]:
     #     debug = True
 
     ns_submodules = []
@@ -89,8 +90,16 @@ def _ocaml_signature_impl(ctx):
     }
 
     ################
-    direct_file_deps = []
-    indirect_file_depsets = []
+    merged_module_links_depsets = []
+    merged_archive_links_depsets = []
+
+    merged_paths_depsets = []
+    merged_depgraph_depsets = []
+    merged_archived_modules_depsets = []
+
+    # direct_file_deps = []
+    # indirect_file_depsets = []
+    # indirect_archive_depsets = []
 
     indirect_opam_depsets = []
 
@@ -98,7 +107,7 @@ def _ocaml_signature_impl(ctx):
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets = []
 
-    indirect_path_depsets = []
+    # indirect_path_depsets = []
 
     direct_resolver = None
 
@@ -123,7 +132,7 @@ def _ocaml_signature_impl(ctx):
 
     if ctx.attr.ppx:
         sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src, module_name + ".mli")
-        direct_file_deps.append(ctx.file.ppx)
+        # direct_file_deps.append(ctx.file.ppx)
     elif module_name != from_name:
         sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
     else:
@@ -153,15 +162,21 @@ def _ocaml_signature_impl(ctx):
     mydeps = ctx.attr.deps + [ctx.attr._ns_resolver]
 
     merge_deps(mydeps,
-               indirect_file_depsets,
-               indirect_path_depsets,
+               merged_module_links_depsets,
+               merged_archive_links_depsets,
+               merged_paths_depsets,
+               merged_depgraph_depsets,
+               merged_archived_modules_depsets,
+               # indirect_file_depsets,
+               # indirect_archive_depsets,
+               # indirect_path_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    indirect_paths_depset = depset(transitive = indirect_path_depsets)
+    indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
             includes.append(path)
 
@@ -209,7 +224,8 @@ def _ocaml_signature_impl(ctx):
     dep_graph.append(sigfile)
 
     input_depset = depset(direct = dep_graph,
-                          transitive = indirect_file_depsets)
+                          transitive = merged_depgraph_depsets)
+    # indirect_file_depsets + indirect_archive_depsets)
 
     ctx.actions.run(
         env = env,
@@ -230,28 +246,60 @@ def _ocaml_signature_impl(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order="postorder",
-            direct = [obj_cmi],
-            transitive = [depset(
-                order="postorder",
-                direct = [sigfile],
-                transitive = indirect_file_depsets
-            )]
+            direct = [obj_cmi] # , sigfile],
+            # transitive = [depset(
+            #     order="postorder",
+            #     direct = [sigfile],
+            #     transitive = indirect_file_depsets
+            # )]
         )
     )
+    if debug:
+        print("SIG DEFAULT_INFO: %s" % defaultInfo)
 
     search_paths = sets.to_list(sets.make(includes))  ## uniqify
 
-    defaultMemo = DefaultMemo(
-        paths     = depset(direct = search_paths, transitive = [indirect_paths_depset]),
+    sigProvider = OcamlSignatureProvider(
+            module_links     = depset(
+                order = "postorder",
+                # direct = [obj_cmi],
+                transitive = merged_module_links_depsets
+            ),
+            archive_links = depset(
+                order = "postorder",
+                transitive = merged_archive_links_depsets
+            ),
+            paths    = depset( ## cmd line
+                direct = search_paths,
+                transitive = merged_paths_depsets
+            ),
+            depgraph = depset(
+                order = "postorder",
+                direct = [obj_cmi, sigfile],
+                transitive = merged_depgraph_depsets
+            ),
+            archived_modules = depset( ## augments depgraph
+                order = "postorder",
+                transitive = merged_archived_modules_depsets
+            ),
+        # name      = capitalize_initial_char(paths.split_extension(obj_cmi.basename)[0]),
+        # module    = obj_cmi,
     )
+
+    defaultMemo = DefaultMemo(
+        paths     = depset(
+            direct = search_paths,
+            transitive = merged_paths_depsets # [indirect_paths_depset]
+        ),
+        # files     = depset(order = "postorder",
+        #                    direct = [obj_cmi, sigfile],
+        #                    transitive = indirect_archive_depsets + indirect_file_depsets )
+    )
+    if debug:
+        print("SIG DEFAULT_MEMO: %s" % defaultMemo)
 
     opamProvider = OpamDepsProvider(
         pkgs = opam_depset
-    )
-
-    sigProvider = OcamlSignatureProvider(
-        name      = capitalize_initial_char(paths.split_extension(obj_cmi.basename)[0]),
-        module    = obj_cmi,
     )
 
     ## FIXME: add CcDepsProvider
@@ -312,6 +360,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                 [OcamlSignatureProvider],
                 [PpxArchiveProvider],
                 [PpxModuleProvider],
+                [PpxNsArchiveProvider],
                 [PpxNsLibraryProvider],
             ],
             # cfg = ocaml_signature_deps_out_transition
@@ -323,6 +372,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "List of OPAM package names"
         ),
         ################################################################
+        ## do we need resolver for sigfiles?
         _ns_resolver = attr.label(
             doc = "Experimental",
             providers = [OcamlNsResolverProvider],

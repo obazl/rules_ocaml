@@ -49,7 +49,7 @@ def impl_ns_resolver(ctx):
         if debug:
             print("NO SUBMODULES")
         return [DefaultInfo(files = depset()),
-                DefaultMemo(paths=depset(), resolvers=depset()),
+                DefaultMemo(paths=depset(), files=depset()),
                 OcamlNsResolverProvider(
                 )]
 
@@ -94,7 +94,7 @@ def impl_ns_resolver(ctx):
     # do not generate a resolver module unless we have at least one alias
     if len(aliases) < 1:
         return [DefaultInfo(files = depset()),
-                DefaultMemo(paths=depset(), resolvers=depset()),
+                DefaultMemo(paths=depset(), files=depset()),
                 OcamlNsResolverProvider(
                 )]
 
@@ -178,12 +178,14 @@ def impl_ns_resolver(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order  = "postorder",
-            direct = outputs
+            direct = [obj_cm_] # outputs
         )
     )
 
     defaultMemo = DefaultMemo(
         paths     = depset(direct = [obj_cmi.dirname]),
+        files     = depset(direct = outputs)
+                           # transitive = indirect_file_depsets + indirect_archive_depsets)
     )
 
     nsProvider = OcamlNsResolverProvider(

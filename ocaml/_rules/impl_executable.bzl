@@ -130,8 +130,10 @@ def _handle_cc_deps(ctx,
 def impl_executable(ctx):
 
     debug = False
+    # if ctx.label.name == "test":
+    # if ctx.label.name == "ppx.exe":
     # if ctx.attr._rule == "ocaml_executable":
-    #     debug = True
+        # debug = True
 
     if debug:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -161,8 +163,16 @@ def impl_executable(ctx):
     outbinary = ctx.actions.declare_file(outfilename)
 
     ################
-    direct_file_deps = []
-    indirect_file_depsets = []
+    merged_module_links_depsets = []
+    merged_archive_links_depsets = []
+
+    merged_paths_depsets = []
+    merged_depgraph_depsets = []
+    merged_archived_modules_depsets = []
+
+    # direct_file_depsets = []
+    # indirect_file_depsets = []
+    # indirect_archive_depsets = []
 
     indirect_opam_depsets = []
 
@@ -190,8 +200,8 @@ def impl_executable(ctx):
     else:
         args.add(tc.ocamlopt.basename)
 
-    for opt in ctx.attr._opts[BuildSettingInfo].value:
-        args.add(opt)
+    # for opt in ctx.attr._opts[BuildSettingInfo].value:
+    #     args.add(opt)
     options = get_options(rule, ctx)
     args.add_all(options)
 
@@ -208,8 +218,15 @@ def impl_executable(ctx):
     link_search  = []
 
     merge_deps(ctx.attr.deps,
-               indirect_file_depsets,
-               indirect_path_depsets,
+               merged_module_links_depsets,
+               merged_archive_links_depsets,
+               merged_paths_depsets,
+               merged_depgraph_depsets,
+               merged_archived_modules_depsets,
+               # direct_file_depsets,
+               # indirect_file_depsets,
+               # indirect_archive_depsets,
+               # indirect_path_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -220,17 +237,20 @@ def impl_executable(ctx):
     ## passing it to merge_deps here ensures that it will come last
     if ctx.attr.main != None:
         merge_deps([ctx.attr.main],
-                   indirect_file_depsets,
-                   indirect_path_depsets,
+                   merged_module_links_depsets,
+                   merged_archive_links_depsets,
+                   merged_paths_depsets,
+                   merged_depgraph_depsets,
+                   merged_archived_modules_depsets,
+                   # direct_file_depsets,
+                   # indirect_file_depsets,
+                   # indirect_archive_depsets,
+                   # indirect_path_depsets,
                    indirect_opam_depsets,
                    indirect_adjunct_depsets,
                    indirect_adjunct_path_depsets,
                    indirect_adjunct_opam_depsets,
                    indirect_cc_deps)
-
-    indirect_paths_depset = depset(transitive = indirect_path_depsets)
-    for path in indirect_paths_depset.to_list():
-        includes.append(path)
 
     if ctx.attr.deps_opam:
         args.add("-linkpkg")
@@ -255,20 +275,46 @@ def impl_executable(ctx):
                     cclib_deps,
                     cc_runfiles)
 
+    paths_depset = depset(transitive = merged_paths_depsets)
+    for path in paths_depset.to_list():
+        includes.append(path)
+    # args.add_all(includes, before_each="-I")
     args.add_all(includes, before_each="-I")
 
-    modules = depset(transitive = indirect_file_depsets).to_list()
-    if len(modules) > 0:
-        for m in modules:
-            if m.extension in ["cmo", "cmx", "cma", "cmxa"]:
+    if debug:
+        print("MERGED_MODULE_LINKS_DEPSETS: %s" % merged_module_links_depsets)
+        print("MERGED_ARCHIVE_LINKS_DEPSETS: %s" % merged_archive_links_depsets)
+        print("MERGED_ARCHIVED_MODULES_DEPSETS: %s" % merged_archived_modules_depsets)
+
+    # modules = depset(transitive = indirect_file_depsets + indirect_archive_depsets).to_list()
+    # modules = depset(transitive = indirect_archive_depsets).to_list()
+
+    ## use depsets to get the right ordering, then select to get only direct deps
+    direct_deps = ctx.files.deps + ctx.files.main
+    links = depset(order = "postorder", transitive = merged_archive_links_depsets).to_list()
+    if len(links) > 0:
+        for m in links:
+            # if m in direct_deps:
+                args.add(m)
+
+    args.add("-absname")
+
+    links = depset(order = "postorder", transitive = merged_module_links_depsets).to_list()
+    # print("MODULE LINKS: %s" % links)
+    if len(links) > 0:
+        for m in links:
+            # if m in direct_deps:
                 args.add(m)
 
     args.add("-o", outbinary)
 
     input_depset = depset(
-        direct = direct_file_deps + cclib_deps,
-        transitive = indirect_file_depsets
+        direct = cclib_deps,
+        transitive = merged_depgraph_depsets + merged_archived_modules_depsets
+        # transitive = indirect_file_depsets + indirect_archive_depsets
     )
+    if debug:
+        print("EXE INPUT_DEPSET: %s" % input_depset)
 
     if ctx.attr.strip_data_prefixes:
       myrunfiles = ctx.runfiles(
@@ -280,6 +326,15 @@ def impl_executable(ctx):
         files = ctx.files.data,
       )
 
+    if ctx.attr._rule == "ocaml_executable":
+        mnemonic = "OcamlExecutable"
+    elif ctx.attr._rule == "ppx_executable":
+        mnemonic = "PpxExecutable"
+    elif ctx.attr._rule == "ocaml_test":
+        mnemonic = "OcamlTest"
+    else:
+        fail("Unknown rule for executable: %s" % ctx.attr._rule)
+
     ctx.actions.run(
       env = env,
       executable = tc.ocamlfind,
@@ -287,7 +342,7 @@ def impl_executable(ctx):
       inputs = input_depset,
       outputs = [outbinary],
       tools = [tc.ocamlfind, tc.ocamlopt], # tc.opam,
-      mnemonic = "OcamlExecutable" if ctx.attr._rule == "ocaml_executable" else "PpxExecutable",
+      mnemonic = mnemonic,
       progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
           mode = mode,
           rule = ctx.attr._rule,
