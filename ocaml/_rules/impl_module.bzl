@@ -138,8 +138,8 @@ def impl_module(ctx):
         out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(module_name, ".cmt"))
         outputs.append(out_cmt)
 
-    mydeps = ctx.attr.deps + [ctx.attr._ns_resolver]
-    merge_deps(mydeps,
+    mdeps = ctx.attr.deps + [ctx.attr._ns_resolver]
+    merge_deps(mdeps,
                merged_module_links_depsets,
                merged_archive_links_depsets,
                merged_paths_depsets,
@@ -188,6 +188,7 @@ def impl_module(ctx):
 
     args.add_all(includes, before_each="-I", uniquify = True)
 
+    ## use depsets to get the right ordering. filter to limit to direct deps.
     module_links_depset = depset(transitive = merged_module_links_depsets)
     for dep in module_links_depset.to_list():
         if dep in ctx.files.deps:
@@ -210,22 +211,6 @@ def impl_module(ctx):
 
     args.add("-impl", srcfile)
 
-    ## FIXME: we do not need to do anything with cc deps except pass them on
-    ## only the executable will force their builds
-    # cc_direct_depfiles = []
-    # cc_indirect_depfiles = []
-    # for (dep, linkmode) in ctx.attr.cc_deps.items():
-    #     if debug:
-    #         print("Depgraph: direct CC dep %s" % dep[DefaultInfo].files.to_list())
-    #     # add to dep graph but not command line:
-    #     cc_direct_depfiles.extend(dep[DefaultInfo].files.to_list())
-
-    # for k in indirect_cc_deps.keys():
-    #     if debug:
-    #         print("Depgraph: Indirect CC k %s" % k[DefaultInfo].files.to_list())
-    #     # add to dep graph but not command line:
-    #     cc_indirect_depfiles.extend(k[DefaultInfo].files.to_list())
-
     inputs_depset = depset(
         order = "postorder",
         direct = [srcfile],
@@ -245,7 +230,7 @@ def impl_module(ctx):
         inputs    = inputs_depset,
         outputs   = outputs,
         tools = [tc.ocamlfind, tc.ocamlopt, tc.ocamlc],
-        mnemonic = "OCamlModuleCompile" if ctx.attr._rule == "ocaml_module" else "PpxModuleCompile",
+        mnemonic = "CompileOCamlModule" if ctx.attr._rule == "ocaml_module" else "CompilePpxModule",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = mode,
             rule=ctx.attr._rule,
@@ -256,6 +241,7 @@ def impl_module(ctx):
     )
     ################
     ################
+
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",

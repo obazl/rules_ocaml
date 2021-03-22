@@ -156,9 +156,7 @@ def impl_executable(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    outfilename = ctx.label.name
-
-    outbinary = ctx.actions.declare_file(outfilename)
+    ## FIXME: default extension to .out?
 
     ################
     merged_module_links_depsets = []
@@ -177,17 +175,21 @@ def impl_executable(ctx):
     direct_cc_deps    = {}
     direct_cc_deps.update(ctx.attr.cc_deps)
     indirect_cc_deps  = {}
-    ################
 
+    ################
     includes  = []
 
-    ################################################################
+    out_exe = ctx.actions.declare_file(ctx.label.name)
+
+    #########################
     args = ctx.actions.args()
 
     if mode == "native":
         args.add(tc.ocamlopt.basename)
     else:
         args.add(tc.ocamlc.basename)
+        ## FIXME: -custom only needed if linking with CC code?
+        ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
         args.add("-custom")
 
     options = get_options(rule, ctx)
@@ -208,15 +210,12 @@ def impl_executable(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    if ctx.attr.deps_opam:
-        args.add("-linkpkg")
-        for dep in ctx.attr.deps_opam:
-            args.add("-package", dep)
-
-    opams = depset(transitive = indirect_opam_depsets).to_list()
+    opam_depset = depset(direct = ctx.attr.deps_opam,
+                         transitive = indirect_opam_depsets)
+    opams = opam_depset.to_list()
     if len(opams) > 0:
-        args.add("-linkpkg")
-        [args.add("-package", opam) for opam in opams if opams]
+        args.add("-linkpkg")  ## tell ocamlfind to add cmxa files to cmd line
+        [args.add("-package", opam) for opam in opams if opams] ## add dirs to search path
 
     ## now we need to add cc deps to the cmd line
     cclib_deps  = []
@@ -234,12 +233,8 @@ def impl_executable(ctx):
     paths_depset = depset(transitive = merged_paths_depsets)
     for path in paths_depset.to_list():
         includes.append(path)
-    args.add_all(includes, before_each="-I")
 
-    if debug:
-        print("MERGED_MODULE_LINKS_DEPSETS: %s" % merged_module_links_depsets)
-        print("MERGED_ARCHIVE_LINKS_DEPSETS: %s" % merged_archive_links_depsets)
-        print("MERGED_ARCHIVED_MODULES_DEPSETS: %s" % merged_archived_modules_depsets)
+    args.add_all(includes, before_each="-I")
 
     ## use depsets to get the right ordering. archive and module links are mutually exclusive.
     links = depset(order = "postorder", transitive = merged_archive_links_depsets).to_list()
@@ -252,38 +247,31 @@ def impl_executable(ctx):
         for m in links:
             args.add(m)
 
-    args.add("-o", outbinary)
+    args.add("-o", out_exe)
 
-    input_depset = depset(
+    inputs_depset = depset(
+        order = "postorder",
         direct = cclib_deps,
         transitive = merged_depgraph_depsets + merged_archived_modules_depsets
     )
 
-    if ctx.attr.strip_data_prefixes:
-      myrunfiles = ctx.runfiles(
-        files = ctx.files.data,
-        symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
-      )
-    else:
-      myrunfiles = ctx.runfiles(
-        files = ctx.files.data,
-      )
-
     if ctx.attr._rule == "ocaml_executable":
-        mnemonic = "OcamlExecutable"
+        mnemonic = "CompileOcamlExecutable"
     elif ctx.attr._rule == "ppx_executable":
-        mnemonic = "PpxExecutable"
+        mnemonic = "CompilePpxExecutable"
     elif ctx.attr._rule == "ocaml_test":
-        mnemonic = "OcamlTest"
+        mnemonic = "CompileOcamlTest"
     else:
         fail("Unknown rule for executable: %s" % ctx.attr._rule)
 
+    ################
+    ################
     ctx.actions.run(
       env = env,
       executable = tc.ocamlfind,
       arguments = [args],
-      inputs = input_depset,
-      outputs = [outbinary],
+      inputs = inputs_depset,
+      outputs = [out_exe],
       tools = [tc.ocamlfind, tc.ocamlopt],
       mnemonic = mnemonic,
       progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
@@ -294,12 +282,27 @@ def impl_executable(ctx):
           tgt = ctx.label.name,
         )
     )
+    ################
+    ################
 
+    ## FIXME: verify correctness
+    if ctx.attr.strip_data_prefixes:
+      myrunfiles = ctx.runfiles(
+        files = ctx.files.data,
+        symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
+      )
+    else:
+        myrunfiles = ctx.runfiles(
+            files = ctx.files.data,
+        )
+
+    ##########################
     defaultInfo = DefaultInfo(
-        executable=outbinary,
+        executable=out_exe,
         runfiles = myrunfiles
     )
 
+    ## We need to pass adjunct deps for ppx executables
     nopam_direct_paths = []
     for dep in ctx.files.deps_adjunct:
         nopam_direct_paths.append(dep.dirname)
