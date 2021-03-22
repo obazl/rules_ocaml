@@ -103,13 +103,13 @@ def impl_ns_resolver(ctx):
     else:
         resolver_module_name = "__".join(ns_prefixes)
 
-    ns_filename = resolver_module_name + ".ml"
-    ns_file = ctx.actions.declare_file(ns_filename)
+    resolver_src_filename = resolver_module_name + ".ml"
+    resolver_src_file = ctx.actions.declare_file(resolver_src_filename)
 
     ## action: generate ns resolver module file with alias content
     ##################
     ctx.actions.write(
-        output = ns_file,
+        output = resolver_src_file,
         content = "\n".join(aliases) + "\n"
     )
     ##################
@@ -142,10 +142,10 @@ def impl_ns_resolver(ctx):
     if ctx.attr._warnings:
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
-    args.add("-I", ns_file.dirname)
+    args.add("-I", resolver_src_file.dirname)
     dep_graph = []
 
-    dep_graph.append(ns_file)
+    dep_graph.append(resolver_src_file)
 
     ## -no-alias-deps is REQUIRED for ns modules;
     ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
@@ -156,7 +156,7 @@ def impl_ns_resolver(ctx):
     args.add("-o", obj_cm_)
 
     args.add("-impl")
-    args.add(ns_file.path)
+    args.add(resolver_src_file.path)
 
     ctx.actions.run(
         env = env,
@@ -178,24 +178,16 @@ def impl_ns_resolver(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order  = "postorder",
-            direct = [obj_cm_] # outputs
+            direct = [obj_cm_]
         )
-    )
-
-    defaultMemo = DefaultMemo(
-        paths     = depset(direct = [obj_cmi.dirname]),
-        files     = depset(direct = outputs)
-                           # transitive = indirect_file_depsets + indirect_archive_depsets)
     )
 
     nsProvider = OcamlNsResolverProvider(
         files    = depset(
             order = "postorder",
             direct = outputs,
-            transitive = [
-                depset(order = "postorder", direct = [obj_cmi] if obj_cmi else [])
-            ]
         ),
+        paths     = depset(direct = [obj_cmi.dirname]),
         submodules = submodules,
         resolver = resolver_module_name,
         prefixes   = ns_prefixes,
@@ -203,6 +195,5 @@ def impl_ns_resolver(ctx):
 
     return [
         defaultInfo,
-        defaultMemo,
         nsProvider
     ]

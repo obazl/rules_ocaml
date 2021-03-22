@@ -1,31 +1,14 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:types.bzl", "types")
 
-# load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")  # buildifier: disable=load
-# load("//implementation:common.bzl", "MINIMUM_BAZEL_VERSION")
-
-# load("//implementation:sdk.bzl", "ocaml_home_sdk")
-# load("//obazl:obazl.bzl", "obazl_repo")
-
 load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
 load(
     "//ocaml/_toolchains:sdk.bzl",
     "ocaml_register_toolchains",
-    # _ocaml_download_sdk = "ocaml_download_sdk",
-    # _ocaml_home_sdk = "ocaml_home_sdk",
-    # _ocaml_local_sdk = "ocaml_local_sdk",
-    # _ocaml_wrap_sdk = "ocaml_wrap_sdk",
 )
 
-# load("//implementation:noocaml.bzl", "DEFAULT_NOOCAML", "ocaml_register_noocaml")
-# load("//proto:ocamlocaml.bzl", "ocamlocaml_special_proto")
-# load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-# load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
-
-# print("private/repositories.bzl loading")
 
 def _throw_opam_cmd_error(cmd, r):
     print("OPAM cmd {cmd} rc    : {rc}".format(cmd=cmd, rc= r.return_code))

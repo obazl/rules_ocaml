@@ -6,8 +6,6 @@ load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath")
 
-# load("//ocaml/_rules/utils:rename.bzl", "get_module_filename")
-
 load(":impl_common.bzl", "tmpdir")
 
 ################################################################
@@ -22,9 +20,6 @@ def impl_ppx_transform(rule, ctx, src, to):
     # if ctx.label.name == "test":
     #     debug = True
 
-    # if module == ns_prefix
-
-    # to = get_module_filename(ctx, src)  # with renaming...
     if debug:
         print()
         print("Start: impl_ppx_transform: %s" % to)
@@ -33,9 +28,6 @@ def impl_ppx_transform(rule, ctx, src, to):
 
     outfile = ctx.actions.declare_file(scope + to)
     outputs = {"impl": outfile}
-
-    # if debug:
-    #     print("PPX OUTFILE: %s" % outfile)
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
@@ -55,30 +47,32 @@ def impl_ppx_transform(rule, ctx, src, to):
       args.add_all(ctx.attr.ppx_args)
       if hasattr(ctx.attr, "ppx_print"):
           if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
-          # if ctx.attr.ppx_print[PpxPrintSettingProvider].value == "binary":
-              if "-dump-ast" not in ctx.attr.opts:
+              # binary == '-dump-ast'
+              if "-dump-ast" not in ctx.attr.opts: # avoid dup
                   args.add("-dump-ast")
-          else:
+          else: # "print:text"
+              ## explicit binary option overrides ppx_print attrib
               if "-dump-ast" in ctx.attr.opts:
                   args.add("-dump-ast")
 
     ## in our shell script, we cd to _obazl_/ before executing this, so we need "../"
+    ## shell script copies src to _obazl_/, cds there, then runs the ppx
     args.add("-o", "../" + outfile.path)
     if src.path.endswith(".mli"):
-        args.add("-intf", src)
+        args.add("-intf", src.path)
     if src.path.endswith(".ml"):
-        ## shell script copies src to _obazl_/, cds there, then runs the ppx
         args.add("-impl", src.path)
 
     dep_graph = [src]
 
     # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
-    # if "@opama//pkg:ppx_inline_test" in ctx.files.deps:
+    # if "@opam//pkg:ppx_inline_test" in ctx.files.deps:
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 0:
             args.add("--cookie", "library=" + ctx.attr.ppx_tags[0])
             args.add("-inline-test-lib", ctx.attr.ppx_tags[0]) # FIXME
 
+    ## construct shell command
     parent = src.dirname
     RUNTIME_FILES = ""
     if hasattr(ctx.attr, "ppx_data"):
@@ -152,5 +146,4 @@ def impl_ppx_transform(rule, ctx, src, to):
         )
     )
 
-    # return (tmpdir + "/", outfile) # FIXME: omit trailing "/"
-    return outfile # FIXME: omit trailing "/"
+    return outfile

@@ -2,7 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
     "CompilationModeSettingProvider",
-     "DefaultMemo",
+     # "DefaultMemo",
      "OcamlNsArchiveProvider",
      "PpxNsArchiveProvider")
 
@@ -42,16 +42,16 @@ def impl_ns_archive(ctx):
     ####  call impl_ns_library  ####
     [
         defaultInfo,
-        defaultMemo,
+        # defaultMemo,
         nslibProvider,
         opamProvider,
         ccProvider
     ] = impl_ns_library(ctx)
     ####
 
+    ################################################################
     ## now archive the lib
 
-    ################################################################
     ns_archive_name = normalize_module_name(ctx.label.name) # .replace("-", "_")
     ns_ext = ".cmxa" if mode == "native" else ".cma"
     ns_archive_filename = tmpdir + ns_archive_name + ns_ext
@@ -71,26 +71,13 @@ def impl_ns_archive(ctx):
     options = get_options(ctx.attr._rule, ctx)
     args.add_all(options)
 
-    # args.add_all(defaultMemo.paths, before_each="-I", uniquify = True)
-
-    # for dep in defaultInfo.files.to_list():
-    #     if dep.extension not in ["cmxa", "cmi", "mli", "o"]:
-    #         # args.add("-I", dep.dirname)
-    #         args.add(dep)
-
-    # for dep in ctx.files.submodules:
-    #     # print("DEP %s" % dep)
-    #     if dep.extension == "cmx":
-    #         args.add(dep)
-
-    # for dep in nslibProvider.module_links.to_list():
-    # submods = nslibProvider.module_links.to_list()
-    ## we must use depgraph to ensure correct ordering,
-    ## but we only want to list what is explicitly listed in submodules
+    ## use depgraph to ensure correct ordering,
+    ## filter to include only direct deps
     submods = ctx.files.submodules
     for dep in nslibProvider.depgraph.to_list():
         if dep in submods:
             args.add(dep)
+        ## direct submod deplist may not contain resolver
         elif dep.extension == "cmx":
             mod = normalize_module_name(dep.basename)
             if mod == ns_archive_name:
@@ -114,7 +101,6 @@ def impl_ns_archive(ctx):
         executable = tc.ocamlfind,
         arguments = [args],
         inputs = nslibProvider.depgraph,
-        # depset(transitive = [defaultInfo.files] + [defaultMemo.files]),
         outputs = [ns_archive_file, ns_archive_a_file],
         mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
@@ -130,20 +116,6 @@ def impl_ns_archive(ctx):
         files = depset(
             order  = "postorder",
             direct = [ns_archive_file], # ns_archive_a_file],
-            # transitive = [defaultInfo.files]
-        )
-    )
-
-    # execroot = get_projroot(ctx)
-    # apath = execroot + "/" + ctx.workspace_name + "/" + ns_archive_file.dirname
-
-    newDefaultMemo = DefaultMemo(
-        # paths     = depset(direct = [apath], transitive = [defaultMemo.paths]),
-        paths     = depset( transitive = [defaultMemo.paths] ),
-        ## for archives: these are deps that need to go in the depgraph but not the command line
-        files = depset(
-            order  = "postorder",
-            transitive = [defaultInfo.files]
         )
     )
 
@@ -151,7 +123,6 @@ def impl_ns_archive(ctx):
         nsArchiveProvider = OcamlNsArchiveProvider(
             module_links = depset(
                 order = "postorder",
-                # transitive = [nslibProvider.module_links]
             ),
             archive_links = depset(
                 order = "postorder",
@@ -162,24 +133,20 @@ def impl_ns_archive(ctx):
                 direct = [ns_archive_file.dirname],
                 transitive = [nslibProvider.paths]
             ),
-            depgraph = depset( ## includes link files?
+            depgraph = depset(
                 order = "postorder",
                 direct = [ns_archive_file, ns_archive_a_file],
                 transitive = [nslibProvider.depgraph]
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = [nslibProvider.archived_modules]
-                # [defaultInfo.files] + [defaultMemo.files]
             ),
-            # name   = ns_archive_name,
-            # module = ns_archive_file
         )
     elif ctx.attr._rule == "ppx_ns_archive":
         nsArchiveProvider = PpxNsArchiveProvider(
             module_links = depset(
                 order = "postorder",
-                # transitive = [nslibProvider.module_links]
             ),
             archive_links = depset(
                 order = "postorder",
@@ -190,35 +157,21 @@ def impl_ns_archive(ctx):
                 direct = [ns_archive_file.dirname],
                 transitive = [nslibProvider.paths]
             ),
-            depgraph = depset( ## includes link files?
+            depgraph = depset(
                 order = "postorder",
                 direct = [ns_archive_file, ns_archive_a_file],
                 transitive = [nslibProvider.depgraph]
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = [nslibProvider.archived_modules]
-                # [defaultInfo.files] + [defaultMemo.files]
             ),
-            # name   = ns_archive_name,
-            # module = ns_archive_file
         )
-    # elif ctx.attr._rule == "ocaml_ns_library":
-    #     nsArchiveProvider = OcamlNsArchiveProvider(
-    #             name   = ns_archive_name,
-    #             module = ns_archive_file
-    #         )
-    # elif ctx.attr._rule == "ppx_ns_library":
-    #     nsArchiveProvider = PpxNsArchiveProvider(
-    #             name   = ns_archive_name,
-    #             module = ns_archive_file
-    #         )
     else:
         fail("Unrecognized ctx.attr._rule: %s" % ctx.attr._rule)
 
     return [
         newDefaultInfo,
-        newDefaultMemo,
         nsArchiveProvider,
         opamProvider,
         ccProvider

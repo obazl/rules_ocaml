@@ -193,62 +193,50 @@ def impl_archive(ctx):
         archiveProvider = OcamlArchiveProvider(
             module_links     = depset(
                 order = "postorder",
-                # transitive = merged_module_links_depsets
             ),
             archive_links = depset(
                 order = "postorder",
                 direct = [obj_cm_a],
                 transitive = merged_archive_links_depsets
             ),
-            paths    = depset( ## cmd line
+            paths    = depset(
                 direct = [obj_cm_a.dirname],
                 transitive = merged_paths_depsets
             ),
-            depgraph = depset( ## includes link files?
+            depgraph = depset(
                 order = "postorder",
                 direct = obj_files,
                 transitive = merged_depgraph_depsets
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = merged_archived_modules_depsets
             ),
-
-            # archives = depset(
-            #     order = "postorder",
-            #     direct = [obj_cm_a, obj_a] if obj_a else [obj_cm_a],
-            # ),
-            # deps  = depset(order = "postorder",
-            #                transitive = indirect_archive_depsets)
         )
     else:
         archiveProvider = PpxArchiveProvider(
             ## do NOT pass on component module links, only the archive links
             module_links     = depset(
                 order = "postorder",
-                # transitive = merged_module_links_depsets
             ),
             archive_links = depset(
                 order = "postorder",
                 direct = [obj_cm_a],
                 transitive = merged_archive_links_depsets
             ),
-            paths    = depset( ## cmd line
+            paths    = depset(
                 direct = [obj_cm_a.dirname],
                 transitive = merged_paths_depsets
             ),
-            depgraph = depset( ## includes link files?
+            depgraph = depset(
                 order = "postorder",
                 direct = obj_files,
                 transitive = merged_depgraph_depsets
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = merged_archived_modules_depsets
             ),
-            # archives = [obj_cm_a, obj_a] if obj_a else [obj_cm_a],
-            # deps  = depset(order = "postorder",
-            #                transitive = indirect_archive_depsets)
         )
 
     cclibs = {}
@@ -258,9 +246,6 @@ def impl_archive(ctx):
         ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
         libs = cclibs
     )
-
-    # print("ARCHIVE: %s" % ctx.label)
-    # print(archiveProvider)
 
     return [defaultInfo,
             defaultMemo,

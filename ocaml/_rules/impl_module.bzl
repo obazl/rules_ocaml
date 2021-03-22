@@ -6,7 +6,6 @@ load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
      "OcamlArchiveProvider",
      "OcamlModuleProvider",
      "OcamlNsResolverProvider",
@@ -25,7 +24,6 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "normalize_module_label",
      "normalize_module_name",
      "get_opamroot",
      "get_sdkpath",
@@ -36,14 +34,6 @@ load(":impl_common.bzl",
      "tmpdir")
 
 scope = tmpdir
-
-##################################################
-def _submod_labels_to_submod_names(submod_labels):
-    submods = []
-    for lbl in submod_labels:
-        submod = normalize_module_label(lbl)
-        submods.append(submod)
-    return submods
 
 #####################
 def impl_module(ctx):
@@ -70,7 +60,6 @@ def impl_module(ctx):
             fail("Unexpected rule for 'impl_module': %s" % ctx.attr._rule)
 
         print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver[DefaultInfo])
-        print("  _NS_RESOLVER paths: %s" % ctx.attr._ns_resolver[DefaultMemo].paths)
         print("  _NS_RESOLVER Provider: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
         print("  _NS_PREFIXES: %s" % ns_prefixes)
         print("  _NS_SUBMODULES: %s" % ns_submodules)
@@ -106,18 +95,7 @@ def impl_module(ctx):
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
 
-    # direct_file_deps = []
-    # direct_file_depsets = []
-
-    # indirect_file_depsets = []
-    # indirect_archivedeps_depsets = []
-
     indirect_opam_depsets = []
-    # indirect_nopam_depsets = []
-
-    # indirect_path_depsets = []
-
-    direct_resolver = None
 
     indirect_cc_deps  = {}
 
@@ -127,55 +105,19 @@ def impl_module(ctx):
     indirect_adjunct_opam_depsets = []
     ################
 
-    link_search = []
-
     includes   = []
     outputs   = []
-
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "files"):
-        ns_files_depset = ctx.attr._ns_resolver[OcamlNsResolverProvider].files
-    else:
-        ns_files_depset = depset()
 
     (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
 
     if ctx.attr.ppx:
-        out_srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
-        # merged_depgraph_depsets.append(ctx.file.ppx)
-        # direct_file_deps.append(ctx.file.ppx)
+        srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
     elif module_name != from_name:
-        out_srcfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
+        srcfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
     else:
-        # even w/o renaming, we need to put src into the tmp outdir, otherwise, ... ?
-        # out_srcfile = rename_srcfile(ctx, ctx.file.struct, ctx.file.struct.basename)
-        out_srcfile = ctx.file.struct
+        srcfile = ctx.file.struct
 
-    if debug:
-        print("OUT_SRCFILE: %s" % out_srcfile)
-
-    ################################################################
-    ## experimental: cp source file to output tmpdir
-    # print("SRCFILE: %s" % ctx.file.struct.basename)
-    # new_srcfile = ctx.actions.declare_file(scope + ctx.file.struct.basename)
-    # cmd = "cp {src} {dest} && true;".format(
-    #     src = ctx.file.struct.path,
-    #     dest = new_srcfile.path
-    # )
-
-    # ctx.actions.run_shell(
-    #     command = cmd,
-    #     inputs = [ctx.file.struct],
-    #     outputs = [new_srcfile],
-    #     progress_message = "cp module src to tmp outdir"
-    #     # .format(
-    #     #     ctx.label.name, src
-    #     # )
-    # )
-    # print("NEW SRCFILE: %s" % new_srcfile)
-    # outputs.append(new_srcfile)
-    ################################################################
-
-    basename = capitalize_initial_char(out_srcfile.basename)
+    basename = capitalize_initial_char(srcfile.basename)
     if mode == "native":
         ofname = paths.replace_extension(basename, ".o")
         out_o = ctx.actions.declare_file(scope + ofname)
@@ -194,28 +136,21 @@ def impl_module(ctx):
     #########################
     args = ctx.actions.args()
 
-    ## NOTE: ocamlfind automatically uses the *.opt version of the compiler.
-    ## When we switch to direct invocation we will need to select it.
-    if mode == "bytecode":
-        args.add(tc.ocamlc.basename)
-    else:
+    if mode == "native":
         args.add(tc.ocamlopt.basename)
+    else:
+        args.add(tc.ocamlc.basename)
 
     options = get_options(ctx.attr._rule, ctx)
     args.add_all(options)
 
     mydeps = ctx.attr.deps + [ctx.attr._ns_resolver]
-    if debug:
-        print("MERGING DEPS: %s" % mydeps)
     merge_deps(mydeps,
                merged_module_links_depsets,
                merged_archive_links_depsets,
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               # indirect_file_depsets,
-               # indirect_archivedeps_depsets,
-               # indirect_path_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -227,16 +162,6 @@ def impl_module(ctx):
         print("MERGED_ARCHIVE_LINKS_DEPSETS: %s" % merged_archive_links_depsets)
         print("MERGED_ARCHIVED_MODULES_DEPSETS: %s" % merged_archived_modules_depsets)
 
-    # indirect_files_depset = depset(transitive = indirect_file_depsets)
-    # for dep in indirect_files_depset.to_list():
-    #     if dep.extension == "cmxa":
-    #         args.add("-I", dep.dirname)
-    #         args.add(dep)
-
-    # links_depset = depset(transitive = merged_links_depsets)
-    # for dep in links_depset.to_list():
-    #     args.add(dep)
-
     # if we have an input cmi, we will pass it on as Provider output,
     # but it is not an output of this action- do NOT add incoming cmi to action outputs
     ## TODO: support compile of mli source
@@ -247,20 +172,18 @@ def impl_module(ctx):
             merged_paths_depsets.append(f[OcamlSignatureProvider].paths)
             merged_depgraph_depsets.append(f[OcamlSignatureProvider].depgraph)
             merged_archived_modules_depsets.append(f[OcamlSignatureProvider].archived_modules)
-            # indirect_file_depsets.append(f[DefaultInfo].files)
-            # indirect_archivedeps_depsets.append(f[OcamlArchiveProvider].files)
-            # indirect_path_depsets.append(f[DefaultMemo].paths)
     else:
-      ## no sigfile provided: compiler will infer and emit .cmi from .ml src
-      cmifname = paths.replace_extension(basename, ".cmi")
-      out_cmi = ctx.actions.declare_file(scope + cmifname)
-      outputs.append(out_cmi)
+        ## no sigfile provided: compiler will infer and emit .cmi from .ml src,
+        ## so we need to add the output file
+        cmifname = paths.replace_extension(basename, ".cmi")
+        out_cmi = ctx.actions.declare_file(scope + cmifname)
+        outputs.append(out_cmi)
 
-      if "-bin-annot" in options: ## Issue #17
-          out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(out_srcfile.basename, ".cmt"))
-          outputs.append(out_cmt)
+    if "-bin-annot" in options: ## Issue #17
+        out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(srcfile.basename, ".cmt"))
+        outputs.append(out_cmt)
 
-    indirect_paths_depset = depset(transitive = merged_paths_depsets) # indirect_path_depsets)
+    indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
         includes.append(path)
 
@@ -288,7 +211,6 @@ def impl_module(ctx):
 
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
         ## this will only be the case if this is a submodule of an nslib
-        (mod, ext) = paths.split_extension(out_srcfile.basename)
         args.add("-no-alias-deps")
         args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
 
@@ -301,9 +223,7 @@ def impl_module(ctx):
 
     args.add("-o", out_cm_)
 
-    args.add("-impl", out_srcfile)
-
-    # direct_file_deps.append(out_srcfile)
+    args.add("-impl", srcfile)
 
     cc_direct_depfiles = []
     cc_indirect_depfiles = []
@@ -321,18 +241,13 @@ def impl_module(ctx):
 
     input_depset = depset(
         order = "postorder",
-        direct = [out_srcfile] + cc_direct_depfiles + adjunct_deps + ctx.files.ppx,
+        direct = [srcfile],
+        # NB: these are NOT in the depgraph: cc_direct_depfiles + adjunct_deps + ctx.files.ppx,
+        # Why not? cc deps need only be built for executable targets
+        # adjunct deps are not needed to build this target
+        # ppx has already been used above to transform source, not needed to build transformed source
         transitive = merged_depgraph_depsets
-        # transitive = indirect_file_depsets + indirect_archivedeps_depsets + [
-        #     depset(direct=cc_indirect_depfiles),
-        #     ns_files_depset
-        # ]
     )
-
-    if debug:
-        print("INPUT_DEPSET: %s" % input_depset)
-
-    # print("OUTPUTS: %s" % outputs)
 
     ################
     ctx.actions.run(
@@ -349,7 +264,6 @@ def impl_module(ctx):
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
-            # msg = "" if not ctx.attr.msg else ": " + ctx.attr.msg
         )
     )
     ################
@@ -361,89 +275,60 @@ def impl_module(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            # direct = outputs,
             direct = [out_cm_],
-            # indirect deps transmitted via DefaultMemo?
         ),
     )
-    if debug:
-        print("output MODULE DEFAULT_INFO: %s" % defaultInfo)
-
-    # DefaultMemo consumers:
-    ## paths: used for -I args
-    ## files: used for depgraph, not cmdline
-    defaultMemo = DefaultMemo(
-        paths     = depset(direct = search_paths, transitive = [indirect_paths_depset]),
-        # files     = depset(order = "postorder",
-        #                    direct = outputs,
-        #                    transitive = indirect_archivedeps_depsets + indirect_file_depsets )
-            # indirect deps should contain modules and archives, not archive deps
-            # transitive = indirect_file_depsets
-    )
-    # if debug:
-    #     print("output MODULE DEFAULT_MEMO: %s" % defaultMemo)
 
     if ctx.attr._rule == "ocaml_module":
         moduleProvider = OcamlModuleProvider(
-            module_links     = depset( ## links go on cmd line for executables and archives
+            module_links     = depset(
                 order = "postorder",
                 direct = [out_cm_],
-                transitive = merged_module_links_depsets # includes archive files?
+                transitive = merged_module_links_depsets
             ),
-            archive_links = depset( ## links go on cmd line for executables and archives
+            archive_links = depset(
                 order = "postorder",
-                transitive = merged_archive_links_depsets # includes archive files?
+                transitive = merged_archive_links_depsets
             ),
-            paths    = depset( ## cmd line
+            paths    = depset(
                 direct = search_paths + [out_cm_.dirname],
                 transitive = merged_paths_depsets
             ),
-            depgraph = depset( ## includes link files?
+            depgraph = depset(
                 order = "postorder",
-                direct = outputs, # out_o, out_cmi, out_cmt
+                direct = outputs,
                 transitive = merged_depgraph_depsets
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = merged_archived_modules_depsets
             ),
         )
     elif ctx.attr._rule == "ppx_module":
         moduleProvider = PpxModuleProvider(
-            module_links     = depset( ## links go on cmd line for executables and archives
+            module_links     = depset(
                 order = "postorder",
                 direct = [out_cm_],
-                transitive = merged_module_links_depsets # includes archive files?
+                transitive = merged_module_links_depsets
             ),
-            archive_links = depset( ## links go on cmd line for executables and archives
+            archive_links = depset(
                 order = "postorder",
-                transitive = merged_archive_links_depsets # includes archive files?
+                transitive = merged_archive_links_depsets
             ),
-            paths    = depset( ## cmd line
+            paths    = depset(
                 direct = search_paths + [out_cm_.dirname],
                 transitive = merged_paths_depsets
             ),
-            depgraph = depset( ## includes link files?
+            depgraph = depset(
                 order = "postorder",
-                direct = outputs, # out_o, out_cmi, out_cmt
+                direct = outputs,
                 transitive = merged_depgraph_depsets
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = merged_archived_modules_depsets
             ),
         )
-
-    if debug:
-        print("output MODULE xModuleProvider: %s" % moduleProvider)
-
-    # archiveProvider = OcamlArchiveProvider(
-    #     archives = depset(),
-    #     deps     = depset(
-    #         order = "postorder",
-    #         transitive = indirect_archivedeps_depsets
-    #     )
-    # )
 
     opamProvider = OpamDepsProvider(
         pkgs = opam_depset
@@ -468,8 +353,6 @@ def impl_module(ctx):
 
     return [
         defaultInfo,
-        defaultMemo,
-        # archiveProvider,
         moduleProvider,
         opamProvider,
         adjunctsProvider,

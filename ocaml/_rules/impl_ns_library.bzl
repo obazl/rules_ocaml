@@ -3,7 +3,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml:providers.bzl",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
      "OcamlNsLibraryProvider",
      "OpamDepsProvider",
      "PpxNsLibraryProvider")
@@ -23,16 +22,14 @@ def impl_ns_library(ctx):
     #     debug = True
 
     if debug:
-        print("ConfigState (%s):" % ctx.label)
-        print("  NS_RESOLVER: %s" % ctx.attr._ns_resolver[0].files)
-        print("  NS_PREFIX: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
-        print("  NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
-
-    if debug:
         print("")
         print("Start: IMPL_NS_LIBRARY: %s" % ctx.label)
         if ctx.attr._rule in ["ocaml_ns_archive", "ppx_ns_archive"]:
             print("  (for ns_archive)")
+        print("ConfigState (%s):" % ctx.label)
+        print("  NS_RESOLVER: %s" % ctx.attr._ns_resolver[0].files)
+        print("  NS_PREFIX: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
+        print("  NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
     if ctx.attr._rule in ["ocaml_ns_library", "ppx_ns_library"]:
         if not ctx.label.name.startswith("#"):
@@ -51,9 +48,6 @@ def impl_ns_library(ctx):
     merged_paths_depsets = []
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
-    # direct_file_deps = []
-    # indirect_file_depsets  = []
-    # indirect_archive_depsets  = []
 
     indirect_opam_depsets  = []
 
@@ -61,18 +55,9 @@ def impl_ns_library(ctx):
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets = []
 
-    # indirect_path_depsets  = []
-
-    direct_resolver = None
-
     direct_cc_deps  = {}
     indirect_cc_deps  = {}
     ################
-
-    resolver_files = None
-
-    submodules = []
-    includes   = []
 
     mydeps = ctx.attr.submodules + ctx.attr._ns_resolver #  + ctx.attr.sublibs
     merge_deps(mydeps,
@@ -81,9 +66,6 @@ def impl_ns_library(ctx):
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               # indirect_file_depsets,
-               # indirect_archive_depsets,
-               # indirect_path_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -92,17 +74,11 @@ def impl_ns_library(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    resolver_dep = ctx.files._ns_resolver
-
     inputs_depset = depset(
         order = "postorder",
-        direct = resolver_dep,
+        direct = ctx.files._ns_resolver,
         transitive = merged_depgraph_depsets
-        # transitive = indirect_file_depsets + indirect_archive_depsets
     )
-
-    if debug:
-        print("INPUTS_DEPSET: %s" % inputs_depset)
 
     ## NS Lib targets do not directly produce anything, they just pass
     ## on their deps. The real work is done in the transition
@@ -120,23 +96,8 @@ def impl_ns_library(ctx):
         files = depset(
             order = "postorder",
             direct = ctx.files.submodules + ctx.files._ns_resolver,
-            # transitive = indirect_file_depsets
-            # transitive = indirect_file_depsets
         )
     )
-
-    if debug:
-        print("NSLIB DEFAULTINFO: %s" % defaultInfo)
-
-    defaultMemo = DefaultMemo(
-        paths  = depset(transitive = merged_paths_depsets),
-        # files     = depset(
-        #     order = "postorder",
-        #     transitive = indirect_archive_depsets + indirect_file_depsets
-        # )
-    )
-    if debug:
-        print("NSLIB DEFAULTMEMO: %s" % defaultMemo)
 
     if ctx.attr._rule == "ocaml_ns_library":
         nslibProvider = OcamlNsLibraryProvider(
@@ -200,12 +161,8 @@ def impl_ns_library(ctx):
         libs = cclibs
     )
 
-    if debug:
-        print("NSLIB returning depgraph: %s" % nslibProvider.depgraph)
-
     return [
         defaultInfo,
-        defaultMemo,
         nslibProvider,
         opamProvider,
         ccProvider

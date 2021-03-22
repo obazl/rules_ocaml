@@ -18,30 +18,6 @@
 # )
 load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_toolchain")
 load("//ocaml:providers.bzl", "OcamlSDK")
-# load("//implementation:common.bzl",
-#      # "OCAML_SDK", # = "ocaml"
-#      # "OCAML_VERSION",
-#      # "OCAMLBUILD_VERSION",
-#      # "OCAMLFIND_VERSION",
-#      # "DEFAULT_VERSION",
-#      # "MIN_SUPPORTED_VERSION",
-#      "executable_path")
-
-# load(
-#     "//implementation:noocaml.bzl",
-#     "ocaml_register_noocaml",
-# )
-# load(
-#     "//implementation:platforms.bzl",
-#     "generate_toolchain_names",
-# )
-# load(
-#     "//implementation:skylib/lib/versions.bzl",
-#     "versions",
-# )
-
-# print("private/sdk.bzl loading")
-
 def _ocaml_home_sdk_impl(ctx):
     # print("_ocaml_home_sdk_impl")
     # Go calls the next two in order to get <os> and <arch>,

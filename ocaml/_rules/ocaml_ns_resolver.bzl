@@ -1,5 +1,7 @@
 load(":options.bzl", "options", "options_ns_resolver")
 
+load("//ocaml:providers.bzl", "OcamlNsResolverProvider")
+
 load("//ocaml/_rules:impl_ns_resolver.bzl", "impl_ns_resolver")
 
 ###############################
@@ -69,7 +71,7 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
         rule_options,
         _rule = attr.string(default = "ocaml_ns_resolver")
     ),
-    # provides = [DefaultInfo, OcamlNsLibraryProvider],
+    provides = [OcamlNsResolverProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

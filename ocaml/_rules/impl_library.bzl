@@ -32,10 +32,6 @@ def impl_library(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    build_deps = []  # for the command line
-    includes   = []
-    dep_graph  = []  # for the run action inputs
-
     ################
     merged_module_links_depsets = []
     merged_archive_links_depsets = []
@@ -44,19 +40,11 @@ def impl_library(ctx):
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
 
-    # direct_file_deps = []
-    # indirect_file_depsets  = []
-    # indirect_archive_depsets  = []
-
     indirect_opam_depsets  = []
 
     indirect_adjunct_depsets = []
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets  = []
-
-    indirect_path_depsets  = []
-
-    direct_resolver = None
 
     direct_cc_deps  = {}
     indirect_cc_deps  = {}
@@ -68,9 +56,6 @@ def impl_library(ctx):
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               # indirect_file_depsets,
-               # indirect_archive_depsets,
-               # indirect_path_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -81,7 +66,7 @@ def impl_library(ctx):
     #######################
     ctx.actions.do_nothing(
         mnemonic = "OcamlLibrary" if ctx.attr._rule == "ocaml_library" else "PpxLibrary",
-        inputs = depset(transitive=merged_depgraph_depsets) # indirect_file_depsets)
+        inputs = depset(transitive=merged_depgraph_depsets)
     )
     #######################
 
@@ -90,10 +75,6 @@ def impl_library(ctx):
             order = "postorder",
             transitive = merged_module_links_depsets
         )
-    )
-
-    defaultMemo = DefaultMemo(
-        paths  = depset(transitive=indirect_path_depsets),
     )
 
     if ctx.attr._rule == "ocaml_library":
@@ -155,7 +136,6 @@ def impl_library(ctx):
     )
 
     cclibs = {}
-    # cclibs.update(ctx.attr.cc_deps)
     if len(indirect_cc_deps) > 0:
         if debug:
             print("cc deps for %s" % ctx.label)
@@ -169,7 +149,6 @@ def impl_library(ctx):
 
     return [
         defaultInfo,
-        defaultMemo,
         libraryProvider,
         opamProvider,
         adjunctsProvider,

@@ -55,11 +55,11 @@ ocaml_archive = rule(
         cc_linkopts = attr.string_list(
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
         ),
-        cc_linkall = attr.label_list(
-            doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
-            providers = [CcInfo],
-        ),
-        _cc_linkmode = attr.label(
+        # cc_linkall = attr.label_list( ## FIXME: not needed
+        #     doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
+        #     providers = [CcInfo],
+        # ),
+        _cc_linkmode = attr.label( ## FIXME: not needed?
             doc     = "Override platform-dependent link mode (static or dynamic). Configurable default is platform-dependent: static on Linux, dynamic on MacOS.",
             # default is os-dependent, but settable to static or dynamic
         ),

@@ -30,8 +30,6 @@ def merge_deps(deps,
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               # indirect_file_depsets,
-               # indirect_resolver_depsets,
                indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
@@ -165,12 +163,10 @@ def merge_deps(deps,
 
         if OcamlNsResolverProvider in dep:
             merged_module_links_depsets.append(dep[DefaultInfo].files)
-            if hasattr(dep[DefaultMemo], "paths"):
-                merged_paths_depsets.append(dep[DefaultMemo].paths)
+            if hasattr(dep[OcamlNsResolverProvider], "paths"):
+                merged_paths_depsets.append(dep[OcamlNsResolverProvider].paths)
             if hasattr(dep[OcamlNsResolverProvider], "files"):
                 merged_depgraph_depsets.append(dep[OcamlNsResolverProvider].files)
-            # indirect_file_depsets.append(dep[DefaultInfo].files)
-            # indirect_path_depsets.append(dep[DefaultMemo].paths)
 
         if OcamlSignatureProvider in dep:
             if hasattr(dep[OcamlSignatureProvider], "archive_links"):
@@ -183,20 +179,6 @@ def merge_deps(deps,
                 merged_depgraph_depsets.append(dep[OcamlSignatureProvider].depgraph)
             if hasattr(dep[OcamlSignatureProvider], "archived_modules"):
                 merged_archived_modules_depsets.append(dep[OcamlSignatureProvider].archived_modules)
-
-        # direct_file_depsets.append(dep[DefaultInfo].files)
-
-        # indirect_file_depsets.append(dep[DefaultInfo].files)
-        # if hasattr(dep[DefaultMemo], "files"):
-        #     indirect_file_depsets.append(dep[DefaultMemo].files)
-        # indirect_path_depsets.append(dep[DefaultMemo].paths)
-
-        # if OcamlArchiveProvider in dep:
-        # # if hasattr(dep[DefaultMemo], "archives"):
-        #     # indirect_arch_depsets.append(dep[DefaultMemo].files)
-        #     merged_archived_modules_depsets.append(dep[OcamlArchiveProvider].deps)
-
-
 
         if AdjunctDepsProvider in dep:
             indirect_adjunct_depsets.append(dep[AdjunctDepsProvider].nopam)

@@ -207,6 +207,7 @@ OcamlNsResolverProvider = provider(
     doc = "OCaml NS Resolver provider.",
     fields = {
         "files"   : "Depset, instead of DefaultInfo.files",
+        "paths":    "Depset of paths for -I params",
         "submodules": "List of submodules in this ns",
         "resolver": "Name of resolver module",
         "prefixes": "List of alias prefix segs",
