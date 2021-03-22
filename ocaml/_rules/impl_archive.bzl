@@ -31,10 +31,9 @@ def impl_archive(ctx):
     if debug:
         print("ARCHIVE TARGET: %s" % ctx.label.name)
 
-    if ctx.attr._rule == "ppx_module":
-        mode = ctx.attr._mode[0]
-    else:
-        mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    if ctx.attr._rule == "ppx_archive":
+        if "-linkpkg" in ctx.attr.opts:
+            fail("-linkpkg option not supported for ppx_archive rule")
 
     ## topdirs.cmi, digestif.cmi, ...
     OCAMLFIND_IGNORE = ""
@@ -52,28 +51,14 @@ def impl_archive(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
     ext  = ".cmxa" if  mode == "native" else ".cma"
-
-    if ctx.attr._rule == "ppx_archive":
-        if "-linkpkg" in ctx.attr.opts:
-            fail("-linkpkg option not supported for ppx_archive rule")
-
-    obj_files = []
-    obj_cm_a = None
-    obj_a    = None
-
-    module_name = normalize_module_name(ctx.label.name)
-    obj_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext) # ctx.label.name + ext)
-    if mode == "native":
-        obj_a = ctx.actions.declare_file(tmpdir + module_name + ".a") # ctx.label.name + ".a")
-
-    build_deps = []  # for the command line
-    includes = []
-    dep_graph = []  # for the run action inputs
 
     ################
     merged_module_links_depsets = []
     merged_archive_links_depsets = []
+
     merged_paths_depsets = []
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
@@ -84,13 +69,22 @@ def impl_archive(ctx):
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets = []
 
-    direct_resolver = None
-
-    direct_cc_deps  = {}
     indirect_cc_deps  = {}
-    ################
 
-    ################################################################
+    ################
+    includes = []
+    outputs = []
+
+    module_name = normalize_module_name(ctx.label.name)
+
+    out_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext)
+    outputs.append(out_cm_a)
+
+    if mode == "native":
+        out_a = ctx.actions.declare_file(tmpdir + module_name + ".a")
+        outputs.append(out_a)
+
+    #########################
     args = ctx.actions.args()
 
     if mode == "native":
@@ -98,17 +92,8 @@ def impl_archive(ctx):
     else:
         args.add(tc.ocamlc.basename)
 
-    cc_linkmode = tc.linkmode            # used below to determine linkmode for deps
-    if ctx.attr._cc_linkmode:
-        if ctx.attr._cc_linkmode[BuildSettingInfo].value == "static": # override toolchain default?
-            cc_linkmode = "static"
-
-    configurable_defaults = get_options(ctx.attr._rule, ctx)
-    args.add_all(configurable_defaults)
-
-    ## No direct cc_deps for archives - they should be attached to archive members
-    # cc_deps   = []
-    link_search  = []
+    options = get_options(ctx.attr._rule, ctx)
+    args.add_all(options)
 
     merge_deps(ctx.attr.modules,
                merged_module_links_depsets,
@@ -122,21 +107,17 @@ def impl_archive(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    if len(indirect_opam_depsets) > 0:
-        ## DO NOT USE -linkpkg, it tells ocamlfind to put dep files on command line,
-        ## which for native mode may result in:
-        ## `Option -a cannot be used with .cmxa input files.`
-        opams = depset(transitive = indirect_opam_depsets)
-        for opam in opams.to_list():
-            # -package tells ocamlfind to add OPAM file dirs to search path with -I
-            args.add("-package", opam)
-
-    args.add("-a")
+    opam_depset = depset(transitive = indirect_opam_depsets)
+    ## DO NOT USE -linkpkg, it tells ocamlfind to put dep files on command line,
+    ## which for native mode may result in:
+    ## `Option -a cannot be used with .cmxa input files.`
+    for opam in opam_depset.to_list():
+        args.add("-package", opam)  ## add dirs to search path
 
     indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
-        # print("PATH: %s" % path)
         includes.append(path)
+
     args.add_all(includes, before_each="-I", uniquify = True)
 
     ## modules to include in archive must be on command line
@@ -147,60 +128,56 @@ def impl_archive(ctx):
         if dep in ctx.files.modules:
             args.add(dep)
 
+    args.add("-a")
+    args.add("-o", out_cm_a)
+
     inputs_depset = depset(transitive = merged_depgraph_depsets)
 
-    args.add_all(link_search, before_each="-ccopt", uniquify = True)
-
-    if mode == "native":
-        obj_files.append(obj_a)
-
-    obj_files.append(obj_cm_a)
-
-    args.add("-o", obj_cm_a)
-
+    ################
+    ################
     ctx.actions.run(
         env = env,
         executable = tc.ocamlfind,
         arguments = [args],
         inputs = inputs_depset,
-        outputs = obj_files,
+        outputs = outputs,
         tools = [tc.ocamlfind, tc.ocamlopt],
-        mnemonic = "OcamlArchiveImpl" if ctx.attr._rule == "ocaml_archive" else "PpxArchiveImpl",
-        progress_message = "{mode} compiling ocaml_archive: @{ws}//{pkg}:{tgt}".format(
+        mnemonic = "CompileOcamlArchive" if ctx.attr._rule == "ocaml_archive" else "CompilePpxArchive",
+        progress_message = "{mode} compiling {arch}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,
+            arch = ctx.attr._rule,
             ws  = ctx.label.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
         )
     )
-
+    ################
+    ################
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
             ## this maintains dep ordering of archive files among all deps
-            direct = [obj_cm_a, obj_a] if obj_a else [obj_cm_a],
+            direct = [out_cm_a]
         )
     )
 
-    ## ArchiveProvider.archives used for command line construction
-    ## ArchiveProvider.deps for depgraph construction
     if ctx.attr._rule == "ocaml_archive":
         archiveProvider = OcamlArchiveProvider(
             module_links     = depset(
-                order = "postorder",
+                ## do NOT pass on component module links, only the archive links
             ),
             archive_links = depset(
                 order = "postorder",
-                direct = [obj_cm_a],
+                direct = [out_cm_a],
                 transitive = merged_archive_links_depsets
             ),
             paths    = depset(
-                direct = [obj_cm_a.dirname],
+                direct = [out_cm_a.dirname],
                 transitive = merged_paths_depsets
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = obj_files,
+                direct = outputs,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
@@ -210,22 +187,21 @@ def impl_archive(ctx):
         )
     else:
         archiveProvider = PpxArchiveProvider(
-            ## do NOT pass on component module links, only the archive links
             module_links     = depset(
-                order = "postorder",
+                ## do NOT pass on component module links, only the archive links
             ),
             archive_links = depset(
                 order = "postorder",
-                direct = [obj_cm_a],
+                direct = [out_cm_a],
                 transitive = merged_archive_links_depsets
             ),
             paths    = depset(
-                direct = [obj_cm_a.dirname],
+                direct = [out_cm_a.dirname],
                 transitive = merged_paths_depsets
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = obj_files,
+                direct = outputs,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
