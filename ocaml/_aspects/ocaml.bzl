@@ -1,7 +1,6 @@
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CcDepsProvider",
-     "DefaultMemo",
      # "OcamlDepsetProvider",
      "OcamlSignatureProvider",
      "OcamlModuleProvider",
@@ -16,10 +15,8 @@ def _print_aspect_impl(target, ctx):
     if hasattr(ctx.rule.attr, 'deps'):
         for dep in ctx.rule.attr.deps:
             print("dep: %s" % dep)
-            # for fdep in dep[DefaultInfo].files.to_list():
-            #     print("NOPAM dep: %s" % fdep.path)
-            for path in dep[DefaultMemo].paths.to_list():
-                print("Path: %s" % path)
+            # for path in dep[DefaultMemo].paths.to_list():
+            #     print("Path: %s" % path)
             if OpamDepsProvider in dep:
                 for pkg in dep[OpamDepsProvider].pkgs.to_list():
                     print("OPAM dep pkg: %s" % pkg)
@@ -29,8 +26,8 @@ def _print_aspect_impl(target, ctx):
             print("submod: %s" % m)
             for fdep in f[DefaultInfo].files.to_list():
                 print("NOPAM dep: %s" % fdep.path)
-            for path in f[DefaultMemo].paths.to_list():
-                print("Path: %s" % path)
+            # for path in f[DefaultMemo].paths.to_list():
+            #     print("Path: %s" % path)
             # if OpamDepsProvider in f:
             #     print("OPAM deps: %s" % f[OpamDepsProvider])
             # if OcamlModuleProvider in f:

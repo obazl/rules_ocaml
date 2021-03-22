@@ -3,7 +3,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml:providers.bzl",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
      "OcamlArchiveProvider",
      "OcamlSDK",
      "PpxArchiveProvider")
@@ -183,10 +182,6 @@ def impl_archive(ctx):
         )
     )
 
-    defaultMemo = DefaultMemo(
-        paths     = indirect_paths_depset,
-    )
-
     ## ArchiveProvider.archives used for command line construction
     ## ArchiveProvider.deps for depgraph construction
     if ctx.attr._rule == "ocaml_archive":
@@ -248,7 +243,6 @@ def impl_archive(ctx):
     )
 
     return [defaultInfo,
-            defaultMemo,
             archiveProvider,
             ccProvider
             ]

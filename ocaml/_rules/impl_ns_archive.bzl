@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
     "CompilationModeSettingProvider",
-     # "DefaultMemo",
      "OcamlNsArchiveProvider",
      "PpxNsArchiveProvider")
 
@@ -42,7 +41,6 @@ def impl_ns_archive(ctx):
     ####  call impl_ns_library  ####
     [
         defaultInfo,
-        # defaultMemo,
         nslibProvider,
         opamProvider,
         ccProvider

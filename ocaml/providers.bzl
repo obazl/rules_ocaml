@@ -408,16 +408,3 @@ PpxModuleProvider = provider(
     }
 )
 
-DefaultMemo = provider(
-    doc = """Complements DefaultInfo: contains memoized data, to eliminate the need to unroll the DefaultInfo
-    depset.
-    """,
-    ## Used by: ns lib, signature, module (ocaml & ppx)
-    fields = {
-        "paths": "List of filesystem directory paths (strings).",
-        "files": "Depset of file deps to be added to inputs depgraph but not cmd line."
-        # "resolvers": "List of resolver module names (strings)."
-    }
-)
-
-

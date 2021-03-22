@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
      "OcamlNsResolverProvider")
 
 load("//ocaml/_functions:utils.bzl",
@@ -49,7 +48,6 @@ def impl_ns_resolver(ctx):
         if debug:
             print("NO SUBMODULES")
         return [DefaultInfo(files = depset()),
-                DefaultMemo(paths=depset(), files=depset()),
                 OcamlNsResolverProvider(
                 )]
 
@@ -94,7 +92,6 @@ def impl_ns_resolver(ctx):
     # do not generate a resolver module unless we have at least one alias
     if len(aliases) < 1:
         return [DefaultInfo(files = depset()),
-                DefaultMemo(paths=depset(), files=depset()),
                 OcamlNsResolverProvider(
                 )]
 

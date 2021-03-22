@@ -5,7 +5,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CcDepsProvider",
-     "DefaultMemo",
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",

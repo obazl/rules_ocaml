@@ -5,8 +5,6 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
-
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
@@ -286,18 +284,6 @@ def _ocaml_signature_impl(ctx):
         # module    = obj_cmi,
     )
 
-    defaultMemo = DefaultMemo(
-        paths     = depset(
-            direct = search_paths,
-            transitive = merged_paths_depsets # [indirect_paths_depset]
-        ),
-        # files     = depset(order = "postorder",
-        #                    direct = [obj_cmi, sigfile],
-        #                    transitive = indirect_archive_depsets + indirect_file_depsets )
-    )
-    if debug:
-        print("SIG DEFAULT_MEMO: %s" % defaultMemo)
-
     opamProvider = OpamDepsProvider(
         pkgs = opam_depset
     )
@@ -305,7 +291,6 @@ def _ocaml_signature_impl(ctx):
     ## FIXME: add CcDepsProvider
     return [
         defaultInfo,
-        defaultMemo,
         sigProvider,
         opamProvider]
 

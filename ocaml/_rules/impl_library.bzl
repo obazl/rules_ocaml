@@ -2,7 +2,6 @@ load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "DefaultMemo",
      "OcamlLibraryProvider",
      "PpxLibraryProvider",
      "OpamDepsProvider")
