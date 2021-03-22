@@ -14,9 +14,9 @@ load("//ocaml/_transitions:transitions.bzl",
      "module_in_transition")
 
 ################################
-rule_options = options("ocaml")
+rule_options = options("ppx")
 rule_options.update(options_module("ppx"))
-rule_options.update(options_ns_opts("ocaml"))
+rule_options.update(options_ns_opts("ppx"))
 rule_options.update(options_ppx)
 
 ##################
@@ -35,9 +35,6 @@ TODO: finish docstring
         deps_adjunct_opam = attr.string_list(
             doc = "List of OPAM adjunct deps.",
         ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
         _rule = attr.string( default = "ppx_module" ),
     ),
     cfg     = module_in_transition,

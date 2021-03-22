@@ -51,7 +51,7 @@ def options(ws):
         _verbose         = attr.label(default = ws + "//verbose"),
 
         _mode       = attr.label(
-            default = "@ocaml//mode",  ## @ppx//mode only used for ppx_executable
+            default = ws + "//mode",
         ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:path") # ppx also uses this
@@ -137,7 +137,7 @@ def options_executable(ws):
 
         ),
         _mode = attr.label(
-            default = "@ocaml//mode"
+            default = ws + "//mode"
         ),
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -271,8 +271,6 @@ def options_module(ws):
 #######################
 def options_ns_archive(ws):
 
-    ws = "@" + ws
-
     if ws == "ocaml":
         _submod_providers   = [
             [OcamlModuleProvider],
@@ -288,6 +286,8 @@ def options_ns_archive(ws):
             [OcamlSignatureProvider],
             [PpxModuleProvider],
         ]
+
+    ws = "@" + ws
 
     return dict(
         _linkall     = attr.label(default = ws +  "//archive/linkall"),
@@ -325,8 +325,7 @@ def options_ns_archive(ws):
         ),
 
         _mode = attr.label(
-            default = "@ocaml//mode"
-            # default = ws + "//mode"
+            default = ws + "//mode"
         ),
         _projroot = attr.label(
             default = "@ocaml//:projroot"

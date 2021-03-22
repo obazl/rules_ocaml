@@ -17,7 +17,7 @@ def print_config_state(settings, attr):
 
 ##################################################
 def _executable_in_transition_impl(settings, attr):
-    ## FIXME: not needed
+    ## FIXME: ppx_executable uses @ppx//mode to set @ocaml//mode
     return {
         "@ocaml//mode"          : settings["@ocaml//mode:mode"],
         "@ppx//mode"            : settings["@ocaml//mode:mode"],
@@ -30,6 +30,7 @@ executable_in_transition = transition(
     implementation = _executable_in_transition_impl,
     inputs = [
         "@ocaml//mode:mode",
+        "@ppx//mode:mode",
     ],
     outputs = [
         "@ocaml//mode",

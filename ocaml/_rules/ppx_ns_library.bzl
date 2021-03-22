@@ -11,9 +11,9 @@ load(":impl_ns_library.bzl", "impl_ns_library")
 load("//ocaml/_transitions:ns_transitions.bzl", "nslib_in_transition")
 
 ###############################
-rule_options = options("ocaml")
-rule_options.update(options_ns_opts("ocaml"))
-rule_options.update(options_ns_library("ocaml"))
+rule_options = options("ppx")
+rule_options.update(options_ns_opts("ppx"))
+rule_options.update(options_ns_library("ppx"))
 
 ######################
 ppx_ns_library = rule(

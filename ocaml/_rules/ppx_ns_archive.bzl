@@ -13,9 +13,9 @@ OCAML_FILETYPES = [
 ]
 
 ###############################
-rule_options = options("ocaml")
+rule_options = options("ppx")
 rule_options.update(options_ns_archive("ppx"))
-rule_options.update(options_ns_opts("ocaml"))
+rule_options.update(options_ns_opts("ppx"))
 
 ######################
 ppx_ns_archive = rule(

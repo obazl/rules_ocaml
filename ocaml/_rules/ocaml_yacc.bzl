@@ -17,8 +17,6 @@ def _ocaml_yacc_impl(ctx):
   if debug:
       print("OCAML YACC TARGET: %s" % ctx.label.name)
 
-  mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
@@ -65,9 +63,6 @@ ocaml_yacc = rule(
         ),
         opts = attr.string_list(
             doc = "Options"
-        ),
-        _mode       = attr.label(
-            default = "@ocaml//mode",
         ),
         _rule = attr.string( default = "ocaml_yacc" )
     ),

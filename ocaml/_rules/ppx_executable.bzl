@@ -98,6 +98,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             # default = "@ppx//mode",
         ),
         _mode = attr.label(
+            ## ppx_executable transition uses this to set @ocaml//mode
             default = "@ppx//mode",
         ),
         _rule = attr.string( default = "ppx_executable" ),
