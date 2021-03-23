@@ -1,8 +1,34 @@
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider")
+     "CompilationModeSettingProvider",
+     "OcamlSDK")
 
 ## obtaining CC toolchain:  https://github.com/bazelbuild/bazel/issues/7260
 
+###################################################################
+def ocaml_register_toolchains(installation = None, noocaml = None):
+
+    native.register_toolchains("@ocaml//toolchain:ocaml_macos")
+    native.register_toolchains("@ocaml//toolchain:ocaml_linux")
+
+#########################
+def _ocaml_sdk_impl(ctx):
+    return [OcamlSDK(path=ctx.attr.path)]
+
+## We use a trick to obtain the absolute path of the sdk, which we
+## need to set the PATH env var for the compilers. This rule is only
+## used in the BUILD file that we generate, parameterized by the path
+## at load time (which we can do from within a repository_rule).
+## So rules that need the sdk path can get it from "@ocaml_sdk//:path"
+ocaml_sdkpath = rule(
+    implementation = _ocaml_sdk_impl,
+    attrs = {
+        "path": attr.string(
+            mandatory = True
+        ),
+    },
+)
+
+################################################################
 _ocaml_tools_attrs = {
     "path": attr.string(),
     "sdk_home": attr.string(),

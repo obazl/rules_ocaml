@@ -5,12 +5,8 @@ load("@bazel_skylib//rules:common_settings.bzl",
 
 load("@obazl_rules_ocaml//ocaml/_toolchains:ocaml_toolchains.bzl",
      ## FIXME: make a public toolchain ns
-     "ocaml_toolchain")
-
-load("@obazl_rules_ocaml//ocaml/_toolchains:sdk.bzl",
-     ## FIXME: put these in public ocaml namespace
      "ocaml_sdkpath",
-     "ocaml_register_toolchains")
+     "ocaml_toolchain")
 
 load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
 

@@ -4,15 +4,6 @@ workspace(name = "obazl_rules_ocaml")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-# load("@obazl_rules_ocaml//ocaml:deps.bzl",
-#      "ocaml_configure_tooling",
-#      "ocaml_register_toolchains"
-# )
-
-# # NB: we need to do this here so we can use stardoc.
-# ocaml_configure_tooling()
-# ocaml_register_toolchains(installation="host")
-
 http_archive(
     name = "bazel_skylib",
     urls = [
@@ -23,12 +14,6 @@ http_archive(
 )
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 bazel_skylib_workspace()
-
-# git_repository(
-#     name = "obazl_rules_opam",
-#     remote = "https://github.com/obazl/rules_opam",
-#     branch = "main",
-# )
 
 ################################################################
 ## rule documentation

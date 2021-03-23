@@ -3,20 +3,18 @@ load("@bazel_skylib//lib:types.bzl", "types")
 
 load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
-load(
-    "//ocaml/_toolchains:sdk.bzl",
-    "ocaml_register_toolchains",
-)
+load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_register_toolchains")
 
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
 
+##################################
 def _throw_opam_cmd_error(cmd, r):
     print("OPAM cmd {cmd} rc    : {rc}".format(cmd=cmd, rc= r.return_code))
     print("OPAM cmd {cmd} stdout: {stdout}".format(cmd=cmd, stdout= r.stdout))
     print("OPAM cmd {cmd} stderr: {stderr}".format(cmd=cmd, stderr= r.stderr))
     fail("OPAM cmd failure.")
 
-#################################
+#######################################
 def _opam_set_switch(repo_ctx, switch):
 
     cmd = ["opam", "switch", switch, "--dry-run"]

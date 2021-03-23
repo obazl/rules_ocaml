@@ -9,13 +9,6 @@
 load("@obazl_rules_ocaml//ocaml/_toolchains:ocaml_toolchains.bzl",
      "ocaml_toolchain")
 
-# load("@obazl_rules_ocaml//ocaml/_toolchains:sdk.bzl",
-#      ## FIXME: put these in public ocaml namespace
-#      "ocaml_sdkpath",
-#      "ocaml_register_toolchains")
-
-# load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
-
 ## we use same toolchain for native and bytecode modes
 ## rule logic selects the compiler based on @ocaml//mode config flag
 
