@@ -153,19 +153,17 @@ def impl_archive(ctx):
     )
     ################
     ################
+
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            ## this maintains dep ordering of archive files among all deps
             direct = [out_cm_a]
         )
     )
 
     if ctx.attr._rule == "ocaml_archive":
         archiveProvider = OcamlArchiveProvider(
-            module_links     = depset(
-                ## do NOT pass on component module links, only the archive links
-            ),
+            module_links     = depset( ),
             archive_links = depset(
                 order = "postorder",
                 direct = [out_cm_a],
@@ -185,11 +183,9 @@ def impl_archive(ctx):
                 transitive = merged_archived_modules_depsets
             ),
         )
-    else:
+    elif ctx.attr._rule == "ppx_archive":
         archiveProvider = PpxArchiveProvider(
-            module_links     = depset(
-                ## do NOT pass on component module links, only the archive links
-            ),
+            module_links     = depset( ),
             archive_links = depset(
                 order = "postorder",
                 direct = [out_cm_a],
@@ -220,6 +216,7 @@ def impl_archive(ctx):
 
     return [defaultInfo,
             archiveProvider,
+            ## FIXME: opamProvider?
             ccProvider
             ]
 

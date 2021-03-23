@@ -24,6 +24,8 @@ def impl_library(ctx):
     if debug:
         print("LIBRARY TARGET: %s" % ctx.label.name)
 
+    ## FIXME: do we need OCAMLFIND_IGNORE here?
+
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
 
@@ -45,10 +47,9 @@ def impl_library(ctx):
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets  = []
 
-    direct_cc_deps  = {}
     indirect_cc_deps  = {}
-    ################
 
+    ################
     merge_deps(ctx.attr.modules,
                merged_module_links_depsets,
                merged_archive_links_depsets,
@@ -63,10 +64,12 @@ def impl_library(ctx):
 
     ## Library targets do not produce anything, they just pass on their deps.
     #######################
+    #######################
     ctx.actions.do_nothing(
         mnemonic = "OcamlLibrary" if ctx.attr._rule == "ocaml_library" else "PpxLibrary",
         inputs = depset(transitive=merged_depgraph_depsets)
     )
+    #######################
     #######################
 
     defaultInfo = DefaultInfo(

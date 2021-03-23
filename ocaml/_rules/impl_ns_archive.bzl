@@ -31,13 +31,16 @@ def impl_ns_archive(ctx):
         print("  NS_RESOLVER: %s" % ctx.attr._ns_resolver[0].files)
         print("  NS_PREFIX: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("  NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
+    ## FIXME: do we need OCAMLFIND_IGNORE here?
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
 
+    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    ################################
     ####  call impl_ns_library  ####
     [
         defaultInfo,
@@ -45,12 +48,11 @@ def impl_ns_archive(ctx):
         opamProvider,
         ccProvider
     ] = impl_ns_library(ctx)
-    ####
+    ################################
 
-    ################################################################
-    ## now archive the lib
+    ## now archive the nslib
 
-    ns_archive_name = normalize_module_name(ctx.label.name) # .replace("-", "_")
+    ns_archive_name = normalize_module_name(ctx.label.name)
     ns_ext = ".cmxa" if mode == "native" else ".cma"
     ns_archive_filename = tmpdir + ns_archive_name + ns_ext
     ns_archive_file = ctx.actions.declare_file(ns_archive_filename)
@@ -69,8 +71,7 @@ def impl_ns_archive(ctx):
     options = get_options(ctx.attr._rule, ctx)
     args.add_all(options)
 
-    ## use depgraph to ensure correct ordering,
-    ## filter to include only direct deps
+    ## use depgraph to ensure correct ordering, filter to include only direct deps
     submods = ctx.files.submodules
     for dep in nslibProvider.depgraph.to_list():
         if dep in submods:
@@ -88,12 +89,14 @@ def impl_ns_archive(ctx):
     args.add("-o", ns_archive_file)
 
     if ctx.attr._rule == "ocaml_ns_archive":
-        mnemonic = "OcamlNsArchive"
+        mnemonic = "CompileOcamlNsArchive"
     elif ctx.attr._rule == "ppx_ns_archive":
-        mnemonic = "PpxNsArchive"
+        mnemonic = "CompilePpxNsArchive"
     else:
         fail("Unexpected rule type for impl_ns_archive: %s" % ctx.attr_rule)
 
+    ################
+    ################
     ctx.actions.run(
         env = env,
         executable = tc.ocamlfind,
@@ -109,19 +112,19 @@ def impl_ns_archive(ctx):
             tgt=ctx.label.name,
         )
     )
+    ################
+    ################
 
     newDefaultInfo = DefaultInfo(
         files = depset(
             order  = "postorder",
-            direct = [ns_archive_file], # ns_archive_a_file],
+            direct = [ns_archive_file],
         )
     )
 
     if ctx.attr._rule == "ocaml_ns_archive":
         nsArchiveProvider = OcamlNsArchiveProvider(
-            module_links = depset(
-                order = "postorder",
-            ),
+            module_links = depset( ),
             archive_links = depset(
                 order = "postorder",
                 direct = [ns_archive_file],
@@ -143,9 +146,7 @@ def impl_ns_archive(ctx):
         )
     elif ctx.attr._rule == "ppx_ns_archive":
         nsArchiveProvider = PpxNsArchiveProvider(
-            module_links = depset(
-                order = "postorder",
-            ),
+            module_links = depset( ),
             archive_links = depset(
                 order = "postorder",
                 direct = [ns_archive_file],
@@ -171,7 +172,7 @@ def impl_ns_archive(ctx):
     return [
         newDefaultInfo,
         nsArchiveProvider,
-        opamProvider,
+        opamProvider, ## FIXME: not needed?
         ccProvider
     ]
 

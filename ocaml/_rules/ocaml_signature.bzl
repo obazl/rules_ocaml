@@ -43,6 +43,8 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load(":impl_common.bzl", "merge_deps", "tmpdir")
 
+scope = tmpdir
+
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
 
@@ -50,30 +52,16 @@ def _ocaml_signature_impl(ctx):
     # if ctx.label.name in ["_Impl.cmi"]:
     #     debug = True
 
-    ns_submodules = []
-    for lbl in ctx.attr._ns_submodules[BuildSettingInfo].value:
-        submod = normalize_module_label(lbl)
-        ns_submodules.append(submod)
-
-    ns_prefixes     = ctx.attr._ns_prefixes[BuildSettingInfo].value
-
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
-        ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver
-    else:
-        ns_resolver = False
-
     if debug:
         print("")
         if ctx.attr._rule == "ocaml_signature":
             print("Start: OCAMLSIG %s" % ctx.label)
         else:
             fail("Unexpected rule for 'ocaml_signature_impl': %s" % ctx.attr._rule)
-        print("  ns_prefixes: %s" % ns_prefixes)
-        print("  ns_submodules: %s" % ns_submodules)
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+        print("  ns_prefixes: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
+        print("  ns_submodules: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     OCAMLFIND_IGNORE = ""
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif"
@@ -87,6 +75,10 @@ def _ocaml_signature_impl(ctx):
         "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
     }
 
+    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
     ################
     merged_module_links_depsets = []
     merged_archive_links_depsets = []
@@ -95,54 +87,22 @@ def _ocaml_signature_impl(ctx):
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
 
-    # direct_file_deps = []
-    # indirect_file_depsets = []
-    # indirect_archive_depsets = []
-
     indirect_opam_depsets = []
 
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets = []
 
-    # indirect_path_depsets = []
-
-    direct_resolver = None
-
-    direct_cc_deps  = {}
     indirect_cc_deps  = {}
+
     ################
-
-    dep_graph = []
-
-    sigfile = None
-
-    build_deps = []
-    dso_deps = []
     includes   = []
-
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "files"):
-        ns_files_depset = ctx.attr._ns_resolver[OcamlNsResolverProvider].files
-    else:
-        ns_files_depset = depset()
 
     (from_name, module_name) = get_module_name(ctx, ctx.file.src)
 
-    if ctx.attr.ppx:
-        sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src, module_name + ".mli")
-        # direct_file_deps.append(ctx.file.ppx)
-    elif module_name != from_name:
-        sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
-    else:
-        sigfile = ctx.file.src
+    out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
 
-    scope = tmpdir
-
-    cmifname = paths.replace_extension(sigfile.basename, ".cmi")
-
-    obj_cmi = ctx.actions.declare_file(scope + cmifname)
-
-    ################################################################
+    #########################
     args = ctx.actions.args()
 
     if mode == "native":
@@ -153,13 +113,7 @@ def _ocaml_signature_impl(ctx):
     _options = get_options(rule, ctx)
     args.add_all(_options)
 
-    if ns_resolver:
-        args.add("-no-alias-deps")
-        args.add("-open", ns_resolver)
-
-    mydeps = ctx.attr.deps + [ctx.attr._ns_resolver]
-
-    merge_deps(mydeps,
+    merge_deps(ctx.attr.deps + [ctx.attr._ns_resolver],
                merged_module_links_depsets,
                merged_archive_links_depsets,
                merged_paths_depsets,
@@ -174,16 +128,10 @@ def _ocaml_signature_impl(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    indirect_paths_depset = depset(transitive = merged_paths_depsets)
-    for path in indirect_paths_depset.to_list():
-            includes.append(path)
-
-    args.add("-c") # interfaces always compile-only?
-
-    includes.append(obj_cmi.dirname)
-
-    ppx_opam_adjunct_deps = []
-    ppx_nopam_adjunct_deps = []
+    opam_depset = depset(direct = ctx.attr.deps_opam,
+                         transitive = indirect_opam_depsets)
+    for opam in opam_depset.to_list():
+        args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
@@ -195,44 +143,54 @@ def _ocaml_signature_impl(ctx):
             args.add("-package", opam)
 
         for nopam in provider.nopam.to_list():
-            if debug:
-                print("NOAPM adjunct: %s" % nopam)
             for nopamfile in nopam.files.to_list():
                 adjunct_deps.append(nopamfile)
         for path in provider.nopam_paths.to_list():
             args.add("-I", path)
 
-    opam_depset = depset(direct = ctx.attr.deps_opam,
-                         transitive = indirect_opam_depsets)
-    for dep in opam_depset.to_list():
-        args.add("-package", dep)  ## add dirs to search path
+    indirect_paths_depset = depset(transitive = merged_paths_depsets)
+    for path in indirect_paths_depset.to_list():
+            includes.append(path)
 
-    intf_dep = None
-
-    cc_deps  = {}
-    link_search = []
+    includes.append(out_cmi.dirname)
 
     args.add_all(includes, before_each="-I", uniquify = True)
-    args.add_all(build_deps)
 
-    args.add("-o", obj_cmi)
+    ## FIXME: do we need to add links to cmd line, as modules do?
+
+    ## FIXME: do we need the resolver for sigfiles?
+    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
+        ## this will only be the case if this is a submodule of an nslib
+        args.add("-no-alias-deps")
+        args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
+
+    args.add("-c")
+    args.add("-o", out_cmi)
+
+    if ctx.attr.ppx:
+        sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src, module_name + ".mli")
+    elif module_name != from_name:
+        sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+    else:
+        sigfile = ctx.file.src
 
     args.add("-intf", sigfile)
 
-    dep_graph.append(sigfile)
+    input_depset = depset(
+        direct = [sigfile],
+        transitive = merged_depgraph_depsets
+    )
 
-    input_depset = depset(direct = dep_graph,
-                          transitive = merged_depgraph_depsets)
-    # indirect_file_depsets + indirect_archive_depsets)
-
+    ################
+    ################
     ctx.actions.run(
         env = env,
         executable = tc.ocamlfind,
         arguments = [args],
         inputs = input_depset,
-        outputs = [obj_cmi],
+        outputs = [out_cmi],
         tools = [tc.ocamlopt],
-        mnemonic = "OcamlSignature",
+        mnemonic = "CompileOcamlSignature",
         progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}".format(
             mode = mode,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
@@ -240,48 +198,38 @@ def _ocaml_signature_impl(ctx):
             tgt=ctx.label.name
         )
     )
+    ################
+    ################
 
     defaultInfo = DefaultInfo(
         files = depset(
             order="postorder",
-            direct = [obj_cmi] # , sigfile],
-            # transitive = [depset(
-            #     order="postorder",
-            #     direct = [sigfile],
-            #     transitive = indirect_file_depsets
-            # )]
+            direct = [out_cmi]
         )
     )
-    if debug:
-        print("SIG DEFAULT_INFO: %s" % defaultInfo)
-
-    search_paths = sets.to_list(sets.make(includes))  ## uniqify
 
     sigProvider = OcamlSignatureProvider(
             module_links     = depset(
                 order = "postorder",
-                # direct = [obj_cmi],
                 transitive = merged_module_links_depsets
             ),
             archive_links = depset(
                 order = "postorder",
                 transitive = merged_archive_links_depsets
             ),
-            paths    = depset( ## cmd line
-                direct = search_paths,
+            paths    = depset(
+                direct = includes + [out_cmi.dirname],
                 transitive = merged_paths_depsets
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = [obj_cmi, sigfile],
+                direct = [out_cmi, sigfile],
                 transitive = merged_depgraph_depsets
             ),
-            archived_modules = depset( ## augments depgraph
+            archived_modules = depset(
                 order = "postorder",
                 transitive = merged_archived_modules_depsets
             ),
-        # name      = capitalize_initial_char(paths.split_extension(obj_cmi.basename)[0]),
-        # module    = obj_cmi,
     )
 
     opamProvider = OpamDepsProvider(
@@ -293,6 +241,9 @@ def _ocaml_signature_impl(ctx):
         defaultInfo,
         sigProvider,
         opamProvider]
+
+################################################################
+################################################################
 
 ################################
 rule_options = options("ocaml")

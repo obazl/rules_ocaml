@@ -12,6 +12,10 @@ load("//ocaml/_functions:utils.bzl",
      "get_sdkpath",
 )
 
+module_sep = "__"
+
+resolver_suffix = module_sep + "0Resolver"
+
 #################
 def impl_ns_resolver(ctx):
 
@@ -26,15 +30,22 @@ def impl_ns_resolver(ctx):
         print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
+    if len(submodules) < 1:
+        if debug:
+            print("NO SUBMODULES")
+        return [DefaultInfo(),
+                OcamlNsResolverProvider()]
+
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
 
+    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
+    ################
     outputs = []
-
-    module_sep = "__"
 
     obj_cm_ = None
     obj_cmi = None
@@ -42,14 +53,6 @@ def impl_ns_resolver(ctx):
     aliases = []
 
     ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
-    submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
-
-    if len(submodules) < 1:
-        if debug:
-            print("NO SUBMODULES")
-        return [DefaultInfo(files = depset()),
-                OcamlNsResolverProvider(
-                )]
 
     user_main = False
 
@@ -58,10 +61,10 @@ def impl_ns_resolver(ctx):
         if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
             ## NB: submodules may come from different pkgs
             fs_prefix = get_fs_prefix(submod_label)
-            alias_prefix = fs_prefix ##  + "__"
+            alias_prefix = fs_prefix
         else:
-            fs_prefix = "" # ns_prefix + "__"
-            alias_prefix = "__".join(ns_prefixes) ## ns_prefix
+            fs_prefix = ""
+            alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
 
         nslib_submod = False
         if submodule.startswith("#"):
@@ -91,14 +94,13 @@ def impl_ns_resolver(ctx):
 
     # do not generate a resolver module unless we have at least one alias
     if len(aliases) < 1:
-        return [DefaultInfo(files = depset()),
-                OcamlNsResolverProvider(
-                )]
+        return [DefaultInfo(),
+                OcamlNsResolverProvider()]
 
     if user_main:
-        resolver_module_name = "__".join(ns_prefixes) + "__0Resolver"
+        resolver_module_name = module_sep.join(ns_prefixes) + resolver_suffix
     else:
-        resolver_module_name = "__".join(ns_prefixes)
+        resolver_module_name = module_sep.join(ns_prefixes)
 
     resolver_src_filename = resolver_module_name + ".ml"
     resolver_src_file = ctx.actions.declare_file(resolver_src_filename)

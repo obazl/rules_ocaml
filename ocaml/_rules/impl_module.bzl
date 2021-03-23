@@ -131,15 +131,14 @@ def impl_module(ctx):
     else:
         args.add(tc.ocamlc.basename)
 
-    options = get_options(ctx.attr._rule, ctx)
-    args.add_all(options)
+    _options = get_options(ctx.attr._rule, ctx)
+    args.add_all(_options)
 
-    if "-bin-annot" in options: ## Issue #17
+    if "-bin-annot" in _options: ## Issue #17
         out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(module_name, ".cmt"))
         outputs.append(out_cmt)
 
-    mdeps = ctx.attr.deps + [ctx.attr._ns_resolver]
-    merge_deps(mdeps,
+    merge_deps(ctx.attr.deps + [ctx.attr._ns_resolver],
                merged_module_links_depsets,
                merged_archive_links_depsets,
                merged_paths_depsets,
@@ -203,23 +202,23 @@ def impl_module(ctx):
     args.add("-o", out_cm_)
 
     if ctx.attr.ppx:
-        srcfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
+        structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
     elif module_name != from_name:
-        srcfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
+        structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
     else:
-        srcfile = ctx.file.struct
+        structfile = ctx.file.struct
 
-    args.add("-impl", srcfile)
+    args.add("-impl", structfile)
 
     inputs_depset = depset(
         order = "postorder",
-        direct = [srcfile],
+        direct = [structfile],
+        transitive = merged_depgraph_depsets
+    )
         # NB: these are NOT in the depgraph: cc_direct_depfiles + adjunct_deps + ctx.files.ppx,
         # Why not? cc deps need only be built for executable targets
         # adjunct deps are not needed to build this target
         # ppx has already been used above to transform source, not needed to build transformed source
-        transitive = merged_depgraph_depsets
-    )
 
     ################
     ################
@@ -266,7 +265,7 @@ def impl_module(ctx):
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = outputs,
+                direct = outputs + [structfile],
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
@@ -291,7 +290,7 @@ def impl_module(ctx):
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = outputs,
+                direct = outputs + [structfile],
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(

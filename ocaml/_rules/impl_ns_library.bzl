@@ -35,11 +35,12 @@ def impl_ns_library(ctx):
         if not ctx.label.name.startswith("#"):
             fail("NS Library names must start with at least one '#' followed by a legal OCaml module name: %s" % ctx.label.name)
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
 
-    aliases = []
+    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     ################
     merged_module_links_depsets = []
@@ -55,12 +56,11 @@ def impl_ns_library(ctx):
     indirect_adjunct_path_depsets = []
     indirect_adjunct_opam_depsets = []
 
-    direct_cc_deps  = {}
     indirect_cc_deps  = {}
-    ################
 
-    mydeps = ctx.attr.submodules + ctx.attr._ns_resolver #  + ctx.attr.sublibs
-    merge_deps(mydeps,
+    ################
+    mdeps = ctx.attr.submodules + ctx.attr._ns_resolver ## _ns_resolver is a list too
+    merge_deps(mdeps,
                merged_module_links_depsets,
                merged_archive_links_depsets,
                merged_paths_depsets,
@@ -71,8 +71,6 @@ def impl_ns_library(ctx):
                indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
-
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     inputs_depset = depset(
         order = "postorder",
@@ -165,6 +163,7 @@ def impl_ns_library(ctx):
         defaultInfo,
         nslibProvider,
         opamProvider,
+        ## FIXME: adjuncts?
         ccProvider
     ]
 
