@@ -17,7 +17,7 @@ ppx_executable = rule(
 By default, this rule adds `-predicates ppx_driver` to the command line.
     """,
     attrs = dict(
-        options("ocaml"),
+        options("ppx"),
         _linkall     = attr.label(default = "@ppx//executable/linkall"),
         _thread     = attr.label(default = "@ppx//executable/thread"),
         _warnings  = attr.label(default = "@ppx//executable:warnings"),
@@ -93,13 +93,6 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         cc_linkopts = attr.string_list(
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
-        ),
-        mode = attr.string(
-            # default = "@ppx//mode",
-        ),
-        _mode = attr.label(
-            ## ppx_executable transition uses this to set @ocaml//mode
-            default = "@ppx//mode",
         ),
         _rule = attr.string( default = "ppx_executable" ),
         _sdkpath = attr.label(

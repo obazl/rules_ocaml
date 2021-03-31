@@ -26,9 +26,10 @@ def _ocaml_lex_impl(ctx):
   env = {"OPAMROOT": get_opamroot(),
          "PATH": get_sdkpath(ctx)}
 
-  lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
+  # lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
 
-  lexer = ctx.actions.declare_file(lexer_fname)
+  # lexer = ctx.actions.declare_file(lexer_fname)
+  lexer = ctx.outputs.out
 
   #########################
   args = ctx.actions.args()
@@ -72,6 +73,10 @@ ocaml_lex = rule(
         src = attr.label(
             doc = "A single .mll source file label",
             allow_single_file = [".mll"]
+        ),
+        out = attr.output(
+            doc = """Output filename.""",
+            mandatory = True
         ),
         opts = attr.string_list(
             doc = "Options"

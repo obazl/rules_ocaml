@@ -66,10 +66,10 @@ def get_module_name (ctx, src):
         else:
             if len(ns_resolver.submodules) > 0:
                 if _this_module_in_submod_list(ctx, src, ns_resolver.submodules):
-                    if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
-                        fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
-                    else:
-                        fs_prefix = "__".join(ns_prefixes) + "__"
+                    # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
+                    #     fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
+                    # else:
+                    fs_prefix = "__".join(ns_prefixes) + "__"
                     out_module = fs_prefix + this_module
                 else:
                     out_module = this_module

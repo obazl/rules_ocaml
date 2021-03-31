@@ -28,17 +28,27 @@ ocaml_archive = rule(
         _thread     = attr.label(default = "@ocaml//archive/thread"),
         _warnings  = attr.label(default = "@ocaml//archive:warnings"),
         #### end options ####
+
+        standalone = attr.bool(
+            doc = "True: link total depgraph. False: link only direct deps.  Default False.",
+            default = False
+        ),
+
+        resolver = attr.output(
+            doc = "Name of 'resolver' module to generate containing identity aliases for submodules.",
+        ),
+
         doc = attr.string( doc = "Deprecated" ),
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OcamlArchiveProvider],
-                         [OcamlImportProvider],
+            providers = [[OcamlImportProvider],
                          [OcamlLibraryProvider],
+                         # [OcamlArchiveProvider],
                          [OcamlModuleProvider],
-                         [OcamlNsArchiveProvider],
+                         # [OcamlNsArchiveProvider],
                          [OcamlNsLibraryProvider],
                          [OcamlSignatureProvider],
-                         [PpxArchiveProvider]
+                         # [PpxArchiveProvider]
                          ],
         ),
 

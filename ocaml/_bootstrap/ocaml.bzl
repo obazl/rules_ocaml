@@ -446,6 +446,7 @@ def _symlink_extra_tools(repo_ctx, opam_switch_prefix):
     # _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlyacc.opt")
 
     ## non-core tools
+    _symlink_tool(repo_ctx, opam_switch_prefix, "ocaml")
     _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo")
     _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo.byte")
     _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo.opt")

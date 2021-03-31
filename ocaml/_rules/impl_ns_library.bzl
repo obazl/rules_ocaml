@@ -93,7 +93,8 @@ def impl_ns_library(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            direct = ctx.files.submodules + ctx.files._ns_resolver,
+            transitive = merged_module_links_depsets
+            # direct = ctx.files.submodules + ctx.files._ns_resolver,
         )
     )
 
@@ -101,7 +102,8 @@ def impl_ns_library(ctx):
         nslibProvider = OcamlNsLibraryProvider(
             module_links = depset(
                 order = "postorder",
-                direct = ctx.files.submodules + ctx.files._ns_resolver,
+                # direct = ctx.files.submodules + ctx.files._ns_resolver,
+                direct = ctx.files._ns_resolver,
                 transitive = merged_module_links_depsets
             ),
             archive_links = depset(

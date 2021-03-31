@@ -60,8 +60,8 @@ def _handle_cc_deps(ctx,
 
     debug = False
     # if ctx.attr._rule == "ocaml_executable":
-    # if ctx.label.name == "_Tacarg":
-    #     debug = True
+    if ctx.label.name == "_Tacarg":
+        debug = True
     if debug:
         print("EXEC _handle_cc_deps %s" % ctx.label)
         print("CC_DEPS_DICT: %s" % cc_deps_dict)
@@ -106,10 +106,10 @@ def _handle_cc_deps(ctx,
                 print("STATIC lib: %s:" % dep)
             for depfile in dep.files.to_list():
                 if (depfile.extension == "a"):
-                    # print("ADDING CC DEP: %s" % depfile.dirname)
+                    print("ADDING CC DEP: %s" % depfile.dirname)
                     cclib_deps.append(depfile)
                     if for_pack:
-                        # print("LINKING CC DEP: %s" % depfile)
+                        print("LINKING CC DEP: %s" % depfile)
                         args.add(depfile)
                         includes.append(depfile.dirname)
         elif linkmode == "static-linkall":
@@ -149,17 +149,16 @@ def _handle_cc_deps(ctx,
                     cc_runfiles.append(dep.files)
 
 #####################
-def impl_module(ctx):
+def impl_pack_library(ctx):
 
     debug = False
-    # if ctx.label.name in ["_Tactic_debug"]:
-    #     print("CTX LABEL: %s" % ctx.label)
-        # debug = True
+    if ctx.label.name in ["_Tacarg"]:
+        debug = True
 
-    if normalize_module_name(ctx.label.name) != normalize_module_name(ctx.file.struct.basename):
-        print("Rule name: %s" % normalize_module_name(ctx.label.name))
-        print("Structname: %s" % normalize_module_name(ctx.file.struct.basename))
-        fail("Rule name and structfile name must yield same module name. Rule name may be prefixed with one or more underscores ('_'). Rule name: {rn}; structfile: {s}".format(rn=ctx.label.name, s=ctx.file.struct.basename))
+    # if normalize_module_name(ctx.label.name) != normalize_module_name(ctx.file.struct.basename):
+    #     print("Rule name: %s" % normalize_module_name(ctx.label.name))
+    #     print("Structname: %s" % normalize_module_name(ctx.file.struct.basename))
+    #     fail("Rule name and structfile name must yield same module name. Rule name may be prefixed with one or more underscores ('_'). Rule name: {rn}; structfile: {s}".format(rn=ctx.label.name, s=ctx.file.struct.basename))
 
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 1:
@@ -172,7 +171,7 @@ def impl_module(ctx):
         elif ctx.attr._rule == "ppx_module":
             print("Start: PPXMOD %s" % ctx.label)
         else:
-            fail("Unexpected rule for 'impl_module': %s" % ctx.attr._rule)
+            fail("Unexpected rule for 'impl_pack_library': %s" % ctx.attr._rule)
 
         print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver[DefaultInfo])
         print("  _NS_RESOLVER Provider: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
@@ -222,40 +221,16 @@ def impl_module(ctx):
     includes   = []
     outputs   = []
 
-    (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
+    module_name = ctx.label.name
 
     out_cm_ = ctx.actions.declare_file(scope + module_name + ext) # fname)
     outputs.append(out_cm_)
+    out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
+    outputs.append(out_cmi)
 
     if mode == "native":
         out_o = ctx.actions.declare_file(tmpdir + module_name + ".o")
         outputs.append(out_o)
-
-    mlifile = None
-    if ctx.attr.sig:
-        # we pass on the sigfile we recd as output.
-        # copy it (and .mli) to same outdir as module so that .mli/.cmi resolution will work
-        # sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        if ctx.attr._rule == "ocaml_module":
-            sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        elif ctx.attr._rule == "ppx_module":
-            sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        elif ctx.attr._rule == "ocaml_submodule":
-            sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        elif ctx.attr._rule == "ppx_submodule":
-            sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        if ctx.file.sig.dirname == out_cm_.dirname:
-            mlifile = sigProvider.mli
-            out_cmi = sigProvider.cmi
-        else:
-            print("REWRITING %s" % sigProvider)
-            mlifile = rename_srcfile(ctx, sigProvider.mli, sigProvider.mli.basename)
-            out_cmi = rename_srcfile(ctx, sigProvider.cmi, sigProvider.cmi.basename)
-    else:
-        ## no sigfile provided: compiler will infer and emit .cmi from .ml src,
-        ## so we need to add the output file
-        out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
-        outputs.append(out_cmi)
 
     #########################
     args = ctx.actions.args()
@@ -266,6 +241,9 @@ def impl_module(ctx):
         args.add(tc.ocamlc.basename)
 
     _options = get_options(ctx.attr._rule, ctx)
+    # if "-thread" in _options:  ## FIXME: TESTING
+    #     _options.remove("-thread")
+
     # if "-for-pack" in _options:
     #     for_pack = True
     #     _options.remove("-for-pack")
@@ -273,16 +251,10 @@ def impl_module(ctx):
     #     for_pack = False
     args.add_all(_options)
 
-    if "-bin-annot" in _options: ## Issue #17
-        out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(module_name, ".cmt"))
-        outputs.append(out_cmt)
-
     mdeps = []
     mdeps.extend(ctx.attr.deps)
-    mdeps.append(ctx.attr._ns_resolver)
+    # mdeps.append(ctx.attr._ns_resolver)
     mdeps.append(ctx.attr.cc_deps)
-    if ctx.attr.sig:
-        mdeps.append(ctx.attr.sig)
 
     if debug:
         print("MDEPS: %s" % mdeps)
@@ -298,26 +270,11 @@ def impl_module(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    # print("MERGED INDIRECT_CC_DEPS: %s" % indirect_cc_deps)
+    print("MERGED INDIRECT_CC_DEPS: %s" % indirect_cc_deps)
     # if debug:
     #     print("Merged depgraph depsets:")
     #     print(merged_depgraph_depsets)
 
-    # if we have an input cmi, we will pass it on as Provider output,
-    # but it is not an output of this action- do NOT add incoming cmi to action outputs
-    ## TODO: support compile of mli source
-    # if ctx.attr.sig:
-    #     # args.add("-intf", ctx.file.sig)
-    #     for f in ctx.attr.sig:
-    #         merged_module_links_depsets.append(f[OcamlSignatureProvider].module_links)
-    #         merged_archive_links_depsets.append(f[OcamlSignatureProvider].archive_links)
-    #         merged_paths_depsets.append(f[OcamlSignatureProvider].paths)
-    #         merged_depgraph_depsets.append(f[OcamlSignatureProvider].depgraph)
-    #         merged_archived_modules_depsets.append(f[OcamlSignatureProvider].archived_modules)
-
-    # if debug:
-    #     print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-    #     print(merged_depgraph_depsets)
 
     if debug:
         print("INCLUDES: %s" % includes)
@@ -331,7 +288,7 @@ def impl_module(ctx):
     cc_deps_dict.update(direct_cc_deps)
     cc_deps_dict.update(indirect_cc_deps)
     _handle_cc_deps(ctx,
-                    True if ctx.attr.pack else False,
+                    False,  #  -for-pack
                     tc.linkmode,
                     cc_deps_dict,
                     args,
@@ -339,83 +296,66 @@ def impl_module(ctx):
                     cclib_deps,
                     cc_runfiles)
 
-    # if "-g" in _options:
-    #     args.add("-runtime-variant", "d")
-    if ctx.attr.pack:
-        args.add("-linkpkg")
+    if "-g" in _options:
+        args.add("-runtime-variant", "d")
 
-    opam_depset = depset(direct = ctx.attr.deps_opam,
+    # args.add("-linkpkg")
+
+    opam_depset = depset(# direct = ctx.attr.deps_opam,
                          transitive = indirect_opam_depsets)
-    for opam in opam_depset.to_list():
-        args.add("-package", opam)  ## add dirs to search path
+    # for opam in opam_depset.to_list():
+    #     args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
     ## only the adjunct deps of the ppx are.
     adjunct_deps = []
-    if ctx.attr.ppx:
-        provider = ctx.attr.ppx[AdjunctDepsProvider]
-        for opam in provider.opam.to_list():
-            args.add("-package", opam)
-
-        for nopam in provider.nopam.to_list():
-            for nopamfile in nopam.files.to_list():
-                adjunct_deps.append(nopamfile)
-        for path in provider.nopam_paths.to_list():
-            args.add("-I", path)
 
     indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
         includes.append(path)
 
-    if ctx.attr.ppx:
-        structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
-    else:
-        ## cp src file to working dir (__obazl)
-        ## this is necessary for .mli/.cmi resolution to work
-        structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
-        # structfile = ctx.file.struct
+    # if ctx.attr.ppx:
+    #     structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
+    # else:
+    #     ## cp src file to working dir (__obazl)
+    #     ## this is necessary for .mli/.cmi resolution to work
+    #     structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
+    #     # structfile = ctx.file.struct
 
     if debug:
         print("INCLUDES: %s" % includes)
 
-    if ctx.attr.pack:
-        args.add("-for-pack", ctx.attr.pack)
+    # args.add_all(includes, before_each="-I", uniquify = True)
 
-    args.add_all(includes, before_each="-I", uniquify = True)
+    args.add("-pack")
+        # else:
+        #     args.add("-c")
+    args.add("-o", out_cm_)
 
     ## use depsets to get the right ordering. filter to limit to direct deps.
     module_links_depset = depset(transitive = merged_module_links_depsets)
     for dep in module_links_depset.to_list():
-        if ctx.attr.pack:
-            if dep in ctx.files.deps:
-                args.add(dep)
-        # else:
-        #     if dep in ctx.files.deps:
-        #         args.add(dep)
+        if dep in ctx.files.deps:
+            args.add(dep)
 
-    # archive_links_depset = depset(transitive = merged_archive_links_depsets)
-    # if debug:
-    #     print("DEPS: %s" % ctx.files.deps)
-    # for dep in archive_links_depset.to_list():
-    #     if debug:
-    #         print("ARCHIVE LINK: %s" % dep.path)
-    #     if dep in ctx.files.deps:
-    #         args.add(dep.path)
+    # if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
+    #     ## this will only be the case if this is a submodule of an nslib
+    #     args.add("-no-alias-deps")
+    #     args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
 
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
-        ## this will only be the case if this is a submodule of an nslib
-        args.add("-no-alias-deps")
-        args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
+    # if ctx.attr.for_pack:
+    #     args.add("-for-pack", ctx.attr.pack)
+    #     args.add("-c")
+    #     args.add("-o", out_cm_)
+    # else:
+    #     if "-pack" in _options:
 
-    args.add("-c")
-    args.add("-o", out_cm_)
-
-    args.add("-impl", structfile)
+    # args.add("-impl", structfile)
 
     inputs_depset = depset(
         order = "postorder",
-        direct = [structfile] + cclib_deps,
+        direct = cclib_deps,
         transitive = merged_depgraph_depsets
     )
         # NB: these are NOT in the depgraph: cc_direct_depfiles + adjunct_deps + ctx.files.ppx,
@@ -447,12 +387,11 @@ def impl_module(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            direct = outputs # [out_cm_, out_cmi],
+            direct = [out_cm_],
         ),
     )
 
-    mli = [mlifile] if mlifile else []
-    if (ctx.attr._rule == "ocaml_module"):
+    if (ctx.attr._rule == "ocaml_pack_library"):
         moduleProvider = OcamlModuleProvider(
             module_links     = depset(
                 order = "postorder",
@@ -469,7 +408,7 @@ def impl_module(ctx):
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = outputs + [structfile, out_cmi] + mli,
+                direct = outputs + [out_cmi],
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
@@ -477,7 +416,7 @@ def impl_module(ctx):
                 transitive = merged_archived_modules_depsets
             ),
         )
-    elif ctx.attr._rule == "ppx_module":
+    elif ctx.attr._rule == "ppx_module" or ctx.attr._rule == "ppx_submodule":
         moduleProvider = PpxModuleProvider(
             module_links     = depset(
                 order = "postorder",
@@ -494,7 +433,7 @@ def impl_module(ctx):
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = outputs + [structfile] + mli,
+                direct = outputs,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
@@ -523,7 +462,7 @@ def impl_module(ctx):
         libs = cclibs
 
     )
-    # print("OUTPUT CCPROVIDER: %s" % ccProvider)
+    print("OUTPUT CCPROVIDER: %s" % ccProvider)
 
     return [
         defaultInfo,

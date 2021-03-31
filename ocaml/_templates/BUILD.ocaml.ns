@@ -17,13 +17,13 @@ string_list_flag( name = "warnings",
 
 string_list_flag( name = "prefixes", build_setting_default = [])
 
-bool_flag( name = "transitivity", build_setting_default = False)
+# bool_flag( name = "transitivity", build_setting_default = False)
 
-string_flag( name = "strategy", build_setting_default = "ns",
-             values = [
-                 "fs",  ## derive ns prefix from filesystem path
-                 "ns"    ## derive ns prefix from ns names
-             ])
+# string_flag( name = "strategy", build_setting_default = "ns",
+#              values = [
+#                  "fs",  ## derive ns prefix from filesystem path
+#                  "ns"    ## derive ns prefix from ns names
+#              ])
 
 string_list_flag( name = "submodules", build_setting_default = [])
 

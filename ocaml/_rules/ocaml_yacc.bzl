@@ -26,12 +26,14 @@ def _ocaml_yacc_impl(ctx):
 
   tmpdir = "_obazl_/"
 
-  yaccer = ctx.actions.declare_file(tmpdir + yaccer_fname)
-  yacceri = ctx.actions.declare_file(tmpdir + yacceri_fname)
+  # yaccer = ctx.actions.declare_file(tmpdir + yaccer_fname)
+  # yacceri = ctx.actions.declare_file(tmpdir + yacceri_fname)
+
+  yaccer = ctx.outputs.out
 
   ctx.actions.run_shell(
       inputs  = [ctx.file.src],
-      outputs = [yaccer, yacceri],
+      outputs = [yaccer], # yacceri],
       tools   = [tc.ocamlyacc],
       command = "\n".join([
           ## ocamlyacc is inflexible, it writes to cwd, that's it.
@@ -60,6 +62,10 @@ ocaml_yacc = rule(
         src = attr.label(
             doc = "A single .mly ocamlyacc source file label",
             allow_single_file = [".mly"]
+        ),
+        out = attr.output(
+            doc = """Output filename.""",
+            mandatory = True
         ),
         opts = attr.string_list(
             doc = "Options"

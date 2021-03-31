@@ -4,6 +4,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
+     "CcDepsProvider",
      "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlLibraryProvider",
@@ -113,7 +114,13 @@ def _ocaml_signature_impl(ctx):
     _options = get_options(rule, ctx)
     args.add_all(_options)
 
-    merge_deps(ctx.attr.deps + [ctx.attr._ns_resolver],
+    mdeps = []
+    mdeps.extend(ctx.attr.deps)
+    mdeps.append(ctx.attr._ns_resolver)
+
+    if debug:
+        print("MDEPS: %s" % mdeps)
+    merge_deps(mdeps,
                merged_module_links_depsets,
                merged_archive_links_depsets,
                merged_paths_depsets,
@@ -127,6 +134,9 @@ def _ocaml_signature_impl(ctx):
                indirect_adjunct_path_depsets,
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
+
+    if ctx.attr.pack:
+        args.add("-linkpkg")
 
     opam_depset = depset(direct = ctx.attr.deps_opam,
                          transitive = indirect_opam_depsets)
@@ -154,9 +164,29 @@ def _ocaml_signature_impl(ctx):
 
     includes.append(out_cmi.dirname)
 
+    if ctx.attr.pack:
+        args.add("-for-pack", ctx.attr.pack)
+
     args.add_all(includes, before_each="-I", uniquify = True)
 
-    ## FIXME: do we need to add links to cmd line, as modules do?
+    ## use depsets to get the right ordering. filter to limit to direct deps.
+    archive_links_depset = depset(transitive = merged_archive_links_depsets)
+    link_deps = []
+    for link in ctx.files.deps:
+        link_deps.append(link.basename)
+    if debug:
+        print("DEP LINKS: %s" % link_deps)
+
+    # for dep in archive_links_depset.to_list():
+    #     if debug:
+    #         print("DEP: %s" % dep)
+    #     if dep.basename in link_deps:
+    #           args.add(dep)
+
+    module_links_depset = depset(order="postorder", transitive = merged_module_links_depsets)
+    for dep in module_links_depset.to_list():
+        if dep in ctx.files.deps:
+            args.add(dep)
 
     ## FIXME: do we need the resolver for sigfiles?
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
@@ -169,10 +199,12 @@ def _ocaml_signature_impl(ctx):
 
     if ctx.attr.ppx:
         sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src, module_name + ".mli")
-    elif module_name != from_name:
-        sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+    # elif module_name != from_name:
+    #     sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
     else:
-        sigfile = ctx.file.src
+        ## cp source file to workdir (__obazl)
+        ## this is necessary for .mli/.cmi resolution to work
+        sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
 
     args.add("-intf", sigfile)
 
@@ -204,43 +236,57 @@ def _ocaml_signature_impl(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order="postorder",
-            direct = [out_cmi]
+            direct = [out_cmi] # must produce a single file to work with ocaml_module.sig
         )
     )
 
     sigProvider = OcamlSignatureProvider(
-            module_links     = depset(
-                order = "postorder",
-                transitive = merged_module_links_depsets
-            ),
-            archive_links = depset(
-                order = "postorder",
-                transitive = merged_archive_links_depsets
-            ),
-            paths    = depset(
-                direct = includes + [out_cmi.dirname],
-                transitive = merged_paths_depsets
-            ),
-            depgraph = depset(
-                order = "postorder",
-                direct = [out_cmi, sigfile],
-                transitive = merged_depgraph_depsets
-            ),
-            archived_modules = depset(
-                order = "postorder",
-                transitive = merged_archived_modules_depsets
-            ),
+        mli = sigfile,
+        cmi = out_cmi,
+        module_links     = depset(
+            order = "postorder",
+            transitive = merged_module_links_depsets
+        ),
+        archive_links = depset(
+            order = "postorder",
+            transitive = merged_archive_links_depsets
+        ),
+        paths    = depset(
+            direct = includes + [out_cmi.dirname],
+            transitive = merged_paths_depsets
+        ),
+        depgraph = depset(
+            order = "postorder",
+            direct = [out_cmi, sigfile],
+            transitive = merged_depgraph_depsets
+        ),
+        archived_modules = depset(
+            order = "postorder",
+            transitive = merged_archived_modules_depsets
+        ),
     )
 
     opamProvider = OpamDepsProvider(
         pkgs = opam_depset
     )
 
-    ## FIXME: add CcDepsProvider
+    ## FIXME: catch incompatible key dups
+    cclibs = {}
+    if len(indirect_cc_deps) > 0:
+        cclibs.update(indirect_cc_deps)
+    ccProvider = CcDepsProvider(
+        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
+        libs = cclibs
+
+    )
+    # print("OUTPUT CCPROVIDER: %s" % ccProvider)
+
     return [
         defaultInfo,
         sigProvider,
-        opamProvider]
+        opamProvider,
+        ccProvider
+    ]
 
 ################################################################
 ################################################################
@@ -282,9 +328,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "A single .mli source file label",
             allow_single_file = [".mli", ".cmi"]
         ),
-        # module = attr.string(
-        #     doc = "Name for output file. Use to coerce input file with different name, e.g. for a file generated from a .mli file to a different name, like foo.cppo.mli."
-        # ),
+        pack = attr.string(
+            doc = "Experimental",
+        ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [
@@ -318,11 +364,10 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
             default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
         ),
-        _ns_strategy = attr.label(
-            doc = "Experimental",
-            default = "@ocaml//ns:strategy"
-        ),
-
+        # _ns_strategy = attr.label(
+        #     doc = "Experimental",
+        #     default = "@ocaml//ns:strategy"
+        # ),
         _mode       = attr.label(
             default = "@ocaml//mode",
         ),

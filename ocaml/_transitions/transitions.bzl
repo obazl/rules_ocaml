@@ -72,7 +72,7 @@ ocaml_executable_deps_out_transition = transition(
 def _module_in_transition_impl(settings, attr):
 
     debug = False
-    # if attr.name in ["_Main"]:
+    # if attr.name in ["_Util"]:
     #     debug = True
 
     if debug:
@@ -82,9 +82,10 @@ def _module_in_transition_impl(settings, attr):
     module = None
     ## if struct uses select() it will not be resolved yet, so we need to test
     if hasattr(attr, "struct"):
-        structfile = attr.struct.name
-        (basename, ext) = paths.split_extension(structfile)
-        module = capitalize_initial_char(basename)
+        if attr.struct:
+            structfile = attr.struct.name
+            (basename, ext) = paths.split_extension(structfile)
+            module = capitalize_initial_char(basename)
 
     submodules = []
     for submodule_label in settings["@ocaml//ns:submodules"]:
@@ -129,7 +130,7 @@ module_in_transition = transition(
 def _ocaml_module_deps_out_transition_impl(settings, attr):
 
     debug = False
-    if attr.name == "":
+    if attr.name == "_Grammar":
         debug = True
 
     if debug:
@@ -164,7 +165,7 @@ def _ocaml_module_deps_out_transition_impl(settings, attr):
         print("  ns:submodules: %s" % submodules)
 
     return {
-        "@ocaml//ns:prefixes"        : prefixes,
+        "@ocaml//ns:prefixes"  : prefixes,
         "@ocaml//ns:submodules": submodules
     }
 
@@ -181,12 +182,87 @@ ocaml_module_deps_out_transition = transition(
     ]
 )
 
-###########################################################
-def _ocaml_signature_deps_out_transition_impl(settings, attr):
+#####################
+ocaml_module_sig_out_transition = transition(
+    implementation = _ocaml_module_deps_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+################################################################
+################################################################
+
+################################################################
+def _subsignature_in_transition_impl(settings, attr):
 
     debug = False
+    if attr.name in ["_Feedback"]:
+        debug = True
+
+    if debug:
+        print(">>> ocaml_subsignature_in_transition")
+        print_config_state(settings, attr)
+
+    module = None
+    ## if struct uses select() it will not be resolved yet, so we need to test
+    if hasattr(attr, "struct"):
+        structfile = attr.struct.name
+        (basename, ext) = paths.split_extension(structfile)
+        module = capitalize_initial_char(basename)
+
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
+    if module in settings["@ocaml//ns:prefixes"]:
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    elif module in submodules:
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    else:
+        prefixes   = []
+        submodules = []
+
+    if debug:
+        print("OUT STATE:")
+        print("  ns:prefixes: %s" % prefixes)
+        print("  ns:submodules: %s" % submodules)
+
+    return {
+        "@ocaml//ns:prefixes"   : prefixes,
+        "@ocaml//ns:submodules" : submodules,
+    }
+
+
+####################
+subsignature_in_transition = transition(
+    implementation = _subsignature_in_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+################################################################
+def _ocaml_signature_deps_out_transition_impl(settings, attr):
+
+    debug = True
     if attr.name == "":
         debug = True
+
+    if debug:
         print(">>> ocaml_signature_deps_out_transition")
         print_config_state(settings, attr)
 
@@ -219,8 +295,63 @@ def _ocaml_signature_deps_out_transition_impl(settings, attr):
 
 ################
 ocaml_signature_deps_out_transition = transition(
-    # implementation = _ocaml_signature_deps_out_transition_impl,
-    implementation = _ocaml_module_deps_out_transition_impl,
+    implementation = _ocaml_signature_deps_out_transition_impl,
+    # implementation = _ocaml_module_deps_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+###########################################################
+def _ocaml_subsignature_deps_out_transition_impl(settings, attr):
+
+    debug = False
+    # if attr.name == ":_Plexing.cmi":
+    #     debug = True
+
+    if debug:
+        print(">>> ocaml_subsignature_deps_out_transition")
+        print_config_state(settings, attr)
+
+    srcfile = attr.src.name
+    (basename, ext) = paths.split_extension(srcfile)
+    module = capitalize_initial_char(basename)
+
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
+    if module in submodules:
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    else:
+        prefixes   = []
+        submodules = []
+
+    if attr.name == "_Plexing.cmi":
+        prefixes   = []
+        submodules = []
+
+    if debug:
+        print("OUT STATE: %s" % attr.name)
+        print("  ns:prefixes: %s" % prefixes)
+        print("  ns:submodules: %s" % submodules)
+
+    return {
+        "@ocaml//ns:prefixes"  : prefixes,
+        "@ocaml//ns:submodules": submodules
+    }
+
+################
+ocaml_subsignature_deps_out_transition = transition(
+    implementation = _ocaml_subsignature_deps_out_transition_impl,
+    # implementation = _ocaml_module_deps_out_transition_impl,
     inputs = [
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",

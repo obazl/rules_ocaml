@@ -22,6 +22,15 @@ ppx_archive = rule(
         _warnings  = attr.label(default = "@ppx//archive:warnings"),
         #### end options ####
 
+        standalone = attr.bool(
+            doc = "True: link total depgraph. False: link only direct deps.  Default False.",
+            default = False
+        ),
+
+        resolver = attr.output(
+            doc = "Name of 'resolver' module to generate containing identity aliases for submodules.",
+        ),
+
         modules = attr.label_list(
             doc = "List of OCaml build dependencies to include in archive.",
             providers = [[PpxModuleProvider]]

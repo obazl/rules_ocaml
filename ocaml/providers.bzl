@@ -241,6 +241,8 @@ OcamlNsLibraryProvider = provider(
 OcamlSignatureProvider = provider(
     doc = "OCaml interface provider.",
     fields = {
+        "mli": ".mli input file",
+        "cmi": ".cmi output file",
         "module_links":    "Depset of module files to be linked by executable or archive rules.",
         "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
         "paths":    "Depset of paths for -I params",

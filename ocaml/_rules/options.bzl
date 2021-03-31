@@ -15,6 +15,7 @@ load("//ocaml:providers.bzl",
      "PpxNsLibraryProvider")
 
 load("//ocaml/_transitions:transitions.bzl",
+     "ocaml_module_sig_out_transition",
      "ocaml_module_deps_out_transition")
 
 load("//ocaml/_transitions:ns_transitions.bzl",
@@ -136,7 +137,7 @@ def options_executable(ws):
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
-        _mode = attr.label(
+        mode = attr.label(
             default = ws + "//mode"
         ),
         # _allowlist_function_transition = attr.label(
@@ -205,25 +206,28 @@ def options_module(ws):
         _warnings = attr.label(default = ws + "//module:warnings"), # string list
         struct = attr.label(
             doc = "A single module (struct) source file label.",
-            mandatory = True,
+            # mandatory = True, # pack libs may not need a src file
             allow_single_file = True # no constraints on extension
+        ),
+        pack = attr.string(
+            doc = "Experimental.  Name of pack lib module for which this module is to be compile with -for-pack"
         ),
         sig = attr.label(
             doc = "Single label of a target producing OcamlSignatureProvider (i.e. rule 'ocaml_signature'). Optional.",
-            # allow_single_file = [".cmi"],
+            allow_single_file = True, # [".cmi"],
             providers = [OcamlSignatureProvider],
-            cfg = ocaml_module_deps_out_transition
+            # cfg = ocaml_module_sig_out_transition
         ),
         ################
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = providers,
             # transition undoes changes that may have been made by ns_lib
-            cfg = ocaml_module_deps_out_transition
+            # cfg = ocaml_module_deps_out_transition
         ),
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
         _deps = attr.label(
             doc = "Global deps, apply to all instances of rule. Added last.",
             default = ws + "//module:deps"
@@ -240,7 +244,7 @@ def options_module(ws):
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,
             # providers = [[CcInfo]]
-            cfg = ocaml_module_cc_deps_out_transition
+            # cfg = ocaml_module_cc_deps_out_transition
         ),
         _cc_deps = attr.label(
             doc = "Global cc-deps, apply to all instances of rule. Added last.",
@@ -262,10 +266,93 @@ def options_module(ws):
             # allow_files = True,
             # mandatory = True
         ),
-        _ns_strategy = attr.label(
-            doc = "Experimental",
-            default = "@ocaml//ns:strategy"
+        # _ns_strategy = attr.label(
+        #     doc = "Experimental",
+        #     default = "@ocaml//ns:strategy"
+        # ),
+    )
+
+#######################
+def options_pack_library(ws):
+
+    if ws == "ocaml":
+        providers = [[OcamlArchiveProvider],
+                     [OcamlImportProvider],
+                     [OcamlSignatureProvider],
+                     [OcamlLibraryProvider],
+                     [OcamlModuleProvider],
+                     [OcamlNsArchiveProvider],
+                     [OcamlNsLibraryProvider],
+                     # [OcamlNsResolverProvider],
+                     [PpxArchiveProvider],
+                     [PpxModuleProvider],
+                     [PpxNsArchiveProvider],
+                     [PpxNsLibraryProvider]]
+
+    else:
+        ## FIXME: providers for ppx_module
+        providers = []
+
+    ws = "@" + ws
+
+    return dict(
+        _opts     = attr.label(default = ws + "//module:opts"),     # string list
+        _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
+        _thread   = attr.label(default = ws + "//module/thread"),   # bool
+        _warnings = attr.label(default = ws + "//module:warnings"), # string list
+
+        ################
+        deps = attr.label_list(
+            doc = "List of OCaml dependencies.",
+            providers = providers,
+            # transition undoes changes that may have been made by ns_lib
+            # cfg = ocaml_module_deps_out_transition
         ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
+        _deps = attr.label(
+            doc = "Global deps, apply to all instances of rule. Added last.",
+            default = ws + "//module:deps"
+        ),
+        # deps_opam = attr.string_list(
+        #     doc = "List of OPAM package names"
+        # ),
+        # data = attr.label_list(
+        #     allow_files = True,
+        #     doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."
+        # ),
+        ################
+        cc_deps = attr.label_keyed_string_dict(
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            """,
+            # providers = [[CcInfo]]
+            # cfg = ocaml_module_cc_deps_out_transition
+        ),
+        _cc_deps = attr.label(
+            doc = "Global cc-deps, apply to all instances of rule. Added last.",
+            default = ws + "//module:deps"
+        ),
+
+        ################
+        # ns = attr.label(
+        #     doc = "Label of ocaml_ns target"
+        # ),
+        # _ns_resolver = attr.label(
+        #     doc = "Experimental",
+        #     providers = [OcamlNsResolverProvider],
+        #     default = "@ocaml//ns",
+        # ),
+        # _ns_submodules = attr.label(
+        #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+        #     default = "@ocaml//ns:submodules",  # => string_list_setting
+        #     # allow_files = True,
+        #     # mandatory = True
+        # ),
+        # _ns_strategy = attr.label(
+        #     doc = "Experimental",
+        #     default = "@ocaml//ns:strategy"
+        # ),
     )
 
 #######################
@@ -419,10 +506,10 @@ def options_ns_resolver(ws):
             doc = "Experimental",
             default = ws + "//ns:prefixes"
         ),
-        _ns_strategy = attr.label(
-            doc = "Experimental",
-            default = "@ocaml//ns:strategy"
-        ),
+        # _ns_strategy = attr.label(
+        #     doc = "Experimental",
+        #     default = "@ocaml//ns:strategy"
+        # ),
         _ns_submodules = attr.label( # _list(
             default = ws + "//ns:submodules", # => string_list_setting
             doc = "List of files from which submodule names are to be derived for aliasing. The names will be formed by truncating the extension and capitalizing the initial character. Module source code generated by ocamllex and ocamlyacc can be accomodated by using the module name for the source file and generating a .ml source file of the same name, e.g. lexer.mll -> lexer.ml.",

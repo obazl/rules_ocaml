@@ -58,13 +58,13 @@ def impl_ns_resolver(ctx):
 
     for submod_label in submodules:  # e.g. [Color, Red, Green, Blue], where main = Color
         submodule = normalize_module_label(submod_label)
-        if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
-            ## NB: submodules may come from different pkgs
-            fs_prefix = get_fs_prefix(submod_label)
-            alias_prefix = fs_prefix
-        else:
-            fs_prefix = ""
-            alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
+        # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
+        #     ## NB: submodules may come from different pkgs
+        #     fs_prefix = get_fs_prefix(submod_label)
+        #     alias_prefix = fs_prefix
+        # else:
+        fs_prefix = ""
+        alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
 
         nslib_submod = False
         if submodule.startswith("#"):

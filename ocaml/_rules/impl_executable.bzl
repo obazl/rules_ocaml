@@ -154,6 +154,7 @@ def impl_executable(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
+    ## FIXME: support ctx.attr.mode?
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     ## FIXME: default extension to .out?
@@ -192,8 +193,8 @@ def impl_executable(ctx):
         ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
         args.add("-custom")
 
-    options = get_options(rule, ctx)
-    args.add_all(options)
+    _options = get_options(rule, ctx)
+    args.add_all(_options)
 
     mdeps = []
     if ctx.attr.deps: mdeps.extend(ctx.attr.deps)
@@ -230,6 +231,9 @@ def impl_executable(ctx):
                     cclib_deps,
                     cc_runfiles)
 
+    if "-g" in _options:
+        args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
+
     paths_depset = depset(transitive = merged_paths_depsets)
     for path in paths_depset.to_list():
         includes.append(path)
@@ -237,15 +241,15 @@ def impl_executable(ctx):
     args.add_all(includes, before_each="-I")
 
     ## use depsets to get the right ordering. archive and module links are mutually exclusive.
-    links = depset(order = "postorder", transitive = merged_archive_links_depsets).to_list()
-    if len(links) > 0:
-        for m in links:
-            args.add(m)
-
     links = depset(order = "postorder", transitive = merged_module_links_depsets).to_list()
     if len(links) > 0:
         for m in links:
             args.add(m)
+
+    # links = depset(order = "postorder", transitive = merged_archive_links_depsets).to_list()
+    # if len(links) > 0:
+    #     for m in links:
+    #         args.add(m)
 
     args.add("-o", out_exe)
 

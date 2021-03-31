@@ -72,6 +72,7 @@ def impl_ns_archive(ctx):
     args.add_all(options)
 
     ## use depgraph to ensure correct ordering, filter to include only direct deps
+    ## FIXME: use merged_module_links_depsets, merged_archive_links_depsets?
     submods = ctx.files.submodules
     for dep in nslibProvider.depgraph.to_list():
         if dep in submods:
