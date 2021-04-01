@@ -53,6 +53,7 @@ def _generate_resolver(ctx, tc, env, mode):
     else:
         resolver_args.add(tc.ocamlc.basename)
 
+    resolver_args.add("-w", "-49") # Warning 49: no cmi file was found in path for module
     resolver_args.add("-no-alias-deps")
     resolver_args.add("-c")
     resolver_args.add("-impl", ctx.outputs.resolver)
@@ -110,6 +111,7 @@ def impl_archive(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
+    resolver_outputs = []
     if ctx.attr.resolver:
         resolver_outputs = _generate_resolver(ctx, tc, env, mode)
 
@@ -230,7 +232,7 @@ def impl_archive(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            direct = [out_cm_a] # + [ctx.outputs.resolver] if ctx.outputs.resolver else []
+            direct = [out_cm_a]
         )
     )
 
@@ -261,7 +263,7 @@ def impl_archive(ctx):
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = outputs,
+                direct = outputs + resolver_outputs,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
