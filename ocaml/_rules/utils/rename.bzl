@@ -114,13 +114,18 @@ def rename_module(ctx, src):  # , pfx):
 
   cmd = cmd + " true;"
 
+  ## use native.genrule?
   ctx.actions.run_shell(
-    command = cmd,
-    inputs = inputs,
-    outputs = [outfile],
-    progress_message = "rename_src_action ({}){}".format(
-      ctx.label.name, src
-    )
+      exec_group = "compile",
+      command = cmd,
+      inputs = inputs,
+      outputs = [outfile],
+      mnemonic = ctx.attr._rule + "_rename_module",
+      progress_message = "{rule}: rename_module {src}".format(
+          rule = ctx.attr._rule,
+          # n    = ctx.label.name,
+        src  = src
+      )
   )
   return outfile
 
@@ -147,12 +152,14 @@ def rename_srcfile(ctx, src, dest):
     cmd = cmd + " true;"
 
     ctx.actions.run_shell(
-      # env = env,
       command = cmd,
       inputs = inputs,
       outputs = [outfile],
-      progress_message = "rename_src_action ({}){}".format(
-        ctx.label.name, src
+      mnemonic = (ctx.attr._rule + "_rename_src").replace("_", ""),
+      progress_message = "{rule}: rename_src {src}".format(
+          rule =  ctx.attr._rule,
+          # ctx.label.name,
+          src  = src
       )
     )
     return outfile

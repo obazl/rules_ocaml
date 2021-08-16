@@ -12,7 +12,7 @@ label_flag( name = "deps", build_setting_default = "@ocaml//:null" )
 
 bool_flag( name = "linkall", build_setting_default = True )
 
-string_list_flag( name = "opts", build_setting_default = ["-predicates", "ppx_driver"])
+string_list_flag( name = "opts", build_setting_default = []) ## "-predicates", "ppx_driver"])
 
 bool_flag( name = "threads", build_setting_default = True )
 

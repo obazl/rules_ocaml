@@ -6,6 +6,7 @@ load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
      "CcDepsProvider",
      "OcamlArchiveProvider",
+     "OcamlImportProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
@@ -86,6 +87,27 @@ def merge_deps(deps,
                     merged_depgraph_depsets.append(dep[OcamlSignatureProvider].depgraph)
                 if hasattr(dep[OcamlSignatureProvider], "archived_modules"):
                     merged_archived_modules_depsets.append(dep[OcamlSignatureProvider].archived_modules)
+
+            if OcamlImportProvider in dep:
+                # print("OcamlImportProvider")
+                # print(dep[DefaultInfo].files)
+                if hasattr(dep[OcamlImportProvider], "deps_adjunct"):
+                    adjuncts = dep[OcamlImportProvider].deps_adjunct
+                    if (len(adjuncts.to_list()) > 0):
+                        # print("MERGING ADJUNCT DEPS: %s" % adjuncts)
+                        indirect_adjunct_depsets.append(adjuncts)
+                # for f in dep[DefaultInfo].files.to_list():
+                #     print("f.path: %s" % f.path)
+                # if hasattr(dep[OcamlModuleProvider], "module_links"):
+                #     merged_module_links_depsets.append(dep[OcamlModuleProvider].module_links)
+                # if hasattr(dep[OcamlModuleProvider], "archive_links"):
+                #     merged_archive_links_depsets.append(dep[OcamlModuleProvider].archive_links)
+                if hasattr(dep[OcamlImportProvider], "paths"):
+                    merged_paths_depsets.append(dep[OcamlImportProvider].paths)
+                # if hasattr(dep[OcamlModuleProvider], "depgraph"):
+                merged_depgraph_depsets.append(dep[DefaultInfo].files)
+                # if hasattr(dep[OcamlModuleProvider], "archived_modules"):
+                #     merged_archived_modules_depsets.append(dep[OcamlModuleProvider].archived_modules)
 
             if PpxModuleProvider in dep:
                 if hasattr(dep[PpxModuleProvider], "module_links"):

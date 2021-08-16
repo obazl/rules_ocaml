@@ -253,3 +253,8 @@ filegroup(
 #     # target_compatible_with = constraints,
 #     toolchain = ":ocaml_toolchain_macos"
 # )
+
+toolchain_type(
+    name = "toolchain_type",
+    visibility = ["//visibility:public"]
+)

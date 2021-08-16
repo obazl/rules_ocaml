@@ -20,7 +20,7 @@ def _executable_in_transition_impl(settings, attr):
     ## FIXME: ppx_executable uses @ppx//mode to set @ocaml//mode
     return {
         "@ocaml//mode"          : settings["@ocaml//mode:mode"],
-        "@ppx//mode"            : settings["@ocaml//mode:mode"],
+        "@ppx//mode"            : settings["@ocaml//mode:mode"], ## Why?
         "@ocaml//ns:prefixes"   : [],
         "@ocaml//ns:submodules" : [],
     }

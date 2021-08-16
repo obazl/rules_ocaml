@@ -9,6 +9,8 @@ def _ocaml_import_impl(ctx):
 
   debug = False
 
+  # print("ocaml_import: %s" % ctx.label)
+
   # make all deps direct for client of this rule
 
   # provider = OcamlImportProvider(
@@ -22,15 +24,45 @@ def _ocaml_import_impl(ctx):
   #     indirect = depset(order = "postorder", direct = mydeps.nopam.to_list())
   # )
 
-  # default = DefaultInfo(files = depset(dset))
+  dep_depsets = []
+  adjunct_depsets = []
+  if ctx.attr.deps:
+      for dep in ctx.attr.deps:
+          dep_depsets.append(dep[DefaultInfo].files)
+          adjunct_depsets.append(dep[OcamlImportProvider].deps_adjunct)
+
+  if ctx.attr.archive:
+      # print("{tgt} archives: {archives}".format(
+      #     tgt=ctx.label,
+      #     archives=ctx.attr.archive))
+      # for f in ctx.files.archive:
+      #     print("f: %s" % f.path)
+      default = DefaultInfo(
+          files = depset(
+              direct = ctx.files.archive,
+              transitive = dep_depsets
+          )
+      )
+  else:
+      default = DefaultInfo() # files = depset(dset))
 
   # # print("IMPORT %s" % ctx.label.name)
   # # print("IMPORT DefaultInfo: %s" % default)
 
-  # return [
-  #     default,
-  #     provider
-  # ]
+  importProvider = OcamlImportProvider(
+      deps_adjunct = depset(
+          direct = ctx.files.deps_adjunct,
+          transitive = adjunct_depsets
+      )
+  )
+  if len(ctx.files.deps_adjunct) > 0:
+      print("Importing %s" % ctx.label)
+      print("IMPORT PROVIDER %s" % importProvider)
+
+  return [
+      default,
+      importProvider
+  ]
 
 ################################################################
 ################################################################
@@ -41,6 +73,27 @@ ocaml_import = rule(
 **NOT YET SUPPORTED**
     """,
   attrs = dict(
+      srcs = attr.label_list(
+          allow_files = True
+      ),
+      deps = attr.label_list(
+          allow_files = True
+      ),
+      deps_adjunct = attr.label_list(
+          allow_files = True
+      ),
+      modules = attr.label_list(
+          allow_files = True
+      ),
+      archive = attr.label_list(
+          allow_files = True
+      ),
+      plugin = attr.label_list(
+          allow_files = True
+      ),
+      version = attr.string(),
+      doc = attr.string(),
+      _rule = attr.string( default = "ocaml_import" ),
   ),
   provides = [OcamlImportProvider],
   executable = False,

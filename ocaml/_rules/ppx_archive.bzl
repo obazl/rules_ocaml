@@ -22,6 +22,11 @@ ppx_archive = rule(
         _warnings  = attr.label(default = "@ppx//archive:warnings"),
         #### end options ####
 
+        shared = attr.bool(
+            doc = "True: build a shared lib (.cmxs)",
+            default = False
+        ),
+
         standalone = attr.bool(
             doc = "True: link total depgraph. False: link only direct deps.  Default False.",
             default = False

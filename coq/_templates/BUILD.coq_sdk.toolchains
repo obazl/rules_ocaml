@@ -1,0 +1,60 @@
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag", "bool_setting",
+     "string_flag", "string_setting",
+     "string_list_flag")
+
+load("@obazl_rules_coq//coq/_toolchains:coq_toolchains.bzl",
+     "coq_toolchain")
+
+package(default_visibility = ["//visibility:public"])
+
+toolchain_type(
+    name = "toolchain_type",
+    visibility = ["//visibility:public"]
+)
+
+##########
+toolchain(
+    name = "coq_linux",  # this is what gets registered
+    toolchain_type = "@coq_sdk//toolchains:toolchain_type",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    toolchain = ":coq_toolchain_linux",
+    visibility = ["//visibility:public"]
+)
+
+################
+coq_toolchain(
+    name = "coq_toolchain_linux",
+    # linkmode = "static",
+    # cc_toolchain = "gcc"
+)
+
+################################################################
+
+##########
+toolchain(
+    name = "coq_macos",
+    toolchain_type = "@coq_sdk//toolchains:toolchain_type",
+    exec_compatible_with = [
+        "@platforms//os:macos",
+    ],
+    target_compatible_with = [
+        "@platforms//os:macos",
+    ],
+    toolchain = ":coq_toolchain_macos",
+    visibility = ["//visibility:public"]
+)
+
+################
+coq_toolchain(
+    name = "coq_toolchain_macos",
+    # linkmode = "static",
+    # cc_toolchain = "gcc"
+)

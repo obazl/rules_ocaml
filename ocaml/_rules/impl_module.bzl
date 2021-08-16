@@ -34,9 +34,10 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":impl_common.bzl",
      "merge_deps",
-     "tmpdir")
+     # "tmpdir"
+     )
 
-scope = tmpdir
+scope = "" # tmpdir
 
 ################################################################
 def _handle_cc_deps(ctx,
@@ -196,9 +197,21 @@ def impl_module(ctx):
         "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
     }
 
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    if len(ctx.attr.deps_opam) > 0:
+        using_ocamlfind = True
+        ocamlfind_opts = ["-predicates", "ppx_driver"]
+        exe = tc.ocamlfind
+    else:
+        using_ocamlfind = False
+        ocamlfind_opts = []
+        if mode == "native":
+            exe = tc.ocamlopt.basename
+        else:
+            exe = tc.ocamlc.basename
 
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
@@ -228,29 +241,39 @@ def impl_module(ctx):
     outputs.append(out_cm_)
 
     if mode == "native":
-        out_o = ctx.actions.declare_file(tmpdir + module_name + ".o")
+        out_o = ctx.actions.declare_file(scope + module_name + ".o")
         outputs.append(out_o)
 
     mlifile = None
     if ctx.attr.sig:
         # we pass on the sigfile we recd as output.
         # copy it (and .mli) to same outdir as module so that .mli/.cmi resolution will work
+        sigProvider = ctx.attr.sig[OcamlSignatureProvider]
+        out_cmi = sigProvider.cmi
+        # mlifile = sigProvider.mli
+        # print("IN SIG: %s" % sigProvider.mli)
+        if sigProvider.mli.is_source:  # not a generated file
+            mlifile = rename_srcfile(ctx, sigProvider.mli, normalize_module_name(sigProvider.mli.basename) + ".mli")
+            # print("OUT SIG: %s" % mlifile)
+
         # sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        if ctx.attr._rule == "ocaml_module":
-            sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        elif ctx.attr._rule == "ppx_module":
-            sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        elif ctx.attr._rule == "ocaml_submodule":
-            sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        elif ctx.attr._rule == "ppx_submodule":
-            sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        if ctx.file.sig.dirname == out_cm_.dirname:
-            mlifile = sigProvider.mli
-            out_cmi = sigProvider.cmi
-        else:
-            print("REWRITING %s" % sigProvider)
-            mlifile = rename_srcfile(ctx, sigProvider.mli, sigProvider.mli.basename)
-            out_cmi = rename_srcfile(ctx, sigProvider.cmi, sigProvider.cmi.basename)
+        # if ctx.attr._rule == "ocaml_module":
+        #     sigProvider = ctx.attr.sig[OcamlSignatureProvider]
+        # elif ctx.attr._rule == "ppx_module":
+        #     sigProvider = ctx.attr.sig[OcamlSignatureProvider]
+        # elif ctx.attr._rule == "ocaml_submodule":
+        #     sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
+        # elif ctx.attr._rule == "ppx_submodule":
+        #     sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
+        # if ctx.file.sig.dirname == out_cm_.dirname:
+        #     mlifile = sigProvider.mli
+        #     out_cmi = sigProvider.cmi
+        # else:
+        #     # print("REWRITING %s" % sigProvider)
+        #     mlifile = sigProvider.mli
+        #     out_cmi = sigProvider.cmi
+        #     # mlifile = rename_srcfile(ctx, sigProvider.mli, sigProvider.mli.basename)
+        #     # out_cmi = rename_srcfile(ctx, sigProvider.cmi, sigProvider.cmi.basename)
     else:
         ## no sigfile provided: compiler will infer and emit .cmi from .ml src,
         ## so we need to add the output file
@@ -260,10 +283,11 @@ def impl_module(ctx):
     #########################
     args = ctx.actions.args()
 
-    if mode == "native":
-        args.add(tc.ocamlopt.basename)
-    else:
-        args.add(tc.ocamlc.basename)
+    if using_ocamlfind:
+        if mode == "native":
+            args.add(tc.ocamlopt.basename)
+        else:
+            args.add(tc.ocamlc.basename)
 
     _options = get_options(ctx.attr._rule, ctx)
     # if "-for-pack" in _options:
@@ -346,8 +370,9 @@ def impl_module(ctx):
 
     opam_depset = depset(direct = ctx.attr.deps_opam,
                          transitive = indirect_opam_depsets)
-    for opam in opam_depset.to_list():
-        args.add("-package", opam)  ## add dirs to search path
+    if using_ocamlfind:
+        for opam in opam_depset.to_list():
+            args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
@@ -355,26 +380,49 @@ def impl_module(ctx):
     adjunct_deps = []
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[AdjunctDepsProvider]
-        for opam in provider.opam.to_list():
-            args.add("-package", opam)
+        if using_ocamlfind:
+            for opam in provider.opam.to_list():
+                args.add("-package", opam)
 
         for nopam in provider.nopam.to_list():
-            for nopamfile in nopam.files.to_list():
-                adjunct_deps.append(nopamfile)
+            print("NOPAM ADJUNCT: %s" % nopam)
+            adjunct_deps.append(nopam)
+            # for nopamfile in nopam.files.to_list():
+            #     adjunct_deps.append(nopamfile)
         for path in provider.nopam_paths.to_list():
             args.add("-I", path)
+
+    for adjunct in adjunct_deps:
+        if adjunct.extension == "cmxa":
+            # print("ADJUNCT path: %s" % adjunct.path)
+            # print("ADJUNCT short-path: %s" % adjunct.short_path)
+            dir = paths.relativize(adjunct.dirname, "external/opam/_lib")
+            includes.append(
+                ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+            )
+            args.add(adjunct.path)
 
     indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
         includes.append(path)
 
+    if not using_ocamlfind:
+        imports_test = depset(transitive = merged_depgraph_depsets)
+        for f in imports_test.to_list():
+            if f.extension == "cmxa":
+                # print("relativizing %s" % f.path)
+                dir = paths.relativize(f.dirname, "external/opam/_lib")
+                includes.append( ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir )
+            else:
+                includes.append( f.dirname)
+
     if ctx.attr.ppx:
         structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
     else:
+        structfile = ctx.file.struct
         ## cp src file to working dir (__obazl)
         ## this is necessary for .mli/.cmi resolution to work
-        structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
-        # structfile = ctx.file.struct
+        # structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
 
     if debug:
         print("INCLUDES: %s" % includes)
@@ -385,11 +433,12 @@ def impl_module(ctx):
     args.add_all(includes, before_each="-I", uniquify = True)
 
     ## use depsets to get the right ordering. filter to limit to direct deps.
-    module_links_depset = depset(transitive = merged_module_links_depsets)
-    for dep in module_links_depset.to_list():
-        if ctx.attr.pack:
-            if dep in ctx.files.deps:
-                args.add(dep)
+    # module_links_depset = depset(transitive = merged_module_links_depsets)
+    # for dep in module_links_depset.to_list():
+    #     args.add(dep)
+        # if ctx.attr.pack:
+        #     if dep in ctx.files.deps:
+        #         args.add(dep)
         # else:
         #     if dep in ctx.files.deps:
         #         args.add(dep)
@@ -408,14 +457,24 @@ def impl_module(ctx):
         args.add("-no-alias-deps")
         args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
 
+    # if "-shared" in _options:
+    #     args.add("-shared")
+    # else:
     args.add("-c")
     args.add("-o", out_cm_)
 
     args.add("-impl", structfile)
 
+    ## if we rec'd a .cmi sigfile, we must add its SOURCE file to the dep graph!
+    ## otherwise the ocaml compiler will not use the cmx file, it will generate
+    ## one from the module source.
+    mli = [mlifile] if mlifile else []
+
+    ## runtime deps must be added to the depgraph (so they get built),
+    ## but not the command line (they are not build-time deps).
     inputs_depset = depset(
         order = "postorder",
-        direct = [structfile] + cclib_deps,
+        direct = [structfile] + mli + cclib_deps + ctx.files.deps_runtime + adjunct_deps,
         transitive = merged_depgraph_depsets
     )
         # NB: these are NOT in the depgraph: cc_direct_depfiles + adjunct_deps + ctx.files.ppx,
@@ -427,7 +486,7 @@ def impl_module(ctx):
     ################
     ctx.actions.run(
         env = env,
-        executable = tc.ocamlfind,
+        executable = exe, ## tc.ocamlfind,
         arguments = [args],
         inputs    = inputs_depset,
         outputs   = outputs,
@@ -447,11 +506,10 @@ def impl_module(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order = "postorder",
-            direct = outputs # [out_cm_, out_cmi],
+            direct = outputs + [out_cmi] + mli
         ),
     )
 
-    mli = [mlifile] if mlifile else []
     if (ctx.attr._rule == "ocaml_module"):
         moduleProvider = OcamlModuleProvider(
             module_links     = depset(
@@ -509,9 +567,13 @@ def impl_module(ctx):
 
     adjunctsProvider = AdjunctDepsProvider(
         opam        = depset(transitive = indirect_adjunct_opam_depsets),
-        nopam       = depset(transitive = indirect_adjunct_depsets),
+        nopam       = depset(
+            direct = adjunct_deps,
+            transitive = indirect_adjunct_depsets
+        ),
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
     )
+    print("MODULE ADJUNCTS PROVIDER: %s" % adjunctsProvider)
 
     ## FIXME: catch incompatible key dups
     cclibs = {}

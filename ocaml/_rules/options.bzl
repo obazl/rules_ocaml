@@ -235,6 +235,9 @@ def options_module(ws):
         deps_opam = attr.string_list(
             doc = "List of OPAM package names"
         ),
+        deps_runtime = attr.label_list(
+            doc = "Deps needed at runtime, but not build time. E.g. .cmxs plugins."
+        ),
         data = attr.label_list(
             allow_files = True,
             doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."

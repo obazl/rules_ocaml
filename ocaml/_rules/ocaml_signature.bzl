@@ -7,6 +7,7 @@ load("//ocaml:providers.bzl",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
+     "OcamlImportProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
@@ -76,9 +77,21 @@ def _ocaml_signature_impl(ctx):
         "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
     }
 
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    if len(ctx.attr.deps_opam) > 0:
+        using_ocamlfind = True
+        ocamlfind_opts = ["-predicates", "ppx_driver"]
+        exe = tc.ocamlfind
+    else:
+        using_ocamlfind = False
+        ocamlfind_opts = []
+        if mode == "native":
+            exe = tc.ocamlopt.basename
+        else:
+            exe = tc.ocamlc.basename
 
     ################
     merged_module_links_depsets = []
@@ -106,10 +119,11 @@ def _ocaml_signature_impl(ctx):
     #########################
     args = ctx.actions.args()
 
-    if mode == "native":
-        args.add(tc.ocamlopt.basename)
-    else:
-        args.add(tc.ocamlc.basename)
+    if using_ocamlfind:
+        if mode == "native":
+            args.add(tc.ocamlopt.basename)
+        else:
+            args.add(tc.ocamlc.basename)
 
     _options = get_options(rule, ctx)
     args.add_all(_options)
@@ -140,8 +154,9 @@ def _ocaml_signature_impl(ctx):
 
     opam_depset = depset(direct = ctx.attr.deps_opam,
                          transitive = indirect_opam_depsets)
-    for opam in opam_depset.to_list():
-        args.add("-package", opam)  ## add dirs to search path
+    if using_ocamlfind:
+        for opam in opam_depset.to_list():
+            args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
@@ -149,12 +164,14 @@ def _ocaml_signature_impl(ctx):
     adjunct_deps = []
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[AdjunctDepsProvider]
-        for opam in provider.opam.to_list():
-            args.add("-package", opam)
+        if using_ocamlfind:
+            for opam in provider.opam.to_list():
+                args.add("-package", opam)
 
         for nopam in provider.nopam.to_list():
-            for nopamfile in nopam.files.to_list():
-                adjunct_deps.append(nopamfile)
+            adjunct_deps.append(nopam)
+            # for nopamfile in nopam.files.to_list():
+                # adjunct_deps.append(nopamfile)
         for path in provider.nopam_paths.to_list():
             args.add("-I", path)
 
@@ -163,6 +180,17 @@ def _ocaml_signature_impl(ctx):
             includes.append(path)
 
     includes.append(out_cmi.dirname)
+
+    if not using_ocamlfind:
+        imports_test = depset(transitive = merged_depgraph_depsets)
+        for f in imports_test.to_list():
+            # FIXME: only relativize ocaml_imports
+            # print("relativizing %s" % f.path)
+            if (f.extension == "cmxa"):
+                dir = paths.relativize(f.dirname, "external/opam/_lib")
+                includes.append(
+                    ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+                )
 
     if ctx.attr.pack:
         args.add("-for-pack", ctx.attr.pack)
@@ -183,10 +211,10 @@ def _ocaml_signature_impl(ctx):
     #     if dep.basename in link_deps:
     #           args.add(dep)
 
-    module_links_depset = depset(order="postorder", transitive = merged_module_links_depsets)
-    for dep in module_links_depset.to_list():
-        if dep in ctx.files.deps:
-            args.add(dep)
+    # module_links_depset = depset(order="postorder", transitive = merged_module_links_depsets)
+    # for dep in module_links_depset.to_list():
+    #     if dep in ctx.files.deps:
+    #         args.add(dep)
 
     ## FIXME: do we need the resolver for sigfiles?
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
@@ -202,9 +230,11 @@ def _ocaml_signature_impl(ctx):
     # elif module_name != from_name:
     #     sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
     else:
-        ## cp source file to workdir (__obazl)
-        ## this is necessary for .mli/.cmi resolution to work
-        sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+        sigfile = ctx.file.src
+
+    #     ## cp source file to workdir (__obazl)
+    #     ## this is necessary for .mli/.cmi resolution to work
+    #     # sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
 
     args.add("-intf", sigfile)
 
@@ -217,7 +247,7 @@ def _ocaml_signature_impl(ctx):
     ################
     ctx.actions.run(
         env = env,
-        executable = tc.ocamlfind,
+        executable = exe,  ## tc.ocamlfind,
         arguments = [args],
         inputs = input_depset,
         outputs = [out_cmi],
@@ -335,6 +365,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [
                 [OcamlArchiveProvider],
+                [OcamlImportProvider],
                 [OcamlLibraryProvider],
                 [OcamlModuleProvider],
                 [OcamlNsArchiveProvider],
@@ -375,7 +406,11 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
+        _opam_lib = attr.label(
+            default = "@opam//:opam_lib"
+        )
     ),
+    incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

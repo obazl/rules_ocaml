@@ -3,9 +3,13 @@ load("@bazel_skylib//lib:types.bzl", "types")
 
 load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
+load("//coq/_toolchains:coq_toolchains.bzl", "coq_register_toolchains")
+
 load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_register_toolchains")
 
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
+
+load("//opam:_opam.bzl", "opam_configure")
 
 ##################################
 def _throw_opam_cmd_error(cmd, r):
@@ -152,6 +156,12 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
             "{sdkpath}": opam_switch_prefix,
             "{projroot}": str(projroot)
         },
+    )
+
+    repo_ctx.template(
+        "lib/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.stdlib"),
+        executable = False,
     )
 
     repo_ctx.template(
@@ -392,6 +402,16 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         },
     )
 
+    repo_ctx.template(
+        "coq/BUILD.bazel",
+        Label("//coq/_templates:BUILD.coq_sdk.toolchains"),
+        executable = False,
+        substitutions = {
+            "{sdkpath}": "foo",
+            "{projroot}": "projroot" # str(projroot)
+        },
+    )
+
 ##########################################
 def _symlink_tool(repo_ctx, prefix, tool):
 
@@ -420,6 +440,22 @@ def _symlink_core_tools(repo_ctx, prefix):
                     path = tool_path
                 )
             )
+
+######################################################
+# def _install_coq_symlinks(repo_ctx, coq_sdk):
+
+#     for tool in ["topbin/coqc"]:
+#         tool_path = repo_ctx.path(coq_sdk + tool)
+#         if tool_path.exists:
+#             repo_ctx.symlink(tool_path + tool)
+#         else:
+#             if repo_ctx.attr.verbose:
+#                 print(
+#                     "WARNING: could not find {tool} at {path}".format(
+#                         tool = tool,
+#                         path = tool_path
+#                     )
+#                 )
 
 ######################################################
 def _symlink_compilers(repo_ctx, opam_switch_prefix):
@@ -588,6 +624,8 @@ def _ocaml_repo_impl(repo_ctx):
     _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix)
 
     _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix)
+
+    # _install_coq_symlinks(repo_ctx, ".") # coq_sdk
 
     ## now verify/install the opam switch
     if repo_ctx.attr.case == 0:   ## null
@@ -830,8 +868,7 @@ def ocaml_configure(
         # pin      = False,
         # force    = False,
         debug    = False,
-        verbose  = False
-):
+        verbose  = False):
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on.
@@ -854,6 +891,8 @@ def ocaml_configure(
     ppx_repo(name="ppx")
 
     # obazl_repo(name="obazl")
+
+    # opam_configure()
 
     default_build = None
     if opam:
@@ -886,6 +925,7 @@ def ocaml_configure(
                     debug = debug)
 
     ocaml_register_toolchains(installation="host")
+    coq_register_toolchains(installation="host")
 
     # print("ocaml_configure done")
 

@@ -34,12 +34,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default  = "ocaml_executable" ),
-        _allowlist_function_transition = attr.label(
-            ## required for transition fn of attribute _mode
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     ## required for transition fn of attribute _mode
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
     ),
-    cfg     = executable_in_transition,
+    # cfg     = executable_in_transition,
     executable = True,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

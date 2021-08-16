@@ -1,0 +1,6 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(["**"]))
+
+alias(name = "coqc",
+      actual = "@//topbin:coqc") # Note the '@' - refers to the coq sdk source repo

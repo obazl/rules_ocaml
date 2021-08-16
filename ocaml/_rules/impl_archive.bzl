@@ -19,7 +19,10 @@ load("//ocaml/_functions:utils.bzl", "normalize_module_name")
 
 load(":impl_common.bzl",
      "merge_deps",
-     "tmpdir")
+     # "tmpdir"
+     )
+
+tmpdir = ""
 
 ##################################################
 def _generate_resolver(ctx, tc, env, mode):
@@ -33,7 +36,12 @@ def _generate_resolver(ctx, tc, env, mode):
         content = aliases
     )
 
-    resolver_module = normalize_module_name(ctx.attr.resolver.name)
+    # resolver_module = normalize_module_name(ctx.attr.resolver.name)
+    # print("XXXX %s" % ctx.outputs.resolver.extension)
+    if ctx.outputs.resolver.extension == "ml":
+        resolver_module = ctx.attr.resolver.name[:-3]
+    else:
+        resolver_module = ctx.attr.resolver.name
 
     if  mode == "native":
         resolver_o = ctx.actions.declare_file(tmpdir + resolver_module + ".o")
@@ -55,6 +63,7 @@ def _generate_resolver(ctx, tc, env, mode):
 
     resolver_args.add("-w", "-49") # Warning 49: no cmi file was found in path for module
     resolver_args.add("-no-alias-deps")
+    resolver_args.add("-linkall")
     resolver_args.add("-c")
     resolver_args.add("-impl", ctx.outputs.resolver)
     resolver_args.add("-o", resolver_cm_)
@@ -115,7 +124,7 @@ def impl_archive(ctx):
     if ctx.attr.resolver:
         resolver_outputs = _generate_resolver(ctx, tc, env, mode)
 
-    ext  = ".cmxa" if  mode == "native" else ".cma"
+    # print("RESOLVER OUTPUTS: %s" % resolver_outputs)
 
     ################
     merged_module_links_depsets = []
@@ -141,12 +150,34 @@ def impl_archive(ctx):
 
     module_name = normalize_module_name(ctx.label.name)
 
-    out_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext)
+    _options = get_options(ctx.attr._rule, ctx)
+
+    shared = False
+    if ctx.attr.shared:
+        shared = ctx.attr.shared or "-shared" in _options
+        if shared:
+            if "-shared" in _options:
+                _options.remove("-shared") ## avoid dup
+
+    if mode == "native":
+        if shared:
+            ext = ".cmxs"
+        else:
+            ext = ".cmxa"
+    else:
+        ext = ".cmx"
+
+    if shared:
+        module_name = ctx.label.name
+        out_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext)
+    else:
+        out_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext)
     outputs.append(out_cm_a)
 
     if mode == "native":
-        out_a = ctx.actions.declare_file(tmpdir + module_name + ".a")
-        outputs.append(out_a)
+        if  not shared:
+            out_a = ctx.actions.declare_file(tmpdir + module_name + ".a")
+            outputs.append(out_a)
 
     #########################
     args = ctx.actions.args()
@@ -156,7 +187,6 @@ def impl_archive(ctx):
     else:
         args.add(tc.ocamlc.basename)
 
-    _options = get_options(ctx.attr._rule, ctx)
     args.add_all(_options)
 
     merge_deps(ctx.attr.modules,
@@ -200,7 +230,10 @@ def impl_archive(ctx):
         args.add(resolver_outputs[0])
         direct_inputs = resolver_outputs
 
-    args.add("-a")
+    if shared:
+        args.add("-shared")
+    else:
+        args.add("-a")
     args.add("-o", out_cm_a)
 
     inputs_depset = depset(
@@ -245,7 +278,7 @@ def impl_archive(ctx):
     #     else:
     #         print("FILTERING OUT: %s" % link)
     # print("ARCHIVE MDEPSET: %s" % filtered_links)
-    if ctx.attr._rule == "ocaml_archive":
+    if ctx.attr._rule in ["ocaml_archive"]: # , "coq_plugin"]:
         archiveProvider = OcamlArchiveProvider(
             module_links     = depset(
                 order = "postorder",

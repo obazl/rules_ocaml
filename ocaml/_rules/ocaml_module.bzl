@@ -52,11 +52,27 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default = "ocaml_module" ),
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
+        _opam_lib = attr.label(
+            default = "@opam//:opam_lib"
+        )
     ),
-    cfg     = module_in_transition,
+    incompatible_use_toolchain_transition = True,
+    # exec_groups = {
+    #     "compile": exec_group(
+    #         exec_compatible_with = [
+    #             # "@platforms//os:linux",
+    #             "@platforms//os:macos"
+    #         ],
+    #         toolchains = [
+    #             "@obazl_rules_ocaml//ocaml:toolchain",
+    #             # "@obazl_rules_ocaml//coq:toolchain_type",
+    #         ],
+    #     ),
+    # },
+    # cfg     = module_in_transition,
     provides = [OcamlModuleProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

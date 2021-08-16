@@ -6,6 +6,8 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice.
 """
 
+load("//ocaml/_rules:ocaml_null.bzl"     , _ocaml_null = "ocaml_null")
+
 load("//ocaml/_rules:ocaml_archive.bzl"     , _ocaml_archive = "ocaml_archive")
 load("//ocaml/_rules:ocaml_executable.bzl"  , _ocaml_executable = "ocaml_executable")
 load("//ocaml/_rules:ocaml_genrule.bzl"      , _ocaml_genrule = "ocaml_genrule")
@@ -44,6 +46,8 @@ load("//ocaml/_rules:ppx_test.bzl"       , _ppx_expect_test = "ppx_expect_test",
 #      _ocaml_redirector_gen = "ocaml_redirector_gen",
 #      _ocaml_submodule_rename = "ocaml_submodule_rename",
 # )
+
+ocaml_null = _ocaml_null
 
 ocaml_archive    = _ocaml_archive
 ocaml_executable = _ocaml_executable

@@ -85,8 +85,10 @@ Output files must not cross package boundaries. Output filenames are interpreted
 
 A list of tool dependencies for this rule.
             """,
+            cfg = "exec",
             mandatory = True
             ),
         _rule = attr.string( default = "ocaml_genrule" ),
-    )
+    ),
+    incompatible_use_toolchain_transition = True,
 )

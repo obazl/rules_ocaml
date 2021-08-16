@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "AdjunctDepsProvider",
@@ -152,10 +153,22 @@ def impl_executable(ctx):
         "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
     }
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-
     ## FIXME: support ctx.attr.mode?
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+
+    if len(ctx.attr.deps_opam) > 0:
+        using_ocamlfind = True
+        ocamlfind_opts = ["-predicates", "ppx_driver"]
+        exe = tc.ocamlfind
+    else:
+        using_ocamlfind = False
+        ocamlfind_opts = []
+        if mode == "native":
+            exe = tc.ocamlopt.basename
+        else:
+            exe = tc.ocamlc.basename
 
     ## FIXME: default extension to .out?
 
@@ -185,16 +198,21 @@ def impl_executable(ctx):
     #########################
     args = ctx.actions.args()
 
-    if mode == "native":
-        args.add(tc.ocamlopt.basename)
-    else:
-        args.add(tc.ocamlc.basename)
+    if using_ocamlfind:
+        if mode == "native":
+            args.add(tc.ocamlopt.basename)
+        else:
+            args.add(tc.ocamlc.basename)
+
+    if mode == "bytecode":
         ## FIXME: -custom only needed if linking with CC code?
         ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
         args.add("-custom")
 
     _options = get_options(rule, ctx)
     args.add_all(_options)
+
+    args.add_all(ocamlfind_opts)
 
     mdeps = []
     if ctx.attr.deps: mdeps.extend(ctx.attr.deps)
@@ -214,9 +232,23 @@ def impl_executable(ctx):
     opam_depset = depset(direct = ctx.attr.deps_opam,
                          transitive = indirect_opam_depsets)
     opams = opam_depset.to_list()
-    if len(opams) > 0:
-        args.add("-linkpkg")  ## tell ocamlfind to add cmxa files to cmd line
-        [args.add("-package", opam) for opam in opams if opams] ## add dirs to search path
+    if using_ocamlfind:
+        if len(opams) > 0:
+            args.add("-linkpkg")  ## tell ocamlfind to add cmxa files to cmd line
+            [args.add("-package", opam) for opam in opams if opams] ## add dirs to search path
+
+    if not using_ocamlfind:
+        imports_test = depset(transitive = merged_depgraph_depsets)
+        for f in imports_test.to_list():
+            # FIXME: only relativize ocaml_imports
+            # print("relativizing %s" % f.path)
+            if (f.extension == "cmxa"):
+                dir = paths.relativize(f.dirname, "external/opam/_lib")
+                includes.append(
+                    ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+                )
+                # includes.append(f.dirname)
+                args.add(f.path)
 
     ## now we need to add cc deps to the cmd line
     cclib_deps  = []
@@ -269,10 +301,9 @@ def impl_executable(ctx):
         fail("Unknown rule for executable: %s" % ctx.attr._rule)
 
     ################
-    ################
     ctx.actions.run(
       env = env,
-      executable = tc.ocamlfind,
+      executable = exe, ## tc.ocamlfind,
       arguments = [args],
       inputs = inputs_depset,
       outputs = [out_exe],
@@ -313,6 +344,7 @@ def impl_executable(ctx):
     nopam_paths = depset(direct = nopam_direct_paths,
                          transitive = indirect_adjunct_path_depsets)
 
+    print("ADJUNCTS: %s" % indirect_adjunct_depsets)
     adjuncts_provider = AdjunctDepsProvider(
         opam = depset(
             direct     = ctx.attr.deps_adjunct_opam,

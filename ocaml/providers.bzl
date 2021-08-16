@@ -116,6 +116,28 @@ OcamlArchiveProvider = provider(
     # }
 )
 
+# OcamlImportProvider = provider(
+#     doc = "OCaml import provider.",
+#     fields = {
+#         "payload": """A struct with the following fields:
+#             cmx: .cmx file produced by the target
+#             cma: .cma file produced by the target
+#             cmxa: .cmxa file produced by the target
+#             cmxs: .cmxs file produced by the target
+#         """,
+#             # ml:  .ml source file. without the source file, the cmi file will be ignored!
+#         "indirect"   : "A depset of indirect deps."
+#     }
+# )
+
+OcamlImportProvider = provider(
+    doc = "OCaml import provider.",
+    fields = {
+        "deps_adjunct":    "Depset of adjunct deps, for ppxes",
+        "paths":    "Depset of paths for -I params",
+    }
+)
+
 OcamlExecutableProvider = provider(
     doc = "OCaml executable provider. Marker interface."
 )
@@ -157,20 +179,6 @@ Provided by rule: [ocaml_library](rules_ocaml.md#ocaml_library)
 #         "mli"  :  ".mli source file. without the source file, the cmi file will be ignored!"
 #     }
 # )
-
-OcamlImportProvider = provider(
-    doc = "OCaml import provider.",
-    fields = {
-        "payload": """A struct with the following fields:
-            cmx: .cmx file produced by the target
-            cma: .cma file produced by the target
-            cmxa: .cmxa file produced by the target
-            cmxs: .cmxs file produced by the target
-        """,
-            # ml:  .ml source file. without the source file, the cmi file will be ignored!
-        "indirect"   : "A depset of indirect deps."
-    }
-)
 
 CcDepsProvider = provider(
     doc =" OPAM deps provider.",

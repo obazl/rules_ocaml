@@ -29,6 +29,11 @@ ocaml_archive = rule(
         _warnings  = attr.label(default = "@ocaml//archive:warnings"),
         #### end options ####
 
+        shared = attr.bool(
+            doc = "True: build a shared lib (.cmxs)",
+            default = False
+        ),
+
         standalone = attr.bool(
             doc = "True: link total depgraph. False: link only direct deps.  Default False.",
             default = False
@@ -43,7 +48,7 @@ ocaml_archive = rule(
             doc = "List of component modules.",
             providers = [[OcamlImportProvider],
                          [OcamlLibraryProvider],
-                         # [OcamlArchiveProvider],
+                         [OcamlArchiveProvider],
                          [OcamlModuleProvider],
                          # [OcamlNsArchiveProvider],
                          [OcamlNsLibraryProvider],
@@ -83,13 +88,14 @@ ocaml_archive = rule(
             default = Label("@ocaml//:path")
         ),
         _rule = attr.string( default = "ocaml_archive" ),
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
     ),
+    incompatible_use_toolchain_transition = True,
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
-    cfg     = nsarchive_in_transition,
+    # cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

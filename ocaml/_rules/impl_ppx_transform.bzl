@@ -16,13 +16,13 @@ def impl_ppx_transform(rule, ctx, src, to):
     Outputs: struct(intf :: declared File, maybe impl :: declared File)
     """
 
-    debug = False
+    debug = True
     # if ctx.label.name == "test":
     #     debug = True
 
     if debug:
         print()
-        print("Start: impl_ppx_transform: %s" % to)
+        print("Start: impl_ppx_transform: {src} to {dst}".format(src = src, dst = to))
 
     scope = tmpdir
 
@@ -138,7 +138,7 @@ def impl_ppx_transform(rule, ctx, src, to):
         outputs = [outfile],
         tools = [ctx.executable.ppx],
         mnemonic = "PpxTransformAction",
-        progress_message = "ppx transform {rule}: {ws}//{pkg}:{tgt}".format(
+        progress_message = "ppx_transform {rule}: {ws}//{pkg}:{tgt}".format(
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             rule=ctx.attr._rule,

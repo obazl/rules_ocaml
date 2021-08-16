@@ -43,41 +43,53 @@ _ocaml_tools_attrs = {
     ),
 
     ## FIXME: these should be provided by the toolchain definition?
+    # "_coqc": attr.label(
+    #     default = Label("//tools:coqc"),
+    #     executable = True,
+    #     allow_single_file = True,
+    #     cfg = "exec",
+    # ),
+    # "_opam_bootstrapper": attr.label(
+    #     default = Label("@tools_obazl//bootstrap:opam_bootstrap"),
+    #     executable = True,
+    #     allow_single_file = True,
+    #     cfg = "exec",
+    # ),
     "_ocamlc": attr.label(
         default = Label("@ocaml//tools:ocamlc"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_ocamlc_opt": attr.label(
         default = Label("@ocaml//tools:ocamlc.opt"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_ocamlopt": attr.label(
         default = Label("@ocaml//tools:ocamlopt"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_ocamlopt_opt": attr.label(
         default = Label("@ocaml//tools:ocamlopt.opt"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_ocamllex": attr.label(
         default = Label("@ocaml//tools:ocamllex"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_ocamlyacc": attr.label(
         default = Label("@ocaml//tools:ocamlyacc"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_copts": attr.string_list(
         default = [
@@ -94,19 +106,19 @@ _ocaml_tools_attrs = {
         default = Label("@ocaml//tools:ocamlfind"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     # "_ocamlbuild": attr.label(
     #     default = Label("@ocaml//:ocamlbuild"),
     #     executable = True,
     #     allow_single_file = True,
-    #     cfg = "host",
+    #     cfg = "exec",
     # ),
     "_ocamldep": attr.label(
         default = Label("@ocaml//:ocamldep"),
         executable = True,
         allow_single_file = True,
-        cfg = "host",
+        cfg = "exec",
     ),
     "_dllpath": attr.label(
         ## FIXME default = Label("@opam//pkg:stublibs"),
@@ -116,7 +128,7 @@ _ocaml_tools_attrs = {
     #   executable = True,
     #   allow_single_file = True,
     #   # allow_files = True,
-    #       cfg = "host",
+    #       cfg = "exec",
     # ),
 }
 
@@ -151,6 +163,7 @@ def _ocaml_toolchain_impl(ctx):
         # opam       = ctx.attr._opam.files.to_list()[0],
         # mode       = ctx.attr.mode,
         # compiler   = ctx.attr._compiler.files.to_list()[0],
+        # opam_bootstrapper = ctx.attr._opam_bootstrapper.files.to_list()[0],
         ocamlc     = ctx.attr._ocamlc.files.to_list()[0],
         ocamlc_opt = ctx.attr._ocamlc_opt.files.to_list()[0],
         ocamlopt   = ctx.attr._ocamlopt.files.to_list()[0],
@@ -168,8 +181,8 @@ def _ocaml_toolchain_impl(ctx):
     )]
 
 ocaml_toolchain = rule(
-  _ocaml_toolchain_impl,
-  attrs = _ocaml_tools_attrs,
-  doc = "Defines a Ocaml toolchain based on an SDK",
-  provides = [platform_common.ToolchainInfo],
+    _ocaml_toolchain_impl,
+    attrs = _ocaml_tools_attrs,
+    doc = "Defines a Ocaml toolchain based on an SDK",
+    provides = [platform_common.ToolchainInfo],
 )
