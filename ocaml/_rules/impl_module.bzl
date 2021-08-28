@@ -397,10 +397,12 @@ def impl_module(ctx):
             # print("ADJUNCT path: %s" % adjunct.path)
             # print("ADJUNCT short-path: %s" % adjunct.short_path)
             dir = paths.relativize(adjunct.dirname, "external/opam/_lib")
-            includes.append(
-                ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-            )
-            args.add(adjunct.path)
+            includes.append( "+../" + dir )
+            # includes.append(
+            #     ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+            # )
+            # includes.append( adjunct.path )
+            # args.add(adjunct.path)
 
     indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
@@ -410,9 +412,17 @@ def impl_module(ctx):
         imports_test = depset(transitive = merged_depgraph_depsets)
         for f in imports_test.to_list():
             if f.extension == "cmxa":
-                # print("relativizing %s" % f.path)
+                print("CMXA: %s" % f)
+                print("short: %s" % f.short_path)
+                print("long: %s" % f.path)
+                ## fixme: what if we're not using opam?
+                ## if we are using opam then f.path is "external/opam/..."
                 dir = paths.relativize(f.dirname, "external/opam/_lib")
-                includes.append( ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir )
+                includes.append( "+../" + dir )
+
+                # includes.append( ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir )
+                # includes.append( f.path )
+                # args.add( f.path)
             else:
                 includes.append( f.dirname)
 

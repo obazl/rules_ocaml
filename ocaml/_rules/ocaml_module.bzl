@@ -55,7 +55,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
-        _opam_lib = attr.label(
+        _opam_lib = attr.label( ## FIXME: do not depend on @opam
             default = "@opam//:opam_lib"
         )
     ),

@@ -1,3 +1,61 @@
+def build_opam_bootstrapper(repo_ctx):
+
+    bootstrap_opam = "https://github.com/obazl/bootstrap_opam/archive/refs/heads/main.zip"
+    # bootstrap_opam = "https://github.com/obazl/bootstrap_ocaml/archive/aa85ef74ab038fbb1eaafe768814d68193b886ef.zip"
+
+    repo_ctx.download_and_extract(
+        bootstrap_opam,
+        "bootstrap_opam",
+        stripPrefix = "bootstrap_opam-main"
+    )
+
+    # if "PATH" in repo_ctx.os.environ:
+    #     path = repo_ctx.os.environ["PATH"]
+    # if "BINDIR" in repo_ctx.os.environ:
+    #     print("BINDIR: %s" % repo_ctx.os.environ["BINDIR"])
+
+    # if "OBAZL_BOOTSTRAP" in repo_ctx.os.environ:
+    #     path = str(here) + "/" + repo_ctx.os.environ["OBAZL_BOOTSTRAP"] + ":" + path
+
+    # print("OBAZL path: %s" % path)
+
+    # fail("test")
+
+    # cmd_env["PATH"] = path
+    # print("BOOTSTRAPPER: %s" % repo_ctx.attr.bootstrapper)
+    # print("BOOTSTRAPPER: %s" % repo_ctx.attr.bootstrapper[DefaultInfo])
+    # f = repo_ctx.file(repo_ctx.attr.bootstrapper)
+    # print("BOOTSTRAPPER: %s" % f)
+    # for x in repo_ctx.file.bootstrapper[DefaultInfo].files.to_list():
+    #     print("F: %s" % x)
+
+    ## FIXME: cache bootstrap result
+
+    if "HOME" in repo_ctx.os.environ:
+        home = repo_ctx.os.environ["HOME"]
+    else:
+        fail("HOME not in env.")
+
+    local_bin = home + "/.local/bin"
+
+    cmd = ["make", "-C", "./bootstrap_opam/src", "opam_bootstrap"]
+
+    xr = repo_ctx.execute(cmd) ## , environment=cmd_env)
+    if xr.return_code == 0:
+        print("make bootstrap_opam stdout: %s" % xr.stdout)
+    else:
+        print("make bootstrap_opam result: %s" % xr.stdout)
+        print("make bootstrap_opam rc: {rc} stderr: {stderr}".format(rc=xr.return_code, stderr=xr.stderr));
+        fail("Comand failed: make -C bootstrap_opam")
+
+    cmd = ["cp", "-v", "./bootstrap_opam/src/opam_bootstrap", local_bin]
+    xr = repo_ctx.execute(cmd) ## , environment=cmd_env)
+    if xr.return_code == 0:
+        print("cp src/opam_bootstrap ~/.local/bin succeeded; stdout: %s" % xr.stdout)
+    else:
+        print("cp src/opam_bootstrap result: %s" % xr.stdout)
+        print("cp src/opam_bootstrap rc: {rc} stderr: {stderr}".format(rc=xr.return_code, stderr=xr.stderr));
+        fail("Comand failed: %s" % cmd)
 
 ################################################################
 def build_re2c(repo_ctx):
@@ -86,63 +144,7 @@ def build_tools(repo_ctx):
 
     build_re2c(repo_ctx)
 
-    bootstrap_opam = "https://github.com/obazl/bootstrap_opam/archive/refs/heads/main.zip"
-    # bootstrap_opam = "https://github.com/obazl/bootstrap_ocaml/archive/aa85ef74ab038fbb1eaafe768814d68193b886ef.zip"
-
-    repo_ctx.download_and_extract(
-        bootstrap_opam,
-        "bootstrap_opam",
-        stripPrefix = "bootstrap_opam-main"
-    )
-
-    # if "PATH" in repo_ctx.os.environ:
-    #     path = repo_ctx.os.environ["PATH"]
-    # if "BINDIR" in repo_ctx.os.environ:
-    #     print("BINDIR: %s" % repo_ctx.os.environ["BINDIR"])
-
-    # if "OBAZL_BOOTSTRAP" in repo_ctx.os.environ:
-    #     path = str(here) + "/" + repo_ctx.os.environ["OBAZL_BOOTSTRAP"] + ":" + path
-
-    # print("OBAZL path: %s" % path)
-
-    # fail("test")
-
-    # cmd_env["PATH"] = path
-    # print("BOOTSTRAPPER: %s" % repo_ctx.attr.bootstrapper)
-    # print("BOOTSTRAPPER: %s" % repo_ctx.attr.bootstrapper[DefaultInfo])
-    # f = repo_ctx.file(repo_ctx.attr.bootstrapper)
-    # print("BOOTSTRAPPER: %s" % f)
-    # for x in repo_ctx.file.bootstrapper[DefaultInfo].files.to_list():
-    #     print("F: %s" % x)
-
-    ## FIXME: cache bootstrap result
-
-    if "HOME" in repo_ctx.os.environ:
-        home = repo_ctx.os.environ["HOME"]
-        print("HOME: %s" % home)
-    else:
-        fail("HOME not in env.")
-
-    local_bin = home + "/.local/bin"
-
-    cmd = ["make", "-C", "./bootstrap_opam/src", "opam_bootstrap"]
-
-    xr = repo_ctx.execute(cmd) ## , environment=cmd_env)
-    if xr.return_code == 0:
-        print("make bootstrap_opam stdout: %s" % xr.stdout)
-    else:
-        print("make bootstrap_opam result: %s" % xr.stdout)
-        print("make bootstrap_opam rc: {rc} stderr: {stderr}".format(rc=xr.return_code, stderr=xr.stderr));
-        fail("Comand failed: make -C bootstrap_opam")
-
-    cmd = ["cp", "-v", "./bootstrap_opam/src/opam_bootstrap", local_bin]
-    xr = repo_ctx.execute(cmd) ## , environment=cmd_env)
-    if xr.return_code == 0:
-        print("cp src/opam_bootstrap ~/.local/bin succeeded; stdout: %s" % xr.stdout)
-    else:
-        print("cp src/opam_bootstrap result: %s" % xr.stdout)
-        print("cp src/opam_bootstrap rc: {rc} stderr: {stderr}".format(rc=xr.return_code, stderr=xr.stderr));
-        fail("Comand failed: %s" % cmd)
+    build_opam_bootstrapper(repo_ctx)
 
 ################################################################
 def get_xdg(repo_ctx):
@@ -172,7 +174,7 @@ def get_xdg(repo_ctx):
 ###############################
 def impl_opam_configuration(repo_ctx):
 
-    debug = False
+    debug = True ## False
     # if (ctx.label.name == "zexe_backend_common"):
     #     debug = True
 
@@ -285,22 +287,39 @@ string_setting(
 
     # fail("test")
 
+    # XDG: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
     home, xdg_cache_home, xdg_config_home, xdg_data_home = get_xdg(repo_ctx)
-    # print("XDG_CACHE_HOME: %s" % xdg_cache_home)
-    # print("XDG_CONFIG_HOME: %s" % xdg_config_home)
-    # print("XDG_DATA_HOME: %s" % xdg_data_home)
+    print("HOME: %s" % home)
+    print("XDG_CONFIG_HOME: %s" % xdg_config_home)
+    print("XDG_CACHE_HOME: %s" % xdg_cache_home)
+    print("XDG_DATA_HOME: %s" % xdg_data_home)
+
+    # systemd file-hierarchy: https://www.freedesktop.org/software/systemd/man/file-hierarchy.html
 
 
-    ## Find out if opam_bootstrap already installed in ~/.loca/bin
+    ## ~/.local/bin/
+    ## Executables that shall appear in the user's $PATH search path. It is recommended not to place executables in this directory that are not useful for invocation from a shell; these should be placed in a subdirectory of ~/.local/lib/ instead. Care should be taken when placing architecture-dependent binaries in this place, which might be problematic if the home directory is shared between multiple hosts with different architectures.
+
+    ## ~/.local/lib
+    ## Static, private vendor data that is compatible with all architectures.
+
+    ## ~/.local/lib/arch-id/
+    ## Location for placing public dynamic libraries. The architecture identifier to use is defined on Multiarch Architecture Specifiers (Tuples) list.
+
+    ## for now, we're using ~/.local/bin
+
+    ## Find out if opam_bootstrap already installed in ~/.local/bin
     cmd_env = {}
     path = home + "/.local/bin:" + path
     cmd_env["PATH"] = path
-    # print("PATH: %s" % cmd_env)
+    print("PATH: %s" % cmd_env)
 
-    print("is opam_bootstrap installed?")
+
+    ## FIXME: support option to force rebuild of opam_bootstrap
+    print("checking: is opam_bootstrap installed?")
     # cmd = ["./bootstrap_opam/src/opam_bootstrap"]
     # print("cmd_args: %s" % cmd_args)
-    cmd = ["opam_bootstrap", "-x"] ## + cmd_args
+    cmd = ["opam_bootstrap", "-v"] ## + cmd_args
     print("executing cmd: %s" % cmd)
     xr = repo_ctx.execute(cmd, environment = cmd_env, quiet = False)
     print("return code: %s" % xr.return_code)
@@ -314,14 +333,17 @@ string_setting(
             if xr.return_code == 0:
                 print("opam_bootstrap ran successfully");
             else:
-                print("opam_bootstrap result: %s" % xr.stdout)
+                print("opam_bootstrap failed, result: %s" % xr.stdout)
                 print("opam_bootstrap rc: {rc} stderr: {stderr}".format(rc=xr.return_code, stderr=xr.stderr));
         else:
+            ## FIXME: option to upgrade
             print("found opam_bootstrap installed, but wrong version: %s" % xr.stdout.strip())
     else:
         print("opam_bootstrap not installed; building...")
         build_tools(repo_ctx)
-        # try again
+
+        # now try again
+        print("running opam_bootstrap")
         cmd = ["opam_bootstrap"] ## + cmd_args
         xr = repo_ctx.execute(cmd, environment = cmd_env)
         if xr.return_code == 0:
@@ -336,8 +358,6 @@ string_setting(
         # print("opam_bootstrap succeeded")
         # print("opam_bootstrap stdout: %s" % xr.stdout)
         # print("opam_bootstrap stderr: %s" % xr.stderr)
-
-
 
 #####################
 opam_configuration = repository_rule(

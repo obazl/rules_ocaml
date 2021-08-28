@@ -243,12 +243,20 @@ def impl_executable(ctx):
             # FIXME: only relativize ocaml_imports
             # print("relativizing %s" % f.path)
             if (f.extension == "cmxa"):
+                ## FIXME: do not depend on @opam ???
+                ## problem is ocaml compilers will not follow symlinks
+                ## so we need abs paths
                 dir = paths.relativize(f.dirname, "external/opam/_lib")
-                includes.append(
-                    ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-                )
-                # includes.append(f.dirname)
+                # fdir = ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+                # includes.append( fdir )
+                ## "If the given directory starts with +, it is taken relative to the standard library directory."
+                includes.append( "+../" + dir )
+                # includes.append( f.dirname )
                 args.add(f.path)
+    else:
+        paths_depset = depset(transitive = merged_paths_depsets)
+        for path in paths_depset.to_list():
+            includes.append(path)
 
     ## now we need to add cc deps to the cmd line
     cclib_deps  = []
@@ -265,10 +273,6 @@ def impl_executable(ctx):
 
     if "-g" in _options:
         args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
-
-    paths_depset = depset(transitive = merged_paths_depsets)
-    for path in paths_depset.to_list():
-        includes.append(path)
 
     args.add_all(includes, before_each="-I")
 
