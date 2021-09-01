@@ -68,7 +68,10 @@ def normalize_module_name(s):
     # print("NORMALIZING: %s" % s)
     (segs, sep, basename) = s.rpartition("/")
     (basename, ext) = paths.split_extension(basename)
-    basename = basename.strip("_#")
+
+    # leading # means ns lib/arch ??
+    basename = basename.strip("_#") ## FIXME: not '#' ????
+
     result = basename[:1].capitalize() + basename[1:]
     # print("RESULT: %s" % result)
     return result

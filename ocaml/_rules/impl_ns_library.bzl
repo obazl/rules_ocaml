@@ -31,9 +31,9 @@ def impl_ns_library(ctx):
         print("  NS_PREFIX: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("  NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
-    if ctx.attr._rule in ["ocaml_ns_library", "ppx_ns_library"]:
-        if not ctx.label.name.startswith("#"):
-            fail("NS Library names must start with at least one '#' followed by a legal OCaml module name: %s" % ctx.label.name)
+    # if ctx.attr._rule in ["ocaml_ns_library", "ppx_ns_library"]:
+        # if not ctx.label.name.startswith("#"):
+        #     fail("NS Library names must start with at least one '#' followed by a legal OCaml module name: %s" % ctx.label.name)
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
