@@ -76,7 +76,8 @@ def impl_ns_archive(ctx):
     submods = ctx.files.submodules
     for dep in nslibProvider.depgraph.to_list():
         if dep in submods:
-            args.add(dep)
+            if dep.extension in ["cmx", "cmxa"]:
+                args.add(dep)
         ## direct submod deplist may not contain resolver
         elif dep.extension == "cmx":
             mod = normalize_module_name(dep.basename)

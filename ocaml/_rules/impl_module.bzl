@@ -248,13 +248,16 @@ def impl_module(ctx):
     if ctx.attr.sig:
         # we pass on the sigfile we recd as output.
         # copy it (and .mli) to same outdir as module so that .mli/.cmi resolution will work
+
+        ## FIXME: ocaml_signature should already do this?
         sigProvider = ctx.attr.sig[OcamlSignatureProvider]
         out_cmi = sigProvider.cmi
-        # mlifile = sigProvider.mli
+        mlifile = sigProvider.mli
         # print("IN SIG: %s" % sigProvider.mli)
         if sigProvider.mli.is_source:  # not a generated file
             mlifile = rename_srcfile(ctx, sigProvider.mli, normalize_module_name(sigProvider.mli.basename) + ".mli")
             # print("OUT SIG: %s" % mlifile)
+            includes.append(mlifile.dirname)
 
         # sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
         # if ctx.attr._rule == "ocaml_module":
@@ -274,6 +277,7 @@ def impl_module(ctx):
         #     out_cmi = sigProvider.cmi
         #     # mlifile = rename_srcfile(ctx, sigProvider.mli, sigProvider.mli.basename)
         #     # out_cmi = rename_srcfile(ctx, sigProvider.cmi, sigProvider.cmi.basename)
+
     else:
         ## no sigfile provided: compiler will infer and emit .cmi from .ml src,
         ## so we need to add the output file
@@ -383,47 +387,63 @@ def impl_module(ctx):
         if using_ocamlfind:
             for opam in provider.opam.to_list():
                 args.add("-package", opam)
-
-        for nopam in provider.nopam.to_list():
-            print("NOPAM ADJUNCT: %s" % nopam)
-            adjunct_deps.append(nopam)
-            # for nopamfile in nopam.files.to_list():
-            #     adjunct_deps.append(nopamfile)
-        for path in provider.nopam_paths.to_list():
-            args.add("-I", path)
+        else:
+            for nopam in provider.nopam.to_list():
+                # print("NOPAM ADJUNCT: %s" % nopam)
+                adjunct_deps.append(nopam)
+                # for nopamfile in nopam.files.to_list():
+                #     adjunct_deps.append(nopamfile)
+            for path in provider.nopam_paths.to_list():
+                args.add("-I", path)
 
     for adjunct in adjunct_deps:
-        if adjunct.extension == "cmxa":
+        if adjunct.extension in ["cmxa", "a"]:
             # print("ADJUNCT path: %s" % adjunct.path)
             # print("ADJUNCT short-path: %s" % adjunct.short_path)
-            dir = paths.relativize(adjunct.dirname, "external/opam/_lib")
-            includes.append( "+../" + dir )
+            if (adjunct.path.startswith("external/opam")):
+                dir = paths.relativize(adjunct.dirname, "external/opam/_lib")
+                includes.append( "+../" + dir )
+            else:
+                includes.append( adjunct.dirname )
+
             # includes.append(
             #     ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
             # )
             # includes.append( adjunct.path )
-            # args.add(adjunct.path)
+            args.add(adjunct.path)
 
-    indirect_paths_depset = depset(transitive = merged_paths_depsets)
-    for path in indirect_paths_depset.to_list():
-        includes.append(path)
+    # indirect_paths_depset = depset(transitive = merged_paths_depsets)
+    # for path in indirect_paths_depset.to_list():
+    #     includes.append(path)
 
     if not using_ocamlfind:
-        imports_test = depset(transitive = merged_depgraph_depsets)
+        imports_test = depset(transitive = merged_depgraph_depsets + merged_module_links_depsets)
         for f in imports_test.to_list():
-            if f.extension == "cmxa":
-                print("CMXA: %s" % f)
-                print("short: %s" % f.short_path)
-                print("long: %s" % f.path)
+            # print("Mod DEP: %s" % f)
+            if f.extension in ["cmxa", "a"]:
+                # print("CMXA: %s" % f)
+                # print("short: %s" % f.short_path)
+                # print("long: %s" % f.path)
                 ## fixme: what if we're not using opam?
                 ## if we are using opam then f.path is "external/opam/..."
-                dir = paths.relativize(f.dirname, "external/opam/_lib")
-                includes.append( "+../" + dir )
+
+                args.add( f.path )
+                if (f.path.startswith("external/opam")):
+                    dir = paths.relativize(f.dirname, "external/opam/_lib")
+                    includes.append( "+../" + dir )
+                else:
+                    includes.append( f.dirname )
 
                 # includes.append( ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir )
                 # includes.append( f.path )
                 # args.add( f.path)
-            else:
+
+            ## FIXME: this is for deps from an ocaml_library
+            if f.extension in ["cmx"]: ## , "a"]:
+                includes.append( f.dirname)
+                args.add( f.path)
+
+            if f.extension in ["cmi"]: ## cmi file could be in different dir
                 includes.append( f.dirname)
 
     if ctx.attr.ppx:
@@ -492,7 +512,6 @@ def impl_module(ctx):
         # adjunct deps are not needed to build this target
         # ppx has already been used above to transform source, not needed to build transformed source
 
-    ################
     ################
     ctx.actions.run(
         env = env,
@@ -583,7 +602,7 @@ def impl_module(ctx):
         ),
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
     )
-    print("MODULE ADJUNCTS PROVIDER: %s" % adjunctsProvider)
+    # print("MODULE ADJUNCTS PROVIDER: %s" % adjunctsProvider)
 
     ## FIXME: catch incompatible key dups
     cclibs = {}

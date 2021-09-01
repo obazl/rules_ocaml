@@ -242,21 +242,33 @@ def impl_executable(ctx):
         for f in imports_test.to_list():
             # FIXME: only relativize ocaml_imports
             # print("relativizing %s" % f.path)
-            if (f.extension == "cmxa"):
+            if f.extension in ["cmxa", "a"]:
                 ## FIXME: do not depend on @opam ???
                 ## problem is ocaml compilers will not follow symlinks
                 ## so we need abs paths
-                dir = paths.relativize(f.dirname, "external/opam/_lib")
-                # fdir = ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-                # includes.append( fdir )
-                ## "If the given directory starts with +, it is taken relative to the standard library directory."
-                includes.append( "+../" + dir )
-                # includes.append( f.dirname )
-                args.add(f.path)
+                if (f.path.startswith("external/opam")):
+                    dir = paths.relativize(f.dirname, "external/opam/_lib")
+                    includes.append( "+../" + dir )
+                    args.add(f.path)
+                else:
+                    includes.append( f.dirname )
+
+                    ## don't do this for ocaml_test?
+                    # args.add(f.path)
+
+                # dir = paths.relativize(f.dirname, "external/opam/_lib")
+                # # fdir = ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+                # # includes.append( fdir )
+                # ## "If the given directory starts with +, it is taken relative to the standard library directory."
+                # includes.append( "+../" + dir )
+                # # includes.append( f.dirname )
+                # args.add(f.path)
     else:
         paths_depset = depset(transitive = merged_paths_depsets)
         for path in paths_depset.to_list():
             includes.append(path)
+            if f.extension in ["cmxa"]:
+                args.add(f.path)
 
     ## now we need to add cc deps to the cmd line
     cclib_deps  = []
@@ -348,14 +360,16 @@ def impl_executable(ctx):
     nopam_paths = depset(direct = nopam_direct_paths,
                          transitive = indirect_adjunct_path_depsets)
 
-    print("ADJUNCTS: %s" % indirect_adjunct_depsets)
+    print("INDIRECT_ADJUNCTS: %s" % indirect_adjunct_depsets)
+    print("DEPS_ADJUNCTS: %s" % ctx.files.deps_adjunct)
     adjuncts_provider = AdjunctDepsProvider(
         opam = depset(
             direct     = ctx.attr.deps_adjunct_opam,
             transitive = indirect_adjunct_opam_depsets
         ),
         nopam = depset(
-            direct     = ctx.attr.deps_adjunct,
+            # direct     = ctx.attr.deps_adjunct,
+            direct     = ctx.files.deps_adjunct,
             transitive = indirect_adjunct_depsets
         ),
         nopam_paths = nopam_paths
