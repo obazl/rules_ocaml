@@ -261,6 +261,7 @@ def options_module(ws):
         _ns_resolver = attr.label(
             doc = "Experimental",
             providers = [OcamlNsResolverProvider],
+            ## @ocaml//ns is a 'label_setting' whose value is an `ocaml_ns_resolver` rule. so this institutes a dependency on a resolver whose build params will be set dynamically using transition functions.
             default = "@ocaml//ns",
         ),
         _ns_submodules = attr.label(
