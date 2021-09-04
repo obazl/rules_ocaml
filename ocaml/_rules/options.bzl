@@ -204,16 +204,13 @@ def options_module(ws):
         _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
         _thread   = attr.label(default = ws + "//module/thread"),   # bool
         _warnings = attr.label(default = ws + "//module:warnings"), # string list
-        module = attr.string(
-            doc = "Module name. Optional. If omitted, module name will be derived from struct attribute."
-        ),
         struct = attr.label(
             doc = "A single module (struct) source file label.",
-            # mandatory = True, # pack libs may not need a src file
+            mandatory = False, # pack libs may not need a src file
             allow_single_file = True # no constraints on extension
         ),
         pack = attr.string(
-            doc = "Experimental.  Name of pack lib module for which this module is to be compile with -for-pack"
+            doc = "Experimental.  Name of pack lib module for which this module is to be compiled using -for-pack"
         ),
         sig = attr.label(
             doc = "Single label of a target producing OcamlSignatureProvider (i.e. rule 'ocaml_signature'). Optional.",

@@ -157,9 +157,9 @@ def impl_module(ctx):
     #     print("CTX LABEL: %s" % ctx.label)
         # debug = True
 
-    if normalize_module_name(ctx.label.name) != normalize_module_name(ctx.file.struct.basename):
-        print("Rule name: %s" % normalize_module_name(ctx.label.name))
-        print("Structname: %s" % normalize_module_name(ctx.file.struct.basename))
+    # if normalize_module_name(ctx.label.name) != normalize_module_name(ctx.file.struct.basename):
+    #     print("Rule name: %s" % normalize_module_name(ctx.label.name))
+    #     print("Structname: %s" % normalize_module_name(ctx.file.struct.basename))
         # fail("Rule name and structfile name must yield same module name. Rule name may be prefixed with one or more underscores ('_'). Rule name: {rn}; structfile: {s}".format(rn=ctx.label.name, s=ctx.file.struct.basename))
 
     if hasattr(ctx.attr, "ppx_tags"):
@@ -186,8 +186,8 @@ def impl_module(ctx):
     ## topdirs.cmi, digestif.cmi, ...
     OCAMLFIND_IGNORE = ""
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif"
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c"
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif" ## FIXME: mina-specific
+    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c" ## FIXME: mina-specific
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
 
@@ -235,18 +235,28 @@ def impl_module(ctx):
     includes   = []
     outputs   = []
 
-    ## FIXME: 'module' attr is optional; if there, it may match 'name'
-    ## and/or struct attr. deal with all cases
-    trunc = len(ctx.file.struct.extension) + 1
-    if (ctx.attr.module == ctx.file.struct.basename[:-trunc]):
+    ## module name is derived from sigfile name, so start with sig
+    module_name = None
+    mlifile = None
+    if ctx.attr.sig:
+        # derive module name from sigfile
+        sigProvider = ctx.attr.sig[OcamlSignatureProvider]
+        out_cmi = sigProvider.cmi
+        mlifile = sigProvider.mli
+        print("OUT CMI: %s" % out_cmi)
+        module_name = out_cmi.basename[:-4]
+        print("IN SIG: %s" % sigProvider.mli)
+        if sigProvider.mli.is_source:  # not a generated file
+            mlifile = rename_srcfile(ctx, sigProvider.mli, normalize_module_name(sigProvider.mli.basename) + ".mli")
+            print("OUT SIG: %s" % mlifile)
+            includes.append(mlifile.dirname)
+
+    if module_name == None:
+        # no sigfile dependency, so derive module name from structfile
         (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
-    else:
-        if ctx.attr.module:
-            module_name = capitalize_initial_char(ctx.attr.module)
-            # rename (by copy) struct file
-            out_mod = ctx.actions.declare_file(scope + module_name + ext)
-        else:
-            (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
+        # and declare cmi output, since ocaml will generate it
+        out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
+        outputs.append(out_cmi)
 
     out_cm_ = ctx.actions.declare_file(scope + module_name + ext) # fname)
     outputs.append(out_cm_)
@@ -254,47 +264,6 @@ def impl_module(ctx):
     if mode == "native":
         out_o = ctx.actions.declare_file(scope + module_name + ".o")
         outputs.append(out_o)
-
-    mlifile = None
-    if ctx.attr.sig:
-        # we pass on the sigfile we recd as output.
-        # copy it (and .mli) to same outdir as module so that .mli/.cmi resolution will work
-
-        ## FIXME: ocaml_signature should already do this?
-        sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        out_cmi = sigProvider.cmi
-        mlifile = sigProvider.mli
-        print("OUT CMI: %s" % out_cmi)
-        print("IN SIG: %s" % sigProvider.mli)
-        if sigProvider.mli.is_source:  # not a generated file
-            mlifile = rename_srcfile(ctx, sigProvider.mli, normalize_module_name(sigProvider.mli.basename) + ".mli")
-            print("OUT SIG: %s" % mlifile)
-            includes.append(mlifile.dirname)
-
-        # sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        # if ctx.attr._rule == "ocaml_module":
-        #     sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        # elif ctx.attr._rule == "ppx_module":
-        #     sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        # elif ctx.attr._rule == "ocaml_submodule":
-        #     sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        # elif ctx.attr._rule == "ppx_submodule":
-        #     sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
-        # if ctx.file.sig.dirname == out_cm_.dirname:
-        #     mlifile = sigProvider.mli
-        #     out_cmi = sigProvider.cmi
-        # else:
-        #     # print("REWRITING %s" % sigProvider)
-        #     mlifile = sigProvider.mli
-        #     out_cmi = sigProvider.cmi
-        #     # mlifile = rename_srcfile(ctx, sigProvider.mli, sigProvider.mli.basename)
-        #     # out_cmi = rename_srcfile(ctx, sigProvider.cmi, sigProvider.cmi.basename)
-
-    else:
-        ## no sigfile provided: compiler will infer and emit .cmi from .ml src,
-        ## so we need to add the output file
-        out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
-        outputs.append(out_cmi)
 
     #########################
     args = ctx.actions.args()
