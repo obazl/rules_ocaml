@@ -160,7 +160,7 @@ def impl_module(ctx):
     if normalize_module_name(ctx.label.name) != normalize_module_name(ctx.file.struct.basename):
         print("Rule name: %s" % normalize_module_name(ctx.label.name))
         print("Structname: %s" % normalize_module_name(ctx.file.struct.basename))
-        fail("Rule name and structfile name must yield same module name. Rule name may be prefixed with one or more underscores ('_'). Rule name: {rn}; structfile: {s}".format(rn=ctx.label.name, s=ctx.file.struct.basename))
+        # fail("Rule name and structfile name must yield same module name. Rule name may be prefixed with one or more underscores ('_'). Rule name: {rn}; structfile: {s}".format(rn=ctx.label.name, s=ctx.file.struct.basename))
 
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 1:
@@ -235,8 +235,14 @@ def impl_module(ctx):
     includes   = []
     outputs   = []
 
-    (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
-
+    ## FIXME: what if ctx.attr.module == ctx.attr.name?
+    trunc = len(ctx.file.struct.extension) + 1
+    if (ctx.attr.module == ctx.file.struct.basename[:-trunc]):
+        (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
+    else:
+        module_name = capitalize_initial_char(ctx.attr.module)
+        # rename (by copy) struct file
+        out_mod = ctx.actions.declare_file(scope + module_name + ext)
     out_cm_ = ctx.actions.declare_file(scope + module_name + ext) # fname)
     outputs.append(out_cm_)
 
@@ -253,10 +259,11 @@ def impl_module(ctx):
         sigProvider = ctx.attr.sig[OcamlSignatureProvider]
         out_cmi = sigProvider.cmi
         mlifile = sigProvider.mli
-        # print("IN SIG: %s" % sigProvider.mli)
+        print("OUT CMI: %s" % out_cmi)
+        print("IN SIG: %s" % sigProvider.mli)
         if sigProvider.mli.is_source:  # not a generated file
             mlifile = rename_srcfile(ctx, sigProvider.mli, normalize_module_name(sigProvider.mli.basename) + ".mli")
-            # print("OUT SIG: %s" % mlifile)
+            print("OUT SIG: %s" % mlifile)
             includes.append(mlifile.dirname)
 
         # sigProvider = ctx.attr.sig[0][OcamlSignatureProvider]
@@ -452,7 +459,7 @@ def impl_module(ctx):
         structfile = ctx.file.struct
         ## cp src file to working dir (__obazl)
         ## this is necessary for .mli/.cmi resolution to work
-        # structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
+        structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
 
     if debug:
         print("INCLUDES: %s" % includes)

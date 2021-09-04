@@ -242,14 +242,14 @@ def impl_executable(ctx):
         for f in imports_test.to_list():
             # FIXME: only relativize ocaml_imports
             # print("relativizing %s" % f.path)
-            if f.extension in ["cmxa", "a"]:
+            if f.extension in ["cmxa"]: # , "a"]:
                 ## FIXME: do not depend on @opam ???
                 ## problem is ocaml compilers will not follow symlinks
                 ## so we need abs paths
                 if (f.path.startswith("external/opam")):
                     dir = paths.relativize(f.dirname, "external/opam/_lib")
                     includes.append( "+../" + dir )
-                    args.add(f.path)
+                    args.add(f.basename)
                 else:
                     includes.append( f.dirname )
 

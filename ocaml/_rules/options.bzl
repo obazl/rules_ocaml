@@ -204,6 +204,9 @@ def options_module(ws):
         _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
         _thread   = attr.label(default = ws + "//module/thread"),   # bool
         _warnings = attr.label(default = ws + "//module:warnings"), # string list
+        module = attr.string(
+            doc = "Module name. Optional. If omitted, module name will be derived from struct attribute."
+        ),
         struct = attr.label(
             doc = "A single module (struct) source file label.",
             # mandatory = True, # pack libs may not need a src file

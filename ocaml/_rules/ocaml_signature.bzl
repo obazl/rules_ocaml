@@ -45,7 +45,7 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load(":impl_common.bzl", "merge_deps", "tmpdir")
 
-scope = tmpdir
+scope = "" # tmpdir
 
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
