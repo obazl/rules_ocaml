@@ -235,14 +235,19 @@ def impl_module(ctx):
     includes   = []
     outputs   = []
 
-    ## FIXME: what if ctx.attr.module == ctx.attr.name?
+    ## FIXME: 'module' attr is optional; if there, it may match 'name'
+    ## and/or struct attr. deal with all cases
     trunc = len(ctx.file.struct.extension) + 1
     if (ctx.attr.module == ctx.file.struct.basename[:-trunc]):
         (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
     else:
-        module_name = capitalize_initial_char(ctx.attr.module)
-        # rename (by copy) struct file
-        out_mod = ctx.actions.declare_file(scope + module_name + ext)
+        if ctx.attr.module:
+            module_name = capitalize_initial_char(ctx.attr.module)
+            # rename (by copy) struct file
+            out_mod = ctx.actions.declare_file(scope + module_name + ext)
+        else:
+            (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
+
     out_cm_ = ctx.actions.declare_file(scope + module_name + ext) # fname)
     outputs.append(out_cm_)
 
