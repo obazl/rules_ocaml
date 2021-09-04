@@ -210,9 +210,9 @@ def impl_executable(ctx):
         args.add("-custom")
 
     _options = get_options(rule, ctx)
-    args.add_all(_options)
+    args.add_all(_options, uniquify=True)
 
-    args.add_all(ocamlfind_opts)
+    args.add_all(ocamlfind_opts, uniquify=True)
 
     mdeps = []
     if ctx.attr.deps: mdeps.extend(ctx.attr.deps)
@@ -286,7 +286,8 @@ def impl_executable(ctx):
     if "-g" in _options:
         args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
 
-    args.add_all(includes, before_each="-I")
+    ## FIXME: includes contains dups, why?
+    args.add_all(includes, before_each="-I", uniquify=True)
 
     ## use depsets to get the right ordering. archive and module links are mutually exclusive.
     links = depset(order = "postorder", transitive = merged_module_links_depsets).to_list()
