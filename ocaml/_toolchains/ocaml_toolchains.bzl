@@ -1,3 +1,7 @@
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
+
+
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlSDK")
@@ -6,7 +10,7 @@ load("//ocaml:providers.bzl",
 
 ###################################################################
 def ocaml_register_toolchains(installation = None, noocaml = None):
-
+    print("XXXX ocaml_register_toolchains");
     native.register_toolchains("@ocaml//toolchain:ocaml_macos")
     native.register_toolchains("@ocaml//toolchain:ocaml_linux")
 
@@ -37,24 +41,15 @@ _ocaml_tools_attrs = {
         doc = "Default link mode: 'static' or 'dynamic'"
         # default = "static"
     ),
-    ## Hack, until we figure out how to use platforms to support clang on linux
-    "cc_toolchain": attr.string(
-        doc = "clang or gcc"
-    ),
 
-    ## FIXME: these should be provided by the toolchain definition?
-    # "_coqc": attr.label(
-    #     default = Label("//tools:coqc"),
-    #     executable = True,
-    #     allow_single_file = True,
-    #     cfg = "exec",
+    ## hidden attr required to make find_cpp_toolchain work:
+    "_cc_toolchain": attr.label(
+        default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
+    ),
+    # "_cc_opts": attr.string_list(
+    #     default = ["-Wl,-no_compact_unwind"]
     # ),
-    # "_opam_bootstrapper": attr.label(
-    #     default = Label("@tools_obazl//bootstrap:opam_bootstrap"),
-    #     executable = True,
-    #     allow_single_file = True,
-    #     cfg = "exec",
-    # ),
+
     "_ocamlc": attr.label(
         default = Label("@ocaml//tools:ocamlc"),
         executable = True,
@@ -130,9 +125,55 @@ _ocaml_tools_attrs = {
     #   # allow_files = True,
     #       cfg = "exec",
     # ),
+
+    # "_coqc": attr.label(
+    #     default = Label("//tools:coqc"),
+    #     executable = True,
+    #     allow_single_file = True,
+    #     cfg = "exec",
+    # ),
 }
 
 def _ocaml_toolchain_impl(ctx):
+    print("\n\n _ocaml_toolchain_impl")
+
+    # print("platform frag: %s" % ctx.host_fragments.platform)
+    # ds = dir(ctx.host_fragments.platform)
+    # for d in ds:
+    #     print("\n\t{d}: {dval}".format(
+    #         d = d, dval = getattr(ctx.host_fragments.platform, d)))
+    # _platform = ctx.host_fragments.platform.platform
+
+    if ctx.host_fragments.apple:
+        _cc_opts = ["-Wl,-no_compact_unwind"]
+    else:
+        _cc_opts = []
+
+    # print("apple frag: %s" % ctx.host_fragments.apple)
+    # ds = dir(ctx.host_fragments.apple)
+    # for d in ds:
+    #     print("\n\t{d}: {dval}".format(
+    #         d = d, dval = getattr(ctx.host_fragments.apple, d)))
+
+    # print("cpp frag: %s" % ctx.fragments.cpp)
+    # ds = dir(ctx.fragments.cpp)
+    # for d in ds:
+    #     print("\n\t{d}: {dval}".format(
+    #         d = d,
+    #         dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
+
+    the_cc_toolchain = find_cpp_toolchain(ctx)
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = the_cc_toolchain,
+        requested_features = ctx.features,
+        unsupported_features = ctx.disabled_features,
+    )
+    _c_exe = cc_common.get_tool_for_action(
+        feature_configuration = feature_configuration,
+        action_name = C_COMPILE_ACTION_NAME,
+    )
+    print("c_exe: %s" % _c_exe)
     if not ctx.attr.linkmode in ["static", "dynamic"]:
         fail("Bad value '{actual}' for attrib 'link'. Allowed values: 'static', 'dynamic' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
             ws = ctx.workspace_name,
@@ -151,11 +192,10 @@ def _ocaml_toolchain_impl(ctx):
     #          )
     # mode = ctx.attr.mode[CompilationModeSettingProvider].value
 
-    
-
     return [platform_common.ToolchainInfo(
         # Public fields
         name = ctx.label.name,
+        # platform   = _platform,
         path       = ctx.attr.path,
         sdk_home   = ctx.attr.sdk_home,
         opam_root  = ctx.attr.opam_root,
@@ -170,8 +210,20 @@ def _ocaml_toolchain_impl(ctx):
         ocamlopt_opt = ctx.attr._ocamlopt_opt.files.to_list()[0],
         ocamllex   = ctx.attr._ocamllex.files.to_list()[0],
         ocamlyacc  = ctx.attr._ocamlyacc.files.to_list()[0],
-        cc_toolchain = ctx.attr.cc_toolchain,
-        copts       = ctx.attr._copts,
+
+        # cc_toolchain = ctx.attr.cc_toolchain,
+        ## rules add [cc_toolchain.all_files] to action inputs
+        ## at least, rules linking to cc libs must do this;
+        ## pure ocaml code need not?
+        cc_toolchain = the_cc_toolchain,
+        cc_exe = _c_exe, ## to be passed via `-cc` (will be a sh script on mac)
+
+        cc_opts = _cc_opts,
+
+        ## config frag.cpp fld `linkopts` contains whatever was passed
+        ## by CLI using `--linkopt`
+        linkopts  = None,
+
         # ocamlbuild = ctx.attr._ocamlbuild.files.to_list()[0],
         ocamlfind  = ctx.attr._ocamlfind.files.to_list()[0],
         # ocamldep   = ctx.attr._ocamldep.files.to_list()[0],
@@ -185,4 +237,10 @@ ocaml_toolchain = rule(
     attrs = _ocaml_tools_attrs,
     doc = "Defines a Ocaml toolchain based on an SDK",
     provides = [platform_common.ToolchainInfo],
+
+    ## NB: config frags evidently expose CLI opts like `--cxxopt`;
+    ## see https://docs.bazel.build/versions/main/skylark/lib/cpp.html
+    fragments = ["cpp", "apple", "platform"],
+    host_fragments = ["apple", "platform"],
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]
 )
