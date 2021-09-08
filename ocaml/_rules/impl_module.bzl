@@ -537,7 +537,8 @@ def impl_module(ctx):
             ),
             depgraph = depset(
                 order = "postorder",
-                direct = outputs + [structfile, out_cmi] + mli,
+                direct = outputs + [structfile, out_cmi] + mli
+                + adjunct_deps,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
