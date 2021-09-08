@@ -135,7 +135,7 @@ _ocaml_tools_attrs = {
 }
 
 def _ocaml_toolchain_impl(ctx):
-    print("\n\n _ocaml_toolchain_impl")
+    # print("\n\t_ocaml_toolchain_impl")
 
     # print("platform frag: %s" % ctx.host_fragments.platform)
     # ds = dir(ctx.host_fragments.platform)
@@ -173,7 +173,7 @@ def _ocaml_toolchain_impl(ctx):
         feature_configuration = feature_configuration,
         action_name = C_COMPILE_ACTION_NAME,
     )
-    print("c_exe: %s" % _c_exe)
+    # print("c_exe: %s" % _c_exe)
     if not ctx.attr.linkmode in ["static", "dynamic"]:
         fail("Bad value '{actual}' for attrib 'link'. Allowed values: 'static', 'dynamic' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
             ws = ctx.workspace_name,
