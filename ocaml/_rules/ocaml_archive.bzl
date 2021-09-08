@@ -39,9 +39,9 @@ ocaml_archive = rule(
             default = False
         ),
 
-        # resolver = attr.output(
-        #     doc = "Name of 'resolver' module to generate containing identity aliases for submodules.",
-        # ),
+        resolver = attr.output(
+            doc = "Name of 'resolver' module to generate containing identity aliases for submodules.",
+        ),
 
         # doc = attr.string( doc = "Deprecated" ),
 
