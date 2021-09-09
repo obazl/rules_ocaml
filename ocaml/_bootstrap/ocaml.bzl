@@ -275,8 +275,8 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
     repo_ctx.template(
-        "archive/thread/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.archive.thread"),
+        "archive/threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.archive.threads"),
         executable = False,
     )
     ##################
@@ -291,8 +291,8 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
     repo_ctx.template(
-        "executable/thread/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.executable.thread"),
+        "executable/threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.executable.threads"),
         executable = False,
     )
     ##################
@@ -307,8 +307,8 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
     repo_ctx.template(
-        "library/thread/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.library.thread"),
+        "library/threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.library.threads"),
         executable = False,
     )
     ##################
@@ -323,8 +323,8 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
     repo_ctx.template(
-        "module/thread/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.module.thread"),
+        "module/threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.module.threads"),
         executable = False,
     )
     ##################
@@ -338,10 +338,10 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         Label(ws + "//ocaml/_templates:BUILD.ocaml.ns_archive.linkall"),
         executable = False,
     )
-    # # do we need -thread for archives?
+    # # do we need -threads for archives?
     # repo_ctx.template(
-    #     "ns_archive/thread/BUILD.bazel",
-    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.ns_archive.thread"),
+    #     "ns_archive/threads/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.ns_archive.threads"),
     #     executable = False,
     # )
     ##################
@@ -373,8 +373,8 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
     repo_ctx.template(
-        "signature/thread/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.signature.thread"),
+        "signature/threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.signature.threads"),
         executable = False,
     )
     ##################
