@@ -15,7 +15,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider",
      "OcamlSDK",
      "OcamlSignatureProvider",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "PpxArchiveProvider",
      "PpxModuleProvider",
      "PpxNsArchiveProvider",
@@ -81,17 +81,17 @@ def _ocaml_signature_impl(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    if len(ctx.attr.deps_opam) > 0:
-        using_ocamlfind = True
-        ocamlfind_opts = ["-predicates", "ppx_driver"]
-        exe = tc.ocamlfind
+    # if len(ctx.attr.deps_opam) > 0:
+    #     using_ocamlfind = True
+    #     ocamlfind_opts = ["-predicates", "ppx_driver"]
+    #     exe = tc.ocamlfind
+    # else:
+    using_ocamlfind = False
+    ocamlfind_opts = []
+    if mode == "native":
+        exe = tc.ocamlopt.basename
     else:
-        using_ocamlfind = False
-        ocamlfind_opts = []
-        if mode == "native":
-            exe = tc.ocamlopt.basename
-        else:
-            exe = tc.ocamlc.basename
+        exe = tc.ocamlc.basename
 
     ################
     merged_module_links_depsets = []
@@ -152,11 +152,11 @@ def _ocaml_signature_impl(ctx):
     if ctx.attr.pack:
         args.add("-linkpkg")
 
-    opam_depset = depset(direct = ctx.attr.deps_opam,
-                         transitive = indirect_opam_depsets)
-    if using_ocamlfind:
-        for opam in opam_depset.to_list():
-            args.add("-package", opam)  ## add dirs to search path
+    # opam_depset = depset(direct = ctx.attr.deps_opam,
+    #                      transitive = indirect_opam_depsets)
+    # if using_ocamlfind:
+    #     for opam in opam_depset.to_list():
+    #         args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
@@ -164,9 +164,9 @@ def _ocaml_signature_impl(ctx):
     adjunct_deps = []
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[AdjunctDepsProvider]
-        if using_ocamlfind:
-            for opam in provider.opam.to_list():
-                args.add("-package", opam)
+        # if using_ocamlfind:
+        #     for opam in provider.opam.to_list():
+        #         args.add("-package", opam)
 
         for nopam in provider.nopam.to_list():
             adjunct_deps.append(nopam)
@@ -296,9 +296,9 @@ def _ocaml_signature_impl(ctx):
         ),
     )
 
-    opamProvider = OpamDepsProvider(
-        pkgs = opam_depset
-    )
+    # opamProvider = OpamDepsProvider(
+    #     pkgs = opam_depset
+    # )
 
     ## FIXME: catch incompatible key dups
     cclibs = {}
@@ -314,7 +314,7 @@ def _ocaml_signature_impl(ctx):
     return [
         defaultInfo,
         sigProvider,
-        opamProvider,
+        # opamProvider,
         ccProvider
     ]
 
@@ -381,9 +381,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
-        deps_opam = attr.string_list(
-            doc = "List of OPAM package names"
-        ),
+        # deps_opam = attr.string_list(
+        #     doc = "List of OPAM package names"
+        # ),
         ################################################################
         ## do we need resolver for sigfiles?
         _ns_resolver = attr.label(

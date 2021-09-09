@@ -13,7 +13,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsLibraryProvider",
      "OcamlNsResolverProvider",
      "OcamlSignatureProvider",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "PpxArchiveProvider",
      "PpxLibraryProvider",
      "PpxModuleProvider",
@@ -227,10 +227,10 @@ def merge_deps(deps,
             if AdjunctDepsProvider in dep:
                 indirect_adjunct_depsets.append(dep[AdjunctDepsProvider].nopam)
                 indirect_adjunct_path_depsets.append(dep[AdjunctDepsProvider].nopam_paths)
-                indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].opam)
+                # indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].opam)
 
-            if OpamDepsProvider in dep:
-                indirect_opam_depsets.append(dep[OpamDepsProvider].pkgs)
+            # if OpamDepsProvider in dep:
+            #     indirect_opam_depsets.append(dep[OpamDepsProvider].pkgs)
 
             if CcDepsProvider in dep:
                 # if str(dep.label) == "//kernel:_Names":

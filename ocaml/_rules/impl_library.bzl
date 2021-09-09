@@ -4,7 +4,8 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlLibraryProvider",
      "PpxLibraryProvider",
-     "OpamDepsProvider")
+     # "OpamDepsProvider"
+     )
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
@@ -127,15 +128,15 @@ def impl_library(ctx):
         fail("Unexpected rule type: %s" % ctx.attr._rule)
 
     adjunctsProvider = AdjunctDepsProvider(
-        opam        = depset(transitive = indirect_adjunct_opam_depsets),
+        # opam        = depset(transitive = indirect_adjunct_opam_depsets),
         nopam       = depset(transitive = indirect_adjunct_depsets),
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
     )
 
-    opam_depset = depset(transitive = indirect_opam_depsets)
-    opamProvider = OpamDepsProvider(
-        pkgs = opam_depset
-    )
+    # opam_depset = depset(transitive = indirect_opam_depsets)
+    # opamProvider = OpamDepsProvider(
+    #     pkgs = opam_depset
+    # )
 
     cclibs = {}
     if len(indirect_cc_deps) > 0:
@@ -152,7 +153,7 @@ def impl_library(ctx):
     return [
         defaultInfo,
         libraryProvider,
-        opamProvider,
+        # opamProvider,
         adjunctsProvider,
         ccProvider
     ]

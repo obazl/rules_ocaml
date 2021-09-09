@@ -158,17 +158,17 @@ def impl_executable(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    if len(ctx.attr.deps_opam) > 0:
-        using_ocamlfind = True
-        ocamlfind_opts = ["-predicates", "ppx_driver"]
-        exe = tc.ocamlfind
+    # if len(ctx.attr.deps_opam) > 0:
+    #     using_ocamlfind = True
+    #     ocamlfind_opts = ["-predicates", "ppx_driver"]
+    #     exe = tc.ocamlfind
+    # else:
+    using_ocamlfind = False
+    ocamlfind_opts = []
+    if mode == "native":
+        exe = tc.ocamlopt.basename
     else:
-        using_ocamlfind = False
-        ocamlfind_opts = []
-        if mode == "native":
-            exe = tc.ocamlopt.basename
-        else:
-            exe = tc.ocamlc.basename
+        exe = tc.ocamlc.basename
 
     ## FIXME: default extension to .out?
 
@@ -229,46 +229,46 @@ def impl_executable(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    opam_depset = depset(direct = ctx.attr.deps_opam,
-                         transitive = indirect_opam_depsets)
-    opams = opam_depset.to_list()
-    if using_ocamlfind:
-        if len(opams) > 0:
-            args.add("-linkpkg")  ## tell ocamlfind to add cmxa files to cmd line
-            [args.add("-package", opam) for opam in opams if opams] ## add dirs to search path
+    # opam_depset = depset(direct = ctx.attr.deps_opam,
+    #                      transitive = indirect_opam_depsets)
+    # opams = opam_depset.to_list()
+    # if using_ocamlfind:
+    #     if len(opams) > 0:
+    #         args.add("-linkpkg")  ## tell ocamlfind to add cmxa files to cmd line
+    #         [args.add("-package", opam) for opam in opams if opams] ## add dirs to search path
 
-    if not using_ocamlfind:
-        imports_test = depset(transitive = merged_depgraph_depsets)
-        for f in imports_test.to_list():
-            # FIXME: only relativize ocaml_imports
-            # print("relativizing %s" % f.path)
-            if f.extension in ["cmxa"]: # , "a"]:
-                ## FIXME: do not depend on @opam ???
-                ## problem is ocaml compilers will not follow symlinks
-                ## so we need abs paths
-                if (f.path.startswith("external/opam")):
-                    dir = paths.relativize(f.dirname, "external/opam/_lib")
-                    includes.append( "+../" + dir )
-                    args.add(f.basename)
-                else:
-                    includes.append( f.dirname )
+    # if not using_ocamlfind:
 
-                    ## don't do this for ocaml_test?
-                    # args.add(f.path)
+    # if ctx.attr._threads:
+    #     if mode == "native":
+    #         # args.add("unix.cmxa")
+    #         args.add("threads.cmxa")
+    #     else:
+    #         args.add("unix.cma")
+    #         args.add("threads.cma")
 
-                # dir = paths.relativize(f.dirname, "external/opam/_lib")
-                # # fdir = ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-                # # includes.append( fdir )
-                # ## "If the given directory starts with +, it is taken relative to the standard library directory."
-                # includes.append( "+../" + dir )
-                # # includes.append( f.dirname )
+    imports_test = depset(transitive = merged_depgraph_depsets)
+    
+    for f in imports_test.to_list():
+        # FIXME: only relativize ocaml_imports
+        # print("relativizing %s" % f.path)
+        if f.extension in ["cmxa"]: # , "a"]:
+            cli_args.append(f.basename)
+            ## problem is ocaml compilers will not follow symlinks
+            ## so we need abs paths
+            if (f.path.startswith("external/opam")):
+                dir = paths.relativize(f.dirname, "external/opam/_lib")
+                includes.append( "+../" + dir )
+            else:
+                includes.append( f.dirname )
+                ## don't do this for ocaml_test?
                 # args.add(f.path)
-    else:
-        paths_depset = depset(transitive = merged_paths_depsets)
-        for path in paths_depset.to_list():
-            includes.append(path)
-            if f.extension in ["cmxa"]:
-                args.add(f.path)
+    # else:
+    #     paths_depset = depset(transitive = merged_paths_depsets)
+    #     for path in paths_depset.to_list():
+    #         includes.append(path)
+    #         if f.extension in ["cmxa"]:
+    #             args.add(f.path)
 
     ## now we need to add cc deps to the cmd line
     cclib_deps  = []
@@ -361,13 +361,13 @@ def impl_executable(ctx):
     nopam_paths = depset(direct = nopam_direct_paths,
                          transitive = indirect_adjunct_path_depsets)
 
-    print("INDIRECT_ADJUNCTS: %s" % indirect_adjunct_depsets)
-    print("DEPS_ADJUNCTS: %s" % ctx.files.deps_adjunct)
+    # print("INDIRECT_ADJUNCTS: %s" % indirect_adjunct_depsets)
+    # print("DEPS_ADJUNCTS: %s" % ctx.files.deps_adjunct)
     adjuncts_provider = AdjunctDepsProvider(
-        opam = depset(
-            direct     = ctx.attr.deps_adjunct_opam,
-            transitive = indirect_adjunct_opam_depsets
-        ),
+        # opam = depset(
+        #     direct     = ctx.attr.deps_adjunct_opam,
+        #     transitive = indirect_adjunct_opam_depsets
+        # ),
         nopam = depset(
             # direct     = ctx.attr.deps_adjunct,
             direct     = ctx.files.deps_adjunct,

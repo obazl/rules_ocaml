@@ -232,9 +232,9 @@ def options_module(ws):
             doc = "Global deps, apply to all instances of rule. Added last.",
             default = ws + "//module:deps"
         ),
-        deps_opam = attr.string_list(
-            doc = "List of OPAM package names"
-        ),
+        # deps_opam = attr.string_list(
+        #     doc = "List of OPAM package names"
+        # ),
         deps_runtime = attr.label_list(
             doc = "Deps needed at runtime, but not build time. E.g. .cmxs plugins."
         ),

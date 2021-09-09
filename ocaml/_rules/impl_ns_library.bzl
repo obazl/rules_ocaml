@@ -4,7 +4,7 @@ load("//ocaml:providers.bzl",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
      "OcamlNsLibraryProvider",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "PpxNsLibraryProvider")
 
 load("//ocaml/_functions:utils.bzl",
@@ -148,10 +148,10 @@ def impl_ns_library(ctx):
             ),
         )
 
-    opam_depset = depset(transitive = indirect_opam_depsets)
-    opamProvider = OpamDepsProvider(
-        pkgs = opam_depset
-    )
+    # opam_depset = depset(transitive = indirect_opam_depsets)
+    # opamProvider = OpamDepsProvider(
+    #     pkgs = opam_depset
+    # )
 
     cclibs = {}
     if len(indirect_cc_deps) > 0:
@@ -164,7 +164,7 @@ def impl_ns_library(ctx):
     return [
         defaultInfo,
         nslibProvider,
-        opamProvider,
+        # opamProvider,
         ## FIXME: adjuncts?
         ccProvider
     ]

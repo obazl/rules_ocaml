@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl",
      "OcamlModuleProvider",
      "OcamlNsResolverProvider",
      "OcamlSignatureProvider",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "OcamlSDK",
      "PpxModuleProvider")
 
@@ -201,17 +201,17 @@ def impl_module(ctx):
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    if len(ctx.attr.deps_opam) > 0:
-        using_ocamlfind = True
-        ocamlfind_opts = ["-predicates", "ppx_driver"]
-        exe = tc.ocamlfind
+    # if len(ctx.attr.deps_opam) > 0:
+    #     using_ocamlfind = True
+    #     ocamlfind_opts = ["-predicates", "ppx_driver"]
+    #     exe = tc.ocamlfind
+    # else:
+    using_ocamlfind = False
+    ocamlfind_opts = []
+    if mode == "native":
+        exe = tc.ocamlopt.basename
     else:
-        using_ocamlfind = False
-        ocamlfind_opts = []
-        if mode == "native":
-            exe = tc.ocamlopt.basename
-        else:
-            exe = tc.ocamlc.basename
+        exe = tc.ocamlc.basename
 
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
@@ -353,34 +353,40 @@ def impl_module(ctx):
     if ctx.attr.pack:
         args.add("-linkpkg")
 
-    opam_depset = depset(direct = ctx.attr.deps_opam,
-                         transitive = indirect_opam_depsets)
-    if using_ocamlfind:
-        for opam in opam_depset.to_list():
-            args.add("-package", opam)  ## add dirs to search path
+    # opam_depset = depset(direct = ctx.attr.deps_opam,
+    #                      transitive = indirect_opam_depsets)
+    # if using_ocamlfind:
+    #     for opam in opam_depset.to_list():
+    #         args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
     ## only the adjunct deps of the ppx are.
     adjunct_deps = []
+    # print("TGT: %s" % ctx.label.name)
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[AdjunctDepsProvider]
-        if using_ocamlfind:
-            for opam in provider.opam.to_list():
-                args.add("-package", opam)
-        else:
-            for nopam in provider.nopam.to_list():
-                # print("NOPAM ADJUNCT: %s" % nopam)
-                adjunct_deps.append(nopam)
-                # for nopamfile in nopam.files.to_list():
-                #     adjunct_deps.append(nopamfile)
-            for path in provider.nopam_paths.to_list():
-                args.add("-I", path)
+        # if using_ocamlfind:
+        #     for opam in provider.opam.to_list():
+        #         args.add("-package", opam)
+        # else:
+        for nopam in provider.nopam.to_list():
+            # print("NOPAM ADJUNCT: %s" % nopam)
+            adjunct_deps.append(nopam)
+            # for nopamfile in nopam.files.to_list():
+            #     adjunct_deps.append(nopamfile)
+        for path in provider.nopam_paths.to_list():
+            includes.append(path)
+            # args.add("-I", path)
 
+    # print("ADJUNCT_DEPS 2: %s" % adjunct_deps)
     for adjunct in adjunct_deps:
+        # print("ADJUNCT path: %s" % adjunct.path)
+        # print("ADJUNCT short-path: %s" % adjunct.short_path)
+
         if adjunct.extension in ["cmxa", "a"]:
-            # print("ADJUNCT path: %s" % adjunct.path)
-            # print("ADJUNCT short-path: %s" % adjunct.short_path)
+
+            # FIXME: remove hardcoded "external... " stuff
             if (adjunct.path.startswith("external/opam")):
                 dir = paths.relativize(adjunct.dirname, "external/opam/_lib")
                 includes.append( "+../" + dir )
@@ -572,12 +578,12 @@ def impl_module(ctx):
             ),
         )
 
-    opamProvider = OpamDepsProvider(
-        pkgs = opam_depset
-    )
+    # opamProvider = OpamDepsProvider(
+    #     pkgs = None ## opam_depset
+    # )
 
     adjunctsProvider = AdjunctDepsProvider(
-        opam        = depset(transitive = indirect_adjunct_opam_depsets),
+        # opam        = None, # depset(transitive = indirect_adjunct_opam_depsets),
         nopam       = depset(
             direct = adjunct_deps,
             transitive = indirect_adjunct_depsets
@@ -601,7 +607,7 @@ def impl_module(ctx):
     return [
         defaultInfo,
         moduleProvider,
-        opamProvider,
+        # opamProvider,
         adjunctsProvider,
         ccProvider
     ]

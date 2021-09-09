@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl",
      "OcamlModuleProvider",
      "OcamlNsResolverProvider",
      "OcamlSignatureProvider",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "OcamlSDK",
      "PpxModuleProvider")
 
@@ -301,8 +301,8 @@ def impl_pack_library(ctx):
 
     # args.add("-linkpkg")
 
-    opam_depset = depset(# direct = ctx.attr.deps_opam,
-                         transitive = indirect_opam_depsets)
+    # opam_depset = depset(# direct = ctx.attr.deps_opam,
+    #                      transitive = indirect_opam_depsets)
     # for opam in opam_depset.to_list():
     #     args.add("-package", opam)  ## add dirs to search path
 
@@ -442,12 +442,12 @@ def impl_pack_library(ctx):
             ),
         )
 
-    opamProvider = OpamDepsProvider(
-        pkgs = opam_depset
-    )
+    # opamProvider = OpamDepsProvider(
+    #     pkgs = opam_depset
+    # )
 
     adjunctsProvider = AdjunctDepsProvider(
-        opam        = depset(transitive = indirect_adjunct_opam_depsets),
+        # opam        = depset(transitive = indirect_adjunct_opam_depsets),
         nopam       = depset(transitive = indirect_adjunct_depsets),
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
     )
@@ -467,7 +467,7 @@ def impl_pack_library(ctx):
     return [
         defaultInfo,
         moduleProvider,
-        opamProvider,
+        # opamProvider,
         adjunctsProvider,
         ccProvider
     ]

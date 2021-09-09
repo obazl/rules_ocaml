@@ -1,5 +1,5 @@
 load("//ocaml:providers.bzl",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "PpxModuleProvider")
 
 load("options.bzl",
@@ -32,16 +32,16 @@ TODO: finish docstring
         deps_adjunct = attr.string_list(
             doc = "List of adjunct deps.",
         ),
-        deps_adjunct_opam = attr.string_list(
-            doc = "List of OPAM adjunct deps.",
-        ),
+        # deps_adjunct_opam = attr.string_list(
+        #     doc = "List of OPAM adjunct deps.",
+        # ),
         _opam_lib = attr.label( ## FIXME: do not depend on @opam
             default = "@opam//:opam_lib"
         ),
         _rule = attr.string( default = "ppx_module" ),
     ),
     # cfg     = module_in_transition,
-    provides = [PpxModuleProvider, OpamDepsProvider],
+    provides = [PpxModuleProvider], # OpamDepsProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

@@ -45,7 +45,7 @@ def impl_ns_archive(ctx):
     [
         defaultInfo,
         nslibProvider,
-        opamProvider,
+        # opamProvider,
         ccProvider
     ] = impl_ns_library(ctx)
     ################################
@@ -174,7 +174,7 @@ def impl_ns_archive(ctx):
     return [
         newDefaultInfo,
         nsArchiveProvider,
-        opamProvider, ## FIXME: not needed?
+        # opamProvider, ## FIXME: not needed?
         ccProvider
     ]
 

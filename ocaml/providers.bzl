@@ -97,7 +97,7 @@ AdjunctDepsProvider = provider(
     fields = {
         "nopam": "Depset of non-opam adjunct deps.",
         "nopam_paths": "Depset of paths of nopam adjunct deps",
-        "opam" : "Depset of opam adjunct deps."
+        # "opam" : "Depset of opam adjunct deps."
     }
 )
 
@@ -269,12 +269,12 @@ OcamlSignatureProvider = provider(
     # }
 )
 
-OpamDepsProvider = provider(
-    doc =" OPAM deps provider.",
-    fields = {
-        "pkgs": "Depset of OPAM package name strings."
-    }
-)
+# OpamDepsProvider = provider(
+#     doc =" OPAM deps provider.",
+#     fields = {
+#         "pkgs": "Depset of OPAM package name strings."
+#     }
+# )
 
 ################################################################
 ################################################################

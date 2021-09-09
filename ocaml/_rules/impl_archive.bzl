@@ -201,12 +201,12 @@ def impl_archive(ctx):
                indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
-    opam_depset = depset(transitive = indirect_opam_depsets)
+    # opam_depset = depset(transitive = indirect_opam_depsets)
     ## DO NOT USE -linkpkg, it tells ocamlfind to put dep files on command line,
     ## which for native mode may result in:
     ## `Option -a cannot be used with .cmxa input files.`
-    for opam in opam_depset.to_list():
-        args.add("-package", opam)  ## add dirs to search path
+    # for opam in opam_depset.to_list():
+    #     args.add("-package", opam)  ## add dirs to search path
 
     indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
