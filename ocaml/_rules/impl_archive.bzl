@@ -308,7 +308,7 @@ def impl_archive(ctx):
         archiveProvider = PpxArchiveProvider(
             module_links     = depset(
                 order = "postorder",
-                direct = [out_cm_a],
+                # direct = [out_cm_a],
                 transitive = [depset(direct=filtered_links)]
             ),
             archive_links = depset(
