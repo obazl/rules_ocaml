@@ -192,6 +192,7 @@ def impl_executable(ctx):
 
     ################
     includes  = []
+    cli_args  = []
 
     out_exe = ctx.actions.declare_file(ctx.label.name)
 
@@ -209,14 +210,24 @@ def impl_executable(ctx):
         ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
         args.add("-custom")
 
+    # if ctx.attr._threads:
+    #     print("THREADS - ADDING ARGS")
+    #     args.add("-I", "+threads")
+
     _options = get_options(rule, ctx)
     args.add_all(_options, uniquify=True)
 
     args.add_all(ocamlfind_opts, uniquify=True)
 
     mdeps = []
-    if ctx.attr.deps: mdeps.extend(ctx.attr.deps)
-    if ctx.attr.main != None: mdeps.append(ctx.attr.main)
+    if ctx.attr.deps:
+        mdeps.extend(ctx.attr.deps)
+    # print("MDEPS 1: %s" % mdeps)
+
+    if ctx.attr.main != None:
+        mdeps.append(ctx.attr.main)
+    # print("MDEPS 2: {tgt} {mdeps}".format(tgt=ctx.label.name, mdeps=mdeps))
+
     merge_deps(mdeps,
                merged_module_links_depsets,
                merged_archive_links_depsets,
@@ -289,16 +300,27 @@ def impl_executable(ctx):
     ## FIXME: includes contains dups, why?
     args.add_all(includes, before_each="-I", uniquify=True)
 
+    args.add_all(cli_args, uniquify=True)
+
+    # args.add("-absname")
     ## use depsets to get the right ordering. archive and module links are mutually exclusive.
     links = depset(order = "postorder", transitive = merged_module_links_depsets).to_list()
+    ### cmxa deps already added above, without dir part of path:
     if len(links) > 0:
         for m in links:
-            args.add(m)
+            # FIXME: merged_module_links_depset should not contain any
+            # archives, but it does, so:
+            if m.extension not in ["cmxa"]:
+                args.add(m)
 
-    # links = depset(order = "postorder", transitive = merged_archive_links_depsets).to_list()
-    # if len(links) > 0:
-    #     for m in links:
-    #         args.add(m)
+    # if ctx.attr.main != None:
+    #     for f in ctx.attr.main.files.to_list():
+    #         if f.extension in ["cmx", "o"]:
+    #             cclib_deps.append(f)
+    #         if f.extension in ["cmx"]:
+    #             args.add("-I", f.dirname)
+    #             args.add("-I", f.dirname + "/__obazl")
+    #             args.add(f.basename)
 
     args.add("-o", out_exe)
 
@@ -394,5 +416,6 @@ def impl_executable(ctx):
         adjuncts_provider,
         exe_provider
     ]
+    # print("XXXXXXXXXXXXXXXX adjuncts_provider: %s" % adjuncts_provider)
 
     return results
