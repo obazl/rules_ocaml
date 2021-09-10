@@ -112,9 +112,16 @@ def _ocaml_signature_impl(ctx):
     ################
     includes   = []
 
+    # print("SIG SRC: %s" % ctx.file.src.basename)
     (from_name, module_name) = get_module_name(ctx, ctx.file.src)
+    # print("MODULE NAME: %s" % module_name)
+
+    mlifile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+    # normalize_module_name(sigProvider.mli.basename) + ".mli")
+    # print("RENAMED SIG SRC: %s" % mlifile.basename)
 
     out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
+    # out_cmi = ctx.actions.declare_file(scope + mlifile.basename)
 
     #########################
     args = ctx.actions.args()
@@ -271,7 +278,7 @@ def _ocaml_signature_impl(ctx):
     )
 
     sigProvider = OcamlSignatureProvider(
-        mli = sigfile,
+        mli = mlifile, # sigfile,
         cmi = out_cmi,
         module_links     = depset(
             order = "postorder",
