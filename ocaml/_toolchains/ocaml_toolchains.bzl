@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl",
 
 ###################################################################
 def ocaml_register_toolchains(installation = None, noocaml = None):
-    print("XXXX ocaml_register_toolchains");
+    # print("ocaml_register_toolchains");
     native.register_toolchains("@ocaml//toolchain:ocaml_macos")
     native.register_toolchains("@ocaml//toolchain:ocaml_linux")
 

@@ -46,8 +46,9 @@ def _ocaml_import_impl(ctx):
   else:
       default = DefaultInfo() # files = depset(dset))
 
-  # # print("IMPORT %s" % ctx.label.name)
-  # # print("IMPORT DefaultInfo: %s" % default)
+  # print("IMPORT %s" % ctx.label.name)
+  # print(" ctx.files.deps_adjunct: %s" % ctx.files.deps_adjunct)
+  # print(" adjunct_depsets: %s" % adjunct_depsets)
 
   importProvider = OcamlImportProvider(
       deps_adjunct = depset(
@@ -55,9 +56,6 @@ def _ocaml_import_impl(ctx):
           transitive = adjunct_depsets
       )
   )
-  if len(ctx.files.deps_adjunct) > 0:
-      print("Importing %s" % ctx.label)
-      print("IMPORT PROVIDER %s" % importProvider)
 
   return [
       default,

@@ -16,7 +16,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     Outputs: struct(intf :: declared File, maybe impl :: declared File)
     """
 
-    debug = True
+    debug = False
     # if ctx.label.name == "test":
     #     debug = True
 

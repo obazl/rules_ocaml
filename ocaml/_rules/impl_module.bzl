@@ -243,12 +243,12 @@ def impl_module(ctx):
         sigProvider = ctx.attr.sig[OcamlSignatureProvider]
         out_cmi = sigProvider.cmi
         mlifile = sigProvider.mli
-        print("OUT CMI: %s" % out_cmi)
+        # print("OUT CMI: %s" % out_cmi)
         module_name = out_cmi.basename[:-4]
-        print("IN SIG: %s" % sigProvider.mli)
+        # print("IN SIG: %s" % mlifile)
         if sigProvider.mli.is_source:  # not a generated file
             mlifile = rename_srcfile(ctx, sigProvider.mli, normalize_module_name(sigProvider.mli.basename) + ".mli")
-            print("OUT SIG: %s" % mlifile)
+            # print("OUT SIG: %s" % mlifile)
             includes.append(mlifile.dirname)
 
     if module_name == None:
