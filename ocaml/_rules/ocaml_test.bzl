@@ -21,7 +21,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 | Label | Default | `opts` attrib |
 | ----- | ------- | ------- |
 | @ocaml//executable:linkall | True | `-linkall`, `-no-linkall`|
-| @ocaml//executable:thread | True | `-thread`, `-no-thread`|
+| @ocaml//executable:threads | False | true: `-I +thread`|
 | @ocaml//executable:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
 
 **NOTE** These do not support `:enable`, `:disable` syntax.

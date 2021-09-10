@@ -339,7 +339,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 | Label | Default | `opts` attrib |
 | ----- | ------- | ------- |
 | @ocaml//interface:linkall | True | `-linkall`, `-no-linkall`|
-| @ocaml//interface:thread | True | `-thread`, `-no-thread`|
+| @ocaml//interface:threads | False | true: `-I +threads`|
 | @ocaml//interface:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
 
 **NOTE** These do not support `:enable`, `:disable` syntax.
@@ -350,7 +350,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         rule_options,
         ## RULE DEFAULTS
         _linkall     = attr.label(default = "@ocaml//signature/linkall"), # FIXME: call it alwayslink?
-        _thread     = attr.label(default = "@ocaml//signature/thread"),
+        _threads     = attr.label(default = "@ocaml//signature/threads"),
         _warnings  = attr.label(default = "@ocaml//signature:warnings"),
         #### end options ####
 

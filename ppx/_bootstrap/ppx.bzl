@@ -36,8 +36,8 @@ def _ppx_repo_impl(repo_ctx):
         executable = False
     )
     repo_ctx.template(
-        "archive/thread/BUILD.bazel",
-        Label("//ppx/_templates:BUILD.ppx.archive.thread"),
+        "archive/threads/BUILD.bazel",
+        Label("//ppx/_templates:BUILD.ppx.archive.threads"),
         executable = False
     )
     repo_ctx.template(
@@ -51,8 +51,8 @@ def _ppx_repo_impl(repo_ctx):
         executable = False
     )
     repo_ctx.template(
-        "executable/thread/BUILD.bazel",
-        Label("//ppx/_templates:BUILD.ppx.executable.thread"),
+        "executable/threads/BUILD.bazel",
+        Label("//ppx/_templates:BUILD.ppx.executable.threads"),
         executable = False
     )
     repo_ctx.template(
@@ -66,8 +66,8 @@ def _ppx_repo_impl(repo_ctx):
         executable = False
     )
     repo_ctx.template(
-        "module/thread/BUILD.bazel",
-        Label("//ppx/_templates:BUILD.ppx.module.thread"),
+        "module/threads/BUILD.bazel",
+        Label("//ppx/_templates:BUILD.ppx.module.threads"),
         executable = False
     )
     repo_ctx.template(
@@ -81,8 +81,8 @@ def _ppx_repo_impl(repo_ctx):
         executable = False
     )
     repo_ctx.template(
-        "ns/thread/BUILD.bazel",
-        Label("//ppx/_templates:BUILD.ppx.ns.thread"),
+        "ns/threads/BUILD.bazel",
+        Label("//ppx/_templates:BUILD.ppx.ns.threads"),
         executable = False
     )
     repo_ctx.template(

@@ -19,7 +19,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
     attrs = dict(
         options("ppx"),
         _linkall     = attr.label(default = "@ppx//executable/linkall"),
-        _thread     = attr.label(default = "@ppx//executable/thread"),
+        _threads     = attr.label(default = "@ppx//executable/threads"),
         _warnings  = attr.label(default = "@ppx//executable:warnings"),
         _opts = attr.label(
             ## We need this for '-predicates ppx_driver', to avoid hardcoding it in obazl rules

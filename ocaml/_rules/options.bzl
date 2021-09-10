@@ -66,7 +66,7 @@ def options_executable(ws):
 
     attrs = dict(
         _linkall     = attr.label(default = ws + "//executable/linkall"),
-        _thread     = attr.label(default = ws + "//executable/thread"),
+        _threads     = attr.label(default = ws + "//executable/threads"),
         _warnings  = attr.label(default   = ws + "//executable:warnings"),
         _opts = attr.label(
             doc = "Hidden options.",
@@ -202,7 +202,7 @@ def options_module(ws):
     return dict(
         _opts     = attr.label(default = ws + "//module:opts"),     # string list
         _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
-        _thread   = attr.label(default = ws + "//module/thread"),   # bool
+        _threads   = attr.label(default = ws + "//module/threads"),   # bool
         _warnings = attr.label(default = ws + "//module:warnings"), # string list
         struct = attr.label(
             doc = "A single module (struct) source file label.",
@@ -302,7 +302,7 @@ def options_pack_library(ws):
     return dict(
         _opts     = attr.label(default = ws + "//module:opts"),     # string list
         _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
-        _thread   = attr.label(default = ws + "//module/thread"),   # bool
+        _threads   = attr.label(default = ws + "//module/threads"),   # bool
         _warnings = attr.label(default = ws + "//module:warnings"), # string list
 
         ################
@@ -382,8 +382,14 @@ def options_ns_archive(ws):
 
     return dict(
         _linkall     = attr.label(default = ws +  "//archive/linkall"),
-        # _thread     = attr.label(default = ws + "//ns/thread"),
+        # _threads     = attr.label(default = ws + "//ns/threads"),
         _warnings    = attr.label(default = ws + "//archive:warnings"),
+
+        resolver = attr.label(
+            doc = "Code to use as the ns resolver module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
+            # allow_single_file = [".ml"]
+            providers = [OcamlModuleProvider],
+        ),
 
         _ns_resolver = attr.label(
             doc = "Experimental",
@@ -448,7 +454,7 @@ def options_ns_library(ws):
     return dict(
         _opts     = attr.label(default = ws_prefix + "//module:opts"),     # string list
         _linkall  = attr.label(default = ws_prefix + "//module/linkall"),  # bool
-        _thread   = attr.label(default = ws_prefix + "//module/thread"),   # bool
+        _threads   = attr.label(default = ws_prefix + "//module/threads"),   # bool
         _warnings = attr.label(default = ws_prefix + "//module:warnings"), # string list
 
         ## we need this when we have sublibs but no direct submodules

@@ -18,7 +18,7 @@ ppx_archive = rule(
         ),
         ## CONFIGURABLE DEFAULTS
         _linkall     = attr.label(default = "@ppx//archive/linkall"),
-        _thread     = attr.label(default = "@ppx//archive/thread"),
+        _threads     = attr.label(default = "@ppx//archive/threads"),
         _warnings  = attr.label(default = "@ppx//archive:warnings"),
         #### end options ####
 

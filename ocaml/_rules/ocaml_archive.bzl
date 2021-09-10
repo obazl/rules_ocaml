@@ -25,7 +25,7 @@ ocaml_archive = rule(
         ),
         ## CONFIGURABLE DEFAULTS
         _linkall     = attr.label(default = "@ocaml//archive/linkall"),
-        _thread     = attr.label(default = "@ocaml//archive/thread"),
+        # _threads     = attr.label(default = "@ocaml//archive/threads"),
         _warnings  = attr.label(default = "@ocaml//archive:warnings"),
         #### end options ####
 
