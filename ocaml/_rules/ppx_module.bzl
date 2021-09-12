@@ -35,9 +35,9 @@ TODO: finish docstring
         # deps_adjunct_opam = attr.string_list(
         #     doc = "List of OPAM adjunct deps.",
         # ),
-        _opam_lib = attr.label( ## FIXME: do not depend on @opam
-            default = "@opam//:opam_lib"
-        ),
+        # _opam_lib = attr.label( ## FIXME: do not depend on @opam
+        #     default = "@opam//:opam_lib"
+        # ),
         _rule = attr.string( default = "ppx_module" ),
     ),
     # cfg     = module_in_transition,

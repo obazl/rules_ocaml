@@ -188,16 +188,18 @@ def _ocaml_signature_impl(ctx):
 
     includes.append(out_cmi.dirname)
 
-    if not using_ocamlfind:
-        imports_test = depset(transitive = merged_depgraph_depsets)
-        for f in imports_test.to_list():
-            # FIXME: only relativize ocaml_imports
-            # print("relativizing %s" % f.path)
-            if (f.extension == "cmxa"):
-                dir = paths.relativize(f.dirname, "external/opam/_lib")
-                includes.append(
-                    ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-                )
+    # if not using_ocamlfind:
+    imports_test = depset(transitive = merged_depgraph_depsets)
+    for f in imports_test.to_list():
+        # FIXME: only relativize ocaml_imports
+        # print("relativizing %s" % f.path)
+        if (f.extension == "cmxa"):
+            dir = paths.relativize(f.dirname, "external/ocaml/_lib")
+            includes.append(
+                includes.append( "+../" + dir )
+                # ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
+            )
+        # includes.append(f.path)
 
     if ctx.attr.pack:
         args.add("-for-pack", ctx.attr.pack)
@@ -413,9 +415,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        _opam_lib = attr.label(
-            default = "@opam//:opam_lib"
-        )
+        # _opam_lib = attr.label(
+        #     default = "@opam//:opam_lib"
+        # )
     ),
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],

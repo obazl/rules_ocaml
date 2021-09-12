@@ -387,8 +387,8 @@ def impl_module(ctx):
         if adjunct.extension in ["cmxa", "a"]:
 
             # FIXME: remove hardcoded "external... " stuff
-            if (adjunct.path.startswith("external/opam")):
-                dir = paths.relativize(adjunct.dirname, "external/opam/_lib")
+            if (adjunct.path.startswith("external/ocaml")):
+                dir = paths.relativize(adjunct.dirname, "external/ocaml/_lib")
                 includes.append( "+../" + dir )
             else:
                 includes.append( adjunct.dirname )
@@ -403,35 +403,35 @@ def impl_module(ctx):
     # for path in indirect_paths_depset.to_list():
     #     includes.append(path)
 
-    if not using_ocamlfind:
-        imports_test = depset(transitive = merged_depgraph_depsets + merged_module_links_depsets)
-        for f in imports_test.to_list():
-            # print("Mod DEP: %s" % f)
-            if f.extension in ["cmxa", "a"]:
-                # print("CMXA: %s" % f)
-                # print("short: %s" % f.short_path)
-                # print("long: %s" % f.path)
-                ## fixme: what if we're not using opam?
-                ## if we are using opam then f.path is "external/opam/..."
+    # if not using_ocamlfind:
+    imports_test = depset(transitive = merged_depgraph_depsets + merged_module_links_depsets)
+    for f in imports_test.to_list():
+        # print("Mod DEP: %s" % f)
+        if f.extension in ["cmxa", "a"]:
+            # print("CMXA: %s" % f)
+            # print("short: %s" % f.short_path)
+            # print("long: %s" % f.path)
+            ## fixme: what if we're not using opam?
+            ## if we are using opam then f.path is "external/ocaml/..."
 
-                args.add( f.path )
-                if (f.path.startswith("external/opam")):
-                    dir = paths.relativize(f.dirname, "external/opam/_lib")
-                    includes.append( "+../" + dir )
-                else:
-                    includes.append( f.dirname )
+            args.add( f.path )
+            if (f.path.startswith("external/ocaml")):
+                dir = paths.relativize(f.dirname, "external/ocaml/_lib")
+                includes.append( "+../" + dir )
+            else:
+                includes.append( f.dirname )
 
-                # includes.append( ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir )
-                # includes.append( f.path )
-                # args.add( f.path)
+            # includes.append( ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir )
+            # includes.append( f.path )
+            # args.add( f.path)
 
-            ## FIXME: this is for deps from an ocaml_library
-            if f.extension in ["cmx"]: ## , "a"]:
-                includes.append( f.dirname)
-                args.add( f.path)
+        ## FIXME: this is for deps from an ocaml_library
+        if f.extension in ["cmx"]: ## , "a"]:
+            includes.append( f.dirname)
+            args.add( f.path)
 
-            if f.extension in ["cmi"]: ## cmi file could be in different dir
-                includes.append( f.dirname)
+        if f.extension in ["cmi"]: ## cmi file could be in different dir
+            includes.append( f.dirname)
 
     if ctx.attr.ppx:
         structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")

@@ -267,8 +267,8 @@ def impl_executable(ctx):
             cli_args.append(f.basename)
             ## problem is ocaml compilers will not follow symlinks
             ## so we need abs paths
-            if (f.path.startswith("external/opam")):
-                dir = paths.relativize(f.dirname, "external/opam/_lib")
+            if (f.path.startswith("external/ocaml")):
+                dir = paths.relativize(f.dirname, "external/ocaml/_lib")
                 includes.append( "+../" + dir )
             else:
                 includes.append( f.dirname )

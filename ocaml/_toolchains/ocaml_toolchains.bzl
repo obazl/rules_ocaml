@@ -51,37 +51,37 @@ _ocaml_tools_attrs = {
     # ),
 
     "_ocamlc": attr.label(
-        default = Label("@ocaml//tools:ocamlc"),
+        default = Label("@ocaml//:bin/ocamlc"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlc_opt": attr.label(
-        default = Label("@ocaml//tools:ocamlc.opt"),
+        default = Label("@ocaml//:bin/ocamlc.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlopt": attr.label(
-        default = Label("@ocaml//tools:ocamlopt"),
+        default = Label("@ocaml//:bin/ocamlopt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlopt_opt": attr.label(
-        default = Label("@ocaml//tools:ocamlopt.opt"),
+        default = Label("@ocaml//:bin/ocamlopt.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamllex": attr.label(
-        default = Label("@ocaml//tools:ocamllex"),
+        default = Label("@ocaml//:bin/ocamllex"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlyacc": attr.label(
-        default = Label("@ocaml//tools:ocamlyacc"),
+        default = Label("@ocaml//:bin/ocamlyacc"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
@@ -98,7 +98,7 @@ _ocaml_tools_attrs = {
     ]
     ),
     "_ocamlfind": attr.label(
-        default = Label("@ocaml//tools:ocamlfind"),
+        default = Label("@ocaml//:bin/ocamlfind"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
@@ -110,7 +110,7 @@ _ocaml_tools_attrs = {
     #     cfg = "exec",
     # ),
     "_ocamldep": attr.label(
-        default = Label("@ocaml//:ocamldep"),
+        default = Label("@ocaml//:bin/ocamldep"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",

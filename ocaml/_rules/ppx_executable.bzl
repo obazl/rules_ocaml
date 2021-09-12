@@ -103,9 +103,9 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
 
-        _opam_lib = attr.label(
-            default = "@opam//:opam_lib"
-        )
+        # _opam_lib = attr.label(
+        #     default = "@opam//:opam_lib"
+        # )
 
     ),
     cfg     = executable_in_transition,
