@@ -31,6 +31,11 @@ def _ocaml_import_impl(ctx):
           dep_depsets.append(dep[DefaultInfo].files)
           adjunct_depsets.append(dep[OcamlImportProvider].deps_adjunct)
 
+  sig_depsets = []
+  if ctx.attr.signature:
+      for sig in ctx.attr.signature:
+          sig_depsets.append(ctx.files.signature)
+
   if ctx.attr.archive:
       # print("{tgt} archives: {archives}".format(
       #     tgt=ctx.label,
@@ -54,7 +59,11 @@ def _ocaml_import_impl(ctx):
       deps_adjunct = depset(
           direct = ctx.files.deps_adjunct,
           transitive = adjunct_depsets
-      )
+      ),
+      signatures = depset(
+          transitive = sig_depsets
+      ),
+      # paths = depset( ... )
   )
 
   return [
@@ -81,6 +90,9 @@ ocaml_import = rule(
           allow_files = True
       ),
       modules = attr.label_list(
+          allow_files = True
+      ),
+      signature = attr.label_list(
           allow_files = True
       ),
       archive = attr.label_list(
