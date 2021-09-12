@@ -12,6 +12,9 @@ load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
 
 package(default_visibility = ["//visibility:public"])
 
+exports_files(glob(["bin/**"]))
+exports_files(glob(["_lib/**"]))
+
 ocaml_null_module(name="null")
 
 exports_files(glob(["switch/bin/**"]))
@@ -32,11 +35,20 @@ ocaml_sdkpath(
     visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "csdk",
-    srcs = glob(["csdk/**/*.*"]),
-    hdrs = glob(["csdk/**/*.*"]),
-    visibility = ["//visibility:public"],
+filegroup(
+    name = "_csdk_srcs",
+    srcs = glob(
+        include = ["_lib/ocaml/**/*.*"],
+        exclude = ["_lib/ocaml/caml/**/*.*"],
+    ),
+    visibility = ["//csdk:__pkg__"],
+)
+filegroup(
+    name = "_csdk_hdrs",
+    srcs = glob([
+        "_lib/ocaml/caml/**/*.*"
+    ]),
+    visibility = ["//csdk:__pkg__"],
 )
 
 # filegroup(
