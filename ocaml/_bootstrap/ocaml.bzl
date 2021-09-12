@@ -9,7 +9,9 @@ load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_register_toolchains")
 
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
 
-load("//opam:_opam.bzl", "opam_configure")
+
+# load("//opam:_opam.bzl", "opam_configure")
+load("//opam:_opam_repo.bzl", opam_install = "install")
 
 ##################################
 def _throw_opam_cmd_error(cmd, r):
@@ -156,6 +158,18 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
             "{sdkpath}": opam_switch_prefix,
             "{projroot}": str(projroot)
         },
+    )
+
+    repo_ctx.template(
+        "lib/threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.lib.threads"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "lib/threads/posix/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.lib.threads.posix"),
+        executable = False,
     )
 
     repo_ctx.template(
@@ -604,6 +618,8 @@ def _ocaml_repo_impl(repo_ctx):
     if repo_ctx.attr.debug:
         print("_ocaml_repo_impl")
 
+    opam_install(repo_ctx)
+
     ## we can only get env vars within a repo_ctx, so we do this here:
     if "OPAMSWITCH" in repo_ctx.os.environ:
         if repo_ctx.attr.build_name:
@@ -735,7 +751,8 @@ def config_opam(
         # pin      = False,
         force    = False,
         verbose  = False,
-        debug    = False
+        debug    = False,
+        bootstrap_debug = False
 ):
     if debug:
         print("config_opam")
@@ -854,7 +871,8 @@ def config_opam(
                 findlib_pkgs = findlib_pkgs,
                 pin_specs = pin_specs,
                 verbose = verbose,
-                debug = debug)
+                debug = debug,
+                bootstrap_debug = bootstrap_debug)
 
 ##############################
 # def configure(debug = False, opam = None): # , **kwargs):
@@ -868,6 +886,7 @@ def ocaml_configure(
         # pin      = False,
         # force    = False,
         debug    = False,
+        bootstrap_debug = False,
         verbose  = False):
     # is_rules_ocaml = False,
     #                 opam = None):
