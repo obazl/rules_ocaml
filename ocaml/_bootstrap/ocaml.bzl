@@ -692,7 +692,8 @@ _ocaml_repo = repository_rule(
         # ),
         # _switch = attr.string(default = "default")
         verbose = attr.bool(default = False),
-        debug   = attr.bool(default = False)
+        debug   = attr.bool(default = False),
+        bootstrap_debug   = attr.bool(default = False)
     )
 )
 
