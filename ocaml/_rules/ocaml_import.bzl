@@ -5,7 +5,7 @@ load("//ocaml:providers.bzl", "OcamlImportProvider")
 ##################################################
 def _ocaml_import_impl(ctx):
 
-  """Import an OCaml archive."""
+  """Import OCaml resources."""
 
   debug = False
 
@@ -31,17 +31,7 @@ def _ocaml_import_impl(ctx):
           dep_depsets.append(dep[DefaultInfo].files)
           adjunct_depsets.append(dep[OcamlImportProvider].deps_adjunct)
 
-  sig_depsets = []
-  if ctx.attr.signature:
-      for sig in ctx.attr.signature:
-          sig_depsets.append(ctx.files.signature)
-
   if ctx.attr.archive:
-      # print("{tgt} archives: {archives}".format(
-      #     tgt=ctx.label,
-      #     archives=ctx.attr.archive))
-      # for f in ctx.files.archive:
-      #     print("f: %s" % f.path)
       default = DefaultInfo(
           files = depset(
               direct = ctx.files.archive,
@@ -49,7 +39,11 @@ def _ocaml_import_impl(ctx):
           )
       )
   else:
-      default = DefaultInfo() # files = depset(dset))
+      default = DefaultInfo(
+          files = depset(
+              transitive = dep_depsets
+          )
+      )
 
   # print("IMPORT %s" % ctx.label.name)
   # print(" ctx.files.deps_adjunct: %s" % ctx.files.deps_adjunct)
@@ -61,7 +55,7 @@ def _ocaml_import_impl(ctx):
           transitive = adjunct_depsets
       ),
       signatures = depset(
-          transitive = sig_depsets
+          direct = ctx.files.signature
       ),
       # paths = depset( ... )
   )

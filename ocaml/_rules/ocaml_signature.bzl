@@ -43,7 +43,7 @@ load(":options.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_common.bzl", "merge_deps", "tmpdir")
+load(":impl_common.bzl", "merge_deps", "opam_lib_prefix")
 
 scope = "" # tmpdir
 
@@ -113,10 +113,20 @@ def _ocaml_signature_impl(ctx):
     includes   = []
 
     # print("SIG SRC: %s" % ctx.file.src.basename)
+    # should add ns prefix:
     (from_name, module_name) = get_module_name(ctx, ctx.file.src)
     # print("MODULE NAME: %s" % module_name)
 
-    mlifile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+    if ctx.attr.ppx:
+        mlifile = impl_ppx_transform("ocaml_signature", ctx,
+                                     ctx.file.src,
+                                     module_name + ".mli")
+    # elif module_name != from_name:
+    #     sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+    else:
+        # sigfile = ctx.file.src
+        mlifile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+    # mlifile = ctx.file.src
     # normalize_module_name(sigProvider.mli.basename) + ".mli")
     # print("RENAMED SIG SRC: %s" % mlifile.basename)
 
@@ -184,7 +194,7 @@ def _ocaml_signature_impl(ctx):
 
     indirect_paths_depset = depset(transitive = merged_paths_depsets)
     for path in indirect_paths_depset.to_list():
-            includes.append(path)
+        includes.append(path)
 
     includes.append(out_cmi.dirname)
 
@@ -192,13 +202,13 @@ def _ocaml_signature_impl(ctx):
     imports_test = depset(transitive = merged_depgraph_depsets)
     for f in imports_test.to_list():
         # FIXME: only relativize ocaml_imports
-        # print("relativizing %s" % f.path)
         if (f.extension == "cmxa"):
-            dir = paths.relativize(f.dirname, "external/ocaml/_lib")
-            includes.append(
+            # print("relativizing %s" % f.path)
+            if f.dirname.startswith(opam_lib_prefix):
+                dir = paths.relativize(f.dirname, opam_lib_prefix)
                 includes.append( "+../" + dir )
+
                 # ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-            )
         # includes.append(f.path)
 
     if ctx.attr.pack:
@@ -234,23 +244,18 @@ def _ocaml_signature_impl(ctx):
     args.add("-c")
     args.add("-o", out_cmi)
 
-    if ctx.attr.ppx:
-        sigfile = impl_ppx_transform("ocaml_signature", ctx, ctx.file.src, module_name + ".mli")
-    # elif module_name != from_name:
-    #     sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
-    else:
-        sigfile = ctx.file.src
-
     #     ## cp source file to workdir (__obazl)
     #     ## this is necessary for .mli/.cmi resolution to work
     #     # sigfile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
 
-    args.add("-intf", sigfile)
+    args.add("-intf", mlifile)
 
     input_depset = depset(
-        direct = [sigfile],
+        direct = [mlifile], #sigfile],
         transitive = merged_depgraph_depsets
     )
+
+    # print("OUT_CMI: %s" % out_cmi);
 
     ################
     ################
@@ -296,7 +301,7 @@ def _ocaml_signature_impl(ctx):
         ),
         depgraph = depset(
             order = "postorder",
-            direct = [out_cmi, sigfile],
+            direct = [out_cmi, mlifile], # sigfile],
             transitive = merged_depgraph_depsets
         ),
         archived_modules = depset(

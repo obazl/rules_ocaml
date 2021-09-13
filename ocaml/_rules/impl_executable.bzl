@@ -20,7 +20,7 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":options.bzl", "options")
 
-load(":impl_common.bzl", "merge_deps")
+load(":impl_common.bzl", "merge_deps", "opam_lib_prefix")
 
 ################################################################
 def _handle_cc_deps(ctx,
@@ -268,7 +268,7 @@ def impl_executable(ctx):
             ## problem is ocaml compilers will not follow symlinks
             ## so we need abs paths
             if (f.path.startswith("external/ocaml")):
-                dir = paths.relativize(f.dirname, "external/ocaml/_lib")
+                dir = paths.relativize(f.dirname, opam_lib_prefix)
                 includes.append( "+../" + dir )
             else:
                 includes.append( f.dirname )

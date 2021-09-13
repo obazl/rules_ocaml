@@ -34,6 +34,7 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":impl_common.bzl",
      "merge_deps",
+     "opam_lib_prefix",
      # "tmpdir"
      )
 
@@ -253,6 +254,7 @@ def impl_module(ctx):
 
     if module_name == None:
         # no sigfile dependency, so derive module name from structfile
+        # ns prefix if appropriate:
         (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
         # and declare cmi output, since ocaml will generate it
         out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
@@ -387,8 +389,8 @@ def impl_module(ctx):
         if adjunct.extension in ["cmxa", "a"]:
 
             # FIXME: remove hardcoded "external... " stuff
-            if (adjunct.path.startswith("external/ocaml")):
-                dir = paths.relativize(adjunct.dirname, "external/ocaml/_lib")
+            if (adjunct.path.startswith(opam_lib_prefix)):
+                dir = paths.relativize(adjunct.dirname, opam_lib_prefix)
                 includes.append( "+../" + dir )
             else:
                 includes.append( adjunct.dirname )
@@ -415,8 +417,8 @@ def impl_module(ctx):
             ## if we are using opam then f.path is "external/ocaml/..."
 
             args.add( f.path )
-            if (f.path.startswith("external/ocaml")):
-                dir = paths.relativize(f.dirname, "external/ocaml/_lib")
+            if (f.path.startswith(opam_lib_prefix)):
+                dir = paths.relativize(f.dirname, opam_lib_prefix)
                 includes.append( "+../" + dir )
             else:
                 includes.append( f.dirname )
@@ -430,15 +432,18 @@ def impl_module(ctx):
             includes.append( f.dirname)
             args.add( f.path)
 
-        if f.extension in ["cmi"]: ## cmi file could be in different dir
-            includes.append( f.dirname)
+        if f.extension in ["cmi", "mli"]:
+            if (f.path.startswith(opam_lib_prefix)):
+                dir = paths.relativize(f.dirname, opam_lib_prefix)
+                includes.append( "+../" + dir )
+            else:
+                includes.append( f.dirname )
 
     if ctx.attr.ppx:
         structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
     else:
-        structfile = ctx.file.struct
         ## cp src file to working dir (__obazl)
-        ## this is necessary for .mli/.cmi resolution to work
+        ## this is necessary(?) for .mli/.cmi resolution to work
         structfile = rename_srcfile(ctx, ctx.file.struct, module_name + ".ml")
 
     if debug:
