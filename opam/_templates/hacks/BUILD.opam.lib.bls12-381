@@ -1,0 +1,32 @@
+## original: $(OPAM_SWITCH_PREFIX)/lib/bls12-381/META
+# description = ""                                                           # requires = "bls12-381-gen ff-sig zarith"
+# archive(byte) = ""
+# archive(native) = ""
+# plugin(byte) = ""
+# plugin(native) = ""
+## dir contains:
+# bls12_381.cmi
+# bls12_381.cmti
+# bls12_381.mli
+
+load(
+    "@obazl_rules_ocaml//ocaml:rules.bzl",
+    "ocaml_import"
+)
+
+ocaml_import(
+    name = "bls12-381",
+## _filedeps_path: '_lib/bls12-381'
+    signature = [
+        "//:_lib/bls12-381/bls12_381.cmi",
+        "//:_lib/bls12-381/bls12_381.cmti",
+        "//:_lib/bls12-381/bls12_381.mli"
+    ],
+    deps = [
+        "@ocaml//lib/bls12-381-gen",
+        "@ocaml//lib/ff-sig",
+        "@ocaml//lib/zarith",
+    ],
+    visibility = ["//visibility:public"]
+)
+

@@ -1,0 +1,39 @@
+## original: $(OPAM_SWITCH_PREFIX)/lib/digestif/META
+
+load(
+    "@obazl_rules_ocaml//ocaml:rules.bzl",
+    "ocaml_import"
+)
+
+ocaml_import(
+    name = "rakia",
+    version = "0.9.0",
+    archive = select({
+        "@ocaml//mode:bytecode": [
+            "//:_lib/digestif/rakia/rakia.cma",
+        ],
+
+        "@ocaml//mode:native": [
+            "//:_lib/digestif/rakia/rakia.cmxa",
+        ],
+
+    }),
+    deps = [],
+    visibility = ["//visibility:public"]
+)
+
+ocaml_import(
+    name = "plugin",
+    plugin = select({
+        "@ocaml//mode:bytecode": [
+            "//:_lib/digestif/rakia/rakia.cma",
+        ],
+
+        "@ocaml//mode:native": [
+            "//:_lib/digestif/rakia/rakia.cmxs",
+        ],
+
+    }),
+    deps = [],
+    visibility = ["//visibility:public"]
+)

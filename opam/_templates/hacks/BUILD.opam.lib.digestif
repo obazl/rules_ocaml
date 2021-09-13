@@ -1,0 +1,48 @@
+## original: $(OPAM_SWITCH_PREFIX)/lib/digestif/META
+
+load(
+    "@obazl_rules_ocaml//ocaml:rules.bzl",
+    "ocaml_import"
+)
+
+# digestif.cmi
+# digestif.cmti
+# digestif.mli
+
+## this target must both depend on a sig and select a struct
+ocaml_import(
+    name = "digestif",
+    version = "0.9.0",
+    archive = select({
+        "@ocaml//mode:bytecode": [
+            "//:_lib/digestif/c/digestif_c.cma",
+        ],
+
+        "@ocaml//mode:native": [
+            "//:_lib/digestif/c/digestif_c.cmxa",
+        ],
+
+    }),
+    deps = [
+        "@ocaml//lib/bigarray-compat",
+        "@ocaml//lib/eqaf",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+## ocaml_import(
+##     name = "digestif_signature",
+##     version = "0.9.0",
+##     signature = [
+##         "@ocaml//lib/digestif.cmi",
+##         "@ocaml//lib/digestif.mli",
+##     ],
+##     deps = [
+##         "@ocaml//lib/bigarray-compat",
+##         "@ocaml//lib/eqaf",
+##     ],
+##     visibility = [
+##         "@ocaml//lib/digestif/c:__pkg__",
+##         "@ocaml//lib/digestif/ocaml:__pkg__",
+##     ]
+## )

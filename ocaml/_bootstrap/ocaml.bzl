@@ -639,7 +639,7 @@ def _ocaml_repo_impl(repo_ctx):
     ## we get tons of restarts.
     _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix)
 
-    _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix)
+    # _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix)
 
     # _install_coq_symlinks(repo_ctx, ".") # coq_sdk
 

@@ -1,5 +1,5 @@
 ################################################################
-def build_re2c(repo_ctx):
+def _build_re2c(repo_ctx):
 
     # Have we already built re2c? FIXME: check version
     repo_ctx.report_progress("Checking for cached re2c...")
@@ -82,7 +82,7 @@ def build_re2c(repo_ctx):
     repo_ctx.delete("re2c.sh")
 
 ################################################################
-def build_opam_bootstrapper_local(repo_ctx):
+def _build_opam_bootstrapper_local(repo_ctx):
 
     if "HOME" in repo_ctx.os.environ:
         home = repo_ctx.os.environ["HOME"]
@@ -152,10 +152,93 @@ def build_opam_bootstrapper_local(repo_ctx):
     print("completed: build_opam_bootstrapper_local")
     repo_ctx.report_progress("Completed: build_opam_bootstrapper_local")
 
+###################################
+def _install_build_templates(repo_ctx):
+
+    # repo_ctx.template(
+    #     "BUILD.bazel",
+    #     Label("//opam/_templates:BUILD.opam"),
+    #     executable = False,
+    # )
+
+    ## FIXME: rename opam_config or similar
+    repo_ctx.template(
+        "cfg/BUILD.bazel",
+        Label("//opam/_templates:BUILD.opam.cfg"),
+        executable = False,
+    )
+
+    # repo_ctx.template(
+    #     "cfg/mt/BUILD.bazel",
+    #     Label("//opam/_templates:BUILD.opam.cfg.mt"),
+    #     executable = False,
+    # )
+
+    # repo_ctx.template(
+    #     "cfg/mt/posix/BUILD.bazel",
+    #     Label("//opam/_templates:BUILD.opam.cfg.mt.posix"),
+    #     executable = False,
+    # )
+
+    ## FIXME: ppx config rules - mv to @ppx
+    repo_ctx.template(
+        "ppx/BUILD.bazel",
+        Label("//opam/_templates:BUILD.opam.ppx"),
+        executable = False,
+    )
+
+    ## Special Cases. These are hacks, to get around the "virtual
+    ## modules" problem until we find the time to handle them in the
+    ## bootstrapper.
+
+    repo_ctx.template(
+        "lib/digestif/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.digestif"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "lib/digestif/c/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.digestif_c"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "lib/digestif/rakia/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.digestif_rakia"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "lib/bls12-381/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.bls12-381"),
+        executable = False,
+    )
+
+    ## these hacks are not related to virtual modules:
+    repo_ctx.template(
+        "lib/ptime/clock/os/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.ptime.clock.os"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "lib/threads/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.threads"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "lib/threads/posix/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.threads.posix"),
+        executable = False,
+    )
+
 ################################################################
 def install(repo_ctx):
 
-    # build_re2c(repo_ctx)
+    # _build_re2c(repo_ctx)
 
-    build_opam_bootstrapper_local(repo_ctx)
+    _build_opam_bootstrapper_local(repo_ctx)
 
+    _install_build_templates(repo_ctx)
