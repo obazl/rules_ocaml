@@ -1,8 +1,8 @@
 load("//ocaml:providers.bzl",
-     "OcamlSignatureProvider",
-     "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider")
+     "OcamlSignatureMarker",
+     "OcamlModuleMarker",
+     "OcamlNsArchiveMarker",
+     "OcamlNsLibraryMarker")
 
 load("//ocaml/_transitions:ns_transitions.bzl", "nslib_in_transition")
 
@@ -22,7 +22,7 @@ rule_options.update(options_ns_library("ocaml"))
 ################
 ocaml_ns_library = rule(
     implementation = impl_ns_library,
-    doc = """Generate a 'namespace' module. [User Guide](../ug/ocaml_ns.md).  Provides: [OcamlNsLibraryProvider](providers_ocaml.md#ocamlnsmoduleprovider).
+    doc = """Generate a 'namespace' module. [User Guide](../ug/ocaml_ns.md).  Provides: [OcamlNsLibraryMarker](providers_ocaml.md#ocamlnsmoduleprovider).
 
 **NOTE** 'name' must be a legal OCaml module name string.  Leading underscore is illegal.
 
@@ -34,7 +34,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         _rule = attr.string(default = "ocaml_ns_library")
     ),
     cfg     = nslib_in_transition,
-    provides = [DefaultInfo, OcamlNsLibraryProvider],
+    provides = [DefaultInfo, OcamlNsLibraryMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

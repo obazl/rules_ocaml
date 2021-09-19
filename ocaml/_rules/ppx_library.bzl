@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl",
-     "PpxLibraryProvider",
-     "PpxModuleProvider")
+     "PpxLibraryMarker",
+     "PpxModuleMarker")
 
 load(":options.bzl", "options", "options_library")
 
@@ -20,7 +20,7 @@ ppx_library = rule(
         _rule = attr.string( default = "ppx_library" ),
     ),
     # cfg     = ppx_mode_transition,
-    provides = [PpxLibraryProvider],
+    provides = [PpxLibraryMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

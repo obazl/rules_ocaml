@@ -1,18 +1,19 @@
 load("//ocaml:providers.bzl",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
-     "OcamlSignatureProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
+     "OcamlArchiveMarker",
+     "OcamlImportMarker",
+     "OcamlLibraryMarker",
      "OcamlNsResolverProvider",
-     "PpxArchiveProvider",
-     "PpxExecutableProvider",
-     "PpxLibraryProvider",
-     "PpxModuleProvider",
-     "PpxNsArchiveProvider",
-     "PpxNsLibraryProvider")
+     "OcamlModuleMarker",
+     "OcamlNsArchiveMarker",
+     "OcamlNsLibraryMarker",
+     "OcamlSignatureProvider",
+
+     "PpxArchiveMarker",
+     "PpxExecutableMarker",
+     "PpxLibraryMarker",
+     "PpxModuleMarker",
+     "PpxNsArchiveMarker",
+     "PpxNsLibraryMarker")
 
 load("//ocaml/_transitions:transitions.bzl",
      "ocaml_module_sig_out_transition",
@@ -77,7 +78,7 @@ def options_executable(ws):
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
-            providers = [[OcamlModuleProvider], [PpxModuleProvider]],
+            providers = [[OcamlModuleMarker], [PpxModuleMarker]],
             default = None
         ),
         data = attr.label_list(
@@ -90,32 +91,33 @@ def options_executable(ws):
         ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = [[OcamlArchiveProvider],
-                         [OcamlLibraryProvider],
-                         [OcamlModuleProvider],
-                         [OcamlNsArchiveProvider],
-                         [OcamlNsLibraryProvider],
-                         [PpxArchiveProvider],
-                         [PpxLibraryProvider],
-                         [PpxModuleProvider],
-                         [PpxNsArchiveProvider],
-                         [PpxNsLibraryProvider],
+            providers = [[OcamlArchiveMarker],
+                         [OcamlImportMarker],
+                         [OcamlLibraryMarker],
+                         [OcamlModuleMarker],
+                         [OcamlNsArchiveMarker],
+                         [OcamlNsLibraryMarker],
+                         [PpxArchiveMarker],
+                         [PpxLibraryMarker],
+                         [PpxModuleMarker],
+                         [PpxNsArchiveMarker],
+                         [PpxNsLibraryMarker],
                          [CcInfo]],
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
             default = "@ocaml//executable:deps"
         ),
-        deps_opam = attr.string_list(
-            doc = "List of OPAM package names"
-        ),
+        # deps_opam = attr.string_list(
+        #     doc = "List of OPAM package names"
+        # ),
         deps_adjunct = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
-            # providers = [[DefaultInfo], [PpxModuleProvider]]
+            # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
-        deps_adjunct_opam = attr.string_list(
-            doc = """List of opam adjunct dependencies (pkg name strings).""",
-        ),
+        # deps_adjunct_opam = attr.string_list(
+        #     doc = """List of opam adjunct dependencies (pkg name strings).""",
+        # ),
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,
@@ -152,21 +154,21 @@ def options_library(ws):
 
     if ws == "ocaml":
         _providers = [
-            [OcamlArchiveProvider],
-            [OcamlImportProvider],
-            [OcamlLibraryProvider],
-            [OcamlModuleProvider],
+            [OcamlArchiveMarker],
+            [OcamlImportMarker],
+            [OcamlLibraryMarker],
+            [OcamlModuleMarker],
             [OcamlNsResolverProvider],
-            [OcamlNsArchiveProvider],
-            [OcamlNsLibraryProvider],
+            [OcamlNsArchiveMarker],
+            [OcamlNsLibraryMarker],
             [OcamlSignatureProvider],
-            [PpxArchiveProvider]
+            [PpxArchiveMarker]
         ]
     else:
         _providers =[
-            [PpxLibraryProvider],
-            [PpxModuleProvider],
-            [PpxArchiveProvider]
+            [PpxLibraryMarker],
+            [PpxModuleMarker],
+            [PpxArchiveMarker]
         ]
 
     return dict(
@@ -180,18 +182,18 @@ def options_library(ws):
 def options_module(ws):
 
     if ws == "ocaml":
-        providers = [[OcamlArchiveProvider],
-                     [OcamlImportProvider],
+        providers = [[OcamlArchiveMarker],
+                     [OcamlImportMarker],
                      [OcamlSignatureProvider],
-                     [OcamlLibraryProvider],
-                     [OcamlModuleProvider],
-                     [OcamlNsArchiveProvider],
-                     [OcamlNsLibraryProvider],
+                     [OcamlLibraryMarker],
+                     [OcamlModuleMarker],
+                     [OcamlNsArchiveMarker],
+                     [OcamlNsLibraryMarker],
                      # [OcamlNsResolverProvider],
-                     [PpxArchiveProvider],
-                     [PpxModuleProvider],
-                     [PpxNsArchiveProvider],
-                     [PpxNsLibraryProvider]]
+                     [PpxArchiveMarker],
+                     [PpxModuleMarker],
+                     [PpxNsArchiveMarker],
+                     [PpxNsLibraryMarker]]
 
     else:
         ## FIXME: providers for ppx_module
@@ -230,11 +232,17 @@ def options_module(ws):
         # ),
         _deps = attr.label(
             doc = "Global deps, apply to all instances of rule. Added last.",
+            ## NB: this is a label_flag:
             default = ws + "//module:deps"
         ),
         # deps_opam = attr.string_list(
         #     doc = "List of OPAM package names"
         # ),
+
+        deps_deferred = attr.label_list(
+            doc = "Deps needed at link-time (when building an executable). (I.e. for 'virtual' modules."
+        ),
+
         deps_runtime = attr.label_list(
             doc = "Deps needed at runtime, but not build time. E.g. .cmxs plugins."
         ),
@@ -246,7 +254,8 @@ def options_module(ws):
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,
-            # providers = [[CcInfo]]
+            # providers = since this is a dictionary depset, no providers
+            ## but the keys must have CcInfo providers, check at build time
             # cfg = ocaml_module_cc_deps_out_transition
         ),
         _cc_deps = attr.label(
@@ -260,9 +269,11 @@ def options_module(ws):
         # ),
         _ns_resolver = attr.label(
             doc = "Experimental",
+            # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
             ## @ocaml//ns is a 'label_setting' whose value is an `ocaml_ns_resolver` rule. so this institutes a dependency on a resolver whose build params will be set dynamically using transition functions.
             default = "@ocaml//ns",
+            ## rename: @ocaml//ns/resolver or @ocaml//ns:resolver
         ),
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
@@ -280,18 +291,18 @@ def options_module(ws):
 def options_pack_library(ws):
 
     if ws == "ocaml":
-        providers = [[OcamlArchiveProvider],
-                     [OcamlImportProvider],
+        providers = [[OcamlArchiveMarker],
+                     [OcamlImportMarker],
                      [OcamlSignatureProvider],
-                     [OcamlLibraryProvider],
-                     [OcamlModuleProvider],
-                     [OcamlNsArchiveProvider],
-                     [OcamlNsLibraryProvider],
+                     [OcamlLibraryMarker],
+                     [OcamlModuleMarker],
+                     [OcamlNsArchiveMarker],
+                     [OcamlNsLibraryMarker],
                      # [OcamlNsResolverProvider],
-                     [PpxArchiveProvider],
-                     [PpxModuleProvider],
-                     [PpxNsArchiveProvider],
-                     [PpxNsLibraryProvider]]
+                     [PpxArchiveMarker],
+                     [PpxModuleMarker],
+                     [PpxNsArchiveMarker],
+                     [PpxNsLibraryMarker]]
 
     else:
         ## FIXME: providers for ppx_module
@@ -364,18 +375,18 @@ def options_ns_archive(ws):
 
     if ws == "ocaml":
         _submod_providers   = [
-            [OcamlModuleProvider],
-            [OcamlNsArchiveProvider],
-            [OcamlNsLibraryProvider],
+            [OcamlModuleMarker],
+            [OcamlNsArchiveMarker],
+            [OcamlNsLibraryMarker],
             [OcamlSignatureProvider]
         ]
     else:
         _submod_providers   = [
-            [OcamlModuleProvider],
-            [OcamlNsArchiveProvider],
-            [OcamlNsLibraryProvider],
+            [OcamlModuleMarker],
+            [OcamlNsArchiveMarker],
+            [OcamlNsLibraryMarker],
             [OcamlSignatureProvider],
-            [PpxModuleProvider],
+            [PpxModuleMarker],
         ]
 
     ws = "@" + ws
@@ -385,14 +396,15 @@ def options_ns_archive(ws):
         # _threads     = attr.label(default = ws + "//ns/threads"),
         _warnings    = attr.label(default = ws + "//archive:warnings"),
 
-        resolver = attr.label(
-            doc = "Code to use as the ns resolver module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
-            # allow_single_file = [".ml"]
-            providers = [OcamlModuleProvider],
-        ),
+        # resolver = attr.label(
+        #     doc = "Code to use as the ns resolver module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
+        #     # allow_single_file = [".ml"]
+        #     providers = [OcamlModuleMarker],
+        # ),
 
         _ns_resolver = attr.label(
             doc = "Experimental",
+            # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
             default = "@ocaml//ns",
             cfg = ocaml_nslib_submodules_out_transition
@@ -434,20 +446,20 @@ def options_ns_library(ws):
 
     if ws == "ocaml":
         _submod_providers   = [
-            [OcamlModuleProvider],
-            [OcamlNsLibraryProvider],
-            [PpxModuleProvider],
+            [OcamlModuleMarker],
+            [OcamlNsLibraryMarker],
+            [PpxModuleMarker],
             # [OcamlSignatureProvider]
         ]
         _sublib_providers = [
-            # [OcamlNsArchiveProvider],
-            [OcamlNsLibraryProvider],
-            [PpxNsLibraryProvider],
+            # [OcamlNsArchiveMarker],
+            [OcamlNsLibraryMarker],
+            [PpxNsLibraryMarker],
         ]
     else:
         ## FIXME: ppx providers
-        _submod_providers = [PpxModuleProvider]
-        _sublib_providers = [PpxNsLibraryProvider]
+        _submod_providers = [PpxModuleMarker]
+        _sublib_providers = [PpxNsLibraryMarker]
 
     ws_prefix = "@ocaml" ## + ws
 
@@ -460,6 +472,7 @@ def options_ns_library(ws):
         ## we need this when we have sublibs but no direct submodules
         _ns_resolver = attr.label(
             doc = "Experimental",
+            # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
             default = "@ocaml//ns",
             cfg = ocaml_nslib_submodules_out_transition
@@ -546,7 +559,7 @@ options_ppx = dict(
             executable = True,
             cfg = "exec",
             allow_single_file = True,
-            providers = [PpxExecutableProvider]
+            providers = [PpxExecutableMarker]
         ),
         ppx_args  = attr.string_list(
             doc = "Options to pass to PPX executable passed by the `ppx` attribute.",

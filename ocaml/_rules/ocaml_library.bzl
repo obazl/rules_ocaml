@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl", "OcamlLibraryProvider")
+load("//ocaml:providers.bzl", "OcamlLibraryMarker")
 
 load(":options.bzl", "options", "options_library")
 
@@ -13,7 +13,7 @@ rule_options.update(options_library("ocaml"))
 #####################
 ocaml_library = rule(
     implementation = impl_library,
-    doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OcamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider).
+    doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OcamlLibraryMarker](providers_ocaml.md#ocamllibraryprovider).
 
 **WARNING** Not yet fully supported - subject to change. Use with caution.
 
@@ -26,7 +26,7 @@ Be careful not to confuse `ocaml_library` with `ocaml_archive`. The
 latter generates OCaml binaries (`.cma`, `.cmxa`, '.a' archive files);
 the former does not generate anything, it just passes on its
 dependencies under a single label, packaged in a
-[OcamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider). For
+[OcamlLibraryMarker](providers_ocaml.md#ocamllibraryprovider). For
 more information see [Collections: Libraries, Archives and
 Packages](../ug/collections.md).
     """,
@@ -40,7 +40,7 @@ Packages](../ug/collections.md).
     ## this is not an ns library, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
     cfg     = nslib_in_transition,
-    provides = [OcamlLibraryProvider],
+    provides = [OcamlLibraryMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

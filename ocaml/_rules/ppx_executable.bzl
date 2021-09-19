@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl",
-     "PpxExecutableProvider",
-     "PpxModuleProvider")
+     "PpxExecutableMarker",
+     "PpxModuleMarker")
 
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
@@ -12,7 +12,7 @@ load(":impl_executable.bzl", "impl_executable")
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(
     implementation = impl_executable,
-    doc = """Generates a PPX executable.  Provides: [PpxExecutableProvider](providers_ppx.md#ppxexecutableprovider).
+    doc = """Generates a PPX executable.  Provides: [PpxExecutableMarker](providers_ppx.md#ppxexecutableprovider).
 
 By default, this rule adds `-predicates ppx_driver` to the command line.
     """,
@@ -34,12 +34,12 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "A `ppx_module` to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
             # mandatory = True,
             # allow_single_file = [".ml", ".cmx"],
-            providers = [[PpxModuleProvider]],
+            providers = [[PpxModuleMarker]],
             default = None
         ),
         ppx  = attr.label(
             doc = "PPX binary (executable).",
-            providers = [PpxExecutableProvider],
+            providers = [PpxExecutableMarker],
             mandatory = False,
         ),
         # print = attr.label(
@@ -59,7 +59,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         ),
         deps = attr.label_list(
             doc = "Deps needed to build this ppx executable.",
-            providers = [[DefaultInfo], [PpxModuleProvider]],
+            providers = [[DefaultInfo], [PpxModuleMarker]],
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
@@ -70,7 +70,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         # ),
         deps_adjunct = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
-            # providers = [[DefaultInfo], [PpxModuleProvider]]
+            # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
         deps_adjunct_opam = attr.string_list(
             doc = """List of opam adjunct dependencies (pkg name strings).""",
@@ -109,7 +109,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
 
     ),
     cfg     = executable_in_transition,
-    # provides = [DefaultInfo, PpxExecutableProvider],
+    # provides = [DefaultInfo, PpxExecutableMarker],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

@@ -1,6 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
+     "OcamlProvider",
      "CompilationModeSettingProvider",
      "OcamlNsResolverProvider")
 
@@ -11,6 +12,9 @@ load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
 )
+
+load(":impl_common.bzl",
+     "dsorder")
 
 module_sep = "__"
 
@@ -45,7 +49,7 @@ def impl_ns_resolver(ctx):
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     ################
-    outputs = []
+    action_outputs = []
 
     obj_cm_ = None
     obj_cmi = None
@@ -66,6 +70,8 @@ def impl_ns_resolver(ctx):
         fs_prefix = ""
         alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
 
+        ## an ns can be used as a submodule of another ns
+        ## if so, do not prepend alias_prefix
         nslib_submod = False
         if submodule.startswith("#"):
             # this is an nslib submodule, do not prefix
@@ -117,18 +123,18 @@ def impl_ns_resolver(ctx):
 
     obj_cmi_fname = resolver_module_name + ".cmi"
     obj_cmi = ctx.actions.declare_file(obj_cmi_fname)
-    outputs.append(obj_cmi)
+    action_outputs.append(obj_cmi)
 
     if mode == "native":
         obj_o_fname = resolver_module_name + ".o"
         obj_o = ctx.actions.declare_file(obj_o_fname)
-        outputs.append(obj_o)
+        action_outputs.append(obj_o)
         obj_cm__fname = resolver_module_name + ".cmx"
     else:
         obj_cm__fname = resolver_module_name + ".cmo"
 
     obj_cm_ = ctx.actions.declare_file(obj_cm__fname)
-    outputs.append(obj_cm_)
+    action_outputs.append(obj_cm_)
 
     ################################
     args = ctx.actions.args()
@@ -142,9 +148,9 @@ def impl_ns_resolver(ctx):
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
     args.add("-I", resolver_src_file.dirname)
-    dep_graph = []
+    action_inputs = []
 
-    dep_graph.append(resolver_src_file)
+    action_inputs.append(resolver_src_file)
 
     ## -no-alias-deps is REQUIRED for ns modules;
     ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html
@@ -161,8 +167,8 @@ def impl_ns_resolver(ctx):
         env = env,
         executable = tc.ocamlfind,
         arguments = [args],
-        inputs = dep_graph,
-        outputs = outputs,
+        inputs = action_inputs,
+        outputs = action_outputs,
         tools = [tc.ocamlfind, tc.ocamlopt],
         mnemonic = "OcamlNsResolverAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsResolverAction",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
@@ -176,23 +182,32 @@ def impl_ns_resolver(ctx):
 
     defaultInfo = DefaultInfo(
         files = depset(
-            order  = "postorder",
-            direct = [obj_cm_]
+            order  = dsorder,
+            direct = action_outputs + [resolver_src_file] # [obj_cm_]
         )
     )
 
-    nsProvider = OcamlNsResolverProvider(
-        files    = depset(
-            order = "postorder",
-            direct = outputs,
-        ),
-        paths     = depset(direct = [obj_cmi.dirname]),
+    nsResolverProvider = OcamlNsResolverProvider(
+        # files    = depset(
+        #     order = dsorder,
+        #     direct = action_outputs,
+        # ),
+        # paths     = depset(direct = [obj_cmi.dirname]),
         submodules = submodules,
         resolver = resolver_module_name,
         prefixes   = ns_prefixes,
     )
 
+    ocamlProvider = OcamlProvider(
+        files    = depset(
+            order = dsorder,
+            direct = action_outputs + [resolver_src_file],
+        ),
+        paths     = depset(direct = [obj_cmi.dirname]),
+    )
+
     return [
         defaultInfo,
-        nsProvider
+        nsResolverProvider,
+        ocamlProvider,
     ]

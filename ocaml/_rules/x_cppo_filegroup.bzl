@@ -82,7 +82,7 @@ def _x_cppo_filegroup_impl(ctx):
   defaultInfo = DefaultInfo(
       # payload
       files = depset(
-          order = "postorder",
+          order = dsorder,
           direct = outputs
       )
   )
@@ -143,7 +143,7 @@ dir (e.g. bazel-bin/src)
             default = "@opam//:bin/cppo"
         )
     ),
-    # provides = [OcamlModuleProvider],
+    # provides = [OcamlModuleMarker],
     # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

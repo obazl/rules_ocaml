@@ -15,6 +15,7 @@ ocaml_import(
 
         "@ocaml//mode:native": [
             "//:_lib/digestif/rakia/rakia.cmxa",
+            "//:_lib/digestif/rakia/rakia.a",
         ],
 
     }),

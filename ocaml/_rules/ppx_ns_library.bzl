@@ -1,5 +1,5 @@
 load("//ocaml:providers.bzl",
-     "PpxNsLibraryProvider")
+     "PpxNsLibraryMarker")
 
 load(":options.bzl",
      "options",
@@ -26,7 +26,7 @@ ppx_ns_library = rule(
         _rule = attr.string(default = "ppx_ns_library"),
     ),
     cfg     = nslib_in_transition,
-    provides = [PpxNsLibraryProvider],
+    provides = [PpxNsLibraryMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

@@ -1,12 +1,14 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl", "OcamlVerboseFlagProvider")
-load("//ocaml:providers.bzl", "PpxExecutableProvider", "PpxPrintSettingProvider")
+load("//ocaml:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath")
 
 load(":impl_common.bzl", "tmpdir")
+
+# tmpdir = "_obazl_/"
 
 ################################################################
 def impl_ppx_transform(rule, ctx, src, to):
@@ -16,7 +18,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     Outputs: struct(intf :: declared File, maybe impl :: declared File)
     """
 
-    debug = False
+    debug = True
     # if ctx.label.name == "test":
     #     debug = True
 
@@ -24,15 +26,15 @@ def impl_ppx_transform(rule, ctx, src, to):
         print()
         print("Start: impl_ppx_transform: {src} to {dst}".format(src = src, dst = to))
 
-    scope = tmpdir
+    # scope = tmpdir
 
-    outfile = ctx.actions.declare_file(scope + to)
+    outfile = ctx.actions.declare_file(tmpdir + to)
     outputs = {"impl": outfile}
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
 
-    verbose = False
+    verbose = True
     if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
         if not "-no-verbose" in ctx.attr.opts:
             verbose = True
@@ -43,7 +45,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     args = ctx.actions.args()
 
     if ctx.attr.ppx: # isn't this always true here?
-      args.add_all(ctx.attr.ppx[PpxExecutableProvider].args)
+      args.add_all(ctx.attr.ppx[PpxExecutableMarker].args)
       args.add_all(ctx.attr.ppx_args)
       if hasattr(ctx.attr, "ppx_print"):
           if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
@@ -57,15 +59,20 @@ def impl_ppx_transform(rule, ctx, src, to):
 
     ## in our shell script, we cd to _obazl_/ before executing this, so we need "../"
     ## shell script copies src to _obazl_/, cds there, then runs the ppx
-    args.add("-o", "../" + outfile.path)
+    if tmpdir == "":
+        args.add("-o", outfile.path)
+    else:
+        args.add("-o", "../" + outfile.path)
     if src.path.endswith(".mli"):
         args.add("-intf", src.path)
-    if src.path.endswith(".ml"):
+    elif src.path.endswith(".ml"):
         args.add("-impl", src.path)
 
     dep_graph = [src]
 
     # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
+    ## FIXME: this makes rules_ocaml dependent on a particular ocaml
+    ## lib. Find a better way.
     # if "@opam//pkg:ppx_inline_test" in ctx.files.deps:
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 0:
@@ -97,32 +104,39 @@ def impl_ppx_transform(rule, ctx, src, to):
                         "fi"
                     ])
 
-    command = "\n".join([
-        "#!/bin/sh",
-        "set {set}".format(set = "-x" if verbose else "+x"),
-        "mkdir -p {v} {tmpdir}{path}".format(v = "-v" if verbose else "",
+    MKDIR = "mkdir -p {v} {tmpdir}{path}".format(v = "-v" if verbose else "",
                                               tmpdir=tmpdir,
-                                              path = parent),
-        RUNTIME_FILES,
-        ## copy source to tmp dir for processing. a softlink won't work here.
-        "cp {v} {outfile} {tmpdir}{path}{renamed}".format(v = "-v" if verbose else "",
-                                                            outfile = src.path,
-                                                            tmpdir = tmpdir,
-                                                            path = parent,
-                                                            renamed = "/"
-                                                            # renamed = "/" + to
-                                                            ),
-
-        "cd {tmp}".format(tmp = tmpdir),
-        "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
-        "cd .."
-    ])
+                                              path = parent)
+    COPY = "cp {v} {outfile} {tmpdir}{path}{renamed}".format(
+        v = "-v" if verbose else "",
+        outfile = src.path,
+        tmpdir = tmpdir,
+        path = parent,
+        renamed = "/"
+        # renamed = "/" + to
+    )
+    CHDIR = "cd {tmp}".format(tmp = tmpdir)
+    if (tmpdir == ""):
+        command = "{exe} $@".format(exe = ctx.executable.ppx.path)
+    else:
+        command = "\n".join([
+            "#!/bin/sh",
+            "set {set}".format(set = "-x" if verbose else "+x"),
+            "{mkdir}".format(mkdir = MKDIR if (tmpdir != "") else ""),
+            RUNTIME_FILES,
+            ## copy source to tmp dir for processing. a softlink won't work here.
+            "{copy}".format(copy = COPY if (tmpdir != "") else ""),
+            "{chdir}".format(chdir= CHDIR if (tmpdir != "") else ""),
+            "ls src/lib_stdlib",
+            "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
+            "cd .."
+        ])
 
     runner = ctx.actions.declare_file(ctx.attr.name + "_ppx.sh")
 
     if debug:
-        print("RUNNER:")
-        print(command)
+        print("Writing RUNNER file: %s" % runner)
+        print("\n%s" % command)
 
     ctx.actions.write(
         output  = runner,

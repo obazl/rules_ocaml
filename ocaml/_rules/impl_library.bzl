@@ -1,10 +1,10 @@
 load("//ocaml:providers.bzl",
-     "AdjunctDepsProvider",
+     "AdjunctDepsMarker",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "OcamlLibraryProvider",
-     "PpxLibraryProvider",
-     # "OpamDepsProvider"
+     "OcamlLibraryMarker",
+     "PpxLibraryMarker",
+     # "OpamDepsMarker"
      )
 
 load("//ocaml/_functions:utils.bzl",
@@ -13,6 +13,7 @@ load("//ocaml/_functions:utils.bzl",
 )
 
 load(":impl_common.bzl",
+     "dsorder",
      "merge_deps")
 
 #############################
@@ -42,11 +43,11 @@ def impl_library(ctx):
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
 
-    indirect_opam_depsets  = []
+    # indirect_opam_depsets  = []
 
     indirect_adjunct_depsets = []
     indirect_adjunct_path_depsets = []
-    indirect_adjunct_opam_depsets  = []
+    # indirect_adjunct_opam_depsets  = []
 
     indirect_cc_deps  = {}
 
@@ -57,10 +58,10 @@ def impl_library(ctx):
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               indirect_opam_depsets,
+               # indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
-               indirect_adjunct_opam_depsets,
+               # indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
     ## Library targets do not produce anything, they just pass on their deps.
@@ -75,66 +76,73 @@ def impl_library(ctx):
 
     defaultInfo = DefaultInfo(
         files = depset(
-            order = "postorder",
+            order = dsorder,
             transitive = merged_module_links_depsets
         )
     )
 
+    module_links     = depset(
+        order = dsorder,
+        transitive = merged_module_links_depsets
+    )
+    archive_links = depset(
+        order = dsorder,
+        transitive = merged_archive_links_depsets
+    )
+    paths_depset = depset(
+        transitive = merged_paths_depsets
+    )
+    depgraph = depset(
+        order = dsorder,
+        transitive = merged_depgraph_depsets
+    )
+    archived_modules = depset(
+        order = dsorder,
+        transitive = merged_archived_modules_depsets
+    )
+
     if ctx.attr._rule == "ocaml_library":
-        libraryProvider = OcamlLibraryProvider(
-            module_links     = depset(
-                order = "postorder",
-                transitive = merged_module_links_depsets
-            ),
-            archive_links = depset(
-                order = "postorder",
-                transitive = merged_archive_links_depsets
-            ),
-            paths    = depset(
-                transitive = merged_paths_depsets
-            ),
-            depgraph = depset(
-                order = "postorder",
-                transitive = merged_depgraph_depsets
-            ),
-            archived_modules = depset(
-                order = "postorder",
-                transitive = merged_archived_modules_depsets
-            ),
+        libraryMarker = OcamlLibraryMarker(
+            module_links = module_links,
+            archive_links = archive_links,
+            paths = paths_depset,
+            depgraph = depgraph,
+            archived_modules = archived_modules
         )
     elif ctx.attr._rule == "ppx_library":
-        libraryProvider = PpxLibraryProvider(
+        libraryMarker = PpxLibraryMarker(
             module_links     = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_module_links_depsets
             ),
             archive_links = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_archive_links_depsets
             ),
             paths    = depset(
                 transitive = merged_paths_depsets
             ),
             depgraph = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_archived_modules_depsets
             ),
         )
     else:
         fail("Unexpected rule type: %s" % ctx.attr._rule)
 
-    adjunctsProvider = AdjunctDepsProvider(
+    ppx_adjuncts_depset = depset(transitive = indirect_adjunct_depsets)
+    adjunctsMarker = AdjunctDepsMarker(
         # opam        = depset(transitive = indirect_adjunct_opam_depsets),
-        nopam       = depset(transitive = indirect_adjunct_depsets),
+        nopam       = ppx_adjuncts_depset,
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
     )
 
     # opam_depset = depset(transitive = indirect_opam_depsets)
-    # opamProvider = OpamDepsProvider(
+    # opamMarker = OpamDepsMarker(
     #     pkgs = opam_depset
     # )
 
@@ -144,17 +152,36 @@ def impl_library(ctx):
             print("cc deps for %s" % ctx.label)
             print(indirect_cc_deps)
         cclibs.update(indirect_cc_deps)
-    ccProvider = CcDepsProvider(
+    ccMarker = CcDepsProvider(
         ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
-        libs = cclibs
+        ccdeps_map = cclibs
+    )
+    cclib_files = []
+    for tgt in cclibs.keys():
+        cclib_files.extend(tgt.files.to_list())
+    cclib_files_depset = depset(cclib_files)
 
+    outputGroupInfo = OutputGroupInfo(
+        module_links  = module_links,
+        archive_links = archive_links,
+        depgraph = depgraph,
+        archived_modules = archived_modules,
+        ppx_adjuncts = ppx_adjuncts_depset,
+        cclibs = cclib_files_depset,
+        all_files = depset(transitive=[
+            module_links,
+            archive_links,
+            ppx_adjuncts_depset,
+            cclib_files_depset
+        ])
     )
 
     return [
         defaultInfo,
-        libraryProvider,
-        # opamProvider,
-        adjunctsProvider,
-        ccProvider
+        outputGroupInfo,
+        libraryMarker,
+        # opamMarker,
+        adjunctsMarker,
+        ccMarker
     ]
 

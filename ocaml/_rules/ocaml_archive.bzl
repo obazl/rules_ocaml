@@ -1,12 +1,12 @@
 load("//ocaml:providers.bzl",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlSignatureProvider",
-     "PpxArchiveProvider") ## what about PpxModule?
+     "OcamlArchiveMarker",
+     "OcamlImportMarker",
+     "OcamlLibraryMarker",
+     "OcamlModuleMarker",
+     "OcamlNsArchiveMarker",
+     "OcamlNsLibraryMarker",
+     "OcamlSignatureMarker",
+     "PpxArchiveMarker") ## what about PpxModule?
 
 load(":options.bzl", "options")
 
@@ -47,14 +47,14 @@ ocaml_archive = rule(
 
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OcamlImportProvider],
-                         [OcamlLibraryProvider],
-                         [OcamlArchiveProvider],
-                         [OcamlModuleProvider],
-                         # [OcamlNsArchiveProvider],
-                         [OcamlNsLibraryProvider],
-                         [OcamlSignatureProvider],
-                         # [PpxArchiveProvider]
+            providers = [[OcamlImportMarker],
+                         [OcamlLibraryMarker],
+                         [OcamlArchiveMarker],
+                         [OcamlModuleMarker],
+                         # [OcamlNsArchiveMarker],
+                         [OcamlNsLibraryMarker],
+                         [OcamlSignatureMarker],
+                         # [PpxArchiveMarker]
                          ],
         ),
 
@@ -97,7 +97,7 @@ ocaml_archive = rule(
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
     # cfg     = nsarchive_in_transition,
-    provides = [OcamlArchiveProvider],
+    provides = [OcamlArchiveMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

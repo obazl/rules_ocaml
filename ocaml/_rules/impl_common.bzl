@@ -3,25 +3,35 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
-     "AdjunctDepsProvider",
+     "AdjunctDepsMarker",
      "CcDepsProvider",
-     "OcamlArchiveProvider",
-     "OcamlImportProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "OcamlNsArchiveProvider",
-     "OcamlNsLibraryProvider",
+     "OcamlArchiveMarker",
+     # "OcamlImportMarker",
+     "OcamlLibraryMarker",
+     "OcamlModuleMarker",
+     "OcamlNsArchiveMarker",
+     "OcamlNsLibraryMarker",
      "OcamlNsResolverProvider",
-     "OcamlSignatureProvider",
-     # "OpamDepsProvider",
-     "PpxArchiveProvider",
-     "PpxLibraryProvider",
-     "PpxModuleProvider",
-     "PpxNsArchiveProvider",
-     "PpxNsLibraryProvider"
+     "OcamlSignatureMarker",
+     # "OpamDepsMarker",
+     "PpxArchiveMarker",
+     "PpxLibraryMarker",
+     "PpxModuleMarker",
+     "PpxNsArchiveMarker",
+     "PpxNsLibraryMarker"
      )
 
-tmpdir = "__obazl/"
+# load("//ocaml:providers.bzl",
+#      "OcamlImportMarker",
+#      "OcamlImportArchivesMarker",
+#      "OcamlImportPluginsMarker",
+#      "OcamlImportSignaturesMarker",
+#      "OcamlImportPathsMarker",
+#      "OcamlImportPpxAdjunctsMarker")
+
+tmpdir = "" # "__obazl/"
+
+dsorder = "postorder"
 
 opam_lib_prefix = "external/ocaml/_lib"
 
@@ -34,187 +44,199 @@ def merge_deps(deps,
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               indirect_opam_depsets,
+
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
-               indirect_adjunct_opam_depsets,
                indirect_cc_deps):
 
     ccdeps_labels = {}
     ccdeps = {}
 
     for dep in deps:
-        # print("DEP: {d}, type: {t}".format( d = dep, t = type(dep)))
+        # print("DEP: {d}, lbl: '{lbl}', type: {t}".format(
+        #     d = dep, lbl = dep.label if type(dep) == "Target" else "",
+        #     t = type(dep)))
 
         ## this is for ctx.attr.sig, which is single label/file
         if type(dep) == "list":
-            if  OcamlSignatureProvider in dep[0]:
+            if  OcamlSignatureMarker in dep[0]:
                 # print("SIGDEP depgraph:")
-                # print(dep[0][OcamlSignatureProvider].depgraph)
-                if hasattr(dep[0][OcamlSignatureProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[0][OcamlSignatureProvider].archive_links)
-                if hasattr(dep[0][OcamlSignatureProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[0][OcamlSignatureProvider].module_links)
-                if hasattr(dep[0][OcamlSignatureProvider], "paths"):
-                    merged_paths_depsets.append(dep[0][OcamlSignatureProvider].paths)
-                if hasattr(dep[0][OcamlSignatureProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[0][OcamlSignatureProvider].depgraph)
-                if hasattr(dep[0][OcamlSignatureProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[0][OcamlSignatureProvider].archived_modules)
+                # print(dep[0][OcamlSignatureMarker].depgraph)
+                if hasattr(dep[0][OcamlSignatureMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[0][OcamlSignatureMarker].archive_links)
+                if hasattr(dep[0][OcamlSignatureMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[0][OcamlSignatureMarker].module_links)
+                if hasattr(dep[0][OcamlSignatureMarker], "paths"):
+                    merged_paths_depsets.append(dep[0][OcamlSignatureMarker].paths)
+                if hasattr(dep[0][OcamlSignatureMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[0][OcamlSignatureMarker].depgraph)
+                if hasattr(dep[0][OcamlSignatureMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[0][OcamlSignatureMarker].archived_modules)
 
         ## this is for ctx.attr.deps etc. - label lists
         else:
-            if OcamlModuleProvider in dep:
+            if OcamlModuleMarker in dep:
                 # print("MODULEDEP depgraph")
-                # print(dep[OcamlModuleProvider].depgraph)
-                if hasattr(dep[OcamlModuleProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[OcamlModuleProvider].module_links)
-                if hasattr(dep[OcamlModuleProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[OcamlModuleProvider].archive_links)
-                if hasattr(dep[OcamlModuleProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlModuleProvider].paths)
-                if hasattr(dep[OcamlModuleProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[OcamlModuleProvider].depgraph)
-                if hasattr(dep[OcamlModuleProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[OcamlModuleProvider].archived_modules)
+                # print(dep[OcamlModuleMarker].depgraph)
+                if hasattr(dep[OcamlModuleMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[OcamlModuleMarker].module_links)
+                if hasattr(dep[OcamlModuleMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[OcamlModuleMarker].archive_links)
+                if hasattr(dep[OcamlModuleMarker], "paths"):
+                    merged_paths_depsets.append(dep[OcamlModuleMarker].paths)
+                if hasattr(dep[OcamlModuleMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[OcamlModuleMarker].depgraph)
+                if hasattr(dep[OcamlModuleMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[OcamlModuleMarker].archived_modules)
 
-            if  OcamlSignatureProvider in dep:
+            if  OcamlSignatureMarker in dep:
                 # print("SIGDEP depgraph:")
-                # print(dep[OcamlSignatureProvider].depgraph)
-                if hasattr(dep[OcamlSignatureProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[OcamlSignatureProvider].archive_links)
-                if hasattr(dep[OcamlSignatureProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[OcamlSignatureProvider].module_links)
-                if hasattr(dep[OcamlSignatureProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlSignatureProvider].paths)
-                if hasattr(dep[OcamlSignatureProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[OcamlSignatureProvider].depgraph)
-                if hasattr(dep[OcamlSignatureProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[OcamlSignatureProvider].archived_modules)
+                # print(dep[OcamlSignatureMarker].depgraph)
+                if hasattr(dep[OcamlSignatureMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[OcamlSignatureMarker].archive_links)
+                if hasattr(dep[OcamlSignatureMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[OcamlSignatureMarker].module_links)
+                if hasattr(dep[OcamlSignatureMarker], "paths"):
+                    merged_paths_depsets.append(dep[OcamlSignatureMarker].paths)
+                if hasattr(dep[OcamlSignatureMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[OcamlSignatureMarker].depgraph)
+                if hasattr(dep[OcamlSignatureMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[OcamlSignatureMarker].archived_modules)
 
-            if OcamlImportProvider in dep:
-                # print("OcamlImportProvider")
-                # print(dep[DefaultInfo].files)
-                if hasattr(dep[OcamlImportProvider], "deps_adjunct"):
-                    adjuncts = dep[OcamlImportProvider].deps_adjunct
-                    if (len(adjuncts.to_list()) > 0):
-                        # print("MERGING ADJUNCT DEPS: %s" % adjuncts)
-                        indirect_adjunct_depsets.append(adjuncts)
-                if hasattr(dep[OcamlImportProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlImportProvider].paths)
-                if hasattr(dep[OcamlImportProvider], "signatures"):
-                    merged_module_links_depsets.append(dep[OcamlImportProvider].signatures)
-                merged_depgraph_depsets.append(dep[DefaultInfo].files)
-                # if hasattr(dep[OcamlModuleProvider], "archived_modules"):
-                #     merged_archived_modules_depsets.append(dep[OcamlModuleProvider].archived_modules)
+            ################################################################
+            ## ocaml_import provides: archives, plugins, sigs, etc.
+            # if OcamlImportPathsMarker in dep:
+            #     merged_paths_depsets.append(dep[OcamlImportPathsMarker].paths)
 
-            if PpxModuleProvider in dep:
-                if hasattr(dep[PpxModuleProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[PpxModuleProvider].module_links)
-                if hasattr(dep[PpxModuleProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[PpxModuleProvider].archive_links)
-                if hasattr(dep[PpxModuleProvider], "paths"):
-                    merged_paths_depsets.append(dep[PpxModuleProvider].paths)
-                if hasattr(dep[PpxModuleProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[PpxModuleProvider].depgraph)
-                if hasattr(dep[PpxModuleProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[PpxModuleProvider].archived_modules)
+            # if OcamlImportArchivesMarker in dep:
+            #     ideps = dep[OcamlImportArchivesMarker]
+            #     merged_archive_links_depsets.append(ideps.archives)
+            #     # if dep.label.name in ["bls12-381", "bls12-381-gen"]:
+            #     #     print("X381A: %s" % ideps)
 
-            if OcamlArchiveProvider in dep:
-                if hasattr(dep[OcamlArchiveProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[OcamlArchiveProvider].archive_links)
-                if hasattr(dep[OcamlArchiveProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[OcamlArchiveProvider].module_links)
-                if hasattr(dep[OcamlArchiveProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlArchiveProvider].paths)
-                if hasattr(dep[OcamlArchiveProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[OcamlArchiveProvider].depgraph)
-                if hasattr(dep[OcamlArchiveProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[OcamlArchiveProvider].archived_modules)
+            # # if OcamlImportPluginsMarker in dep:
+            # #     merged_???_depsets.append(dep[OcamlImportPluginsMarker].plugins)
 
-            if PpxArchiveProvider in dep:
-                if hasattr(dep[PpxArchiveProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[PpxArchiveProvider].archive_links)
-                if hasattr(dep[PpxArchiveProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[PpxArchiveProvider].module_links)
-                if hasattr(dep[PpxArchiveProvider], "paths"):
-                    merged_paths_depsets.append(dep[PpxArchiveProvider].paths)
-                if hasattr(dep[PpxArchiveProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[PpxArchiveProvider].depgraph)
-                if hasattr(dep[PpxArchiveProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[PpxArchiveProvider].archived_modules)
+            # if OcamlImportSignaturesMarker in dep:
+            #     ## mix with modules for now...
+            #     ideps = dep[OcamlImportSignaturesMarker]
+            #     merged_module_links_depsets.append(ideps.signatures)
+            #     if dep.label.name in ["bls12-381", "bls12-381-gen"]:
+            #         print("X381SIG: %s" % ideps)
 
-            if OcamlLibraryProvider in dep:
-                if hasattr(dep[OcamlLibraryProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[OcamlLibraryProvider].archive_links)
-                if hasattr(dep[OcamlLibraryProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[OcamlLibraryProvider].module_links)
-                if hasattr(dep[OcamlLibraryProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlLibraryProvider].paths)
-                if hasattr(dep[OcamlLibraryProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[OcamlLibraryProvider].depgraph)
-                if hasattr(dep[OcamlLibraryProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[OcamlLibraryProvider].archived_modules)
+            # if OcamlImportPpxAdjunctsMarker in dep:
+            #     indirect_adjunct_depsets.append(dep[OcamlImportPpxAdjunctsMarker].ppx_adjuncts)
+            #     # if hasattr(dep[OcamlImportMarker], "deps_adjunct_paths"):
+            #     #     indirect_adjunct_path_depsets.append(dep[OcamlImportMarker].deps_adjunct_paths)
 
-            if PpxLibraryProvider in dep:
-                if hasattr(dep[PpxLibraryProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[PpxLibraryProvider].archive_links)
-                if hasattr(dep[PpxLibraryProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[PpxLibraryProvider].module_links)
-                if hasattr(dep[PpxLibraryProvider], "paths"):
-                    merged_paths_depsets.append(dep[PpxLibraryProvider].paths)
-                if hasattr(dep[PpxLibraryProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[PpxLibraryProvider].depgraph)
-                if hasattr(dep[PpxLibraryProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[PpxLibraryProvider].archived_modules)
+            ################################################################
+            if PpxModuleMarker in dep:
+                if hasattr(dep[PpxModuleMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[PpxModuleMarker].module_links)
+                if hasattr(dep[PpxModuleMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[PpxModuleMarker].archive_links)
+                if hasattr(dep[PpxModuleMarker], "paths"):
+                    merged_paths_depsets.append(dep[PpxModuleMarker].paths)
+                if hasattr(dep[PpxModuleMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[PpxModuleMarker].depgraph)
+                if hasattr(dep[PpxModuleMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[PpxModuleMarker].archived_modules)
 
-            if OcamlNsArchiveProvider in dep:
-                if hasattr(dep[OcamlNsArchiveProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[OcamlNsArchiveProvider].archive_links)
-                if hasattr(dep[OcamlNsArchiveProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[OcamlNsArchiveProvider].module_links)
-                if hasattr(dep[OcamlNsArchiveProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlNsArchiveProvider].paths)
-                if hasattr(dep[OcamlNsArchiveProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[OcamlNsArchiveProvider].depgraph)
-                if hasattr(dep[OcamlNsArchiveProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[OcamlNsArchiveProvider].archived_modules)
+            if OcamlArchiveMarker in dep:
+                if hasattr(dep[OcamlArchiveMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[OcamlArchiveMarker].archive_links)
+                if hasattr(dep[OcamlArchiveMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[OcamlArchiveMarker].module_links)
+                if hasattr(dep[OcamlArchiveMarker], "paths"):
+                    merged_paths_depsets.append(dep[OcamlArchiveMarker].paths)
+                if hasattr(dep[OcamlArchiveMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[OcamlArchiveMarker].depgraph)
+                if hasattr(dep[OcamlArchiveMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[OcamlArchiveMarker].archived_modules)
 
-            if PpxNsArchiveProvider in dep:
-                if hasattr(dep[PpxNsArchiveProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[PpxNsArchiveProvider].archive_links)
-                if hasattr(dep[PpxNsArchiveProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[PpxNsArchiveProvider].module_links)
-                if hasattr(dep[PpxNsArchiveProvider], "paths"):
-                    merged_paths_depsets.append(dep[PpxNsArchiveProvider].paths)
-                if hasattr(dep[PpxNsArchiveProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[PpxNsArchiveProvider].depgraph)
-                if hasattr(dep[PpxNsArchiveProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[PpxNsArchiveProvider].archived_modules)
+            if PpxArchiveMarker in dep:
+                if hasattr(dep[PpxArchiveMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[PpxArchiveMarker].archive_links)
+                if hasattr(dep[PpxArchiveMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[PpxArchiveMarker].module_links)
+                if hasattr(dep[PpxArchiveMarker], "paths"):
+                    merged_paths_depsets.append(dep[PpxArchiveMarker].paths)
+                if hasattr(dep[PpxArchiveMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[PpxArchiveMarker].depgraph)
+                if hasattr(dep[PpxArchiveMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[PpxArchiveMarker].archived_modules)
 
-            if OcamlNsLibraryProvider in dep:
-                if hasattr(dep[OcamlNsLibraryProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[OcamlNsLibraryProvider].archive_links)
-                if hasattr(dep[OcamlNsLibraryProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[OcamlNsLibraryProvider].module_links)
-                if hasattr(dep[OcamlNsLibraryProvider], "paths"):
-                    merged_paths_depsets.append(dep[OcamlNsLibraryProvider].paths)
-                if hasattr(dep[OcamlNsLibraryProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[OcamlNsLibraryProvider].depgraph)
-                if hasattr(dep[OcamlNsLibraryProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[OcamlNsLibraryProvider].archived_modules)
+            if OcamlLibraryMarker in dep:
+                if hasattr(dep[OcamlLibraryMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[OcamlLibraryMarker].archive_links)
+                if hasattr(dep[OcamlLibraryMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[OcamlLibraryMarker].module_links)
+                if hasattr(dep[OcamlLibraryMarker], "paths"):
+                    merged_paths_depsets.append(dep[OcamlLibraryMarker].paths)
+                if hasattr(dep[OcamlLibraryMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[OcamlLibraryMarker].depgraph)
+                if hasattr(dep[OcamlLibraryMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[OcamlLibraryMarker].archived_modules)
 
-            if PpxNsLibraryProvider in dep:
-                if hasattr(dep[PpxNsLibraryProvider], "archive_links"):
-                    merged_archive_links_depsets.append(dep[PpxNsLibraryProvider].archive_links)
-                if hasattr(dep[PpxNsLibraryProvider], "module_links"):
-                    merged_module_links_depsets.append(dep[PpxNsLibraryProvider].module_links)
-                if hasattr(dep[PpxNsLibraryProvider], "paths"):
-                    merged_paths_depsets.append(dep[PpxNsLibraryProvider].paths)
-                if hasattr(dep[PpxNsLibraryProvider], "depgraph"):
-                    merged_depgraph_depsets.append(dep[PpxNsLibraryProvider].depgraph)
-                if hasattr(dep[PpxNsLibraryProvider], "archived_modules"):
-                    merged_archived_modules_depsets.append(dep[PpxNsLibraryProvider].archived_modules)
+            if PpxLibraryMarker in dep:
+                if hasattr(dep[PpxLibraryMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[PpxLibraryMarker].archive_links)
+                if hasattr(dep[PpxLibraryMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[PpxLibraryMarker].module_links)
+                if hasattr(dep[PpxLibraryMarker], "paths"):
+                    merged_paths_depsets.append(dep[PpxLibraryMarker].paths)
+                if hasattr(dep[PpxLibraryMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[PpxLibraryMarker].depgraph)
+                if hasattr(dep[PpxLibraryMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[PpxLibraryMarker].archived_modules)
+
+            if OcamlNsArchiveMarker in dep:
+                if hasattr(dep[OcamlNsArchiveMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[OcamlNsArchiveMarker].archive_links)
+                if hasattr(dep[OcamlNsArchiveMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[OcamlNsArchiveMarker].module_links)
+                if hasattr(dep[OcamlNsArchiveMarker], "paths"):
+                    merged_paths_depsets.append(dep[OcamlNsArchiveMarker].paths)
+                if hasattr(dep[OcamlNsArchiveMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[OcamlNsArchiveMarker].depgraph)
+                if hasattr(dep[OcamlNsArchiveMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[OcamlNsArchiveMarker].archived_modules)
+
+            if PpxNsArchiveMarker in dep:
+                if hasattr(dep[PpxNsArchiveMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[PpxNsArchiveMarker].archive_links)
+                if hasattr(dep[PpxNsArchiveMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[PpxNsArchiveMarker].module_links)
+                if hasattr(dep[PpxNsArchiveMarker], "paths"):
+                    merged_paths_depsets.append(dep[PpxNsArchiveMarker].paths)
+                if hasattr(dep[PpxNsArchiveMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[PpxNsArchiveMarker].depgraph)
+                if hasattr(dep[PpxNsArchiveMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[PpxNsArchiveMarker].archived_modules)
+
+            if OcamlNsLibraryMarker in dep:
+                if hasattr(dep[OcamlNsLibraryMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[OcamlNsLibraryMarker].archive_links)
+                if hasattr(dep[OcamlNsLibraryMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[OcamlNsLibraryMarker].module_links)
+                if hasattr(dep[OcamlNsLibraryMarker], "paths"):
+                    merged_paths_depsets.append(dep[OcamlNsLibraryMarker].paths)
+                if hasattr(dep[OcamlNsLibraryMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[OcamlNsLibraryMarker].depgraph)
+                if hasattr(dep[OcamlNsLibraryMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[OcamlNsLibraryMarker].archived_modules)
+
+            if PpxNsLibraryMarker in dep:
+                if hasattr(dep[PpxNsLibraryMarker], "archive_links"):
+                    merged_archive_links_depsets.append(dep[PpxNsLibraryMarker].archive_links)
+                if hasattr(dep[PpxNsLibraryMarker], "module_links"):
+                    merged_module_links_depsets.append(dep[PpxNsLibraryMarker].module_links)
+                if hasattr(dep[PpxNsLibraryMarker], "paths"):
+                    merged_paths_depsets.append(dep[PpxNsLibraryMarker].paths)
+                if hasattr(dep[PpxNsLibraryMarker], "depgraph"):
+                    merged_depgraph_depsets.append(dep[PpxNsLibraryMarker].depgraph)
+                if hasattr(dep[PpxNsLibraryMarker], "archived_modules"):
+                    merged_archived_modules_depsets.append(dep[PpxNsLibraryMarker].archived_modules)
 
             if OcamlNsResolverProvider in dep:
                 merged_module_links_depsets.append(dep[DefaultInfo].files)
@@ -223,13 +245,14 @@ def merge_deps(deps,
                 if hasattr(dep[OcamlNsResolverProvider], "files"):
                     merged_depgraph_depsets.append(dep[OcamlNsResolverProvider].files)
 
-            if AdjunctDepsProvider in dep:
-                indirect_adjunct_depsets.append(dep[AdjunctDepsProvider].nopam)
-                indirect_adjunct_path_depsets.append(dep[AdjunctDepsProvider].nopam_paths)
-                # indirect_adjunct_opam_depsets.append(dep[AdjunctDepsProvider].opam)
+            if AdjunctDepsMarker in dep:
+                # print(dep[AdjunctDepsMarker])
+                indirect_adjunct_depsets.append(dep[AdjunctDepsMarker].nopam)
+                indirect_adjunct_path_depsets.append(dep[AdjunctDepsMarker].nopam_paths)
+                # indirect_adjunct_opam_depsets.append(dep[AdjunctDepsMarker].opam)
 
-            # if OpamDepsProvider in dep:
-            #     indirect_opam_depsets.append(dep[OpamDepsProvider].pkgs)
+            # if OpamDepsMarker in dep:
+            #     indirect_opam_depsets.append(dep[OpamDepsMarker].pkgs)
 
             if CcDepsProvider in dep:
                 # if str(dep.label) == "//kernel:_Names":

@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl", "PpxExecutableProvider")
+load("//ocaml:providers.bzl", "PpxExecutableMarker")
 
 load("//ocaml/_transitions:transitions.bzl", "ppx_mode_transition")
 
@@ -70,7 +70,7 @@ ppx_x_test = rule(
     ),
     ppx = attr.label(
         mandatory = True,
-        providers = [[PpxExecutableProvider]],
+        providers = [[PpxExecutableMarker]],
         executable = True,
         cfg = "host",
         allow_single_file = True
@@ -163,7 +163,7 @@ fi
 #     ),
 #     ppx = attr.label(
 #         mandatory = True,
-#         providers = [[DefaultInfo], [PpxExecutableProvider]],
+#         providers = [[DefaultInfo], [PpxExecutableMarker]],
 #         executable = True,
 #         cfg = "host",
 #         allow_single_file = True
@@ -449,7 +449,7 @@ ppx_expect_test = rule(
         ),
         ppx = attr.label(
             # mandatory = True,
-            providers = [[DefaultInfo], [PpxExecutableProvider]],
+            providers = [[DefaultInfo], [PpxExecutableMarker]],
             executable = True,
             cfg = "host",
             allow_single_file = True
@@ -488,9 +488,9 @@ ppx_expect_test = rule(
             default = "binary"
         ),
         deps = attr.label_list( ),
-        deps_opam = attr.string_list(
-            doc = "List of OPAM package names"
-        ),
+        # deps_opam = attr.string_list(
+        #     doc = "List of OPAM package names"
+        # ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn 'ppx_mode_transition', for attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -666,9 +666,9 @@ ppx_test = rule(
             default = "binary"
         ),
         deps = attr.label_list( ),
-        deps_opam = attr.string_list(
-            doc = "List of OPAM package names"
-        ),
+        # deps_opam = attr.string_list(
+        #     doc = "List of OPAM package names"
+        # ),
         mode = attr.string(default = "native"),
         message = attr.string()
     ),

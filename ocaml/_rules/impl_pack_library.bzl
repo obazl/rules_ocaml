@@ -3,16 +3,16 @@ load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "AdjunctDepsProvider",
+     "AdjunctDepsMarker",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "OcamlArchiveProvider",
-     "OcamlModuleProvider",
+     "OcamlArchiveMarker",
+     "OcamlModuleMarker",
      "OcamlNsResolverProvider",
-     "OcamlSignatureProvider",
-     # "OpamDepsProvider",
+     "OcamlSignatureMarker",
+     # "OpamDepsMarker",
      "OcamlSDK",
-     "PpxModuleProvider")
+     "PpxModuleMarker")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -33,6 +33,7 @@ load("//ocaml/_functions:utils.bzl",
 )
 
 load(":impl_common.bzl",
+     "dsorder",
      "merge_deps",
      "tmpdir")
 
@@ -174,7 +175,7 @@ def impl_pack_library(ctx):
             fail("Unexpected rule for 'impl_pack_library': %s" % ctx.attr._rule)
 
         print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver[DefaultInfo])
-        print("  _NS_RESOLVER Provider: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
+        print("  _NS_RESOLVER Marker: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
         ns_prefixes     = ctx.attr._ns_prefixes[BuildSettingInfo].value
         ns_submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
         print("  _NS_PREFIXES: %s" % ns_prefixes)
@@ -209,11 +210,11 @@ def impl_pack_library(ctx):
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
 
-    indirect_opam_depsets = []
+    # indirect_opam_depsets = []
 
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    indirect_adjunct_opam_depsets = []
+    # indirect_adjunct_opam_depsets = []
 
     indirect_cc_deps  = {}
 
@@ -264,10 +265,10 @@ def impl_pack_library(ctx):
                merged_paths_depsets,
                merged_depgraph_depsets,
                merged_archived_modules_depsets,
-               indirect_opam_depsets,
+               # indirect_opam_depsets,
                indirect_adjunct_depsets,
                indirect_adjunct_path_depsets,
-               indirect_adjunct_opam_depsets,
+               # indirect_adjunct_opam_depsets,
                indirect_cc_deps)
 
     print("MERGED INDIRECT_CC_DEPS: %s" % indirect_cc_deps)
@@ -354,7 +355,7 @@ def impl_pack_library(ctx):
     # args.add("-impl", structfile)
 
     inputs_depset = depset(
-        order = "postorder",
+        order = dsorder,
         direct = cclib_deps,
         transitive = merged_depgraph_depsets
     )
@@ -386,20 +387,20 @@ def impl_pack_library(ctx):
 
     defaultInfo = DefaultInfo(
         files = depset(
-            order = "postorder",
+            order = dsorder,
             direct = [out_cm_],
         ),
     )
 
     if (ctx.attr._rule == "ocaml_pack_library"):
-        moduleProvider = OcamlModuleProvider(
+        moduleMarker = OcamlModuleMarker(
             module_links     = depset(
-                order = "postorder",
+                order = dsorder,
                 direct = [out_cm_],
                 transitive = merged_module_links_depsets
             ),
             archive_links = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_archive_links_depsets
             ),
             paths    = depset(
@@ -407,24 +408,24 @@ def impl_pack_library(ctx):
                 transitive = merged_paths_depsets
             ),
             depgraph = depset(
-                order = "postorder",
+                order = dsorder,
                 direct = outputs + [out_cmi],
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_archived_modules_depsets
             ),
         )
     elif ctx.attr._rule == "ppx_module" or ctx.attr._rule == "ppx_submodule":
-        moduleProvider = PpxModuleProvider(
+        moduleMarker = PpxModuleMarker(
             module_links     = depset(
-                order = "postorder",
+                order = dsorder,
                 direct = [out_cm_],
                 transitive = merged_module_links_depsets
             ),
             archive_links = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_archive_links_depsets
             ),
             paths    = depset(
@@ -432,21 +433,21 @@ def impl_pack_library(ctx):
                 transitive = merged_paths_depsets
             ),
             depgraph = depset(
-                order = "postorder",
+                order = dsorder,
                 direct = outputs,
                 transitive = merged_depgraph_depsets
             ),
             archived_modules = depset(
-                order = "postorder",
+                order = dsorder,
                 transitive = merged_archived_modules_depsets
             ),
         )
 
-    # opamProvider = OpamDepsProvider(
+    # opamMarker = OpamDepsMarker(
     #     pkgs = opam_depset
     # )
 
-    adjunctsProvider = AdjunctDepsProvider(
+    adjunctsMarker = AdjunctDepsMarker(
         # opam        = depset(transitive = indirect_adjunct_opam_depsets),
         nopam       = depset(transitive = indirect_adjunct_depsets),
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
@@ -457,17 +458,17 @@ def impl_pack_library(ctx):
     cclibs.update(ctx.attr.cc_deps)
     if len(indirect_cc_deps) > 0:
         cclibs.update(indirect_cc_deps)
-    ccProvider = CcDepsProvider(
+    ccMarker = CcDepsProvider(
         ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
         libs = cclibs
 
     )
-    print("OUTPUT CCPROVIDER: %s" % ccProvider)
+    print("OUTPUT CCPROVIDER: %s" % ccMarker)
 
     return [
         defaultInfo,
-        moduleProvider,
-        # opamProvider,
-        adjunctsProvider,
-        ccProvider
+        moduleMarker,
+        # opamMarker,
+        adjunctsMarker,
+        ccMarker
     ]

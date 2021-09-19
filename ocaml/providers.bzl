@@ -1,9 +1,89 @@
 """Public Providers for obaz_rules_ocaml LSP."""
 
-load("//ocaml/_providers:opam.bzl", _OpamConfig = "OpamConfig", _BuildConfig = "BuildConfig")
+load("//ocaml/_providers:opam.bzl",
+     _OpamConfig = "OpamConfig", _BuildConfig = "BuildConfig")
 
-OpamConfig = _OpamConfig
-BuildConfig = _BuildConfig
+load("//ocaml/_providers:ocaml.bzl",
+     _OcamlProvider           = "OcamlProvider",
+     _OcamlNsResolverProvider = "OcamlNsResolverProvider",
+
+     ## markers
+     _AdjunctDepsMarker  = "AdjunctDepsMarker",
+     _OcamlArchiveMarker    = "OcamlArchiveMarker",
+     _OcamlExecutableMarker = "OcamlExecutableMarker",
+     _OcamlImportMarker     = "OcamlImportMarker",
+     _OcamlLibraryMarker    = "OcamlLibraryMarker",
+     _OcamlModuleMarker     = "OcamlModuleMarker",
+     _OcamlNsArchiveMarker  = "OcamlNsArchiveMarker",
+     _OcamlNsLibraryMarker  = "OcamlNsLibraryMarker",
+     _OcamlSignatureMarker  = "OcamlSignatureMarker",
+     _OcamlTestMarker    = "OcamlTestMarker",
+
+     _PpxArchiveMarker    = "PpxArchiveMarker",
+     _PpxExecutableMarker = "PpxExecutableMarker",
+     _PpxModuleMarker     = "PpxModuleMarker",
+     _PpxLibraryMarker    = "PpxLibraryMarker",
+     _PpxNsArchiveMarker  = "PpxNsArchiveMarker",
+     _PpxNsLibraryMarker  = "PpxNsLibraryMarker")
+
+load("//ocaml/_providers:archive.bzl",
+     _OcamlArchiveProvider      = "OcamlArchiveProvider")
+
+load("//ocaml/_providers:module.bzl",
+     _OcamlModuleProvider      = "OcamlModuleProvider",
+     _PpxModuleProvider      = "PpxModuleProvider")
+
+load("//ocaml/_providers:imports.bzl",
+     _OcamlImportProvider           = "OcamlImportProvider",
+     _OcamlImportArchivesProvider   = "OcamlImportArchivesProvider",
+     _OcamlImportPluginsProvider    = "OcamlImportPluginsProvider",
+     _OcamlImportSignaturesProvider = "OcamlImportSignaturesProvider",
+     _OcamlImportPathsProvider      = "OcamlImportPathsProvider")
+
+OpamConfig                          = _OpamConfig
+BuildConfig                         = _BuildConfig
+
+OcamlProvider                      = _OcamlProvider
+OcamlNsResolverProvider            = _OcamlNsResolverProvider
+
+AdjunctDepsMarker                 = _AdjunctDepsMarker
+OcamlArchiveMarker                 = _OcamlArchiveMarker
+OcamlExecutableMarker                 = _OcamlExecutableMarker
+OcamlImportMarker                  = _OcamlImportMarker
+OcamlLibraryMarker                 = _OcamlLibraryMarker
+OcamlModuleMarker                  = _OcamlModuleMarker
+OcamlNsArchiveMarker               = _OcamlNsArchiveMarker
+OcamlNsLibraryMarker               = _OcamlNsLibraryMarker
+OcamlSignatureMarker               = _OcamlSignatureMarker
+OcamlTestMarker                    = _OcamlTestMarker
+
+PpxArchiveMarker    = _PpxArchiveMarker
+PpxExecutableMarker = _PpxExecutableMarker
+PpxModuleMarker     = _PpxModuleMarker
+PpxLibraryMarker    = _PpxLibraryMarker
+PpxNsArchiveMarker  = _PpxNsArchiveMarker
+PpxNsLibraryMarker  = _PpxNsLibraryMarker
+
+OcamlArchiveProvider               = _OcamlArchiveProvider
+OcamlModuleProvider                = _OcamlModuleProvider
+PpxModuleProvider                  = _PpxModuleProvider
+
+OcamlImportProvider                 = _OcamlImportProvider
+OcamlImportArchivesProvider         = _OcamlImportArchivesProvider
+OcamlImportPluginsProvider          = _OcamlImportPluginsProvider
+OcamlImportSignaturesProvider       = _OcamlImportSignaturesProvider
+OcamlImportPathsProvider            = _OcamlImportPathsProvider
+
+################
+OcamlPathsProvider = provider(
+    doc = """Provides path strings.
+
+We cache paths in this string depset; without this, we would have to iterate over all deps to extract paths, and then we would have to de-duplicate the result. With a depset we get deduplication for free.
+""",
+    fields = {
+        "paths": "string depset"
+    }
+)
 
 ################ Config Settings ################
 CompilationModeSettingProvider = provider(
@@ -92,60 +172,22 @@ module_fields = {
 #     }
 # )
 
-AdjunctDepsProvider = provider(
-    doc    = "Adjuct dependencies provider.",
-    fields = {
-        "nopam": "Depset of non-opam adjunct deps.",
-        "nopam_paths": "Depset of paths of nopam adjunct deps",
-        # "opam" : "Depset of opam adjunct deps."
-    }
-)
-
-OcamlArchiveProvider = provider(
-    doc = "OCaml archive provider.",
-    fields = {
-        "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        "paths":    "Depset of paths for -I params",
-        "depgraph": "Depset containing transitive closure of deps",
-        "archived_modules": "Depset containing archive contents"
-    }
-    # fields = {
-    #     "archives": "Depset of archive files.",
-    #     "deps": "Depset of archive deps (components) excluding the archive files themselves. To be added to depgraph but not command line."
-    # }
-)
-
-# OcamlImportProvider = provider(
-#     doc = "OCaml import provider.",
+# AdjunctDepsProvider = provider(
+#     doc    = "Adjuct dependencies provider.",
 #     fields = {
-#         "payload": """A struct with the following fields:
-#             cmx: .cmx file produced by the target
-#             cma: .cma file produced by the target
-#             cmxa: .cmxa file produced by the target
-#             cmxs: .cmxs file produced by the target
-#         """,
-#             # mli:  .mli source file. without the source file, the cmi file will be ignored!
-#         "indirect"   : "A depset of indirect deps."
+#         "nopam": "Depset of non-opam adjunct deps.",
+#         "nopam_paths": "Depset of paths of nopam adjunct deps",
+#         # "opam" : "Depset of opam adjunct deps."
 #     }
 # )
-
-OcamlImportProvider = provider(
-    doc = "OCaml import provider.",
-    fields = {
-        "signatures": "Depset of .mli, .cmi files",
-        "deps_adjunct":    "Depset of adjunct deps, for ppxes",
-        "paths":    "Depset of paths for -I params",
-    }
-)
 
 OcamlExecutableProvider = provider(
     doc = "OCaml executable provider. Marker interface."
 )
 
-OcamlTestProvider = provider(
-    doc = "ocaml_test provider. Marker interface."
-)
+# OcamlTestProvider = provider(
+#     doc = "ocaml_test provider. Marker interface."
+# )
 
 OcamlLibraryProvider = provider(
     doc = """OCaml library provider. A library is a collection of modules, not to be confused with an archive.
@@ -184,19 +226,8 @@ Provided by rule: [ocaml_library](rules_ocaml.md#ocaml_library)
 CcDepsProvider = provider(
     doc =" OPAM deps provider.",
     fields = {
-        "libs": "List of dictionaries of cc deps. Keys: labels; values: linkmode (static | dynamic | default)."
-    }
-)
-
-OcamlModuleProvider = provider(
-    doc = "OCaml module provider.",
-    # fields = module_fields
-    fields = {
-        "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        "paths":    "Depset of paths for -I params",
-        "depgraph": "Depset containing transitive closure of deps",
-        "archived_modules": "Depset containing archive contents"
+        ## NB: depsets cannot contain dictionaries
+        "ccdeps_map": "dictionary of cc deps. Keys: labels; values: linkmode (static | dynamic | default)."
     }
 )
 
@@ -211,17 +242,6 @@ OcamlModuleProvider = provider(
 #         # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)"
 #     }
 # )
-
-OcamlNsResolverProvider = provider(
-    doc = "OCaml NS Resolver provider.",
-    fields = {
-        "files"   : "Depset, instead of DefaultInfo.files",
-        "paths":    "Depset of paths for -I params",
-        "submodules": "List of submodules in this ns",
-        "resolver": "Name of resolver module",
-        "prefixes": "List of alias prefix segs",
-    }
-)
 
 OcamlNsArchiveProvider = provider(
     doc = "OCaml NS Archive provider.",
@@ -250,13 +270,15 @@ OcamlNsLibraryProvider = provider(
 OcamlSignatureProvider = provider(
     doc = "OCaml interface provider.",
     fields = {
+        # "deps": "sig deps",
+
         "mli": ".mli input file",
         "cmi": ".cmi output file",
-        "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        "paths":    "Depset of paths for -I params",
-        "depgraph": "Depset containing transitive closure of deps",
-        "archived_modules": "Depset containing archive contents"
+        # "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        # "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        # "paths":    "Depset of paths for -I params",
+        # "depgraph": "Depset containing transitive closure of deps",
+        # "archived_modules": "Depset containing archive contents"
     }
     # fields = module_fields
     # {
@@ -283,14 +305,14 @@ OcamlSignatureProvider = provider(
 PpxInfo = provider(fields=["ppx", "cmo", "o", "cmx", "a", "cmxa"])
 
 ################ Config Settings ################
-PpxPrintSettingProvider = provider(
-    doc = "Raw value of ppx_print_flag or setting",
-    fields = {
-        "value": "The value of the build setting in the current configuration. " +
-                 "This value may come from the command line or an upstream transition, " +
-                 "or else it will be the build setting's default.",
-    },
-)
+# PpxPrintSettingProvider = provider(
+#     doc = "Raw value of ppx_print_flag or setting",
+#     fields = {
+#         "value": "The value of the build setting in the current configuration. " +
+#                  "This value may come from the command line or an upstream transition, " +
+#                  "or else it will be the build setting's default.",
+#     },
+# )
 
 PpxCompilationModeSettingProvider = provider(
     doc = "Raw value of ppx_mode_flag or setting",
@@ -346,8 +368,8 @@ PpxNsLibraryProvider = provider(
 PpxDepsetProvider = provider(
     doc = "A Provider struct used by OBazl rules to provide heterogenous dependencies.",
     fields = {
-        "opam"       : "depset of OPAM deps (Labels) of target",
-        "opam_adjunct"  : "depset of adjunct OPAM deps; needed when transformed source is compiled",
+        # "opam"       : "depset of OPAM deps (Labels) of target",
+        # "opam_adjunct"  : "depset of adjunct OPAM deps; needed when transformed source is compiled",
         "nopam"      : "depset of non-OPAM deps (Files) of target",
         "nopam_adjunct" : "depset of adjunct non-OPAM deps; needed when transformed source is compiled",
         "cc_deps"  : "depset of C/C++ lib deps",
@@ -376,8 +398,8 @@ PpxExecutableProvider = provider(
         "payload": "Executable file produced by the target.",
         "args"   : "Args to be passed when binary is invoked",
         "deps"   : """A triple of depsets:
-            opam : direct and transitive opam deps (Labels) of target
-            opam_adjunct : extension output deps; needed when transformed source is compiled
+            # opam : direct and transitive opam deps (Labels) of target
+            # opam_adjunct : extension output deps; needed when transformed source is compiled
             nopam: direct and transitive non-opam deps (Files) of target
             nopam_adjunct : extension output deps; needed when transformed source is compiled
         """
@@ -405,17 +427,5 @@ PpxLibraryProvider = provider(
     #         nopam_adjunct_deps : extension output deps; needed when transformed source is compiled
     #     """
     # }
-)
-
-PpxModuleProvider = provider(
-    doc = "OCaml PPX module provider.",
-    # fields = module_fields
-    fields = {
-        "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        "paths":    "Depset of paths for -I params",
-        "depgraph": "Depset containing transitive closure of deps",
-        "archived_modules": "Depset containing archive contents"
-    }
 )
 

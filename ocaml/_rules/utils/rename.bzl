@@ -2,9 +2,9 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
-     "OcamlNsLibraryProvider",
+     "OcamlNsLibraryMarker",
      "OcamlNsResolverProvider")
-     # "PpxNsLibraryProvider")
+     # "PpxNsLibraryMarker")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
@@ -132,6 +132,7 @@ def rename_module(ctx, src):  # , pfx):
 ################################################################
 def rename_srcfile(ctx, src, dest):
     """Rename src file.  Copies input src to output dest"""
+    print("**** RENAME SRC {s} => {d} ****".format(s=src, d=dest))
 
     inputs  = [src]
 

@@ -15,6 +15,7 @@ ocaml_import(
 
         "@ocaml//mode:native": [
             "//:_lib/digestif/c/digestif_c.cmxa",
+            "//:_lib/digestif/c/digestif_c.a",
         ],
 
     }),

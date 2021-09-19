@@ -19,7 +19,7 @@ ocaml_import(
 ## _filedeps_path: '_lib/bls12-381'
     signature = [
         "//:_lib/bls12-381/bls12_381.cmi",
-        "//:_lib/bls12-381/bls12_381.cmti",
+        ## "//:_lib/bls12-381/bls12_381.cmti",
         "//:_lib/bls12-381/bls12_381.mli"
     ],
     deps = [

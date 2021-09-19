@@ -187,9 +187,32 @@ def _install_build_templates(repo_ctx):
         executable = False,
     )
 
-    ## Special Cases. These are hacks, to get around the "virtual
-    ## modules" problem until we find the time to handle them in the
-    ## bootstrapper.
+    ## Special Cases. These are hacks, to get around problems until we
+    ## find the time to handle them in the bootstrapper.
+
+    # ctypes: we need to expose the C headers; can't derive from META
+    ## NB: ocaml bootstrap symlinks to _lib/ctypes
+
+    repo_ctx.template(
+        "lib/ctypes/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.ctypes"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "lib/ctypes/foreign/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.ctypes.foreign"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "lib/ctypes/stubs/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.ctypes.stubs"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "lib/ctypes/top/BUILD.bazel",
+        Label("//opam/_templates/hacks:BUILD.opam.lib.ctypes.top"),
+        executable = False,
+    )
 
     repo_ctx.template(
         "lib/digestif/BUILD.bazel",

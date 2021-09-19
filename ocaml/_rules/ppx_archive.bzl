@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl",
-     "PpxArchiveProvider",
-     "PpxModuleProvider")
+     "PpxArchiveMarker",
+     "PpxModuleMarker")
 
 load(":options.bzl", "options")
 
@@ -9,7 +9,7 @@ load(":impl_archive.bzl", "impl_archive")
 ###################
 ppx_archive = rule(
     implementation = impl_archive,
-    doc = """Generates an OCaml archive file suitable for use as a PPX dependency.   Provides: [PpxArchiveProvider](providers_ppx.md#ppxarchiveprovider).
+    doc = """Generates an OCaml archive file suitable for use as a PPX dependency.   Provides: [PpxArchiveMarker](providers_ppx.md#ppxarchiveprovider).
     """,
     attrs = dict(
         options("ocaml"),
@@ -38,7 +38,7 @@ ppx_archive = rule(
 
         modules = attr.label_list(
             doc = "List of OCaml build dependencies to include in archive.",
-            providers = [[PpxModuleProvider]]
+            providers = [[PpxModuleMarker]]
         ),
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
@@ -72,7 +72,7 @@ ppx_archive = rule(
         # ),
     ),
     # cfg     = ppx_mode_transition,
-    provides = [PpxArchiveProvider],
+    provides = [PpxArchiveMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

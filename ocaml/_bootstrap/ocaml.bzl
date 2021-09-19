@@ -190,6 +190,7 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
 
+    ## FIXME: call this ffi instead of csdk?
     repo_ctx.template(
         "csdk/BUILD.bazel",
         Label(ws + "//ocaml/_templates:BUILD.ocaml.csdk"),
@@ -199,15 +200,17 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         # },
     )
 
-    repo_ctx.template(
-        "csdk/ctypes/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.csdk.ctypes"),
-        executable = False,
-        # substitutions = {
-        #     "{sdkpath}": opam_switch_prefix
-        # },
-    )
+    ## No, ctypes is not part of std ffi
+    # repo_ctx.template(
+    #     "csdk/ctypes/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.csdk.ctypes"),
+    #     executable = False,
+    #     # substitutions = {
+    #     #     "{sdkpath}": opam_switch_prefix
+    #     # },
+    # )
 
+    ## TEMPORARY HACK
     #### ASPECTS ####
     repo_ctx.template(
         "aspects/BUILD.bazel",
@@ -215,8 +218,18 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
     repo_ctx.template(
+        "aspects/debug.bzl",
+        Label("@obazl_rules_ocaml//ocaml/_aspects:debug.bzl"),
+        executable = False,
+    )
+    repo_ctx.template(
         "aspects/ppx.bzl",
         Label("@obazl_rules_ocaml//ocaml/_aspects:ppx.bzl"),
+        executable = False,
+    )
+    repo_ctx.template(
+        "aspects/depsets.bzl",
+        Label("@obazl_rules_ocaml//ocaml/_aspects:depsets.bzl"),
         executable = False,
     )
 
@@ -618,8 +631,6 @@ def _ocaml_repo_impl(repo_ctx):
     if repo_ctx.attr.debug:
         print("_ocaml_repo_impl")
 
-    opam_install(repo_ctx)
-
     ## we can only get env vars within a repo_ctx, so we do this here:
     if "OPAMSWITCH" in repo_ctx.os.environ:
         if repo_ctx.attr.build_name:
@@ -635,9 +646,16 @@ def _ocaml_repo_impl(repo_ctx):
     # repo_ctx.report_progress("opam_switch: %s" % opam_switch)
     # repo_ctx.report_progress("opam_switch_prefix: %s" % opam_switch_prefix)
 
+    ## hack - see opam/_opam_repo.bzl
+    ## symlinks before templates
+    repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml", "csdk/ocaml")
+    repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "lib/ctypes/csdk")
+
     ## WARNING: install the templates BEFORE configuring (verifying) the opam switch, otherwise
     ## we get tons of restarts.
     _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix)
+
+    opam_install(repo_ctx)
 
     # _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix)
 

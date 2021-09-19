@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider",
-     "PpxNsArchiveProvider")
+     "PpxNsArchiveMarker")
 
 load(":options.bzl", "options", "options_ns_archive", "options_ns_opts")
 
@@ -28,7 +28,7 @@ ppx_ns_archive = rule(
         _rule = attr.string(default = "ppx_ns_archive")
     ),
     cfg     = nsarchive_in_transition,
-    provides = [PpxNsArchiveProvider],
+    provides = [PpxNsArchiveMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

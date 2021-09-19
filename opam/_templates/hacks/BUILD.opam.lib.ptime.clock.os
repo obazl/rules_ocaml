@@ -16,6 +16,7 @@ ocaml_import(
 
         "@ocaml//mode:native": [
             "//:_lib/ptime/os/ptime_clock.cmxa",
+            "//:_lib/ptime/os/ptime_clock.a",
         ],
 
     }),

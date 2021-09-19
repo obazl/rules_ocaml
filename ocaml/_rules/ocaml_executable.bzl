@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl", "PpxInfo", "PpxArchiveProvider")
+load("//ocaml:providers.bzl", "PpxInfo", "PpxArchiveMarker")
 
 load(":options.bzl", "options", "options_executable")
 

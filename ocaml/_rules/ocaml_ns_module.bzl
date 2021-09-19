@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl", "OcamlModuleProvider")
+load("//ocaml:providers.bzl", "OcamlModuleMarker")
 
 load("//ocaml/_transitions:transitions.bzl", "module_in_transition")
 
@@ -19,7 +19,7 @@ rule_options.update(options_ppx)
 ####################
 ocaml_module = rule(
     implementation = impl_module,
-    doc = """Compiles an OCaml module. Provides: [OcamlModuleProvider](providers_ocaml.md#ocamlmoduleprovider).
+    doc = """Compiles an OCaml module. Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_module`
 
@@ -57,7 +57,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
     ),
     cfg     = module_in_transition,
-    provides = [OcamlModuleProvider],
+    provides = [OcamlModuleMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

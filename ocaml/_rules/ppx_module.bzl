@@ -1,6 +1,5 @@
 load("//ocaml:providers.bzl",
-     # "OpamDepsProvider",
-     "PpxModuleProvider")
+     "PpxModuleMarker")
 
 load("options.bzl",
      "options",
@@ -41,7 +40,7 @@ TODO: finish docstring
         _rule = attr.string( default = "ppx_module" ),
     ),
     # cfg     = module_in_transition,
-    provides = [PpxModuleProvider], # OpamDepsProvider],
+    provides = [PpxModuleMarker], # OpamDepsMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

@@ -2,7 +2,10 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "csdk",
-    srcs = ["//:_csdk_srcs"],
-    hdrs = ["//:_csdk_hdrs"],
+    srcs = glob(["ocaml/*.a"]),
+    hdrs = glob(["ocaml/**/*.h", "ocaml/caml/*.tbl"]),
+    strip_include_prefix = "ocaml",
+    # srcs = ["//:_csdk_srcs"],
+    # hdrs = ["//:_csdk_hdrs"],
     visibility = ["//visibility:public"],
 )

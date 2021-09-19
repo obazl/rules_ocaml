@@ -6,7 +6,7 @@ load("//ocaml:providers.bzl",
      "OcamlModuleProvider",
      "OcamlNsLibraryProvider",
      "OcamlNsResolverProvider",
-     "OpamDepsProvider",
+     # "OpamDepsProvider",
      "OcamlSDK")
 
 ####################################
@@ -17,9 +17,9 @@ def _print_aspect_impl(target, ctx):
             print("dep: %s" % dep)
             # for path in dep[DefaultMemo].paths.to_list():
             #     print("Path: %s" % path)
-            if OpamDepsProvider in dep:
-                for pkg in dep[OpamDepsProvider].pkgs.to_list():
-                    print("OPAM dep pkg: %s" % pkg)
+            # if OpamDepsProvider in dep:
+            #     for pkg in dep[OpamDepsProvider].pkgs.to_list():
+            #         print("OPAM dep pkg: %s" % pkg)
     if hasattr(ctx.rule.attr, 'submodules'):
         print("submods: %s" % ctx.rule.attr.submodules)
         for [f, m] in ctx.rule.attr.submodules.items():
@@ -44,7 +44,7 @@ def _print_aspect_impl(target, ctx):
 
 print_aspect = aspect(
     implementation = _print_aspect_impl,
-    attr_aspects = ["submodules", "struct", "sig", "src", "deps", "deps_opam"],
+    attr_aspects = ["submodules", "struct", "sig", "src", "deps"],
 )
 
 ####################################

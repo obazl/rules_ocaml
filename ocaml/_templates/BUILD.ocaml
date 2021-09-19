@@ -56,6 +56,18 @@ filegroup(
     visibility = ["//csdk:__pkg__"],
 )
 
+#### ctypes package - not part of ffi csdk ####
+# filegroup(
+#     name = "_ctypes_libs",
+#     srcs = glob(["_lib/ctypes/*.a"]),
+#     # visibility = ["//lib/ctypes:__pkg__"],
+# )
+# filegroup(
+#     name = "_ctypes_hdrs",
+#     srcs = glob(["_lib/ctypes/*.h"]),
+#     visibility = ["//lib/ctypes:__pkg__"],
+# )
+
 filegroup(
     name = "bin",
     srcs = glob(["switch/bin/*"]),
