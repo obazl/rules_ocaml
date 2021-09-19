@@ -1,0 +1,20 @@
+load("@obazl_rules_ocaml//ocaml:rules.bzl", "ppx_module")
+
+###########
+ppx_module(
+    name = "driver",
+    struct = ":driver.ml",
+    deps   = ["@ocaml//lib/ppxlib"],
+    opts = ["-linkall"],
+    visibility = ["//visibility:public"]
+)
+
+########
+genrule(
+    name = "gendriver",
+    outs = ["driver.ml"],
+    cmd = "\n".join([
+        "echo \"(* GENERATED FILE - DO NOT EDIT *)\" > \"$@\"",
+        "echo \"let () = Ppxlib.Driver.standalone ()\" >> \"$@\"",
+    ]),
+)

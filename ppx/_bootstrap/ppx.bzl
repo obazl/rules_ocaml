@@ -40,6 +40,13 @@ def _ppx_repo_impl(repo_ctx):
         Label("//ppx/_templates:BUILD.ppx.archive.threads"),
         executable = False
     )
+
+    repo_ctx.template(
+        "driver/BUILD.bazel",
+        Label("//ppx/_templates:BUILD.ppx.driver"),
+        executable = False
+    )
+
     repo_ctx.template(
         "executable/BUILD.bazel",
         Label("//ppx/_templates:BUILD.ppx.executable"),
