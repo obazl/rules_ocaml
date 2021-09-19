@@ -193,7 +193,7 @@ def impl_coq_sublibrary(ctx):
             libs.append(f)
 
     inputs_depset = depset(
-        order = "postorder",
+        order = dsorder,
         direct = [ctx.file.src] + ctx.files.deps + libs + plugins_direct + [
             # ctx.file.tool
             # tc.coqc
@@ -235,7 +235,7 @@ def impl_coq_sublibrary(ctx):
 
     defaultInfo = DefaultInfo(
         files = depset(
-            order = "postorder",
+            order = dsorder,
             direct = [out_vo],
             transitive = indirects ## + [plugins_direct]
         ),

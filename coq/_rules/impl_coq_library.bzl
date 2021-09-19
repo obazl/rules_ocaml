@@ -73,7 +73,7 @@ def impl_coq_library(ctx):
 
     defaultInfo = DefaultInfo(
         files = depset(
-            order = "postorder",
+            order = dsorder,
             transitive = sublibs_depset
         )
     )
