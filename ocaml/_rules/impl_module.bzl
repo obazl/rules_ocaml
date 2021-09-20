@@ -87,32 +87,15 @@ def impl_module(ctx):
         print("  _NS_PREFIXES: %s" % ns_prefixes)
         print("  _NS_SUBMODULES: %s" % ns_submodules)
 
-    ## FIXME: use a build flag to pass these dirs.
-    ## topdirs.cmi, digestif.cmi, ...
-    # OCAMLFIND_IGNORE = ""
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif" ## FIXME: mina-specific
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c" ## FIXME: mina-specific
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
-
     env = {
         "OPAMROOT": get_opamroot(),
         "PATH": get_sdkpath(ctx),
-        # "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
     }
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    # if len(ctx.attr.deps_opam) > 0:
-    #     using_ocamlfind = True
-    #     ocamlfind_opts = ["-predicates", "ppx_driver"]
-    #     exe = tc.ocamlfind
-    # else:
-    # using_ocamlfind = False
-    # ocamlfind_opts = []
     if mode == "native":
         exe = tc.ocamlopt.basename
     else:
@@ -121,21 +104,8 @@ def impl_module(ctx):
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
     ################
-
-    # merged_module_links_depsets = []
-    # merged_archive_links_depsets = []
-
-    # merged_paths_depsets = []
-    # merged_depgraph_depsets = []
-    # merged_archived_modules_depsets = []
-
-    # indirect_opam_depsets = []
-
-
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    # indirect_adjunct_opam_depsets = []
-
     indirect_cc_deps  = {}
 
     ################
@@ -216,51 +186,6 @@ def impl_module(ctx):
     #     out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(module_name, ".cmt"))
     #     action_outputs.append(out_cmt)
 
-    # mdeps = []
-    # mdeps.extend(ctx.attr.deps)
-    # mdeps.append(ctx.attr._ns_resolver)
-    # mdeps.append(ctx.attr.cc_deps)
-    # if ctx.attr.sig:
-    #     mdeps.append(ctx.attr.sig)
-
-    # if debug:
-    #     print("MDEPS: %s" % mdeps)
-    # merge_deps(mdeps,
-    #            merged_module_links_depsets,
-    #            merged_archive_links_depsets,
-    #            merged_paths_depsets,
-    #            merged_depgraph_depsets,
-    #            merged_archived_modules_depsets,
-    #            # indirect_opam_depsets,
-    #            indirect_adjunct_depsets,
-    #            indirect_adjunct_path_depsets,
-    #            # indirect_adjunct_opam_depsets,
-    #            indirect_cc_deps)
-
-    # if ctx.label.name == "rustzcash":
-    #     ds = depset(order = dsorder,
-    #                 transitive=merged_module_links_depsets)
-    #     for dep in ds.to_list():
-    #         if dep.basename.startswith("bls12"):
-    #             print("XDEPM: %s" % dep.basename)
-    #     ds = depset(order = dsorder,
-    #                 transitive=merged_archive_links_depsets)
-    #     for dep in ds.to_list():
-    #         if dep.basename.startswith("bls12"):
-    #             print("XDEPA: %s" % dep.basename)
-
-    #     print("XMODULE {m} MODULE_LINKS_DEPSETS: {ds}".format(
-    #         m = ctx.label, ds = merged_module_links_depsets)
-    #           )
-        # print("YMODULE {m} MERGED_MODULE_LINKS_DEPSETS: {ds}".format(
-        #     m = ctx.label,
-        #     ds = depset(transitive=merged_module_links_depsets)
-        # ))
-
-    # if debug:
-    #     print("Merged depgraph depsets:")
-    #     print(merged_depgraph_depsets)
-
     # if we have an input cmi, we will pass it on as Marker output,
     # but it is not an output of this action- do NOT add incoming cmi to action outputs
     ## TODO: support compile of mli source
@@ -273,22 +198,9 @@ def impl_module(ctx):
     #         merged_depgraph_depsets.append(f[OcamlSignatureMarker].depgraph)
     #         merged_archived_modules_depsets.append(f[OcamlSignatureMarker].archived_modules)
 
-    # if debug:
-    #     print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-    #     print(merged_depgraph_depsets)
-
     if debug:
         print("INCLUDES: %s" % includes)
 
-    ## handle cc deps: 1) add to cmd line; 2) propagate in CcDepsProvider
-    # cclib_deps  = []
-    # direct_cc_deps    = {}
-    # direct_cc_deps.update(ctx.attr.cc_deps)
-
-    # cc_runfiles = []
-    # cc_deps_dict = {}
-    # cc_deps_dict.update(direct_cc_deps)
-    # cc_deps_dict.update(indirect_cc_deps)
     [
         action_inputs_ccdep_filelist, ccDepsProvider
      ] = handle_ccdeps(ctx,
@@ -304,14 +216,7 @@ def impl_module(ctx):
 
     # if "-g" in _options:
     #     args.add("-runtime-variant", "d")
-    if ctx.attr.pack:
-        args.add("-linkpkg")
-
-    # opam_depset = depset(direct = ctx.attr.deps_opam,
-    #                      transitive = indirect_opam_depsets)
-    # if using_ocamlfind:
-    #     for opam in opam_depset.to_list():
-    #         args.add("-package", opam)  ## add dirs to search path
+    # if ctx.attr.pack:
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
@@ -362,46 +267,9 @@ def impl_module(ctx):
     #         # includes.append( adjunct.path )
     #         args.add(f.path)
 
-    # indirect_paths_depset = depset(order = dsorder,
-    #                                transitive = merged_paths_depsets)
-    # for apath in indirect_paths_depset.to_list():
-    #     if (apath.startswith(opam_lib_prefix)):
-    #         dir = paths.relativize(apath, opam_lib_prefix)
-    #         includes.append( "+../" + dir )
-    #     else:
-    #         includes.append( apath )
-
-    # module_links_ds = depset(order = dsorder,
-    #                          transitive = merged_module_links_depsets)
-    # archive_links_ds = depset(order = dsorder,
-    #                           transitive = merged_archive_links_depsets)
-    # for dep in archive_links_ds.to_list():
-        # if dep in ctx.files.deps:
-        # if dep.extension != "a":
-        #     args.add(dep.basename)
-
-    # mdeps = []
-    # mdeps.extend(ctx.attr.deps)
-    # mdeps.append(ctx.attr._ns_resolver)
-    # mdeps.append(ctx.attr.cc_deps)
-    # if ctx.attr.sig:
-    #     mdeps.append(ctx.attr.sig)
-
-    # if ctx.file.sig: paths_direct.append(ctx.file.sig.dirname)
-    # print("PATHS_DIRECT: %s" % paths_direct)
-
     paths_indirect = []
     all_deps_list = []
     resolver_dep = None
-
-    # this_archivedeps_archive_file_list = []
-    # this_archivedeps_components_depset_list = []
-    # this_archivedeps_subdeps_depset_list = []
-
-    # this_module_deps_depset_list = []
-    # this_module_subdeps_depset_list = []
-
-    # this_sigdeps_depset_list = []
 
     ## FIXME: handle deps_deferred
 
@@ -420,78 +288,6 @@ def impl_module(ctx):
 
             # print("PATHS: %s" % dep[OcamlProvider].paths)
             paths_indirect.append(dep[OcamlProvider].paths)
-
-        ################ Archive Deps ################
-        # if OcamlArchiveMarker in dep:
-        #     # archive_list = dep[OcamlArchiveMarker].archive
-        #     # print("  OAP.archive %s" % archive_list)
-        #     # this_archivedeps_archive_file_list.extend(archive_list)
-        #     # all_deps_list.append(depset(order = dsorder,
-        #     #                             direct=dep[OcamlArchiveMarker].archive,
-        #     #                             transitive=[dep[OcamlArchiveMarker].subdeps]))
-        #     all_deps_list.append(dep[OcamlArchiveMarker].files)
-
-            # components = dep[OcamlArchiveMarker].components
-            # print("  OAP.components %s" % components)
-            # this_archivedeps_components_depset_list.append(components)
-            # archive already contains components
-            # all_deps_list.append(dep[OcamlArchiveMarker].components)
-
-            # subdeps = dep[OcamlArchiveMarker].subdeps
-            # print("  OAP.subdeps %s" % subdeps)
-            # this_archivedeps_subdeps_depset_list.append(subdeps)
-            # all_deps_list.append(dep[OcamlArchiveMarker].subdeps)
-
-        ################ module deps ################
-        # if OcamlModuleMarker in dep:
-        #     all_deps_list.append(dep[OcamlModuleMarker].files)
-
-        #     sigs = dep[OcamlModuleMarker].sigs
-        #     print("  OMP.sigs %s" % sigs)
-        #     this_sigdeps_depset_list.append(sigs)
-
-        #     deps = dep[OcamlModuleMarker].deps
-        #     print("  OMP.deps %s" % deps)
-        #     this_module_deps_depset_list.append(deps)
-        #     all_deps_list.append(dep[OcamlModuleMarker].deps)
-
-        #     subdeps = dep[OcamlModuleMarker].subdeps
-        #     print("  OMP.subdeps %s" % subdeps)
-        #     this_module_subdeps_depset_list.append(subdeps)
-            # deps already contains subdeps
-            # all_deps_list.append(dep[OcamlModuleMarker].subdeps)
-
-        ################ Paths ################
-        # if OcamlPathsMarker in dep:
-        #     ps = dep[OcamlPathsMarker].paths
-        #     # print("MPATHS: %s" % ps)
-        #     paths_indirect.append(ps)
-
-
-    # this_archivedeps_archives_depset = depset(
-    #     order = dsorder,
-    #     direct = this_archivedeps_archive_file_list
-    # )
-    # this_archivedeps_components_depset = depset(
-    #     order = dsorder,
-    #     transitive = this_archivedeps_components_depset_list
-    # )
-    # this_archivedeps_subdeps_depset = depset(
-    #     order = dsorder,
-    #     transitive = this_archivedeps_subdeps_depset_list
-    # )
-
-    ################ module deps ################
-    # this_module_deps_depset = depset(
-    #     order = dsorder,
-    #     transitive = this_module_deps_depset_list
-    # )
-    # print("THIS_module_deps_depset: %s" % this_module_deps_depset)
-    # this_module_subdeps_depset = depset(
-    #     order = dsorder,
-    #     transitive = this_module_subdeps_depset_list
-    # )
-    # print("THIS_module_subdeps_depset: %s" % this_module_subdeps_depset)
 
     paths_depset  = depset(
         order = dsorder,
@@ -594,8 +390,6 @@ def impl_module(ctx):
     #     args.add("-shared")
     # else:
 
-    args.add_all(_options)
-
     args.add("-c")
     args.add("-o", out_cm_)
 
@@ -661,103 +455,6 @@ def impl_module(ctx):
     defaultInfo = DefaultInfo(
         files = default_depset
     )
-
-    # sigs_depset = depset(
-    #     order = dsorder,
-    #     direct = [out_cmi] + mli_out,
-    #     transitive = this_sigdeps_depset_list
-    # )
-    # # print("INCLUDES: %s" % includes)
-    # module_links_depset = depset(
-    #     order = dsorder,
-    #     direct = rule_outputs, # + [out_cm_],
-    #     # ppx? direct = [out_cm_],
-    #     transitive = merged_module_links_depsets
-    # )
-    # archive_links_ds = depset(
-    #     order = dsorder,
-    #     transitive = merged_archive_links_depsets
-    # )
-    # paths_depset = depset(
-    #     order = dsorder,
-    #     direct = includes + [out_cm_.dirname], ## depset will uniquify includes
-    #     transitive = merged_paths_depsets
-    # )
-    # depgraph = depset(
-    #     order = dsorder,
-    #     direct = rule_outputs + [structfile, out_cmi] + mli_out,
-    #     # + adjunct_deps,
-    #             transitive = merged_depgraph_depsets
-    # )
-    # archived_modules = depset(
-    #     order = dsorder,
-    #     transitive = merged_archived_modules_depsets
-    # )
-
-    # ocamlPathsMarker = OcamlPathsMarker(
-    #     paths = depset
-    #     # paths  = depset(
-    #     #     order = dsorder,
-    #     #     direct = paths_direct,
-    #     #     transitive = paths_indirect)
-    # )
-    # print("MPATHSPATHS: %s " % ocamlPathsMarker)
-
-    # if (ctx.attr._rule == "ocaml_module"):
-    #     moduleMarker = OcamlModuleMarker(
-    #         files = depset(
-    #             direct = rule_outputs,
-    #             transitive = all_deps_list
-    #         ),
-    #         sigs = sigs_depset,
-    #         deps = depset(
-    #             order = dsorder,
-    #             direct = rule_outputs, #  + [out_cmi] + mli_out,
-    #             transitive = this_module_deps_depset_list
-    #             + [this_archivedeps_archives_depset]
-    #             + [this_archivedeps_subdeps_depset]
-    #         ),
-    #         subdeps = depset(
-    #             order = dsorder,
-    #             transitive = this_module_subdeps_depset_list
-    #             + this_archivedeps_subdeps_depset_list
-    #         ),
-    #         module_links = module_links_depset,
-    #         archive_links = archive_links_ds,
-    #         paths = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-    # elif ctx.attr._rule == "ppx_module":
-    #     moduleMarker = PpxModuleMarker(
-    #         deps = depset(
-    #             order = dsorder,
-    #             direct = default_outputs,
-    #             # direct = default_depset,
-    #             transitive = [this_module_deps_depset]
-    #         ),
-    #         subdeps = depset(
-    #             order = dsorder,
-    #             transitive = [this_module_subdeps_depset]
-    #         ),
-    #         module_links = module_links_depset,
-    #         archive_links = archive_links_ds,
-    #         paths    = depset(
-    #             order = dsorder,
-    #             direct = includes + [out_cm_.dirname], ## depset will uniquify includes
-    #             transitive = merged_paths_depsets
-    #         ),
-    #         depgraph = depset(
-    #             order = dsorder,
-    #             direct = rule_outputs + [structfile, out_cmi] + mli_out,
-    #             # + adjunct_deps,
-    #             transitive = merged_depgraph_depsets
-    #         ),
-    #         archived_modules = depset(
-    #             order = dsorder,
-    #             transitive = merged_archived_modules_depsets
-    #         ),
-    #     )
 
     ## pass on adjunct deps rec'd from deps of this module
     ## do we need to do this?

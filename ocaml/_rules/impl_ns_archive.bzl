@@ -31,12 +31,7 @@ def impl_ns_archive(ctx):
     # if ctx.label.name in ["jemalloc"]: # ["mina_metrics", "memory_stats"]:
     #     debug = True
 
-    if debug:
-        print("ConfigState (%s):" % ctx.label)
-        print("  NS_RESOLVER: %s" % ctx.attr._ns_resolver[0].files)
-        print("  NS_PREFIX: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
-        print("  NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
-    ## FIXME: do we need OCAMLFIND_IGNORE here?
+    debug = True #False
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
@@ -160,45 +155,6 @@ def impl_ns_archive(ctx):
     newDefaultInfo = DefaultInfo(
         files = default_depset
     )
-    # module_links = nslibMarker.module_links
-    # archive_links = depset(
-    #     order = dsorder,
-    #     direct = [ns_archive_file],
-    #     transitive = [nslibMarker.archive_links]
-    # )
-    # paths_depset = depset(
-    #     direct = [ns_archive_file.dirname],
-    #     transitive = [nslibMarker.paths]
-    # )
-    # depgraph = depset(
-    #     order = dsorder,
-    #     direct = [ns_archive_file, ns_archive_a_file],
-    #     transitive = [nslibMarker.depgraph]
-    # )
-    # archived_modules = depset(
-    #     order = dsorder,
-    #     transitive = [nslibMarker.archived_modules]
-    # )
-
-    # if ctx.attr._rule == "ocaml_ns_archive":
-    #     nsArchiveMarker = OcamlNsArchiveMarker(
-    #         module_links = module_links,
-    #         archive_links = archive_links,
-    #         paths    = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-    # elif ctx.attr._rule == "ppx_ns_archive":
-    #     nsArchiveMarker = PpxNsArchiveMarker(
-    #         module_links = module_links,
-    #         archive_links = archive_links,
-    #         paths    = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-    # else:
-    #     fail("Unrecognized ctx.attr._rule: %s" % ctx.attr._rule)
-
     ## adjuncts handled by impl_ns_library() above
     # indirect_adjunct_depsets = []
     # indirect_adjunct_paths = []

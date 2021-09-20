@@ -370,53 +370,6 @@ def impl_executable(ctx):
             all_deps_list.append(dep[OcamlProvider].files)
             paths_indirect.append(dep[OcamlProvider].paths)
 
-        # ################ Paths ################
-        # if OcamlPathsMarker in dep:
-        #     ps = dep[OcamlPathsMarker].paths
-        #     # print("MPATHS: %s" % ps)
-        #     paths_indirect.append(ps)
-
-        # ################ Archive Deps ################
-        # if OcamlArchiveMarker in dep:
-        #     all_deps_list.append(dep[OcamlArchiveMarker].files)
-        #     # all_deps_list.append(dep[OcamlArchiveMarker].subdeps)
-
-        #     # archive_list = dep[OcamlArchiveMarker].archive
-        #     # print("  OAP.archive %s" % archive_list)
-        #     # this_archivedeps_archive_file_list.extend(archive_list)
-        #     all_deps_list.append(depset(order = dsorder,
-        #                                 direct=dep[OcamlArchiveMarker].archive,
-        #                                 transitive=[dep[OcamlArchiveMarker].subdeps]))
-
-        #     # components = dep[OcamlArchiveMarker].components
-        #     # print("  OAP.components %s" % components)
-        #     # this_archivedeps_components_depset_list.append(components)
-        #     # archive already contains components
-        #     # all_deps_list.append(dep[OcamlArchiveMarker].components)
-
-        #     # subdeps = dep[OcamlArchiveMarker].subdeps
-        #     # print("  OAP.subdeps %s" % subdeps)
-        #     # this_archivedeps_subdeps_depset_list.append(subdeps)
-        #     all_deps_list.append(dep[OcamlArchiveMarker].subdeps)
-
-        # ################ module deps ################
-        # if OcamlModuleMarker in dep:
-        #     all_deps_list.append(dep[OcamlModuleMarker].files)
-        #     # sigs = dep[OcamlModuleMarker].sigs
-        #     # print("  OMP.sigs %s" % sigs)
-        #     # this_sigdeps_depset_list.append(sigs)
-
-        #     # deps = dep[OcamlModuleMarker].deps
-        #     # print("  OMP.deps %s" % deps)
-        #     # this_module_deps_depset_list.append(deps)
-        #     # all_deps_list.append(dep[OcamlModuleMarker].deps)
-
-        #     # subdeps = dep[OcamlModuleMarker].subdeps
-        #     # print("  OMP.subdeps %s" % subdeps)
-        #     # this_module_subdeps_depset_list.append(subdeps)
-        #     # deps already contains subdeps
-        #     # all_deps_list.append(dep[OcamlModuleMarker].subdeps)
-
     # for f in ctx.attr.main[OcamlProvider].files: # .to_list():
     #     print(" MAINDEP: %s" % f)
     all_deps_list.append(ctx.attr.main[OcamlProvider].files)

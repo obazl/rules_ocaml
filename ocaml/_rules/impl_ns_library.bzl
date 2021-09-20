@@ -28,24 +28,7 @@ def impl_ns_library(ctx):
     # main_resolver = None
 
     debug = False
-    print("**************** NS_LIB {} ****************".format(ctx.label))
-    # if ctx.label.name in ["jemalloc"]: # ["mina_metrics", "memory_stats"]:
-    #     debug = True
-
-    if debug:
-        print("")
-        print("Start: IMPL_NS_LIBRARY: %s" % ctx.label)
-        if ctx.attr._rule in ["ocaml_ns_archive", "ppx_ns_archive"]:
-            print("  (for ns_archive)")
-        print("ConfigState (%s):" % ctx.label)
-        print("  MAIN RESOLVER: %s" % ctx.attr.resolver)
-        print("  NS_RESOLVER: %s" % ctx.attr._ns_resolver[0].files)
-        print("  NS_PREFIX: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
-        print("  NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
-
-    # if ctx.attr._rule in ["ocaml_ns_library", "ppx_ns_library"]:
-        # if not ctx.label.name.startswith("#"):
-        #     fail("NS Library names must start with at least one '#' followed by a legal OCaml module name: %s" % ctx.label.name)
+    print("**** NS_LIB {} ****************".format(ctx.label))
 
     env = {"OPAMROOT": get_opamroot(),
            "PATH": get_sdkpath(ctx)}
@@ -55,19 +38,8 @@ def impl_ns_library(ctx):
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     ################
-    # merged_module_links_depsets = []
-    # merged_archive_links_depsets = []
-
-    # merged_paths_depsets = []
-    # merged_depgraph_depsets = []
-    # merged_archived_modules_depsets = []
-
-    # # indirect_opam_depsets  = []
-
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    # indirect_adjunct_opam_depsets = []
-
     indirect_cc_deps  = {}
 
     ################
