@@ -33,8 +33,8 @@ load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_opamroot",
      "get_sdkpath",
-     "normalize_module_label",
 )
+load("//ocaml/_functions:module_naming.bzl", "normalize_module_label")
 
 load(":options.bzl",
      "options",
@@ -43,9 +43,10 @@ load(":options.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
+load(":impl_ccdeps.bzl", "handle_ccdeps", "link_ccdeps", "dump_ccdep")
+
 load(":impl_common.bzl",
      "dsorder",
-     "merge_deps",
      "opam_lib_prefix",
      "tmpdir")
 
@@ -58,7 +59,7 @@ def _ocaml_signature_impl(ctx):
     # if ctx.label.name in ["_Impl.cmi"]:
     #     debug = True
 
-    print("#### SIGNATURE {} ####".format(ctx.label))
+    print("+SIGNATURE ================ {}".format(ctx.label))
 
     if debug:
         print("")
@@ -70,58 +71,38 @@ def _ocaml_signature_impl(ctx):
         print("  ns_prefixes: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("  ns_submodules: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
-    OCAMLFIND_IGNORE = ""
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif"
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c"
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
-    OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
+    ns_prefixes     = ctx.attr._ns_prefixes[BuildSettingInfo].value
+    ns_submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
+    print("  _NS_PREFIXES: %s" % ns_prefixes)
+    print("  _NS_SUBMODULES: %s" % ns_submodules)
+    print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver)
 
     env = {
         "OPAMROOT": get_opamroot(),
         "PATH": get_sdkpath(ctx),
-        "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
     }
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    # if len(ctx.attr.deps_opam) > 0:
-    #     using_ocamlfind = True
-    #     ocamlfind_opts = ["-predicates", "ppx_driver"]
-    #     exe = tc.ocamlfind
-    # else:
-    using_ocamlfind = False
-    ocamlfind_opts = []
     if mode == "native":
         exe = tc.ocamlopt.basename
     else:
         exe = tc.ocamlc.basename
 
     ################
-    merged_module_links_depsets = []
-    merged_archive_links_depsets = []
-
-    merged_paths_depsets = []
-    merged_depgraph_depsets = []
-    merged_archived_modules_depsets = []
-
-    # indirect_opam_depsets = []
-
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    # indirect_adjunct_opam_depsets = []
-
     indirect_cc_deps  = {}
 
     ################
     includes   = []
 
-    # print("SIG SRC: %s" % ctx.file.src)
-    # should add ns prefix:
+    print("SIG SRC: %s" % ctx.file.src)
+    # get_module_name handles ns prefix:
     (from_name, module_name) = get_module_name(ctx, ctx.file.src)
-    # print("MODULE NAME: %s" % module_name)
+    print("SIG MNAME: {src} => {dst}".format(src=from_name, dst=module_name))
 
     if ctx.attr.ppx:
         mlifile = impl_ppx_transform("ocaml_signature", ctx,
@@ -154,10 +135,16 @@ def _ocaml_signature_impl(ctx):
     args.add_all(_options)
 
     # if "-for-pack" in _options:
+    #     for_pack = True
+    #     _options.remove("-for-pack")
+    # else:
+    #     for_pack = False
 
     # if ctx.attr.pack:
+    #     args.add("-for-pack", ctx.attr.pack)
 
     # if ctx.attr.pack:
+    #     args.add("-linkpkg")
 
 
     includes.append(out_cmi.dirname)
@@ -167,34 +154,143 @@ def _ocaml_signature_impl(ctx):
     paths_direct   = []
     paths_indirect = []
     all_deps_list = []
+    direct_deps_list = []
+    archive_deps_list = []
+    archive_inputs_list = [] # not for command line!
 
-    the_deps = ctx.attr.deps + [ctx.attr._ns_resolver]
+    input_deps_list = []
 
+    #### INDIRECT DEPS first ####
+    # these direct deps are "indirect" from the perspective of the consumer
+    indirect_inputs_depsets = []
+    indirect_linkargs_depsets = []
+    indirect_paths_depsets = []
+
+    ccInfo_list = []
+
+    the_deps = ctx.attr.deps # + [ctx.attr._ns_resolver]
     for dep in the_deps:
-        # print("MDEP: {host} => {d}".format(host=ctx.label, d = dep.label))
+
+        if CcInfo in dep:
+            dump_ccdep(ctx, dep)
+            ## we do not need to do anything with ccdeps here,
+            ## just pass them on in a provider
+            ccInfo_list.append(dep[CcInfo])
+            # handle_ccinfo_dep(ctx, dep, ccdeps_list,)
+
+        # ignore DefaultInfo, its just for printing, not propagation
+        # print("DDEP %s" % dep)
+        indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
+        indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+        indirect_paths_depsets.append(dep[OcamlProvider].paths)
+
+        input_deps_list.append(dep[OcamlProvider].files)
+
+        # print("SDEP: %s" % dep)
         ################ OCamlMarker ################
         if OcamlProvider in dep:
+            # print("SDEP.files: %s" % dep[OcamlProvider].files)
             all_deps_list.append(dep[OcamlProvider].files)
+            paths_indirect.append(dep[OcamlProvider].paths)
+            if dep[OcamlProvider].archives:
+                archive_deps_list.append(dep[OcamlProvider].archives)
+            if dep[OcamlProvider].archive_deps:
+                archive_inputs_list.append(dep[OcamlProvider].archive_deps)
             paths_indirect.append(dep[OcamlProvider].paths)
 
         ################ OCamlArchiveProvider ################
+        ## only produced by ocaml_*_archive, _import
+        if OcamlArchiveProvider in dep:
+            archive_deps_list.append(dep[OcamlArchiveProvider].files)
+        ## the rest should be cmx modules only
+        ## BUT: if ocaml_ns_archive is direct dep it delivers cmxa in default
+        direct_deps_list.append(dep[DefaultInfo].files)
+
+    # print("SIGARCHDL: %s" % archive_deps_list)
+    ################ PPX Adjunct Deps ################
+    ## add adjunct_deps from ppx provider
+    ## adjunct deps in the dep graph are NOT compile deps of this module.
+    ## only the adjunct deps of the ppx are.
+    adjunct_deps = []
+    if ctx.attr.ppx:
+        provider = ctx.attr.ppx[PpxAdjunctsProvider]
+        # if using_ocamlfind:
+        #     for opam in provider.opam.to_list():
+        #         args.add("-package", opam)
+
+        for ppx_adjunct in provider.ppx_adjuncts.to_list():
+            adjunct_deps.append(ppx_adjunct)
+            # if OcamlImportArchivesMarker in ppx_adjunct:
+            #     adjuncts = ppx_adjunct[OcamlImportArchivesMarker].archives
+            #     for f in adjuncts.to_list():
+            if ppx_adjunct.extension in ["cmxa", "a"]:
+                if (ppx_adjunct.path.startswith(opam_lib_prefix)):
+                    dir = paths.relativize(ppx_adjunct.dirname, opam_lib_prefix)
+                    includes.append( "+../" + dir )
+                else:
+                    includes.append(ppx_adjunct.dirname)
+                args.add(ppx_adjunct.path)
 
     paths_depset  = depset(
+        order = dsorder,
+        direct = paths_direct,
+        transitive = indirect_paths_depsets
+        # transitive = paths_indirect
+    )
 
     args.add_all(paths_depset.to_list(), before_each="-I")
 
     all_deps = depset(
         order = dsorder,
+        ## submods depend on resolver, so keep this order:
+        # transitive = [ctx.attr._ns_resolver.files] + all_deps_list
         transitive = all_deps_list
     )
+    # print("SIGALLDEPS: %s" % all_deps)
+
+    # if archive_deps_list:
+    #     archives_depset = depset(transitive = archive_deps_list)
+    #     args.add("-ccopt", "-DSTART_ARCHIVE_DEPS")
+    #     for d in archives_depset.to_list():
+    #         if d.extension not in ["a"]:
+    #             args.add(d.path)
+    #     args.add("-ccopt", "-DEND_ARCHIVE_DEPS")
+    # else:
+    #     archives_depset = False
+    archives_depset = False
+
+    archive_inputs_depset = depset(transitive = archive_inputs_list)
+
+    # if direct_deps_list:
+    #     direct_deps = depset(transitive=direct_deps_list)
+    #     # print("DIRECT_DEPS: %s" % direct_deps)
+    #     args.add("-ccopt", "-DSTART_DIRECT_DEPS")
+    #     for dep in direct_deps.to_list():
+    #         ## DefaultInfo contains some stuff we do not want in cmd:
+    #         ## cmxa (direct ocaml_ns_archive dep)
+    #         ## cmi (direct ocaml_signature dep)
+    #         if dep.extension not in ["cmxa", "a", "cmi", "mli"]:
+    #             args.add(dep)
+    #     args.add("-ccopt", "-DEND_DIRECT_DEPS")
 
     link_args = []
     for f in all_deps.to_list():
         if f.extension not in [
+            "cmi", "mli",
+            "ml", # from _ns_resolver
+            # "cmxa",
+            "a", "o"
+        ]:
+            link_args.append(f.path) # paths already in paths depset?
 
     # args.add_all(link_args)
 
     ## FIXME: do we need the resolver for sigfiles?
+    for f in ctx.files._ns_resolver:
+        if f.extension == "cmx":
+            args.add("-I", f.dirname) ## REQUIRED, even if cmx has full path
+            args.add(f.path)
+
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
         ## this will only be the case if this is a submodule of an nslib
         args.add("-no-alias-deps")
@@ -209,11 +305,17 @@ def _ocaml_signature_impl(ctx):
 
     args.add("-intf", mlifile)
 
-    input_depset = depset(
-        direct = [mlifile], #sigfile],
-        # transitive = merged_depgraph_depsets + [archive_links_depset]
-        transitive = [all_deps]
+    inputs_depset = depset(
+        order = dsorder,
+        direct = [mlifile] #sigfile],
+        + ctx.files._ns_resolver,
+        transitive = indirect_inputs_depsets
+
+        # transitive = input_deps_list
+        # transitive = [all_deps]
     )
+    # print("SIG {m} INPUTS_DEPSET: {ds}".format(
+    #     m=ctx.label.name, ds=inputs_depset))
 
     # print("OUT_CMI: %s" % out_cmi);
 
@@ -223,7 +325,7 @@ def _ocaml_signature_impl(ctx):
         env = env,
         executable = exe,  ## tc.ocamlfind,
         arguments = [args],
-        inputs = input_depset,
+        inputs = inputs_depset,
         outputs = [out_cmi],
         tools = [tc.ocamlopt],
         mnemonic = "CompileOcamlSignature",
@@ -376,7 +478,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             doc = "Experimental",
             providers = [OcamlNsResolverProvider],
             default = "@ocaml//ns",
+            # cfg = ocaml_signature_deps_out_transition
         ),
+
         _ns_submodules = attr.label( # _list(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
             default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
