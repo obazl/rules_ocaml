@@ -29,133 +29,26 @@ load(":impl_common.bzl",
      )
 
 ##################################################
-## obsolete?
-def _generate_resolver(ctx, tc, env, mode):
-
-    aliases = ""
-    for submod in ctx.attr.modules:
-        aliases = aliases + "module {sm} = {sm}\n".format( sm = normalize_module_name(submod.label.name) )
-
-    ctx.actions.write(
-        output  = ctx.outputs.resolver,
-        content = aliases
-    )
-
-    # resolver_module = normalize_module_name(ctx.attr.resolver.name)
-    # print("XXXX %s" % ctx.outputs.resolver.extension)
-    if ctx.outputs.resolver.extension == "ml":
-        resolver_module = ctx.attr.resolver.name[:-3]
-    else:
-        resolver_module = ctx.attr.resolver.name
-
-    if  mode == "native":
-        resolver_o = ctx.actions.declare_file(tmpdir + resolver_module + ".o")
-        ext = ".cmx"
-    else:
-        resolver_o = None
-        ext = ".cmo"
-
-    resolver_cm_ = ctx.actions.declare_file(tmpdir + resolver_module + ext)
-    resolver_cmi = ctx.actions.declare_file(tmpdir + resolver_module + ".cmi")
-    action_outputs = [resolver_cm_, resolver_cmi]
-    if resolver_o: action_outputs.append(resolver_o)
-
-    resolver_args = ctx.actions.args()
-    if mode == "native":
-        resolver_args.add(tc.ocamlopt.basename)
-    else:
-        resolver_args.add(tc.ocamlc.basename)
-
-    resolver_args.add("-w", "-49") # Warning 49: no cmi file was found in path for module
-    resolver_args.add("-no-alias-deps")
-    resolver_args.add("-linkall")
-    resolver_args.add("-c")
-    resolver_args.add("-impl", ctx.outputs.resolver)
-    resolver_args.add("-o", resolver_cm_)
-
-    ctx.actions.run(
-        env = env,
-        executable = tc.ocamlfind,
-        arguments = [resolver_args],
-        inputs = [ctx.outputs.resolver],
-        outputs = action_outputs,
-        tools = [tc.ocamlfind, tc.ocamlopt],
-        mnemonic = "CompileOcamlArchiveResolver",
-        progress_message = "{mode} compiling: @{ws}//{pkg}:{tgt}".format(
-            mode = mode,
-            # arch = ctx.attr._rule,
-            ws  = ctx.label.workspace_name,
-            pkg = ctx.label.package,
-            tgt=ctx.label.name,
-        )
-    )
-
-    action_outputs.append(ctx.outputs.resolver)
-    return action_outputs
-
-##################################################
 def impl_archive(ctx):
 
     debug = False
     # if (ctx.label.name == "zexe_backend_common"):
     #     debug = True
 
-    if debug:
-        print("ARCHIVE TARGET: %s" % ctx.label.name)
-
-    if ctx.attr._rule == "ppx_archive":
-        if "-linkpkg" in ctx.attr.opts:
-            fail("-linkpkg option not supported for ppx_archive rule")
-
-    ## topdirs.cmi, digestif.cmi, ...
-    # OCAMLFIND_IGNORE = ""
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib"
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif"
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/digestif/c"
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
-    # OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
-
-    env = {
-        "OPAMROOT": get_opamroot(),
-        "PATH": get_sdkpath(ctx),
-        # "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
-    }
+    env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    # resolver_outputs = []
-    # if ctx.attr.resolver:       # ns_archive
-    #     resolver_outputs = _generate_resolver(ctx, tc, env, mode)
-
-    # print("RESOLVER OUTPUTS: %s" % resolver_outputs)
-
-    ################
-    # merged_module_links_depsets = []
-    # merged_archive_links_depsets = []
-
-    # merged_paths_depsets = []
-    # merged_depgraph_depsets = []
-    # merged_archived_modules_depsets = []
-
-    # indirect_opam_depsets = []
-
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    # indirect_adjunct_opam_depsets = []
-
     indirect_cc_deps  = {}
 
     ################
-    includes = []
-    default_outputs = []
+    # default_outputs = []
     action_outputs = []
     rule_outputs   = []
-    # if ctx.attr.resolver:
-    #     action_outputs.append(ctx.outputs.resolver)
-
-    module_name = normalize_module_name(ctx.label.name)
 
     _options = get_options(ctx.attr._rule, ctx)
 
@@ -172,7 +65,7 @@ def impl_archive(ctx):
         else:
             ext = ".cmxa"
     else:
-        ext = ".cmx"
+        ext = ".cma"
 
     if shared:
         module_name = ctx.label.name
@@ -209,13 +102,6 @@ def impl_archive(ctx):
     #            indirect_adjunct_path_depsets,
     #            # indirect_adjunct_opam_depsets,
     #            indirect_cc_deps)
-
-    # opam_depset = depset(transitive = indirect_opam_depsets)
-    ## DO NOT USE -linkpkg, it tells ocamlfind to put dep files on command line,
-    ## which for native mode may result in:
-    ## `Option -a cannot be used with .cmxa input files.`
-    # for opam in opam_depset.to_list():
-    #     args.add("-package", opam)  ## add dirs to search path
 
     # indirect_paths_depset = depset(transitive = merged_paths_depsets)
     # for path in indirect_paths_depset.to_list():

@@ -35,153 +35,59 @@ def impl_library(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
+    ## Library targets do not produce anything, they just pass on their deps.
+
     ################
-    merged_module_links_depsets = []
-    merged_archive_links_depsets = []
-
-    merged_paths_depsets = []
-    merged_depgraph_depsets = []
-    merged_archived_modules_depsets = []
-
-    # indirect_opam_depsets  = []
 
     indirect_adjunct_depsets = []
     indirect_adjunct_path_depsets = []
-    # indirect_adjunct_opam_depsets  = []
 
     indirect_cc_deps  = {}
 
     ################
-    merge_deps(ctx.attr.modules,
-               merged_module_links_depsets,
-               merged_archive_links_depsets,
-               merged_paths_depsets,
-               merged_depgraph_depsets,
-               merged_archived_modules_depsets,
-               # indirect_opam_depsets,
-               indirect_adjunct_depsets,
-               indirect_adjunct_path_depsets,
-               # indirect_adjunct_opam_depsets,
-               indirect_cc_deps)
+    paths_direct   = []
 
-    ## Library targets do not produce anything, they just pass on their deps.
-    #######################
     #######################
     ctx.actions.do_nothing(
         mnemonic = "OcamlLibrary" if ctx.attr._rule == "ocaml_library" else "PpxLibrary",
         inputs = depset(transitive=merged_depgraph_depsets)
     )
     #######################
-    #######################
 
     defaultInfo = DefaultInfo(
-        files = depset(
-            order = dsorder,
-            transitive = merged_module_links_depsets
-        )
+        # files = defaultDepset
     )
 
-    module_links     = depset(
-        order = dsorder,
-        transitive = merged_module_links_depsets
+    ################ ppx adjunct deps ################
     )
-    archive_links = depset(
-        order = dsorder,
-        transitive = merged_archive_links_depsets
+    ppxAdjunctsProvider = PpxAdjunctsProvider(
     )
-    paths_depset = depset(
-        transitive = merged_paths_depsets
+
     )
-    depgraph = depset(
-        order = dsorder,
-        transitive = merged_depgraph_depsets
+
     )
     archived_modules = depset(
         order = dsorder,
-        transitive = merged_archived_modules_depsets
+        direct = paths_direct,
     )
 
-    if ctx.attr._rule == "ocaml_library":
-        libraryMarker = OcamlLibraryMarker(
-            module_links = module_links,
-            archive_links = archive_links,
-            paths = paths_depset,
-            depgraph = depgraph,
-            archived_modules = archived_modules
-        )
-    elif ctx.attr._rule == "ppx_library":
-        libraryMarker = PpxLibraryMarker(
-            module_links     = depset(
-                order = dsorder,
-                transitive = merged_module_links_depsets
-            ),
-            archive_links = depset(
-                order = dsorder,
-                transitive = merged_archive_links_depsets
-            ),
-            paths    = depset(
-                transitive = merged_paths_depsets
-            ),
-            depgraph = depset(
-                order = dsorder,
-                transitive = merged_depgraph_depsets
-            ),
-            archived_modules = depset(
-                order = dsorder,
-                transitive = merged_archived_modules_depsets
-            ),
-        )
-    else:
-        fail("Unexpected rule type: %s" % ctx.attr._rule)
-
-    ppx_adjuncts_depset = depset(transitive = indirect_adjunct_depsets)
-    adjunctsMarker = AdjunctDepsMarker(
-        # opam        = depset(transitive = indirect_adjunct_opam_depsets),
-        nopam       = ppx_adjuncts_depset,
-        nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
+    ocamlProvider = OcamlProvider(
     )
 
-    # opam_depset = depset(transitive = indirect_opam_depsets)
-    # opamMarker = OpamDepsMarker(
-    #     pkgs = opam_depset
-    # )
+    # print("ARCHIVE_DEPS_LIST: %s" % archive_deps_list)
 
-    cclibs = {}
-    if len(indirect_cc_deps) > 0:
-        if debug:
-            print("cc deps for %s" % ctx.label)
-            print(indirect_cc_deps)
-        cclibs.update(indirect_cc_deps)
-    ccMarker = CcDepsProvider(
-        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
-        ccdeps_map = cclibs
+    archiveProvider = OcamlArchiveProvider(
     )
-    cclib_files = []
-    for tgt in cclibs.keys():
-        cclib_files.extend(tgt.files.to_list())
-    cclib_files_depset = depset(cclib_files)
+    # print("LIB EXPORTING OcamlProvider files: %s" % ocamlProvider)
 
     outputGroupInfo = OutputGroupInfo(
-        module_links  = module_links,
-        archive_links = archive_links,
-        depgraph = depgraph,
-        archived_modules = archived_modules,
         ppx_adjuncts = ppx_adjuncts_depset,
-        cclibs = cclib_files_depset,
-        all_files = depset(transitive=[
-            module_links,
-            archive_links,
-            ppx_adjuncts_depset,
-            cclib_files_depset
-        ])
+        cc = depset(action_inputs_ccdep_filelist),
     )
 
     return [
         defaultInfo,
-        outputGroupInfo,
         libraryMarker,
-        # opamMarker,
-        adjunctsMarker,
-        ccMarker
+        ocamlProvider,
     ]
 
