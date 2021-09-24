@@ -122,8 +122,7 @@ def impl_ns_archive(ctx):
 
     if ctx.attr._rule == "ocaml_ns_archive":
         mnemonic = "CompileOcamlNsArchive"
-    elif ctx.attr._rule == "ppx_ns_archive":
-        mnemonic = "CompilePpxNsArchive"
+    elif ctx.attr._rule == "ocaml_archive":
     else:
         fail("Unexpected rule type for impl_ns_archive: %s" % ctx.attr_rule)
 

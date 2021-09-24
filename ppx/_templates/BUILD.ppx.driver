@@ -1,7 +1,7 @@
-load("@obazl_rules_ocaml//ocaml:rules.bzl", "ppx_module")
+load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_module")
 
 ###########
-ppx_module(
+ocaml_module(
     name = "driver",
     struct = ":driver.ml",
     deps   = ["@ocaml//lib/ppxlib"],
