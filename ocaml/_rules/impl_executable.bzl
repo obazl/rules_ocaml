@@ -38,7 +38,7 @@ def impl_executable(ctx):
     # if ctx.label.name == "test":
         # debug = True
 
-    print("%%%% EXECUTABLE {} %%%%".format(ctx.label))
+    print("++ EXECUTABLE {}".format(ctx.label))
 
     if debug:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -90,26 +90,131 @@ def impl_executable(ctx):
 
     ################################################################
     all_deps_list = []
+    archive_deps_list = []
+    archive_inputs_list = [] # not for command line!
     main_deps_list = []
     paths_direct   = []
     paths_indirect = []
 
     direct_ppx_adjunct_depsets = []
     direct_ppx_adjunct_depsets_paths = []
+    indirect_ppx_adjunct_depsets      = []
+    indirect_ppx_adjunct_depsets_paths = []
+
+    direct_inputs_depsets = []
+    direct_linkargs_depsets = []
+    direct_paths_depsets = []
+
+    ccInfo_list = []
+
+    for dep in ctx.attr.deps:
+        # print("XDEP: {d}".format(d = dep.label))
+
+        if CcInfo in dep:
+            # dump_ccdep(ctx, dep)
+            ## we do not need to do anything with ccdeps here,
+            ## just pass them on in a provider
+            ccInfo_list.append(dep[CcInfo])
+            # handle_ccinfo_dep(ctx, dep, ccdeps_list,)
+
+        direct_inputs_depsets.append(dep[OcamlProvider].inputs)
+        direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+        direct_paths_depsets.append(dep[OcamlProvider].paths)
+
+        # if OcamlArchiveProvider in dep:
+        #     archive_deps_list.append(dep[OcamlArchiveProvider].files)
+
+        ################ PpxAdjunctsProvider ################
+        if PpxAdjunctsProvider in dep:
+            ppxadep = dep[PpxAdjunctsProvider]
+            # print("FOUND PPXAdjuncts %s" % ppxadep)
+            if hasattr(ppxadep, "ppx_adjuncts"):
+                if ppxadep.ppx_adjuncts:
+                    # print("PPXADEP.ppx_adjuncts: %s" % ppxadep.ppx_adjuncts)
+                    indirect_ppx_adjunct_depsets.append(ppxadep.ppx_adjuncts)
+            if hasattr(ppxadep, "ppx_adjunct_paths"):
+                if ppxadep.ppx_adjunct_paths:
+                    indirect_ppx_adjunct_depsets_paths.append(ppxadep.ppx_adjunct_paths)
+
+
+        ################ OCamlProvider ################
         if OcamlProvider in dep:
             opdep = dep[OcamlProvider]
+            # print("OPDEP: %s" % opdep)
+            all_deps_list.append(opdep.files)
+            if opdep.archives:
+                # print("AAAARCHIVES %s" % opdep.archives)
+                archive_deps_list.append(opdep.archives)
+            if opdep.archive_deps:
+                archive_inputs_list.append(opdep.archive_deps)
+            paths_indirect.append(opdep.paths)
 
     ################################################################
     ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+
+    [
+        action_inputs_ccdep_filelist,
+        cc_runfiles
+     ] = link_ccdeps(ctx,
+                     tc.linkmode,
+                     ccInfo,
+                     args)
+    # print("CCDEPS INPUTS: %s" % action_inputs_ccdep_filelist)
+
+    #### MAIN attrib ####
+    # print("MAINARCHS: %s" % ctx.attr.main[OcamlProvider].archives)
+    dep = ctx.attr.main
+
+    if CcInfo in dep:
+        dump_ccdep(ctx, dep)
+        ## we do not need to do anything with ccdeps here,
+        ## just pass them on in a provider
+        ccInfo_list.append(dep[CcInfo])
+        # handle_ccinfo_dep(ctx, dep, ccdeps_list,)
+
+    ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+
+    [
+        action_inputs_ccdep_filelist,
+        cc_runfiles
+     ] = link_ccdeps(ctx,
+                     tc.linkmode,
+                     ccInfo,
+                     args)
+
+    direct_inputs_depsets.append(dep[OcamlProvider].inputs)
+    direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+    direct_paths_depsets.append(dep[OcamlProvider].paths)
+
+    if ctx.attr.main[OcamlProvider].archives:
+        archive_deps_list.append(ctx.attr.main[OcamlProvider].archives)
+    if ctx.attr.main[OcamlProvider].archive_deps:
+        archive_deps_list.append(ctx.attr.main[OcamlProvider].archive_deps)
+
+    all_deps_list.append(ctx.attr.main[OcamlProvider].files)
     paths_indirect.append(ctx.attr.main[OcamlProvider].paths)
 
+    ################
     paths_depset  = depset(
         order = dsorder,
         # direct = paths_direct,
-        transitive = paths_indirect
+        transitive = direct_paths_depsets
+        # transitive = paths_indirect
     )
 
     args.add_all(paths_depset.to_list(), before_each="-I")
+
+    # if archive_deps_list:
+    #     archives_depset = depset(transitive = archive_deps_list)
+    #     args.add("-ccopt", "-DARCHIVE_DEPS_START")
+    #     for f in archives_depset.to_list():
+    #         if f.extension not in ["a"]:
+    #             args.add(f.path)
+    #     args.add("-ccopt", "-DARCHIVE_DEPS_END")
+    # else:
+    #     archives_depset = depset()
+
+    archive_inputs_depset = depset(transitive = archive_inputs_list)
 
     all_deps = depset(
         order = dsorder,
@@ -117,13 +222,42 @@ def impl_executable(ctx):
         transitive = all_deps_list
     )
 
+    # # print("XDEPS {x} EXE: {d}".format(x=ctx.label, d = all_deps))
+    # for d in all_deps.to_list():
+    #     # print("XDEP: {d} PATH: {f}; SHORT: {s}".format(
+    #     #     d=d, f=d.path, s=d.short_path))
+    #     # if d.extension != "cmi":
+    #     # if d.path.startswith(opam_lib_prefix):
+    #     #     dir = paths.relativize(d.dirname, opam_lib_prefix)
+    #     #     # includes.append( "+../" + dir )
+    #     #     args.add("-I", "+../" + dir )
+    #     # else:
+    #     #     # includes.append(d.dirname)
+    #     #     args.add("-I", d.dirname)
+    #     if d.extension not in ["cmi", "mli", "ml", "a", "o"]:
+    #         # if d.basename != "Embedded_cmis.cmx":
+    #         # args.add("-I", d.dirname)
+    #         args.add(d.path)
 
     args.add("-absname")
 
+    linkargs_depset = depset(
+        transitive = direct_linkargs_depsets
+    )
+
+    args.add("-ccopt", "-DLINKARGS_START")
+    for dep in linkargs_depset.to_list():
+        ## DefaultInfo contains some stuff we do not want in cmd:
+        ## cmxa (direct ocaml_ns_archive dep)
+        ## cmi (direct ocaml_signature dep)
+        if dep.extension not in ["a", "o", "cmi", "mli"]:
+            args.add(dep)
+    args.add("-ccopt", "-DLINKARGS_END")
+
     ################################################################
     ################################################################
 
-    # for dset in indirect_adjunct_depsets:
+    # for dset in indirect_ppx_adjunct_depsets:
     #     for f in dset.to_list():
     #         if f.extension in ["cmxa", "cmx"]:
     #             args.add(f)
@@ -151,9 +285,19 @@ def impl_executable(ctx):
     args.add("-o", out_exe)
 
     # TRANSITIVES = [
+    #     all_deps, ctx.attr.main.files,
+    # ] + [
+    #     depset(action_inputs_ccdep_filelist),
+    #     archive_inputs_depset,
+    #     archives_depset]
+
     inputs_depset = depset(
-        transitive = [all_deps, depset(action_inputs_ccdep_filelist)]
+        transitive = direct_inputs_depsets
+        + [depset(action_inputs_ccdep_filelist)]
+        # transitive = TRANSITIVES
     )
+    # print("EXECUTABLE {m} INPUTS_DEPSET: {ds}".format(
+    #     m=ctx.label.name, ds=inputs_depset))
 
     if ctx.attr._rule == "ocaml_executable":
         mnemonic = "CompileOcamlExecutable"
@@ -167,11 +311,11 @@ def impl_executable(ctx):
     ################
     ctx.actions.run(
       env = env,
-      executable = exe, ## tc.ocamlfind,
+      executable = exe,
       arguments = [args],
       inputs = inputs_depset,
       outputs = [out_exe],
-      tools = [tc.ocamlopt],  # tc.ocamlfind, 
+      tools = [tc.ocamlopt],
       mnemonic = mnemonic,
       progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
           mode = mode,
@@ -204,12 +348,24 @@ def impl_executable(ctx):
     ## src files depend on the ppx executable we're compiling
     ## so we need to pass adjunct deps
     ## NB: ctx.files.deps_adjunct will not deliver imported source files,
+    ## so we need to iterate over providers
+
+    ## executables do not support deps_adjunct attr - they must be attached
+    ## to the module that injects the dep.
+
+    ppx_adjuncts_paths_depset = depset(
+        direct = direct_ppx_adjunct_depsets_paths,
+        transitive = indirect_ppx_adjunct_depsets_paths
+    )
 
     ppx_adjuncts_depset = depset(
         # direct     = ppx_adjunct_direct,
+        transitive = indirect_ppx_adjunct_depsets
     )
 
     ppxAdjunctsProvider = PpxAdjunctsProvider(
+        ppx_adjuncts = ppx_adjuncts_depset,
+        paths = ppx_adjuncts_paths_depset
     )
     # print("EXE {m} adjuncts provider: {p}".format(m=ctx.label, p = adjuncts_provider))
 
