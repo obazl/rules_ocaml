@@ -3,15 +3,14 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml:providers.bzl",
      "OcamlProvider",
 
-     "AdjunctDepsMarker",
+     "PpxAdjunctsProvider",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
 
-     "OcamlArchiveMarker",
+     "OcamlArchiveProvider",
      "OcamlModuleMarker",
-     "OcamlNsLibraryMarker",
-     "OcamlNsResolverProvider",
-     "PpxNsLibraryMarker")
+     "OcamlNsMarker",
+     "OcamlNsResolverProvider")
 
 load(":impl_ccdeps.bzl", "handle_ccdeps")
 
@@ -116,12 +115,12 @@ def impl_ns_library(ctx):
     ppx_adjuncts_depset = depset(
         transitive = indirect_adjunct_depsets
     )
-    adjunctsMarker = AdjunctDepsMarker(
-        # opam        = None, # depset(transitive = indirect_adjunct_opam_depsets),
-        nopam       = ppx_adjuncts_depset,
-        nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
+    ppxAdjunctsProvider = PpxAdjunctsProvider(
+        ppx_adjuncts = ppx_adjuncts_depset,
+        paths        = depset(transitive = indirect_adjunct_path_depsets)
     )
 
+    ################ cc deps ################
     [
         action_inputs_ccdep_filelist, ccDepsProvider
     ] = handle_ccdeps(ctx,
@@ -133,7 +132,7 @@ def impl_ns_library(ctx):
                       # cclib_deps,
                       # cc_runfiles)
                   )
-    print("CCDEPS INPUTS: %s" % action_inputs_ccdep_filelist)
+    # print("CCDEPS INPUTS: %s" % action_inputs_ccdep_filelist)
 
     # cclibs = {}
     # if len(indirect_cc_deps) > 0:
@@ -147,45 +146,90 @@ def impl_ns_library(ctx):
     #     cclib_files.extend(tgt.files.to_list())
     # cclib_files_depset = depset(cclib_files)
 
-    ocamlProviderDepset = depset(
+    ocamlProviderFilesDepset = depset(
         order  = dsorder,
         # direct = ctx.files._ns_resolver,
-        transitive = [all_deps]
+        transitive = input_deps_list
+
+        # transitive = [all_deps]
         # + [depset(ctx.files.submodules)]
     )
 
+    new_inputs_depset = depset(
+        direct = ns_resolver,
+        # direct = ctx.files._ns_resolver,
+        transitive = indirect_inputs_depsets
+    )
+    linkargs_depset = depset(
+        direct = ns_resolver,
+        # direct = ctx.files._ns_resolver,
+        transitive = indirect_linkargs_depsets
+    )
+    paths_depset  = depset(
+        order = dsorder,
+        direct = paths_direct,
+        transitive = indirect_paths_depsets
+        # transitive = paths_indirect
+    )
 
     ocamlProvider = OcamlProvider(
+        inputs   = new_inputs_depset,
+        linkargs = linkargs_depset,
+        paths    = paths_depset,
+
         files = inputs_depset, # ocamlProviderDepset,
-        paths  = depset(
-            order = dsorder,
-            direct = paths_direct,
-            transitive = paths_indirect)
+        ns_resolver = ns_resolver,
+        # ns_resolver = ctx.files._ns_resolver if ctx.files._ns_resolver else None,
+        archives = archives_depset if archives_depset else None,
+        archive_deps = archive_inputs_depset if archive_inputs_depset else None,
+        # paths  = depset(
+        #     order = dsorder,
+        #     direct = paths_direct,
+        #     transitive = paths_indirect)
     )
 
     # print("ARCHIVE_DEPS_LIST: %s" % archive_deps_list)
+    if archive_deps_list:
+        archives_depset = depset(transitive = archive_deps_list)
+    else:
+        archives_depset = depset() # for inputs
+
+    # archiveProvider = OcamlArchiveProvider(
+    #     files = archives_depset
     # )
-    # print("NSLIB_PathsMarker: %s" % ocamlPathsMarker)
+    # print("NSLIB EXPORTING OcamlProvider files: %s" % ocamlProvider)
+    # for f in ocamlProvider.files.to_list():
+    #     print("DX: %s" % f)
 
     outputGroupInfo = OutputGroupInfo(
         resolver = ns_resolver,
+        # resolver = ctx.files._ns_resolver, # depset([rf]),
         ppx_adjuncts = ppx_adjuncts_depset,
         cc = depset(action_inputs_ccdep_filelist),
         all = depset(
             order = dsorder,
             transitive=[
                 new_inputs_depset,
+                # ocamlProviderFilesDepset,
                 depset(action_inputs_ccdep_filelist)
             ]
         )
     )
 
-    return [
+    providers = [
         defaultInfo,
-        nsLibraryMarker,
+        OcamlNsMarker(marker = "OcamlNsMarker"),
         ocamlProvider,
-        adjunctsMarker,
-        ccDepsProvider,
+        # archiveProvider,
+        ppxAdjunctsProvider,
+        # ccDepsProvider,
         outputGroupInfo,
         # ocamlPathsMarker
     ]
+
+    if ccInfo_list:
+        providers.append(
+            cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+        )
+
+    return providers

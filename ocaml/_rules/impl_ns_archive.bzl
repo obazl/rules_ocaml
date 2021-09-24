@@ -2,13 +2,14 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
-
-     "AdjunctDepsMarker",
+     "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "OcamlArchiveMarker",
+
+     "PpxAdjunctsProvider",
+     "OcamlArchiveProvider",
      "OcamlModuleMarker",
-     "OcamlNsArchiveMarker",
-     "PpxNsArchiveMarker")
+     "OcamlNsMarker",
+     "OcamlNsResolverProvider")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
@@ -144,55 +145,63 @@ def impl_ns_archive(ctx):
         )
     )
     ###################
+    #### PROVIDERS ####
+    ###################
+
+    ## DefaultInfo.files: .cmxa only
+    ## OcamlProvider
+    ##   .files: .cmxa, .a, all_deps=resolver, submod deps, archive deps
+    ##   .archives: depset of archive deps
+    ##   .archive_deps: depset of deps of archive deps
+    ##   .path: depset of all dep paths
+    ## OcamlArchiveProvider
+    ##   .files: archives_depset
 
     default_depset = depset(
         order  = dsorder,
-        direct = [ns_archive_file] # , ns_archive_a_file],
+        direct = [archive_a_file, archive_file],
+        # transitive = [ocamlProvider.files]
     )
 
     newDefaultInfo = DefaultInfo(
         files = default_depset
     )
-    ## adjuncts handled by impl_ns_library() above
-    # indirect_adjunct_depsets = []
-    # indirect_adjunct_paths = []
-    # for submod in ctx.attr.submodules:
-    #     if AdjunctDepsMarker in submod:
-    #         ds = submod[AdjunctDepsMarker].nopam
-    #         indirect_adjunct_depsets.append(ds)
-    #         indirect_adjunct_paths.append(submod[AdjunctDepsMarker].nopam_paths)
 
-    ppx_adjuncts_depset = adjunctsMarker.nopam
-    # adjunctsMarker = AdjunctDepsMarker(
-    #     # opam = depset(
-    #     #     direct     = ctx.attr.deps_adjunct_opam,
-    #     #     transitive = indirect_adjunct_opam_depsets
-    #     # ),
-    #     nopam = ppx_adjuncts_depset,
-    #     # nopam = depset(
-    #     #     # direct     = ctx.attr.deps_adjunct,
-    #     #     # direct     = ctx.files.deps_adjunct,
-    #     #     transitive = indirect_adjunct_depsets
-    #     # ),
-    #     nopam_paths = depset(transitive=indirect_adjunct_paths)
-    # )
+    ppx_adjuncts_depset = ppxAdjunctsProvider.ppx_adjuncts
+    ###########################
+    new_inputs_depset = depset(
+        direct     = action_outputs + ns_resolver,
+        transitive = [ocamlProvider.inputs]
+    )
 
-    cclib_files = []
-    for tgt in ccMarker.libs.keys():
-        cclib_files.extend(tgt.files.to_list())
-    cclib_files_depset = depset(cclib_files)
+    subdeps_depset = depset(
+        ## subdeps excluding direct deps
+        direct = subdeps_list
+    )
 
-    # ocamlPathsMarker = OcamlPathsMarker(
-    #     paths  = depset(
-    #         order = dsorder,
-    #         direct = paths_direct,
-    #         transitive = paths_indirect)
-    # )
+    linkargs_depset = depset(
+        direct     = action_outputs, #[archive_file],
+        ## FIXME: ocamlProvider.linkargs will contain all the stuff for an ns library
+        transitive = [subdeps_depset]
+        # transitive = [ordered_submodules_depset]
+        # transitive = [ocamlProvider.linkargs]
+    )
+    paths_depset  = depset(
+        order = dsorder,
+        direct = paths_direct,
+        transitive = [ocamlProvider.paths]
+        # transitive = paths_indirect
+    )
 
-    ocamlProviderFiles_depset = depset(
+    # provider_depset = depset(provider_output)
+    ocamlProvider_files = depset(
         order  = dsorder,
-        direct = [ns_archive_file],
-        transitive = [all_deps]
+        direct = action_outputs, #  + ctx.files._ns_resolver,
+        transitive = [ocamlProvider.files]
+
+        # transitive = [new_depset]
+        # transitive = [all_deps]
+        # transitive = [provider_depset]
     )
     ocamlProviderPaths_depset  = depset(
         order = dsorder,
@@ -200,27 +209,62 @@ def impl_ns_archive(ctx):
         transitive = [ocamlProvider.paths]
     )
 
+    archiveProvider_files = depset(
+        direct = action_outputs, # + ctx.files._ns_resolver,
+        transitive =
+            [ocamlProvider.archives] if ocamlProvider.archives else []
+    )
+
+    _archive_deps = depset(
+        direct = action_outputs,
+        transitive = [ocamlProvider.archive_deps] if ocamlProvider.archive_deps else None
+    )
+
     ocamlProvider = OcamlProvider(
-        files = ocamlProviderFiles_depset,
-        paths = ocamlProviderPaths_depset
+        inputs   = new_inputs_depset,
+        linkargs = linkargs_depset,
+        paths    = paths_depset,
+        # paths = ocamlProviderPaths_depset
+
+        files = ocamlProvider_files,
+        # archives = archiveProvider_files,
+        archives = depset(action_outputs), # archiveProvider_files,
+        archive_deps = _archive_deps,
+    )
+
+    archiveProvider = OcamlArchiveProvider(
+        files = archiveProvider_files
     )
 
     outputGroupInfo = OutputGroupInfo(
         resolver = ns_resolver,
         ppx_adjuncts = ppx_adjuncts_depset,
+        # cclibs = cclib_files_depset,
+        inputs = ocamlProvider.files,
+        linkargs = linkargs_depset,
+        subdeps = subdeps_depset,
+        archives = archiveProvider_files,
+        all = depset(transitive=[
+            # default_depset,
+            ocamlProvider_files,
+            archiveProvider_files,
             ppx_adjuncts_depset,
-            cclib_files_depset
+            # cclib_files_depset,
         ])
     )
 
+    providers = [
         newDefaultInfo,
-        nsArchiveMarker,
         ocamlProvider,
+        archiveProvider,
+        OcamlNsMarker(marker = "OcamlNsMarker"),
         outputGroupInfo,
-        # ocamlPathsMarker,
-        # nsArchiveMarker,
-        adjunctsMarker,
-        ccMarker
+        ppxAdjunctsProvider,
+        # ccDepsProvider
     ]
+    if ccInfo:
+        providers.append(ccInfo)
+
+    return providers
 
 

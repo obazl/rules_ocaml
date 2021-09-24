@@ -1,19 +1,17 @@
 load("//ocaml:providers.bzl",
-     "OcamlArchiveMarker",
+     "OcamlCcInfo",
+     "OcamlArchiveProvider",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OcamlNsResolverProvider",
      "OcamlModuleMarker",
-     "OcamlNsArchiveMarker",
-     "OcamlNsLibraryMarker",
+     "OcamlNsMarker",
      "OcamlSignatureProvider",
 
      "PpxArchiveMarker",
      "PpxExecutableMarker",
      "PpxLibraryMarker",
-     "PpxModuleMarker",
-     "PpxNsArchiveMarker",
-     "PpxNsLibraryMarker")
+     "PpxModuleMarker")
 
 load("//ocaml/_transitions:transitions.bzl",
      "ocaml_module_sig_out_transition",
@@ -95,8 +93,7 @@ def options_executable(ws):
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
                          [OcamlModuleMarker],
-                         [OcamlNsArchiveMarker],
-                         [OcamlNsLibraryMarker],
+                         [OcamlNsMarker],
                          [PpxArchiveMarker],
                          [PpxLibraryMarker],
                          [PpxModuleMarker],
@@ -144,13 +141,12 @@ def options_library(ws):
 
     if ws == "ocaml":
         _providers = [
-            [OcamlArchiveMarker],
+            [OcamlArchiveProvider],
             [OcamlImportMarker],
             [OcamlLibraryMarker],
             [OcamlModuleMarker],
             [OcamlNsResolverProvider],
-            [OcamlNsArchiveMarker],
-            [OcamlNsLibraryMarker],
+            [OcamlNsMarker],
             [OcamlSignatureProvider],
             [PpxArchiveMarker]
         ]
@@ -172,20 +168,20 @@ def options_library(ws):
 def options_module(ws):
 
     if ws == "ocaml":
-        providers = [[OcamlArchiveMarker],
+        _providers = [[OcamlArchiveProvider],
+                     [CcInfo],
                      [OcamlImportMarker],
                      [OcamlSignatureProvider],
                      [OcamlLibraryMarker],
                      [OcamlModuleMarker],
-                     [OcamlNsArchiveMarker],
-                     [OcamlNsLibraryMarker],
+                     [OcamlNsMarker],
                      # [OcamlNsResolverProvider],
                      [PpxArchiveMarker],
                      [PpxModuleMarker]]
 
     else:
         ## FIXME: providers for ppx_module
-        providers = []
+        _providers = []
 
     ws = "@" + ws
 
@@ -211,7 +207,7 @@ def options_module(ws):
         ################
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = providers,
+            providers = _providers,
             # transition undoes changes that may have been made by ns_lib
             # cfg = ocaml_module_deps_out_transition
         ),
@@ -246,6 +242,7 @@ def options_module(ws):
             ## but the keys must have CcInfo providers, check at build time
             # cfg = ocaml_module_cc_deps_out_transition
         ),
+
         _cc_deps = attr.label(
             doc = "Global cc-deps, apply to all instances of rule. Added last.",
             default = ws + "//module:deps"
@@ -279,14 +276,12 @@ def options_module(ws):
 def options_pack_library(ws):
 
     if ws == "ocaml":
-        providers = [[OcamlArchiveMarker],
+        providers = [[OcamlArchiveProvider],
                      [OcamlImportMarker],
                      [OcamlSignatureProvider],
                      [OcamlLibraryMarker],
                      [OcamlModuleMarker],
-                     [OcamlNsArchiveMarker],
-                     [OcamlNsLibraryMarker],
-                     # [OcamlNsResolverProvider],
+                     [OcamlNsMarker],
                      [PpxArchiveMarker],
                      [PpxModuleMarker]]
 
@@ -362,15 +357,13 @@ def options_ns_archive(ws):
     if ws == "ocaml":
         _submod_providers   = [
             [OcamlModuleMarker],
-            [OcamlNsArchiveMarker],
-            [OcamlNsLibraryMarker],
+            [OcamlNsMarker],
             [OcamlSignatureProvider]
         ]
     else:
         _submod_providers   = [
             [OcamlModuleMarker],
-            [OcamlNsArchiveMarker],
-            [OcamlNsLibraryMarker],
+            [OcamlNsMarker],
             [OcamlSignatureProvider],
             [PpxModuleMarker],
         ]
@@ -429,19 +422,19 @@ def options_ns_library(ws):
     if ws == "ocaml":
         _submod_providers   = [
             [OcamlModuleMarker],
-            [OcamlNsLibraryMarker],
+            [OcamlNsMarker],
             [PpxModuleMarker],
             # [OcamlSignatureProvider]
         ]
-        _sublib_providers = [
-            # [OcamlNsArchiveMarker],
-            [OcamlNsLibraryMarker],
-            [PpxNsLibraryMarker],
-        ]
+        # _sublib_providers = [
+        #     # [OcamlNsMarker],
+        #     [OcamlNsMarker],
+        # ]
     else:
         ## FIXME: ppx providers
         _submod_providers = [PpxModuleMarker]
-        _sublib_providers = [PpxNsLibraryMarker]
+        # _sublib_providers = [OamlNsMarker]
+        # _sublib_providers = [OamlNsLibraryMarker]
 
     ws_prefix = "@ocaml" ## + ws
 

@@ -5,32 +5,21 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "OcamlProvider",
 
-     "AdjunctDepsMarker",
+     "PpxAdjunctsProvider",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "OcamlArchiveMarker",
+     "OcamlArchiveProvider",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
-     "OcamlNsArchiveMarker",
-     "OcamlNsLibraryMarker",
+     "OcamlNsMarker",
      "OcamlNsResolverProvider",
      # "OcamlPathsMarker",
      "OcamlSDK",
      "OcamlSignatureProvider",
 
      "PpxArchiveMarker",
-     "PpxModuleMarker",
-     "PpxNsArchiveMarker",
-     "PpxNsLibraryMarker")
-
-# load("//ocaml:providers.bzl",
-#      "OcamlImportMarker",
-#      "OcamlImportArchivesMarker",
-#      "OcamlImportPluginsMarker",
-#      "OcamlImportSignaturesMarker",
-#      "OcamlImportPathsMarker",
-#      "OcamlImportPpxAdjunctsMarker")
+     "PpxModuleMarker")
 
 load("//ocaml/_rules/utils:rename.bzl",
      "get_module_name",
@@ -247,12 +236,13 @@ def _ocaml_signature_impl(ctx):
     )
     ################
     ################
+    default_depset = depset(
+        order = dsorder,
+            direct = [out_cmi],
+    )
 
     defaultInfo = DefaultInfo(
-        files = depset(
-            order=dsorder,
-            direct = [out_cmi] # must produce a single file to work with ocaml_module.sig
-        )
+        files = default_depset
     )
 
     sigProvider = OcamlSignatureProvider(
@@ -270,23 +260,53 @@ def _ocaml_signature_impl(ctx):
 
     )
     # print("OUTPUT CCPROVIDER: %s" % ccProvider)
+    new_inputs_depset = depset(
+        direct = [out_cmi],
+        transitive = indirect_inputs_depsets
+    )
+    linkargs_depset = depset(
+        # cmi file does not go in linkargs
+        transitive = indirect_linkargs_depsets
+    )
+    # paths_depset = depset(
+    #     direct = direct_paths_list,
+    #     transitive = indirect_paths_depsets
+    # )
 
     ocamlProvider = OcamlProvider(
+        inputs   = new_inputs_depset,
+        linkargs = linkargs_depset,
+        paths    = paths_depset,
+
         files = depset(
             order  = dsorder,
             direct = [out_cmi], # mli?
-            transitive = [all_deps]
+            transitive = input_deps_list
+            # transitive = [all_deps]
         ),
-        paths = paths_depset
+        archives = archives_depset if archives_depset else False,
+        archive_deps = archive_inputs_depset if archive_inputs_depset else False,
+    )
+    # print("SIG exporting OCamlProvider: %s" % ocamlProvider)
+    archiveProvider = OcamlArchiveProvider(
+        files = depset() ## FIXME
     )
 
-    return [
+    providers = [
         defaultInfo,
         ocamlProvider,
         sigProvider,
         # opamMarker,
         ccProvider
     ]
+
+    if ccInfo_list:
+        providers.append(
+            cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+        )
+
+    return providers
+
 
 ################################################################
 ################################################################
@@ -337,16 +357,13 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
                 # [OcamlSignatureProvider],
                 # [OcamlProvider],
                 # [CcDepsProvider]
-                [OcamlArchiveMarker],
+                [OcamlArchiveProvider],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],
                 [OcamlModuleMarker],
-                [OcamlNsArchiveMarker],
-                [OcamlNsLibraryMarker],
+                [OcamlNsMarker],
                 [PpxArchiveMarker],
                 [PpxModuleMarker],
-                [PpxNsArchiveMarker],
-                [PpxNsLibraryMarker],
             ],
             # cfg = ocaml_signature_deps_out_transition
         ),

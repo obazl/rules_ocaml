@@ -1,20 +1,23 @@
 load("//ocaml:providers.bzl",
-     "AdjunctDepsMarker",
+     "OcamlProvider",
+     "OcamlArchiveProvider",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
+
+     "PpxAdjunctsProvider",
      "OcamlLibraryMarker",
      "PpxLibraryMarker",
      # "OpamDepsMarker"
      )
+
+load(":impl_ccdeps.bzl", "handle_ccdeps") # do we need this?
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
 )
 
-load(":impl_common.bzl",
-     "dsorder",
-     "merge_deps")
+load(":impl_common.bzl", "dsorder")
 
 #############################
 def impl_library(ctx):

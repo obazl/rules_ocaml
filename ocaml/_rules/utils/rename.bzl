@@ -2,9 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
-     "OcamlNsLibraryMarker",
      "OcamlNsResolverProvider")
-     # "PpxNsLibraryMarker")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",

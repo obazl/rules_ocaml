@@ -6,6 +6,7 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
 
      "PpxAdjunctsProvider",
+     "OcamlArchiveProvider",
      "OcamlExecutableMarker",
      "OcamlModuleMarker",
      # "OcamlPathsMarker",
@@ -228,15 +229,18 @@ def impl_executable(ctx):
     outputGroupInfo = OutputGroupInfo(
         ppx_adjuncts = ppx_adjuncts_depset,
         # cc = cclib_deps,
+        inputs = inputs_depset,
+        all = depset(transitive=[
             ppx_adjuncts_depset,
-            depset(cclib_deps),
+            # depset(cclib_deps),
         ])
     )
 
+    # print("EXE delivering ppx_adjuncts: %s" % ppxAdjunctsProvider)
     results = [
         defaultInfo,
         outputGroupInfo,
-        adjuncts_provider,
+        ppxAdjunctsProvider,
         exe_provider
     ]
     # print("XXXXXXXXXXXXXXXX adjuncts_provider: %s" % adjuncts_provider)

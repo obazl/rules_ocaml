@@ -5,8 +5,8 @@ load("//ocaml:providers.bzl",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
 
-     "AdjunctDepsMarker",
-     "OcamlArchiveMarker",
+     "PpxAdjunctsProvider",
+     "OcamlArchiveProvider",
      "OcamlModuleMarker",
      # "OcamlPathsMarker",
      "OcamlSDK",
@@ -20,11 +20,11 @@ load("//ocaml/_functions:utils.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load("//ocaml/_functions:utils.bzl", "normalize_module_name")
+load("//ocaml/_functions:module_naming.bzl", "normalize_module_name")
 
 load(":impl_common.bzl",
      "dsorder",
-     "merge_deps",
+     # "merge_deps",
      "tmpdir"
      )
 
@@ -127,8 +127,8 @@ def impl_archive(ctx):
         #     paths_indirect.append(ps)
 
         # ################ Archive Deps ################
-        # if OcamlArchiveMarker in dep:
-        #     all_deps_list.append(dep[OcamlArchiveMarker].files)
+        # if OcamlArchiveProvider in dep:
+        #     all_deps_list.append(dep[OcamlArchiveProvider].files)
 
         # ################ module deps ################
         # if OcamlModuleMarker in dep:
@@ -245,7 +245,7 @@ def impl_archive(ctx):
     # )
 
     # if ctx.attr._rule in ["ocaml_archive"]: # , "coq_plugin"]:
-    #     archiveMarker = OcamlArchiveMarker(
+    #     archiveMarker = OcamlArchiveProvider(
     #         files = depset(
     #             direct = rule_outputs,
     #             transitive = all_deps_list
@@ -269,14 +269,15 @@ def impl_archive(ctx):
     #         archived_modules = archived_modules
     #     )
 
+    ################ ppx adjunct deps ################
     ppx_adjuncts_depset = depset(
         # direct = adjunct_deps,
         transitive = indirect_adjunct_depsets
     )
 
-    adjunctsMarker = AdjunctDepsMarker(
-        nopam       = ppx_adjuncts_depset,
-        nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
+    adjunctsMarker = PpxAdjunctsProvider(
+        ppx_adjuncts       = ppx_adjuncts_depset,
+        paths = depset(transitive = indirect_adjunct_path_depsets)
     )
 
     cclibs = {}
@@ -292,9 +293,13 @@ def impl_archive(ctx):
     cclib_files_depset = depset(cclib_files)
 
     if ctx.attr._rule in ["ocaml_archive"]: # , "coq_plugin"]:
-        ruleMarker = OcamlArchiveMarker(marker = "OcamlArchiveMarker")
+        archiveProvider = OcamlArchiveProvider(
+            ## files = FIXME
+        )
     else:
-        ruleMarker = PpxArchiveMarker(marker = "PpxArchiveMarker")
+        archiveProvider = PpxArchiveMarker(
+            ## files = FIXME
+        )
 
     ocamlProviderDepset = depset(
         order  = dsorder,
@@ -323,7 +328,7 @@ def impl_archive(ctx):
     )
 
     return [defaultInfo,
-            ruleMarker,
+            archiveProvider,
             outputGroupInfo,
             # archiveMarker,
             adjunctsMarker,

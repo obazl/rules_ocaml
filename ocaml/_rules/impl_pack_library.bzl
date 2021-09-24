@@ -3,10 +3,10 @@ load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "AdjunctDepsMarker",
+     "PpxAdjunctsProvider",
      "CcDepsProvider",
      "CompilationModeSettingProvider",
-     "OcamlArchiveMarker",
+     "OcamlArchiveProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlSignatureMarker",
@@ -422,7 +422,7 @@ def impl_pack_library(ctx):
     #     pkgs = opam_depset
     # )
 
-    adjunctsMarker = AdjunctDepsMarker(
+    adjunctsMarker = PpxAdjunctsProvider(
         # opam        = depset(transitive = indirect_adjunct_opam_depsets),
         nopam       = depset(transitive = indirect_adjunct_depsets),
         nopam_paths = depset(transitive = indirect_adjunct_path_depsets)

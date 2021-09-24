@@ -201,7 +201,7 @@ def impl_ns_resolver(ctx):
     ocamlProvider = OcamlProvider(
         files    = depset(
             order = dsorder,
-            direct = action_outputs + [resolver_src_file],
+            direct = rule_outputs
         ),
         paths     = depset(direct = [obj_cmi.dirname]),
     )

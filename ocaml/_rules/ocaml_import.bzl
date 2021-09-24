@@ -2,7 +2,9 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
-     "OcamlArchiveMarker",
+     "OcamlArchiveProvider",
+     "PpxAdjunctsProvider",
+
      "OcamlModuleMarker",
      # "OcamlPathsMarker",
      "OcamlImportMarker", # marker
@@ -207,7 +209,7 @@ ocaml_import = rule(
         deps = attr.label_list(
             allow_files = True,
             providers = [[OcamlImportMarker],
-                         # [OcamlArchiveMarker],
+                         # [OcamlArchiveProvider],
                          # [OcamlModuleMarker]
                          ],
                          # [OcamlImportArchivesMarker],

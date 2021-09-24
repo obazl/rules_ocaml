@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl",
      "PpxExecutableMarker",
-     "PpxModuleMarker")
+     "OcamlModuleMarker")
 
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
@@ -34,7 +34,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "A `ppx_module` to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
             # mandatory = True,
             # allow_single_file = [".ml", ".cmx"],
-            providers = [[PpxModuleMarker]],
+            providers = [[OcamlModuleMarker]],
             default = None
         ),
         ppx  = attr.label(
@@ -59,7 +59,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         ),
         deps = attr.label_list(
             doc = "Deps needed to build this ppx executable.",
-            providers = [[DefaultInfo], [PpxModuleMarker]],
+            providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",

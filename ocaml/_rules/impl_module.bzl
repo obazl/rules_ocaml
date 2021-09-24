@@ -4,11 +4,12 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
+     "OcamlCcInfo",
+     "OcamlArchiveProvider",
      "CompilationModeSettingProvider",
 
-     "AdjunctDepsMarker",
+     "PpxAdjunctsProvider",
      "CcDepsProvider",
-     "OcamlArchiveMarker",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlSignatureProvider",
@@ -432,8 +433,9 @@ def impl_module(ctx):
 
     default_depset = depset(
         order = dsorder,
-        direct = rule_outputs # + [out_cmi] + mli_out,
-        # transitive = merged_module_links_depsets
+        direct = action_outputs, # + [out_cmi] + mli_out,
+        # transitive = input_deps_list
+        # transitive = [dep[DefaultInfo].files for dep in ctx.attr.deps]
     )
 
     defaultInfo = DefaultInfo(
@@ -448,10 +450,10 @@ def impl_module(ctx):
         transitive = indirect_adjunct_depsets
     )
 
-    adjunctsMarker = AdjunctDepsMarker(
-        nopam       = ppx_adjuncts_depset,
-        nopam_paths = depset(order = dsorder,
-                             transitive = indirect_adjunct_path_depsets)
+    adjunctsMarker = PpxAdjunctsProvider(
+        ppx_adjuncts = ppx_adjuncts_depset,
+        paths = depset(order = dsorder,
+                       transitive = indirect_adjunct_path_depsets)
     )
 
     ## FIXME: catch incompatible key dups
@@ -469,16 +471,33 @@ def impl_module(ctx):
     # # order: preorder?
     # cclib_files_depset = depset(cclib_files)
 
-    ocamlProviderDepset = depset(
+    ocamlProvider_files_depset = depset(
         order  = dsorder,
-        direct = rule_outputs, # + [out_cmi] + mli_out,
-        transitive = [all_deps]
+        direct = action_outputs, # + [out_cmi] + mli_out,
+        transitive = input_deps_list
+
+        # transitive = [all_deps]
+        # depset(direct_linkargs),
     )
     # print("ACTION_OUPUTS: %s" % action_outputs)
 
+    new_inputs_depset = depset(
+        direct = action_outputs,
+        transitive = indirect_inputs_depsets
+    )
+    # paths_depset = depset(
+    #     direct = direct_paths_list,
+    #     transitive = indirect_paths_depsets
+    # )
+
     ocamlProvider = OcamlProvider(
-        files = ocamlProviderDepset,
-        paths = paths_depset
+        inputs   = new_inputs_depset,
+        linkargs = linkargs_depset,
+        paths    = paths_depset,
+
+        files = ocamlProvider_files_depset,
+        archives = archives_depset if archives_depset else False,
+        archive_deps = archive_inputs_depset if archive_inputs_depset else False,
     )
     # print("EXPORTING OcamlProvider files: %s" % ocamlProvider)
 
@@ -487,17 +506,24 @@ def impl_module(ctx):
         paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
     )
 
+    ################################################################
     outputGroupInfo = OutputGroupInfo(
         archives = archives_depset if archives_depset else depset(),
+        archive_deps = archive_inputs_depset if archive_inputs_depset else depset(),
         ppx_adjuncts = ppx_adjuncts_depset,
-        cc = action_inputs_ccdep_filelist,
+        # cc = action_inputs_ccdep_filelist,
+        inputs = inputs_depset,
         all = depset(
             order = dsorder,
             transitive=[
                 default_depset,
                 ocamlProvider_files_depset,
+                archives_depset if archives_depset else depset(),
+                archive_inputs_depset if archive_inputs_depset else depset(),
+                ppx_adjuncts_depset,
                 # cclib_files_depset,
                 # depset(ccDepsProvider.ccdeps_map.keys()),
+                # depset(action_inputs_ccdep_filelist)
             ]
         )
     )
@@ -511,12 +537,26 @@ def impl_module(ctx):
         defaultInfo,
         moduleMarker,
         ocamlProvider,
+        # archiveProvider,
         nsResolverProvider,
         outputGroupInfo,
         # moduleMarker,
         # ocamlPathsMarker,
         adjunctsMarker,
-        ccDepsProvider
+        # ccDepsProvider
     ]
+    ## now merge ccInfo list
+    ## example: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl
+
+    if ccInfo_list:
+        ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+        if ctx.label.name == "rustzcash_ctypes_stubs":
+            print("CC deps for %s" % ctx.label.name)
+            [action_inputs_ccdep_filelist, cc_runfiles
+             ] = link_ccdeps(ctx, tc.linkmode, ccInfo, args)
+            for f in action_inputs_ccdep_filelist:
+                print("ccInfo f: %s" % f.path)
+
+        providers.append(ccInfo )
 
     return providers

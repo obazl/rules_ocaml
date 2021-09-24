@@ -5,29 +5,32 @@ load("//ocaml/_providers:opam.bzl",
 
 load("//ocaml/_providers:ocaml.bzl",
      _OcamlProvider           = "OcamlProvider",
+     _OcamlArchiveProvider    = "OcamlArchiveProvider",
+     _OcamlCcInfo             = "OcamlCcInfo",
      _OcamlNsResolverProvider = "OcamlNsResolverProvider",
+     _PpxAdjunctsProvider     = "PpxAdjunctsProvider",
 
      ## markers
-     _AdjunctDepsMarker  = "AdjunctDepsMarker",
-     _OcamlArchiveMarker    = "OcamlArchiveMarker",
+     # _AdjunctDepsMarker  = "AdjunctDepsMarker",
      _OcamlExecutableMarker = "OcamlExecutableMarker",
      _OcamlImportMarker     = "OcamlImportMarker",
      _OcamlLibraryMarker    = "OcamlLibraryMarker",
      _OcamlModuleMarker     = "OcamlModuleMarker",
-     _OcamlNsArchiveMarker  = "OcamlNsArchiveMarker",
-     _OcamlNsLibraryMarker  = "OcamlNsLibraryMarker",
+     _OcamlNsMarker         = "OcamlNsMarker",
+     # _OcamlNsMarker  = "OcamlNsMarker",
+     # _OcamlNsMarker  = "OcamlNsMarker",
      _OcamlSignatureMarker  = "OcamlSignatureMarker",
      _OcamlTestMarker    = "OcamlTestMarker",
 
      _PpxArchiveMarker    = "PpxArchiveMarker",
      _PpxExecutableMarker = "PpxExecutableMarker",
      _PpxModuleMarker     = "PpxModuleMarker",
-     _PpxLibraryMarker    = "PpxLibraryMarker",
-     _PpxNsArchiveMarker  = "PpxNsArchiveMarker",
-     _PpxNsLibraryMarker  = "PpxNsLibraryMarker")
+     _PpxLibraryMarker    = "PpxLibraryMarker")
+     # _PpxNsArchiveMarker  = "PpxNsArchiveMarker",
+     # _PpxNsLibraryMarker  = "PpxNsLibraryMarker")
 
-load("//ocaml/_providers:archive.bzl",
-     _OcamlArchiveProvider      = "OcamlArchiveProvider")
+# load("//ocaml/_providers:archive.bzl",
+#      _OcamlArchiveProvider      = "OcamlArchiveProvider")
 
 load("//ocaml/_providers:module.bzl",
      _OcamlModuleProvider      = "OcamlModuleProvider",
@@ -44,16 +47,19 @@ OpamConfig                          = _OpamConfig
 BuildConfig                         = _BuildConfig
 
 OcamlProvider                      = _OcamlProvider
+OcamlArchiveProvider               = _OcamlArchiveProvider
+OcamlCcInfo                        = _OcamlCcInfo
 OcamlNsResolverProvider            = _OcamlNsResolverProvider
+PpxAdjunctsProvider                = _PpxAdjunctsProvider
 
-AdjunctDepsMarker                 = _AdjunctDepsMarker
-OcamlArchiveMarker                 = _OcamlArchiveMarker
+# AdjunctDepsMarker                 = _AdjunctDepsMarker
 OcamlExecutableMarker                 = _OcamlExecutableMarker
 OcamlImportMarker                  = _OcamlImportMarker
 OcamlLibraryMarker                 = _OcamlLibraryMarker
 OcamlModuleMarker                  = _OcamlModuleMarker
-OcamlNsArchiveMarker               = _OcamlNsArchiveMarker
-OcamlNsLibraryMarker               = _OcamlNsLibraryMarker
+OcamlNsMarker                      = _OcamlNsMarker
+# OcamlNsMarker               = _OcamlNsMarker
+# OcamlNsMarker               = _OcamlNsMarker
 OcamlSignatureMarker               = _OcamlSignatureMarker
 OcamlTestMarker                    = _OcamlTestMarker
 
@@ -61,10 +67,9 @@ PpxArchiveMarker    = _PpxArchiveMarker
 PpxExecutableMarker = _PpxExecutableMarker
 PpxModuleMarker     = _PpxModuleMarker
 PpxLibraryMarker    = _PpxLibraryMarker
-PpxNsArchiveMarker  = _PpxNsArchiveMarker
-PpxNsLibraryMarker  = _PpxNsLibraryMarker
+# PpxNsArchiveMarker  = _PpxNsArchiveMarker
+# PpxNsLibraryMarker  = _PpxNsLibraryMarker
 
-OcamlArchiveProvider               = _OcamlArchiveProvider
 OcamlModuleProvider                = _OcamlModuleProvider
 PpxModuleProvider                  = _PpxModuleProvider
 
@@ -243,29 +248,29 @@ CcDepsProvider = provider(
 #     }
 # )
 
-OcamlNsArchiveProvider = provider(
-    doc = "OCaml NS Archive provider.",
-    fields = {
-        "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        "paths":    "Depset of paths for -I params",
-        "depgraph": "Depset containing transitive closure of deps",
-        "archived_modules": "Depset containing archive contents"
-    }
-    # fields = module_fields
-)
+# OcamlNsArchiveProvider = provider(
+#     doc = "OCaml NS Archive provider.",
+#     fields = {
+#         "module_links":    "Depset of module files to be linked by executable or archive rules.",
+#         "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+#         "paths":    "Depset of paths for -I params",
+#         "depgraph": "Depset containing transitive closure of deps",
+#         "archived_modules": "Depset containing archive contents"
+#     }
+#     # fields = module_fields
+# )
 
-OcamlNsLibraryProvider = provider(
-    doc = "OCaml NS Library provider.",
-    # fields = module_fields
-    fields = {
-        "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        "paths":    "Depset of paths for -I params",
-        "depgraph": "Depset containing transitive closure of deps",
-        "archived_modules": "Depset containing archive contents"
-    }
-)
+# OcamlNsLibraryProvider = provider(
+#     doc = "OCaml NS Library provider.",
+#     # fields = module_fields
+#     fields = {
+#         "module_links":    "Depset of module files to be linked by executable or archive rules.",
+#         "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+#         "paths":    "Depset of paths for -I params",
+#         "depgraph": "Depset containing transitive closure of deps",
+#         "archived_modules": "Depset containing archive contents"
+#     }
+# )
 
 OcamlSignatureProvider = provider(
     doc = "OCaml interface provider.",
