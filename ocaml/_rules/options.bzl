@@ -104,7 +104,14 @@ def options_executable(ws):
             default = "@ocaml//executable:deps"
         ),
 
+        ## NB! executables do not support deps_adjunct - they must be
+        ## attached to the module that injects the dep.
+        # deps_adjunct = attr.label_list(
+        #     doc = """List of non-opam adjunct dependencies (labels).""",
+        #     # providers = [[DefaultInfo], [PpxModuleMarker]]
         # ),
+
+        ## FIXME: add cc_linkopts?
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,
@@ -259,6 +266,10 @@ def options_module(ws):
             ## @ocaml//ns is a 'label_setting' whose value is an `ocaml_ns_resolver` rule. so this institutes a dependency on a resolver whose build params will be set dynamically using transition functions.
             default = "@ocaml//ns",
             ## rename: @ocaml//ns/resolver or @ocaml//ns:resolver
+
+            ## TRICKY BIT: if our struct is generated (e.g. by
+            ## ocaml_lex), this transition will prevent ns renaming:
+            # cfg = ocaml_module_deps_out_transition
         ),
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
@@ -266,6 +277,10 @@ def options_module(ws):
             # allow_files = True,
             # mandatory = True
         ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+
         # _ns_strategy = attr.label(
         #     doc = "Experimental",
         #     default = "@ocaml//ns:strategy"
@@ -376,6 +391,15 @@ def options_ns_archive(ws):
         _warnings    = attr.label(default = ws + "//archive:warnings"),
 
         shared = attr.bool(
+            doc = "True: build a shared lib (.cmxs)",
+            default = False
+        ),
+
+        ns_resolver = attr.label(
+            doc = "Code to use as the ns resolver module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
+            # allow_single_file = [".ml"]
+            providers = [OcamlModuleMarker],
+        ),
 
         _ns_resolver = attr.label(
             doc = "Experimental",
