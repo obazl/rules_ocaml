@@ -35,7 +35,6 @@ load("//ocaml/_rules:ppx_test.bzl",
 ocaml_null = _ocaml_null
 
 ocaml_archive    = _ocaml_archive
-ocaml_cc_import = _ocaml_cc_import
 ocaml_executable = _ocaml_executable
 ocaml_genrule    = _ocaml_genrule
 ocaml_import     = _ocaml_import
