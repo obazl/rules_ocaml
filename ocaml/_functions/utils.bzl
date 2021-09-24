@@ -7,7 +7,6 @@ load("//ocaml:providers.bzl",
      "OcamlSignatureProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
-     "OcamlNsLibraryProvider",
      "PpxArchiveProvider",
      "PpxExecutableProvider",
      "PpxModuleProvider")
@@ -41,75 +40,14 @@ def get_fs_prefix(lbl_string):
     return prefix
 
 ###############################
-def submodule_from_label_string(s):
-    """Derive module name from label string."""
-    lbl = Label(s)
-    target = lbl.name
-    # (segs, sep, basename) = s.rpartition(":")
-    # (basename, ext) = paths.split_extension(basename)
-    basename = target.strip("_")
-    submod = basename[:1].capitalize() + basename[1:]
-    return lbl.package, submod
-
-################################
-def normalize_module_label(lbl):
-    """Normalize module label: remove leading path segs, extension and prefixed underscores, capitalize first char."""
-    # print("NORMALIZING LBL: %s" % lbl)
-    (segs, sep, basename) = lbl.rpartition(":")
-    (basename, ext) = paths.split_extension(basename)
-    basename = basename.strip("_")
-    result = basename[:1].capitalize() + basename[1:]
-    # print("RESULT: %s" % result)
-    return result
-
-###############################
-def normalize_module_name(s):
-    """Normalize module name: remove leading path segs, extension and prefixed underscores, capitalize first char."""
-    # print("NORMALIZING: %s" % s)
-    (segs, sep, basename) = s.rpartition("/")
-    (basename, ext) = paths.split_extension(basename)
-
-    # leading # means ns lib/arch ??
-    basename = basename.strip("_#") ## FIXME: not '#' ????
-
-    result = basename[:1].capitalize() + basename[1:]
-    # print("RESULT: %s" % result)
-    return result
-
-###############################
 def capitalize_initial_char(s):
   """Starlark's capitalize fn downcases everything but the first char.  This fn only affects first char."""
-  first = s[:1]
-  rest  = s[1:]
-  return first.capitalize() + rest
+  # first = s[:1]
+  # rest  = s[1:]
+  # return first.capitalize() + rest
+  return s[:1].capitalize() + s[1:]
 
-###########################
-def file_to_lib_name(file):
-    if file.extension == "so":
-        libname = file.basename[:-3]
-        if libname.startswith("lib"):
-            libname = libname[3:]
-        else:
-            fail("Found '.so' file without 'lib' prefix: %s" % file)
-        return libname
-    elif file.extension == "dylib":
-        libname = file.basename[:-6]
-        if libname.startswith("lib"):
-            libname = libname[3:]
-        else:
-            fail("Found '.so' file without 'lib' prefix: %s" % file)
-        return libname
-    elif file.extension == "a":
-        libname = file.basename[:-2]
-        if libname.startswith("lib"):
-            libname = libname[3:]
-        else:
-            fail("Found '.a' file without 'lib' prefix: %s" % file)
-        return libname
-
-def get_target_file(target):
-  return target.files.to_list()[0]
-
+#####################################################
 def get_src_root(ctx, root_file_names = ["main.ml"]):
   if (ctx.file.src_root != None):
     return ctx.file.src_root
@@ -121,22 +59,27 @@ def get_src_root(ctx, root_file_names = ["main.ml"]):
         return src
   fail("No %s source file found." % " or ".join(root_file_names), "srcs")
 
-def strip_ml_extension(path):
+#############################
+def strip_ml_extension(path): #FIXME: use paths.split_extension()
   if path.endswith(".ml"):
     return path[:-3]
   else:
     return path
 
+###################
 def get_opamroot():
     return Label("@ocaml_sdk//opamroot").workspace_root + "/" + Label("@ocaml_sdk//opamroot").package
 
+######################
 def get_projroot(ctx):
     return ctx.attr._projroot[BuildSettingInfo].value
 
+#####################
 def get_sdkpath(ctx):
   sdkpath = ctx.attr._sdkpath[OcamlSDK].path + "/bin"
   return sdkpath + ":/usr/bin:/bin:/usr/sbin:/sbin"
 
+#####################
 def split_srcs(srcs):
   intfs = []
   impls = []
