@@ -72,7 +72,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     #         ],
     #     ),
     # },
-    # cfg     = module_in_transition,
+    cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

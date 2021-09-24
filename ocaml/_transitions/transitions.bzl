@@ -1,9 +1,10 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:structs.bzl", "structs")
 
-load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     "normalize_module_label")
+load("//ocaml/_functions:utils.bzl", "capitalize_initial_char")
+load("//ocaml/_functions:module_naming.bzl",
+     "normalize_module_label",
+     "normalize_module_name")
 
 #######################################
 def print_config_state(settings, attr):
@@ -70,7 +71,7 @@ ocaml_executable_deps_out_transition = transition(
 
 ################################################################
 def _module_in_transition_impl(settings, attr):
-
+    # print("_module_in_transition_impl %s" % attr.name)
     debug = False
     # if attr.name in ["_Util"]:
     #     debug = True
@@ -99,6 +100,7 @@ def _module_in_transition_impl(settings, attr):
         prefixes     = settings["@ocaml//ns:prefixes"]
         submodules = settings["@ocaml//ns:submodules"]
     else:
+        # reset to default values
         prefixes   = []
         submodules = []
 
@@ -126,9 +128,69 @@ module_in_transition = transition(
     ]
 )
 
+##############################################
+    # if this nslib in ns:submodules list
+    #     pass on prefix but not ns:submodules
+    # else
+    #     reset ConfigState
+
+def _nslib_in_transition_impl(settings, attr):
+    # print("_nslib_in_transition_impl %s" % attr.name)
+    debug = False
+    # if attr.name in ["color"]:
+    #     debug = True
+
+    if debug:
+        print("")
+        print(">>> nslib_in_transition")
+        print_config_state(settings, attr)
+        print(attr)
+
+    module = normalize_module_name(attr.name)
+
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
+    if module in settings["@ocaml//ns:prefixes"]:
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    elif module in submodules:
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    else:
+        # reset to default values
+        prefixes   = []
+        submodules = []
+
+    if debug:
+        print("OUT STATE:")
+        print("  ns:prefixes: %s" % prefixes)
+        print("  ns:submodules: %s" % submodules)
+
+    return {
+        "@ocaml//ns:prefixes"   : prefixes,
+        "@ocaml//ns:submodules" : submodules,
+    }
+
+###################
+nslib_in_transition = transition(
+    implementation = _nslib_in_transition_impl,
+    inputs = [
+        # "@ocaml//ns:transitivity",
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
 #####################################################
 def _ocaml_module_deps_out_transition_impl(settings, attr):
-
+    # print("_ocaml_module_deps_out_transition_impl %s" % attr.name)
     debug = False
     if attr.name == "_Grammar":
         debug = True
@@ -147,15 +209,15 @@ def _ocaml_module_deps_out_transition_impl(settings, attr):
         submodules.append(submodule)
 
     if module in submodules:
-        ## this is an nslib submodule; we need to propagate configstate set by nslib,
-        ## in case we depend on a sibling.
+        ## this is an nslib submodule; we need to propagate
+        ## configstate set by nslib, in case we depend on a sibling.
         # print("OUT_T mod: %s" % module)
         # print("OUT_T pfx: %s" % settings["@ocaml//ns:prefixes"])
         # if module == settings["@ocaml//ns:prefixes"][-1]:
         prefixes   = settings["@ocaml//ns:prefixes"]
         submodules = settings["@ocaml//ns:submodules"]
     else:
-        ## we're not in an nslib context
+        ## we're not in an nslib context; reset to defaults
         prefixes   = []
         submodules = []
 
@@ -200,7 +262,7 @@ ocaml_module_sig_out_transition = transition(
 
 ################################################################
 def _subsignature_in_transition_impl(settings, attr):
-
+    # print("_subsignature_in_transition_impl %s" % attr.name)
     debug = False
     if attr.name in ["_Feedback"]:
         debug = True
@@ -257,8 +319,8 @@ subsignature_in_transition = transition(
 
 ################################################################
 def _ocaml_signature_deps_out_transition_impl(settings, attr):
-
-    debug = True
+    # print("_ocaml_signature_deps_out_transition_impl %s" % attr.name)
+    debug = False # True
     if attr.name == "":
         debug = True
 
@@ -309,7 +371,7 @@ ocaml_signature_deps_out_transition = transition(
 
 ###########################################################
 def _ocaml_subsignature_deps_out_transition_impl(settings, attr):
-
+    # print("_ocaml_subsignature_deps_out_transition_impl %s" % attr.name)
     debug = False
     # if attr.name == ":_Plexing.cmi":
     #     debug = True
@@ -352,6 +414,25 @@ def _ocaml_subsignature_deps_out_transition_impl(settings, attr):
 ocaml_subsignature_deps_out_transition = transition(
     implementation = _ocaml_subsignature_deps_out_transition_impl,
     # implementation = _ocaml_module_deps_out_transition_impl,
+    inputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+##############################################
+def _reset_in_transition_impl(settings, attr):
+    return {
+        "@ocaml//ns:prefixes"   : [],
+        "@ocaml//ns:submodules" : [],
+    }
+
+reset_in_transition = transition(
+    implementation = _reset_in_transition_impl,
     inputs = [
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",

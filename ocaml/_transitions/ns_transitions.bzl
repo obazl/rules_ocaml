@@ -3,8 +3,8 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@bazel_skylib//lib:structs.bzl", "structs")
 
-load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
+load("//ocaml/_functions:utils.bzl", "capitalize_initial_char")
+load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
 
@@ -19,6 +19,7 @@ def print_config_state(settings, attr):
 
 ##############################################
 def _nsarchive_in_transition_impl(settings, attr):
+    # print("_nsarchive_in_transition_impl %s" % attr.name)
     debug = False
     # if attr.name in ["color"]:
     #     debug = True
@@ -64,55 +65,9 @@ nsarchive_in_transition = transition(
     ]
 )
 
-##############################################
-def _nslib_in_transition_impl(settings, attr):
-    debug = False
-    # if attr.name in ["color"]:
-    #     debug = True
-
-    if debug:
-        print("")
-        print(">>> nslib_in_transition")
-        print_config_state(settings, attr)
-        print(attr)
-
-    # if this in ns:submodules
-    #     pass on prefix but not ns:submodules
-    # else
-    #     reset ConfigState
-
-    prefixes = []
-
-    # if settings["@ocaml//ns:transitivity"]:
-    #     prefixes.extend(settings["@ocaml//ns:prefixes"])
-    #     for submod_lbl in settings["@ocaml//ns:submodules"]:
-    #         if attr.name == Label(submod_lbl).name:
-    #             prefixes.append(normalize_module_name(attr.name))
-    #             break
-
-    return {
-        "@ocaml//ns:prefixes"  : [], # prefixes,
-        "@ocaml//ns:submodules": [],
-    }
-
-###################
-nslib_in_transition = transition(
-    ## """Reset ConfigState for both @ocaml and @ppx.""",
-    implementation = _nslib_in_transition_impl,
-    inputs = [
-        # "@ocaml//ns:transitivity",
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
-    ],
-    outputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
-    ]
-)
-
 ################################################################
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
-
+    # print("_ocaml_nslib_out_transition_impl %s" % attr.name)
     debug = False
     # if attr.name in ["grammlib"]:
     # debug = True
@@ -122,10 +77,11 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         print(">>> " + transition)
         print_config_state(settings, attr)
 
-    if attr.name.startswith("#"):
-        nslib_submod = True
-    else:
-        nslib_submod = False
+    # if attr.name.startswith("#"):
+    #     nslib_submod = True
+    # else:
+    #     nslib_submod = False
+
     nslib_name = normalize_module_name(attr.name)
     ns_prefixes = []
     ns_prefixes.extend(settings["@ocaml//ns:prefixes"])
@@ -141,14 +97,16 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     nslib_module = capitalize_initial_char(nslib_name)
     if len(ns_prefixes) == 0 and ns_submodules == []:
-        ## new ns lib
+        ## this is a toplevelnslib, not a descendant of another nslib
         ns_prefixes.append(nslib_module)
         ns_submodules = attr_submodules
     elif nslib_module in ns_submodules:
-        ## this is an ns lib submodule of a parent nslib
+        ## this is nslib is a submodule of a parent nslib
         ns_prefixes.append(nslib_module)
     elif nslib_module not in ns_prefixes:
-        # not a submodule - params are inherited from remote ns lib
+        # this is a descendant of another nslib, but it is not a
+        # submodule; e.g. child of a submodule
+        # - params are inherited from remote ns lib
         ns_prefixes.append(nslib_module)
     # else:
         ## this is an ns lib submodule of a parent nslib
@@ -169,6 +127,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
 ################
 def _ocaml_nslib_main_out_transition_impl(settings, attr):
+    # print("_ocaml_nslib_main_out_transition_impl %s" % attr.name)
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_main_out_transition", settings, attr)
 
 ocaml_nslib_main_out_transition = transition(
@@ -185,6 +144,7 @@ ocaml_nslib_main_out_transition = transition(
 
 ################
 def _ocaml_nslib_submodules_out_transition_impl(settings, attr):
+    # print("_ocaml_nslib_submodules_out_transition_impl %s" % attr.name)
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_submodules_out_transition", settings, attr)
 
 ocaml_nslib_submodules_out_transition = transition(
@@ -201,6 +161,7 @@ ocaml_nslib_submodules_out_transition = transition(
 
 ################
 def _ocaml_nslib_ns_out_transition_impl(settings, attr):
+    # print("_ocaml_nslib_ns_out_transition_impl %s" % attr.name)
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_ns_out_transition", settings, attr)
 
 ocaml_nslib_ns_out_transition = transition(
@@ -217,7 +178,7 @@ ocaml_nslib_ns_out_transition = transition(
 
 ##############################################################
 def _ocaml_module_cc_deps_out_transition_impl(settings, attr):
-
+    # we do not want to do this - build cc deps in same ns as depender?
     debug = False
     if attr.name == "":
         debug = True

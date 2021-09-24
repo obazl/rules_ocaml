@@ -3,7 +3,8 @@ load("//ocaml:providers.bzl",
      "OcamlModuleMarker",
      "OcamlNsMarker")
 
-load("//ocaml/_transitions:ns_transitions.bzl", "nslib_in_transition")
+load("//ocaml/_transitions:transitions.bzl",
+     "nslib_in_transition")
 
 load(":impl_ns_library.bzl", "impl_ns_library")
 

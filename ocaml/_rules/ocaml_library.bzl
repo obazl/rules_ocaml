@@ -4,7 +4,7 @@ load(":options.bzl", "options", "options_library")
 
 load(":impl_library.bzl", "impl_library")
 
-load("//ocaml/_transitions:ns_transitions.bzl", "nslib_in_transition")
+load("//ocaml/_transitions:transitions.bzl", "reset_in_transition")
 
 ###############################
 rule_options = options("ocaml")
@@ -39,7 +39,7 @@ Packages](../ug/collections.md).
     ),
     ## this is not an ns library, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
-    cfg     = nslib_in_transition,
+    cfg     = reset_in_transition,
     provides = [OcamlLibraryMarker],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
