@@ -21,7 +21,6 @@ load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
      "get_sdkpath",
 )
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
@@ -47,7 +46,6 @@ def impl_executable(ctx):
         ))
 
     env = {
-        "OPAMROOT": get_opamroot(),
         "PATH": get_sdkpath(ctx),
     }
 
@@ -222,23 +220,6 @@ def impl_executable(ctx):
         transitive = all_deps_list
     )
 
-    # # print("XDEPS {x} EXE: {d}".format(x=ctx.label, d = all_deps))
-    # for d in all_deps.to_list():
-    #     # print("XDEP: {d} PATH: {f}; SHORT: {s}".format(
-    #     #     d=d, f=d.path, s=d.short_path))
-    #     # if d.extension != "cmi":
-    #     # if d.path.startswith(opam_lib_prefix):
-    #     #     dir = paths.relativize(d.dirname, opam_lib_prefix)
-    #     #     # includes.append( "+../" + dir )
-    #     #     args.add("-I", "+../" + dir )
-    #     # else:
-    #     #     # includes.append(d.dirname)
-    #     #     args.add("-I", d.dirname)
-    #     if d.extension not in ["cmi", "mli", "ml", "a", "o"]:
-    #         # if d.basename != "Embedded_cmis.cmx":
-    #         # args.add("-I", d.dirname)
-    #         args.add(d.path)
-
     args.add("-absname")
 
     linkargs_depset = depset(
@@ -256,45 +237,13 @@ def impl_executable(ctx):
 
     ################################################################
     ################################################################
-
-    # for dset in indirect_ppx_adjunct_depsets:
-    #     for f in dset.to_list():
-    #         if f.extension in ["cmxa", "cmx"]:
-    #             args.add(f)
-    #         if f.path.startswith(opam_lib_prefix):
-    #             dir = paths.relativize(f.dirname, opam_lib_prefix)
-    #             includes.append( "+../" + dir )
-    #         else:
-    #             includes.append( f.dirname )
-
     args.add_all(includes, before_each="-I", uniquify=True)
 
-    # args.add_all(cmxa_args, uniquify=True)
-
-    # args.add("-absname")
-    ## FIXME: detect dup between main and deps
-    # if ctx.attr.main != None:
-    #     for f in ctx.attr.main.files.to_list():
-    #         if f.extension in ["cmx", "o"]:
-    #             cclib_deps.append(f)
-    #         if f.extension in ["cmx"]:
-    #             args.add("-I", f.dirname)
-                # args.add("-I", f.dirname + "/__obazl")
-                # args.add(f.path)
-
     args.add("-o", out_exe)
-
-    # TRANSITIVES = [
-    #     all_deps, ctx.attr.main.files,
-    # ] + [
-    #     depset(action_inputs_ccdep_filelist),
-    #     archive_inputs_depset,
-    #     archives_depset]
 
     inputs_depset = depset(
         transitive = direct_inputs_depsets
         + [depset(action_inputs_ccdep_filelist)]
-        # transitive = TRANSITIVES
     )
     # print("EXECUTABLE {m} INPUTS_DEPSET: {ds}".format(
     #     m=ctx.label.name, ds=inputs_depset))
@@ -399,6 +348,5 @@ def impl_executable(ctx):
         ppxAdjunctsProvider,
         exe_provider
     ]
-    # print("XXXXXXXXXXXXXXXX adjuncts_provider: %s" % adjuncts_provider)
 
     return results

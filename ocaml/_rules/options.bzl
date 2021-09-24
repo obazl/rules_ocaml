@@ -226,9 +226,6 @@ def options_module(ws):
             ## NB: this is a label_flag:
             default = ws + "//module:deps"
         ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names"
-        # ),
 
         deps_deferred = attr.label_list(
             doc = "Deps needed at link-time (when building an executable). (I.e. for 'virtual' modules."
@@ -326,9 +323,6 @@ def options_pack_library(ws):
             doc = "Global deps, apply to all instances of rule. Added last.",
             default = ws + "//module:deps"
         ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names"
-        # ),
         # data = attr.label_list(
         #     allow_files = True,
         #     doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."

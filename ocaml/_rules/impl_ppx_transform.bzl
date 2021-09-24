@@ -3,7 +3,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//ocaml:providers.bzl", "OcamlVerboseFlagProvider")
 load("//ocaml:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
      "get_sdkpath")
 
 load(":impl_common.bzl", "tmpdir")
@@ -31,8 +30,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     outfile = ctx.actions.declare_file(tmpdir + to)
     outputs = {"impl": outfile}
 
-    env = {"OPAMROOT": get_opamroot(),
-           "PATH": get_sdkpath(ctx)}
+    env = {"PATH": get_sdkpath(ctx)}
 
     verbose = True
     if ctx.attr._verbose[OcamlVerboseFlagProvider].value:

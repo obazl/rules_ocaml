@@ -8,7 +8,6 @@ load("//ocaml:providers.bzl",
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_fs_prefix",
-     "get_opamroot",
      "get_sdkpath",
 )
 
@@ -37,8 +36,7 @@ def impl_ns_resolver(ctx):
         return [DefaultInfo(),
                 OcamlNsResolverProvider()]
 
-    env = {"OPAMROOT": get_opamroot(),
-           "PATH": get_sdkpath(ctx)}
+    env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 

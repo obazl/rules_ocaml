@@ -7,7 +7,6 @@ load("//ocaml:providers.bzl",
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_fs_prefix",
-     "get_opamroot",
      "get_sdkpath",
 )
 load("//ocaml/_functions:module_naming.bzl", "submodule_from_label_string")

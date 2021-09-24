@@ -488,9 +488,6 @@ ppx_expect_test = rule(
             default = "binary"
         ),
         deps = attr.label_list( ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names"
-        # ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn 'ppx_mode_transition', for attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -666,9 +663,6 @@ ppx_test = rule(
             default = "binary"
         ),
         deps = attr.label_list( ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names"
-        # ),
         mode = attr.string(default = "native"),
         message = attr.string()
     ),

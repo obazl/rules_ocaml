@@ -7,13 +7,11 @@ load("//ocaml:providers.bzl",
      "PpxAdjunctsProvider",
      "OcamlLibraryMarker",
      "PpxLibraryMarker",
-     # "OpamDepsMarker"
      )
 
 load(":impl_ccdeps.bzl", "handle_ccdeps") # do we need this?
 
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
      "get_sdkpath"
 )
 
@@ -31,8 +29,7 @@ def impl_library(ctx):
 
     ## FIXME: do we need OCAMLFIND_IGNORE here?
 
-    env = {"OPAMROOT": get_opamroot(),
-           "PATH": get_sdkpath(ctx)}
+    env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 

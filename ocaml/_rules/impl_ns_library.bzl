@@ -15,7 +15,6 @@ load("//ocaml:providers.bzl",
 load(":impl_ccdeps.bzl", "handle_ccdeps", "link_ccdeps", "dump_ccdep")
 
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
      "get_sdkpath",
 )
 

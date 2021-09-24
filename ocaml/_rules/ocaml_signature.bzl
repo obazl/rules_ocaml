@@ -31,7 +31,6 @@ load("//ocaml/_transitions:transitions.bzl", "ocaml_signature_deps_out_transitio
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "get_opamroot",
      "get_sdkpath",
 )
 load("//ocaml/_functions:module_naming.bzl", "normalize_module_label")
@@ -77,10 +76,7 @@ def _ocaml_signature_impl(ctx):
     print("  _NS_SUBMODULES: %s" % ns_submodules)
     print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver)
 
-    env = {
-        "OPAMROOT": get_opamroot(),
-        "PATH": get_sdkpath(ctx),
-    }
+    env = {"PATH": get_sdkpath(ctx)}
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -214,9 +210,6 @@ def _ocaml_signature_impl(ctx):
     adjunct_deps = []
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[PpxAdjunctsProvider]
-        # if using_ocamlfind:
-        #     for opam in provider.opam.to_list():
-        #         args.add("-package", opam)
 
         for ppx_adjunct in provider.ppx_adjuncts.to_list():
             adjunct_deps.append(ppx_adjunct)
@@ -398,7 +391,6 @@ def _ocaml_signature_impl(ctx):
         defaultInfo,
         ocamlProvider,
         sigProvider,
-        # opamMarker,
         ccProvider
     ]
 
@@ -496,9 +488,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _sdkpath = attr.label(
             default = Label("@ocaml//:path")
         ),
-        # _opam_lib = attr.label(
-        #     default = "@opam//:opam_lib"
-        # )
     ),
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],

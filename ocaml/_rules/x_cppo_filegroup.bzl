@@ -1,7 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "int_setting", "string_setting", "BuildSettingInfo")
 
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
      "get_sdkpath"
      )
 
@@ -17,8 +16,7 @@ def _x_cppo_filegroup_impl(ctx):
       print("X_CPPO_FILEGROUP TARGET: %s" % ctx.label.name)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+  env = {"PATH": get_sdkpath(ctx)}
 
   entailed_deps = None
 

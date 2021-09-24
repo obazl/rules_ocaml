@@ -65,15 +65,9 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "Dependency to be added last.",
             default = "@ppx//executable:deps"
         ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names",
-        # ),
         deps_adjunct = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             # providers = [[DefaultInfo], [PpxModuleMarker]]
-        ),
-        deps_adjunct_opam = attr.string_list(
-            doc = """List of opam adjunct dependencies (pkg name strings).""",
         ),
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
@@ -102,10 +96,6 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             ## required for transition fn of attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
-
-        # _opam_lib = attr.label(
-        #     default = "@opam//:opam_lib"
-        # )
 
     ),
     cfg     = executable_in_transition,

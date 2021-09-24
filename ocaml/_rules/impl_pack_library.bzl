@@ -10,7 +10,6 @@ load("//ocaml:providers.bzl",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlSignatureMarker",
-     # "OpamDepsMarker",
      "OcamlSDK",
      "PpxModuleMarker")
 
@@ -26,7 +25,6 @@ load("//ocaml/_rules/utils:utils.bzl",
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "get_opamroot",
      "get_sdkpath")
 
 load("//ocaml/_functions:module_naming.bzl",
@@ -190,11 +188,7 @@ def impl_pack_library(ctx):
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml"
     OCAMLFIND_IGNORE = OCAMLFIND_IGNORE + ":" + ctx.attr._sdkpath[OcamlSDK].path + "/lib/ocaml/compiler-libs"
 
-    env = {
-        "OPAMROOT": get_opamroot(),
-        "PATH": get_sdkpath(ctx),
-        "OCAMLFIND_IGNORE_DUPS_IN": OCAMLFIND_IGNORE
-    }
+    env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
@@ -210,12 +204,8 @@ def impl_pack_library(ctx):
     merged_depgraph_depsets = []
     merged_archived_modules_depsets = []
 
-    # indirect_opam_depsets = []
-
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
-    # indirect_adjunct_opam_depsets = []
-
     indirect_cc_deps  = {}
 
     ################
@@ -274,13 +264,6 @@ def impl_pack_library(ctx):
 
     if "-g" in _options:
         args.add("-runtime-variant", "d")
-
-    # args.add("-linkpkg")
-
-    # opam_depset = depset(# direct = ctx.attr.deps_opam,
-    #                      transitive = indirect_opam_depsets)
-    # for opam in opam_depset.to_list():
-    #     args.add("-package", opam)  ## add dirs to search path
 
     ## add adjunct_deps from ppx provider
     ## adjunct deps in the dep graph are NOT compile deps of this module.
@@ -418,14 +401,9 @@ def impl_pack_library(ctx):
             ),
         )
 
-    # opamMarker = OpamDepsMarker(
-    #     pkgs = opam_depset
-    # )
-
     adjunctsMarker = PpxAdjunctsProvider(
-        # opam        = depset(transitive = indirect_adjunct_opam_depsets),
-        nopam       = depset(transitive = indirect_adjunct_depsets),
-        nopam_paths = depset(transitive = indirect_adjunct_path_depsets)
+        ppx_adjuncts = depset(transitive = indirect_adjunct_depsets),
+        paths = depset(transitive = indirect_adjunct_path_depsets)
     )
 
     ## FIXME: catch incompatible key dups
@@ -443,7 +421,6 @@ def impl_pack_library(ctx):
     return [
         defaultInfo,
         moduleMarker,
-        # opamMarker,
         adjunctsMarker,
         ccMarker
     ]

@@ -2,10 +2,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
 
-load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
-     "get_sdkpath",
-)
+load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
 ########## RULE:  OCAML_INTERFACE  ################
 def _ocaml_yacc_impl(ctx):
@@ -18,8 +15,7 @@ def _ocaml_yacc_impl(ctx):
       print("OCAML YACC TARGET: %s" % ctx.label.name)
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+  env = {"PATH": get_sdkpath(ctx)}
 
   yaccer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
   yacceri_fname = paths.replace_extension(ctx.file.src.basename, ".mli")
