@@ -4,7 +4,6 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",)
 
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
      "get_sdkpath",
 )
 
@@ -23,8 +22,7 @@ def _ocaml_lex_impl(ctx):
   mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
   tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-  env = {"OPAMROOT": get_opamroot(),
-         "PATH": get_sdkpath(ctx)}
+  env = {"PATH": get_sdkpath(ctx)}
 
   # lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
 
