@@ -43,7 +43,7 @@ load("//ocaml/_functions:module_naming.bzl",
      "file_to_lib_name",
      "normalize_module_name")
 
-load(":impl_ccdeps.bzl", "handle_ccdeps")
+load(":impl_ccdeps.bzl", "handle_ccdeps", "link_ccdeps", "dump_ccdep")
 
 load(":impl_common.bzl",
      "dsorder",

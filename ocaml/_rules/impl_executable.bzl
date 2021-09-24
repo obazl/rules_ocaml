@@ -16,7 +16,7 @@ load("//ocaml:providers.bzl",
      "PpxModuleMarker"
 )
 
-load(":impl_ccdeps.bzl", "handle_ccdeps")
+load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 

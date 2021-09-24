@@ -12,7 +12,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsMarker",
      "OcamlNsResolverProvider")
 
-load(":impl_ccdeps.bzl", "handle_ccdeps")
+load(":impl_ccdeps.bzl", "handle_ccdeps", "link_ccdeps", "dump_ccdep")
 
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",

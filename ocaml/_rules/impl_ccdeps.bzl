@@ -3,6 +3,236 @@ load("//ocaml:providers.bzl", "CcDepsProvider")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
+## DefaultInfo.files will be empty for cc_import deps, so in
+## that case use CcInfo.
+
+## For cc_library, DefaultInfo.files will contain the
+## generated files (usually .a, .so, unless linkstatic is set)
+
+## At the end we'll have one CcInfo whose entire depset will go
+## on cmd line. This includes indirect deps like the .a files
+## in @//ocaml/csdk and @ocaml//lib/ctypes.
+
+#########################
+def dump_library_to_link(ctx, idx, lib):
+
+    print("  alwayslink[{i}]: {al}".format(i=idx, al = lib.alwayslink))
+    flds = ["static_library",
+            "pic_static_library",
+            "interface_library",
+            "dynamic_library",]
+    for fld in flds:
+        if hasattr(lib, fld):
+            if getattr(lib, fld):
+                print("  lib[{i}].{f}: {p}".format(
+                    i=idx, f=fld, p=getattr(lib,fld).path))
+            else:
+                print("  lib[{i}].{f} == None".format(i=idx, f=fld))
+
+    # if lib.dynamic_library:
+    #     print(" lib[{i}].dynamic_library: {lib}".format(
+    #         i=idx, lib=lib.dynamic_library.path))
+    # else:
+    #     print(" lib[{i}].dynamic_library == None".format(i=idx))
+
+#########################
+def dump_ccdep(ctx, dep):
+    print("dump_ccdep %s" % ctx.label)
+    print("CcInfo dep: {d}".format(d = dep))
+    dfiles = dep[DefaultInfo].files.to_list()
+    print("dep[DefaultInfo].files count: %s" % len(dfiles))
+    if len(dfiles) > 0:
+        for f in dfiles:
+            print("  %s" % f)
+
+        ## ASSUMPTION: all files in DefaultInfo are also in CcInfo
+        print("dep[CcInfo].linking_context:")
+        cc_info = dep[CcInfo]
+        compilation_ctx = cc_info.compilation_context
+        linking_ctx     = cc_info.linking_context
+        linker_inputs = linking_ctx.linker_inputs.to_list()
+        print("linker_inputs count: %s" % len(linker_inputs))
+        lidx = 0
+        for linput in linker_inputs:
+            print(" linker_input[{i}]".format(i=lidx))
+            print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+            libs = linput.libraries
+            print(" libs count: %s" % len(libs))
+            if len(libs) > 0:
+                i = 0
+                for lib in linput.libraries:
+                    dump_library_to_link(ctx, i, lib)
+                    i = i+1
+            lidx = lidx + 1
+
+    else:
+        for dep in dfiles:
+            print(" Default f: %s" % dep)
+
+
+################################################################
+## to be called from {ocaml,ppx}_executable
+## tasks:
+##     - construct args
+##     - construct inputs_depset
+##     - extract runfiles
+def link_ccdeps(ctx,
+                default_linkmode,
+                ccInfo,
+                args):
+    print("link_ccdeps %s" % ctx.label)
+
+    inputs_list = []
+    runfiles    = []
+
+    compilation_ctx = ccInfo.compilation_context
+    linking_ctx     = ccInfo.linking_context
+    linker_inputs = linking_ctx.linker_inputs.to_list()
+    for linput in linker_inputs:
+        libs = linput.libraries
+        if len(libs) > 0:
+            for lib in libs:
+                if lib.pic_static_library:
+                    inputs_list.append(lib.pic_static_library)
+                    args.add(lib.pic_static_library.path)
+                if lib.static_library:
+                    inputs_list.append(lib.static_library)
+                    args.add(lib.static_library.path)
+                if lib.dynamic_library:
+                    inputs_list.append(lib.dynamic_library)
+                    args.add("-ccopt", "-L" + lib.dynamic_library.dirname)
+                    args.add("-cclib", lib.dynamic_library.path)
+
+    return [inputs_list, runfiles]
+
+def x(ctx,
+      cc_deps_dict,
+      default_linkmode,
+      args,
+      includes,
+      cclib_deps,
+      cc_runfiles):
+    dfiles = dep[DefaultInfo].files.to_list()
+    print("dep[DefaultInfo].files count: %s" % len(dfiles))
+    if len(dfiles) > 0:
+        for f in dfiles:
+            print("  %s" % f)
+        print("dep[CcInfo].linking_context:")
+        cc_info = dep[CcInfo]
+        compilation_ctx = cc_info.compilation_context
+        linking_ctx     = cc_info.linking_context
+        linker_inputs = linking_ctx.linker_inputs.to_list()
+        print("linker_inputs count: %s" % len(linker_inputs))
+        for linput in linker_inputs:
+            print("NEW LINKER_INPUT")
+            print(" LINKFLAGS: %s" % linput.user_link_flags)
+            print(" LINKLIB[0]: %s" % linput.libraries[0].static_library.path)
+
+            ## ?filter on prefix for e.g. csdk: example/ocaml
+            # for lib in linput.libraries:
+            #     print(" LINKLIB: %s" % lib.static_library.path)
+    else:
+        for dep in dfiles:
+            print(" Default f: %s" % dep)
+
+
+    ## FIXME: static v. dynamic linking of cc libs in bytecode mode
+    # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
+
+    # default linkmode for toolchain is determined by platform
+    # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
+    # dynamic linking does not currently work on the mac - ocamlrun
+    # wants a file named 'dllfoo.so', which rust cannot produce. to
+    # support this we would need to rename the file using install_name_tool
+    # for macos linkmode is dynamic, so we need to override this for bytecode mode
+
+    debug = False
+    # if ctx.attr._rule == "ocaml_executable":
+    #     debug = True
+    if debug:
+        print("EXEC _handle_cc_deps %s" % ctx.label)
+        print("CC_DEPS_DICT: %s" % cc_deps_dict)
+
+    # first dedup
+    ccdeps = {}
+    for ccdict in cclib_deps:
+        for [dep, linkmode] in ccdict.items():
+            if dep in ccdeps.keys():
+                if debug:
+                    print("CCDEP DUP? %s" % dep)
+            else:
+                ccdeps.update({dep: linkmode})
+
+    for [dep, linkmode] in cc_deps_dict.items():
+        if debug:
+            print("CCLIB DEP: ")
+            print(dep)
+        if linkmode == "default":
+            if debug: print("DEFAULT LINKMODE: %s" % default_linkmode)
+            for depfile in dep.files.to_list():
+                if default_linkmode == "static":
+                    if (depfile.extension == "a"):
+                        args.add(depfile)
+                        cclib_deps.append(depfile)
+                        includes.append(depfile.dirname)
+                else:
+                    for depfile in dep.files.to_list():
+                        if (depfile.extension == "so"):
+                            libname = file_to_lib_name(depfile)
+                            args.add("-ccopt", "-L" + depfile.dirname)
+                            args.add("-cclib", "-l" + libname)
+                            cclib_deps.append(depfile)
+                        elif (depfile.extension == "dylib"):
+                            libname = file_to_lib_name(depfile)
+                            args.add("-cclib", "-l" + libname)
+                            args.add("-ccopt", "-L" + depfile.dirname)
+                            cclib_deps.append(depfile)
+                            cc_runfiles.append(dep.files)
+        elif linkmode == "static":
+            if debug:
+                print("STATIC lib: %s:" % dep)
+            for depfile in dep.files.to_list():
+                if (depfile.extension == "a"):
+                    args.add(depfile)
+                    cclib_deps.append(depfile)
+                    includes.append(depfile.dirname)
+        elif linkmode == "static-linkall":
+            if debug:
+                print("STATIC LINKALL lib: %s:" % dep)
+            for depfile in dep.files.to_list():
+                if (depfile.extension == "a"):
+                    cclib_deps.append(depfile)
+                    includes.append(depfile.dirname)
+                    if ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"].cc_toolchain == "clang":
+                        args.add("-ccopt", "-Wl,-force_load,{path}".format(path = depfile.path))
+                    elif ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
+                        libname = file_to_lib_name(depfile)
+                        args.add("-ccopt", "-L{dir}".format(dir=depfile.dirname))
+                        args.add("-ccopt", "-Wl,--push-state,-whole-archive")
+                        args.add("-ccopt", "-l{lib}".format(lib=libname))
+                        args.add("-ccopt", "-Wl,--pop-state")
+                    else:
+                        fail("NO CC")
+
+        elif linkmode == "dynamic":
+            if debug:
+                print("DYNAMIC lib: %s" % dep)
+            for depfile in dep.files.to_list():
+                if (depfile.extension == "so"):
+                    libname = file_to_lib_name(depfile)
+                    print("so LIBNAME: %s" % libname)
+                    args.add("-ccopt", "-L" + depfile.dirname)
+                    args.add("-cclib", "-l" + libname)
+                    cclib_deps.append(depfile)
+                elif (depfile.extension == "dylib"):
+                    libname = file_to_lib_name(depfile)
+                    print("LIBNAME: %s:" % libname)
+                    args.add("-cclib", "-l" + libname)
+                    args.add("-ccopt", "-L" + depfile.dirname)
+                    cclib_deps.append(depfile)
+                    cc_runfiles.append(dep.files)
+
+################################################################
 ## returns:
 ##   depset to be added to action_inputs
 ##   updated args
@@ -18,7 +248,7 @@ def handle_ccdeps(ctx,
                     # cclib_deps,
                     # cc_runfiles):
                   ):
-    debug = True
+    debug = False
     ## steps:
     ##   1. accumulate all ccdep dictionaries = direct + indirect
     ##      a. remove duplicate dict entries?
@@ -113,6 +343,10 @@ def handle_ccdeps(ctx,
 
     cc_runfiles = [] # FIXME?
 
+    debug = True
+
+    ## FIXME: always pass -fvisibility=hidden? see https://stackoverflow.com/questions/9894961/strange-warnings-from-the-linker-ld
+
     for [dep, linkmode] in all_ccdeps_map.items():
         if debug:
             print("CCLIB DEP: ")
@@ -132,6 +366,9 @@ def handle_ccdeps(ctx,
                         # includes.append(depfile.dirname)
                 else:
                     for depfile in dep.files.to_list():
+                        if debug:
+                            print("DEPFILE dir: %s" % depfile.dirname)
+                            print("DEPFILE path: %s" % depfile.path)
                         if (depfile.extension == "so"):
                             libname = file_to_lib_name(depfile)
                             args.add("-ccopt", "-L" + depfile.dirname)
@@ -145,17 +382,20 @@ def handle_ccdeps(ctx,
                             cc_runfiles.append(dep.files)
         elif linkmode == "static":
             if debug:
-                print("STATIC lib: %s:" % dep)
-            # for depfile in dep.files.to_list():
+                print("STATIC LINK: %s:" % dep)
+                lctx = dep[CcInfo].linking_context
+                for linputs in  lctx.linker_inputs.to_list():
+                    for lib in linputs.libraries:
+                        print(" LINKLIB: %s" % lib.static_library)
+
             for depfile in dep.files.to_list():
+                if debug:
+                    print(" LIB: %s" % depfile)
+                    fail("xxxx")
                 if (depfile.extension == "a"):
+                    # for .a files we do not need --cclib etc. just
+                    # add directly to command line:
                     args.add(depfile)
-                    # print("ADDING CC DEP: %s" % depfile.dirname)
-                    # cclib_deps.append(depfile)
-                    # if for_pack:
-                    #     # print("LINKING CC DEP: %s" % depfile)
-                    #     args.add(depfile)
-                    #     includes.append(depfile.dirname)
         elif linkmode == "static-linkall":
             if debug:
                 print("STATIC LINKALL lib: %s:" % dep)
@@ -182,6 +422,7 @@ def handle_ccdeps(ctx,
                     libname = file_to_lib_name(depfile)
                     if debug:
                         print("so LIBNAME: %s" % libname)
+                        print("so dir: %s" % depfile.dirname)
                     args.add("-ccopt", "-L" + depfile.dirname)
                     args.add("-cclib", "-l" + libname)
                     # cclib_deps.append(depfile)
