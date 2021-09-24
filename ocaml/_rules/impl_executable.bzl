@@ -23,8 +23,8 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
-     "file_to_lib_name",
 )
+load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 
 load(":options.bzl", "options")

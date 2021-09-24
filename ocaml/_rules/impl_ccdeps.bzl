@@ -1,8 +1,7 @@
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("//ocaml:providers.bzl", "CcDepsProvider")
 
-load("//ocaml/_functions:utils.bzl",
-     "file_to_lib_name")
+load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 ## returns:
 ##   depset to be added to action_inputs

@@ -39,6 +39,9 @@ load("//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath",
 )
+load("//ocaml/_functions:module_naming.bzl",
+     "file_to_lib_name",
+     "normalize_module_name")
 
 load(":impl_ccdeps.bzl", "handle_ccdeps")
 

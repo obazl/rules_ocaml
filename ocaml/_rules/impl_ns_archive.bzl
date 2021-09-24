@@ -19,7 +19,7 @@ load("//ocaml/_functions:utils.bzl",
 
 load(":impl_ns_library.bzl", "impl_ns_library")
 
-load("//ocaml/_functions:utils.bzl", "normalize_module_name")
+load("//ocaml/_functions:module_naming.bzl", "normalize_module_name")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 

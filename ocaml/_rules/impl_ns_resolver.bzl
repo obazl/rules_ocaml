@@ -7,18 +7,14 @@ load("//ocaml:providers.bzl",
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "normalize_module_label",
      "get_fs_prefix",
      "get_opamroot",
      "get_sdkpath",
 )
 
-load(":impl_common.bzl",
-     "dsorder")
+load("//ocaml/_functions:module_naming.bzl", "normalize_module_label")
 
-module_sep = "__"
-
-resolver_suffix = module_sep + "0Resolver"
+load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
 #################
 def impl_ns_resolver(ctx):

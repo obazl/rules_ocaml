@@ -26,15 +26,15 @@ load("//ocaml/_rules/utils:utils.bzl",
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "file_to_lib_name",
      "get_opamroot",
-     "get_sdkpath",
-     "normalize_module_name",
-)
+     "get_sdkpath")
+
+load("//ocaml/_functions:module_naming.bzl",
+     "file_to_lib_name",
+     "normalize_module_name")
 
 load(":impl_common.bzl",
      "dsorder",
-     "merge_deps",
      "tmpdir")
 
 scope = tmpdir

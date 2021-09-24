@@ -9,8 +9,8 @@ load("//ocaml/_functions:utils.bzl",
      "get_fs_prefix",
      "get_opamroot",
      "get_sdkpath",
-     "submodule_from_label_string"
 )
+load("//ocaml/_functions:module_naming.bzl", "submodule_from_label_string")
 
 load("//ocaml/_rules:impl_common.bzl", "tmpdir")
 
