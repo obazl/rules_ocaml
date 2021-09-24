@@ -46,6 +46,7 @@ def impl_ns_resolver(ctx):
 
     ################
     action_outputs = []
+    rule_outputs = [] # excludes .cmi
 
     obj_cm_ = None
     obj_cmi = None
@@ -67,7 +68,6 @@ def impl_ns_resolver(ctx):
         alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
 
         ## an ns can be used as a submodule of another ns
-        ## if so, do not prepend alias_prefix
         nslib_submod = False
         if submodule.startswith("#"):
             # this is an nslib submodule, do not prefix
@@ -125,12 +125,14 @@ def impl_ns_resolver(ctx):
         obj_o_fname = resolver_module_name + ".o"
         obj_o = ctx.actions.declare_file(obj_o_fname)
         action_outputs.append(obj_o)
+        rule_outputs.append(obj_o)
         obj_cm__fname = resolver_module_name + ".cmx"
     else:
         obj_cm__fname = resolver_module_name + ".cmo"
 
     obj_cm_ = ctx.actions.declare_file(obj_cm__fname)
     action_outputs.append(obj_cm_)
+    rule_outputs.append(obj_cm_)
 
     ################################
     args = ctx.actions.args()
@@ -179,16 +181,13 @@ def impl_ns_resolver(ctx):
     defaultInfo = DefaultInfo(
         files = depset(
             order  = dsorder,
-            direct = action_outputs + [resolver_src_file] # [obj_cm_]
+            direct = action_outputs
         )
     )
 
     nsResolverProvider = OcamlNsResolverProvider(
-        # files    = depset(
-        #     order = dsorder,
-        #     direct = action_outputs,
-        # ),
-        # paths     = depset(direct = [obj_cmi.dirname]),
+        # provide src for output group, for easy reference
+        resolver_file = resolver_src_file,
         submodules = submodules,
         resolver = resolver_module_name,
         prefixes   = ns_prefixes,
