@@ -18,7 +18,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     Outputs: struct(intf :: declared File, maybe impl :: declared File)
     """
 
-    debug = True
+    debug = False # True
     # if ctx.label.name == "test":
     #     debug = True
 
@@ -84,12 +84,11 @@ def impl_ppx_transform(rule, ctx, src, to):
     RUNTIME_FILES = ""
     if hasattr(ctx.attr, "ppx_data"):
         if len(ctx.attr.ppx_data) > 0:
-            for dep in ctx.attr.ppx_data:
-                for f in dep[DefaultInfo].files.to_list():
-                    dep_graph.append(f)
-                    fname_len = len(f.basename)
-                    datafile_parent = f.short_path[:-fname_len]
-                    RUNTIME_FILES = RUNTIME_FILES + "\n".join([
+            for f in ctx.files.ppx_data:
+                dep_graph.append(f)
+                fname_len = len(f.basename)
+                datafile_parent = f.short_path[:-fname_len]
+                RUNTIME_FILES = RUNTIME_FILES + "\n".join([
                         "if [ ! \\( -f {tmpdir}{parent}/{rtf} \\) ]".format(tmpdir=tmpdir,
                                                                   parent = datafile_parent,
                                                                   rtf = f.basename),
@@ -117,7 +116,10 @@ def impl_ppx_transform(rule, ctx, src, to):
     )
     CHDIR = "cd {tmp}".format(tmp = tmpdir)
     if (tmpdir == ""):
-        command = "{exe} $@".format(exe = ctx.executable.ppx.path)
+        command = "\n".join([
+            RUNTIME_FILES,
+            "{exe} $@".format(exe = ctx.executable.ppx.path)
+        ])
     else:
         command = "\n".join([
             "#!/bin/sh",
