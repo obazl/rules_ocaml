@@ -69,18 +69,8 @@ def impl_ns_library(ctx):
         if OcamlNsResolverProvider in dep:
             resolver_depsets_list.append(dep[OcamlNsResolverProvider].files)
             paths_indirect.append(dep[OcamlNsResolverProvider].paths)
-            # print("IMPORTING OcamlNsResolverProvider:")
-            # for f in dep[OcamlProvider].files.to_list():
-            #     print("RX: %s" % f)
 
-        ## NB: we need to propagate ccdeps from the submodules, since
-        ## clients will depend on the ocaml_ns_library target.
-
-
-
-    # print("IMPORTED NsResolver list:")
-    # for f in resolver_depsets_list:
-    #     print("RX1: %s" % f)
+    if ctx.attr._rule.startswith("ocaml_ns"):
 
     resolver_depset = depset(transitive = resolver_depsets_list)
     # print("IMPORTED NsResolver Depset:")
@@ -92,30 +82,21 @@ def impl_ns_library(ctx):
         # direct = resolver_depsets_list,
         transitive = all_deps_list
     )
-    # print("ALL_DEPS:")
-    # for d in all_deps.to_list():
-    #     print(" MDEP: %s" % d)
+    # print("NSLIBALLDEPS: %s" % all_deps)
 
     inputs_depset = depset(
         order = dsorder,
         direct = ctx.files._ns_resolver,
         transitive = [all_deps]
     )
-    # print("INPUTS_DEPSET:")
-    # for dep in inputs_depset.to_list():
-    #     print(" INDEP: %s" % dep)
+    # print("NSLIB {l} INPUTS_DEPSET: {ds}".format(
 
     ## NS Lib targets do not directly produce anything, they just pass
     ## on their deps. The real work is done in the transition
     ## functions, which set the ConfigState that controls build
     ## actions of deps.
 
-    # #######################
-    # ctx.actions.do_nothing(
-    #     mnemonic = "NS_LIB",
-    #     inputs = inputs_depset
-    # )
-    # #######################
+    #######################
 
     # print("NS RESOLVER: %s" % ctx.files._ns_resolver)
     defaultDepset = depset(
@@ -131,46 +112,7 @@ def impl_ns_library(ctx):
     )
     # print("NSLIB_DefaultInfo: %s" % defaultInfo)
 
-    # module_links = depset(
-    #     order = dsorder,
-    #     # direct = ctx.files.submodules + ctx.files._ns_resolver,
-    #     direct = ctx.files._ns_resolver,
-    #     transitive = merged_module_links_depsets
-    # )
-    # archive_links = depset(
-    #     order = dsorder,
-    #     transitive = merged_archive_links_depsets
-    # )
-    # paths_depset  = depset(
-    #     transitive = merged_paths_depsets
-    # )
-    # depgraph = depset(
-    #     order = dsorder,
-    #     direct = ctx.files.submodules + ctx.files._ns_resolver,
-    #     transitive = merged_depgraph_depsets
-    # )
-    # archived_modules = depset(
-    #     order = dsorder,
-    #     transitive = merged_archived_modules_depsets
-    # )
-
-    # if ctx.attr._rule == "ocaml_ns_library":
-    #     nslibMarker = OcamlNsLibraryMarker(
-    #         module_links = module_links,
-    #         archive_links = archive_links,
-    #         paths = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-    # else:
-    #     nslibMarker = PpxNsLibraryMarker(
-    #         module_links = module_links,
-    #         archive_links = archive_links,
-    #         paths = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-
+    ################ ppx adjunct deps ################
     ppx_adjuncts_depset = depset(
         transitive = indirect_adjunct_depsets
     )
@@ -211,11 +153,7 @@ def impl_ns_library(ctx):
         transitive = [all_deps]
         # + [depset(ctx.files.submodules)]
     )
-    # inputs_depset = depset(
-    #     order = dsorder,
-    #     direct = ctx.files._ns_resolver,
-    #     transitive = [all_deps]
-    # )
+
 
     ocamlProvider = OcamlProvider(
         files = inputs_depset, # ocamlProviderDepset,
@@ -224,43 +162,23 @@ def impl_ns_library(ctx):
             direct = paths_direct,
             transitive = paths_indirect)
     )
-    # print("EXPORTING OcamlProvider files: %s" % ocamlProvider)
-    # for f in ocamlProvider.files.to_list():
-    #     print("DX: %s" % f)
 
-    # ocamlPathsMarker = OcamlPathsMarker(
-    #     paths  = depset(
-    #         order = dsorder,
-    #         direct = paths_direct,
-    #         transitive = paths_indirect)
+    # print("ARCHIVE_DEPS_LIST: %s" % archive_deps_list)
     # )
     # print("NSLIB_PathsMarker: %s" % ocamlPathsMarker)
 
     outputGroupInfo = OutputGroupInfo(
-        # module_links  = module_links,
-        # archive_links = archive_links,
-        # depgraph = depgraph,
-        # archived_modules = archived_modules,
+        resolver = ns_resolver,
         ppx_adjuncts = ppx_adjuncts_depset,
         cc = depset(action_inputs_ccdep_filelist),
         all = depset(
             order = dsorder,
             transitive=[
-                defaultDepset,
-                ocamlProviderDepset,
-                # module_links,
-                # archive_links,
-                # ppx_adjuncts_depset,
-                # cclib_files_depset
+                new_inputs_depset,
                 depset(action_inputs_ccdep_filelist)
             ]
         )
     )
-
-    if (ctx.attr._rule == "ocaml_ns_library"):
-        nsLibraryMarker = OcamlNsLibraryMarker()
-    elif (ctx.attr._rule == "ppx_ns_library"):
-        nsLibraryMarker = PpxNsLibraryMarker()
 
     return [
         defaultInfo,

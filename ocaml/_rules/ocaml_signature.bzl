@@ -161,100 +161,17 @@ def _ocaml_signature_impl(ctx):
     #########################
     args = ctx.actions.args()
 
-    if using_ocamlfind:
-        if mode == "native":
-            args.add(tc.ocamlopt.basename)
-        else:
-            args.add(tc.ocamlc.basename)
-
     _options = get_options(rule, ctx)
     args.add_all(_options)
 
-    mdeps = []
-    mdeps.extend(ctx.attr.deps)
-    mdeps.append(ctx.attr._ns_resolver)
+    # if "-for-pack" in _options:
 
-    # if debug:
-    #     print("MDEPS: %s" % mdeps)
-    # merge_deps(mdeps,
-    #            merged_module_links_depsets,
-    #            merged_archive_links_depsets,
-    #            merged_paths_depsets,
-    #            merged_depgraph_depsets,
-    #            merged_archived_modules_depsets,
-    #            # indirect_file_depsets,
-    #            # indirect_archive_depsets,
-    #            # indirect_path_depsets,
-    #            # indirect_opam_depsets,
-    #            indirect_adjunct_depsets,
-    #            indirect_adjunct_path_depsets,
-    #            # indirect_adjunct_opam_depsets,
-    #            indirect_cc_deps)
+    # if ctx.attr.pack:
 
-    if ctx.attr.pack:
-        args.add("-linkpkg")
+    # if ctx.attr.pack:
 
-    # opam_depset = depset(direct = ctx.attr.deps_opam,
-    #                      transitive = indirect_opam_depsets)
-    # if using_ocamlfind:
-    #     for opam in opam_depset.to_list():
-    #         args.add("-package", opam)  ## add dirs to search path
-
-    ## add adjunct_deps from ppx provider
-    ## adjunct deps in the dep graph are NOT compile deps of this module.
-    ## only the adjunct deps of the ppx are.
-    adjunct_deps = []
-    if ctx.attr.ppx:
-        provider = ctx.attr.ppx[AdjunctDepsMarker]
-        # if using_ocamlfind:
-        #     for opam in provider.opam.to_list():
-        #         args.add("-package", opam)
-
-        for nopam in provider.nopam.to_list():
-            adjunct_deps.append(nopam)
-            # if OcamlImportArchivesMarker in nopam:
-            #     adjuncts = nopam[OcamlImportArchivesMarker].archives
-            #     for f in adjuncts.to_list():
-            if nopam.extension in ["cmxa", "a"]:
-                if (nopam.path.startswith(opam_lib_prefix)):
-                    dir = paths.relativize(nopam.dirname, opam_lib_prefix)
-                    includes.append( "+../" + dir )
-                else:
-                    includes.append(nopam.dirname)
-                args.add(nopam.path)
-            # for nopamfile in nopam.files.to_list():
-                # adjunct_deps.append(nopamfile)
-
-        # for path in provider.nopam_paths.to_list():
-        #     args.add("-I", path)
-
-    # indirect_paths_depset = depset(transitive = merged_paths_depsets)
-    # for apath in indirect_paths_depset.to_list():
-    #     if (apath.startswith(opam_lib_prefix)):
-    #         dir = paths.relativize(apath, opam_lib_prefix)
-    #         includes.append( "+../" + dir )
-    #     else:
-    #         includes.append( apath )
-    # # for path in indirect_paths_depset.to_list():
-    # #     includes.append(path)
 
     includes.append(out_cmi.dirname)
-
-    # if not using_ocamlfind:
-    # imports_test = depset(transitive = merged_depgraph_depsets)
-    # for f in imports_test.to_list():
-    #     # FIXME: only relativize ocaml_imports
-    #     if (f.extension == "cmxa"):
-    #         # print("relativizing %s" % f.path)
-    #         if f.dirname.startswith(opam_lib_prefix):
-    #             dir = paths.relativize(f.dirname, opam_lib_prefix)
-    #             includes.append( "+../" + dir )
-
-                # ctx.attr._opam_lib[BuildSettingInfo].value + "/" + dir
-        # includes.append(f.path)
-
-    if ctx.attr.pack:
-        args.add("-for-pack", ctx.attr.pack)
 
     args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -271,78 +188,22 @@ def _ocaml_signature_impl(ctx):
             all_deps_list.append(dep[OcamlProvider].files)
             paths_indirect.append(dep[OcamlProvider].paths)
 
-        # ################ Paths ################
-        # if OcamlPathsMarker in dep:
-        #     ps = dep[OcamlPathsMarker].paths
-        #     print("MPATHS: %s" % ps)
-        #     paths_indirect.append(ps)
+        ################ OCamlArchiveProvider ################
 
-        # ################ Archive Deps ################
-        # if OcamlArchiveMarker in dep:
-        #     all_deps_list.append(dep[OcamlArchiveMarker].files)
+    paths_depset  = depset(
 
-        # ################ module deps ################
-        # if OcamlModuleMarker in dep:
-        #     all_deps_list.append(dep[OcamlModuleMarker].files)
-        #     # all_deps_list.append(dep[OcamlModuleMarker].deps)
+    args.add_all(paths_depset.to_list(), before_each="-I")
 
-    # order should not matter, it's already encoded in depsets
     all_deps = depset(
         order = dsorder,
         transitive = all_deps_list
     )
 
-    paths_depset  = depset(
-        order = dsorder,
-        direct = paths_direct,
-        transitive = paths_indirect
-    )
-
-    # print("ALL_DEPS for MODULE %s" % ctx.label)
-    # for d in reversed(all_deps.to_list()):
-    # _paths = depset(transitive=paths_indirect).to_list()
     link_args = []
     for f in all_deps.to_list():
-        # print("ALL_DEPS: %s" % f)
-        if f.extension not in ["cmi", "mli", "ml", "a", "o"]:
-            if (f.path.startswith(opam_lib_prefix)):
-                dir = paths.relativize(f.dirname, opam_lib_prefix)
-                # _paths.append( "+../" + dir )
-                link_args.append(f.path)
-            else:
-                # _paths.append( f.dirname )
-                link_args.append(f.path)
+        if f.extension not in [
 
-    args.add_all(paths_depset.to_list(), before_each="-I")
-    args.add_all(link_args)
-
-    # ## use depsets to get the right ordering. filter to limit to direct deps.
-    # archive_links_depset = depset(transitive = merged_archive_links_depsets)
-    # link_deps = []
-    # for link in ctx.files.deps:
-    #     link_deps.append(link.basename)
-    # if debug:
-    #     print("DEP LINKS: %s" % link_deps)
-
-    # for dep in archive_links_depset.to_list():
-    #     includes.append(dep.dirname)
-    #     if dep.extension in ["cmxa", "a"]:
-    #         if (dep.path.startswith(opam_lib_prefix)):
-    #             dir = paths.relativize(dep.dirname, opam_lib_prefix)
-    #             includes.append( "+../" + dir )
-    #         else:
-    #             includes.append(dep.dirname)
-    #         args.add(dep.basename) # path)
-
-        # if debug:
-        #     print("DEP: %s" % dep)
-        # if dep.basename in link_deps:
-        #       args.add(dep)
-
-    # module_links_depset = depset(order=dsorder, transitive = merged_module_links_depsets)
-    # for dep in module_links_depset.to_list():
-    #     if dep in ctx.files.deps:
-    #         args.add(dep)
+    # args.add_all(link_args)
 
     ## FIXME: do we need the resolver for sigfiles?
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
@@ -397,32 +258,7 @@ def _ocaml_signature_impl(ctx):
     sigProvider = OcamlSignatureProvider(
         mli = mlifile, # sigfile,
         cmi = out_cmi,
-        # module_links     = depset(
-        #     order = dsorder,
-        #     transitive = merged_module_links_depsets
-        # ),
-        # archive_links = depset(
-        #     order = dsorder,
-        #     transitive = merged_archive_links_depsets
-        # ),
-        # paths    = depset(
-        #     direct = includes + [out_cmi.dirname],
-        #     transitive = merged_paths_depsets
-        # ),
-        # depgraph = depset(
-        #     order = dsorder,
-        #     direct = [out_cmi, mlifile], # sigfile],
-        #     transitive = merged_depgraph_depsets
-        # ),
-        # archived_modules = depset(
-        #     order = dsorder,
-        #     transitive = merged_archived_modules_depsets
-        # ),
     )
-
-    # opamMarker = OpamDepsMarker(
-    #     pkgs = opam_depset
-    # )
 
     ## FIXME: catch incompatible key dups
     cclibs = {}
@@ -516,9 +352,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names"
         # ),
         ################################################################
         ## do we need resolver for sigfiles?

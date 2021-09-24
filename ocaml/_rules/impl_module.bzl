@@ -35,17 +35,14 @@ load("//ocaml/_rules/utils:utils.bzl",
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
-     "file_to_lib_name",
      "get_opamroot",
      "get_sdkpath",
-     "normalize_module_name",
 )
 
 load(":impl_ccdeps.bzl", "handle_ccdeps")
 
 load(":impl_common.bzl",
      "dsorder",
-     "merge_deps",
      "opam_lib_prefix",
      "tmpdir"
      )
@@ -82,13 +79,8 @@ def impl_module(ctx):
 
         print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver[DefaultInfo])
         print("  _NS_RESOLVER Marker: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
-        ns_prefixes     = ctx.attr._ns_prefixes[BuildSettingInfo].value
-        ns_submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
-        print("  _NS_PREFIXES: %s" % ns_prefixes)
-        print("  _NS_SUBMODULES: %s" % ns_submodules)
 
     env = {
-        "OPAMROOT": get_opamroot(),
         "PATH": get_sdkpath(ctx),
     }
 
@@ -112,7 +104,7 @@ def impl_module(ctx):
     includes   = []
     default_outputs   = []
     action_outputs   = []
-    rule_outputs = []
+    direct_linkargs = []
     out_cmi = None
 
     ## module name is derived from sigfile name, so start with sig
@@ -406,19 +398,11 @@ def impl_module(ctx):
         order = dsorder,
         direct = [structfile]
         + mli_out
-        # + cclib_deps
-        + ctx.files.deps_runtime,
-        transitive = [
-            all_deps, depset(ctx.files._ns_resolver),
-            depset(action_inputs_ccdep_filelist)
-        ]
-        # transitive = merged_depgraph_depsets
-        # + merged_module_links_depsets
-        # + merged_archive_links_depsets
+        + ctx.files.deps_runtime
     )
     # print("INPUTS_DEPSET:")
     # for dep in inputs_depset.to_list():
-    #     print(" DEP: %s" % dep)
+    #     if dep.extension not in ["cmi", "mli", "ml"]:
 
 
         # NB: these are NOT in the depgraph: cc_direct_depfiles + adjunct_deps + ctx.files.ppx,
@@ -429,7 +413,7 @@ def impl_module(ctx):
     ################
     ctx.actions.run(
         env = env,
-        executable = exe, ## tc.ocamlfind,
+        executable = exe,
         arguments = [args],
         inputs    = inputs_depset,
         outputs   = action_outputs,
@@ -497,42 +481,23 @@ def impl_module(ctx):
         paths = paths_depset
     )
     # print("EXPORTING OcamlProvider files: %s" % ocamlProvider)
-    # for f in ocamlProvider.files.to_list():
-    #     print("DX: %s" % f)
 
     nsResolverProvider = OcamlNsResolverProvider(
         files = ctx.attr._ns_resolver.files,
         paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
     )
-    # print("EXPORTING OcamlNsResolverProvider files:")
-    # for f in nsResolverProvider.files.to_list():
-    #     print("RX: %s" % f)
-    # print("EXPORTING OcamlNsResolverProvider paths:")
-    # for f in nsResolverProvider.paths.to_list():
-    #     print("PATHX: %s" % f)
 
-    # print("EXPORTING OcamlProvider paths:")
-    # for f in ocamlProvider.paths.to_list():
-    #     print("PX: %s" % f)
-
-    # print("LBL: %s" % ctx.label)
-    # print("XMODULE_PROVIDER %s" % moduleMarker)
     outputGroupInfo = OutputGroupInfo(
-        # modules  = module_links_depset,
-        # sigs     = sigs_depset,
-        # archives = archive_links_ds,
-        # depgraph = depgraph,
-        # archived_modules = archived_modules,
+        archives = archives_depset if archives_depset else depset(),
         ppx_adjuncts = ppx_adjuncts_depset,
         cc = action_inputs_ccdep_filelist,
         all = depset(
             order = dsorder,
             transitive=[
                 default_depset,
-                ocamlProviderDepset,
-                # ppx_adjuncts_depset,
+                ocamlProvider_files_depset,
                 # cclib_files_depset,
-                depset(action_inputs_ccdep_filelist)
+                # depset(ccDepsProvider.ccdeps_map.keys()),
             ]
         )
     )

@@ -252,31 +252,6 @@ def impl_pack_library(ctx):
     #     for_pack = False
     args.add_all(_options)
 
-    mdeps = []
-    mdeps.extend(ctx.attr.deps)
-    # mdeps.append(ctx.attr._ns_resolver)
-    mdeps.append(ctx.attr.cc_deps)
-
-    if debug:
-        print("MDEPS: %s" % mdeps)
-    merge_deps(mdeps,
-               merged_module_links_depsets,
-               merged_archive_links_depsets,
-               merged_paths_depsets,
-               merged_depgraph_depsets,
-               merged_archived_modules_depsets,
-               # indirect_opam_depsets,
-               indirect_adjunct_depsets,
-               indirect_adjunct_path_depsets,
-               # indirect_adjunct_opam_depsets,
-               indirect_cc_deps)
-
-    print("MERGED INDIRECT_CC_DEPS: %s" % indirect_cc_deps)
-    # if debug:
-    #     print("Merged depgraph depsets:")
-    #     print(merged_depgraph_depsets)
-
-
     if debug:
         print("INCLUDES: %s" % includes)
 

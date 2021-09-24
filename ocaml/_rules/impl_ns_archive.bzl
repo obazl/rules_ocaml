@@ -27,14 +27,11 @@ load(":impl_common.bzl", "tmpdir", "dsorder")
 #################
 def impl_ns_archive(ctx):
 
-    debug = True #False
-    # if ctx.label.name in ["jemalloc"]: # ["mina_metrics", "memory_stats"]:
-    #     debug = True
+    print("**** NS_ARCH {} ****************".format(ctx.label))
 
     debug = True #False
 
-    env = {"OPAMROOT": get_opamroot(),
-           "PATH": get_sdkpath(ctx)}
+    env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
@@ -42,27 +39,50 @@ def impl_ns_archive(ctx):
 
     ################################
     ####  call impl_ns_library  ####
-    [
-        defaultInfo,
-        nslibMarker,
-        ocamlProvider,
-        adjunctsMarker,
-        ccMarker,
-        outputGroupInfo,
-    ] = impl_ns_library(ctx)
+    # FIXME: smooth this out!
+    nslib_providers = impl_ns_library(ctx)
+
+    defaultInfo = nslib_providers[0]
+    nslibMarker = nslib_providers[1]
+    ocamlProvider = nslib_providers[2]
+    ppxAdjunctsProvider = nslib_providers[3]
+    outputGroupInfo = nslib_providers[4]
+    ccInfo  = nslib_providers[5] if len(nslib_providers) == 6 else False
+
     ################################
+    print("==== resume NS_ARCH {} ****************".format(ctx.label))
+
+    if ocamlProvider.ns_resolver == None:
+        print("NO NSRESOLVER FROM NSLIB")
+        fail("NO NSRESOLVER FROM NSLIB")
+    else:
+        if debug:
+            print("ARCH GOT NSRESOLVER FROM NSLIB: %s" % ocamlProvider.ns_resolver)
 
     all_deps = ocamlProvider.files
     paths_direct = []
     paths_indirect = ocamlProvider.paths
 
-    ## now archive the nslib
+    action_outputs = []
 
-    ns_archive_name = normalize_module_name(ctx.label.name)
-    ns_ext = ".cmxa" if mode == "native" else ".cma"
-    ns_archive_filename = tmpdir + ns_archive_name + ns_ext
-    ns_archive_file = ctx.actions.declare_file(ns_archive_filename)
-    paths_direct.append(ns_archive_file.dirname)
+    _options = get_options(ctx.attr._rule, ctx)
+
+    shared = False
+    if ctx.attr.shared:
+        shared = ctx.attr.shared or "-shared" in _options
+        if shared:
+            if "-shared" in _options:
+                _options.remove("-shared") ## avoid dup
+
+    if mode == "native":
+        if shared:
+            ext = ".cmxs"
+        else:
+            ext = ".cmxa"
+    else:
+        ext = ".cma"
+
+    # ns_ext = ".cmxa" if mode == "native" else ".cma"
 
     ns_archive_a_filename = tmpdir + ns_archive_name + ".a"
     ns_archive_a_file = ctx.actions.declare_file(ns_archive_a_filename)
@@ -76,29 +96,11 @@ def impl_ns_archive(ctx):
     else:
         args.add(tc.ocamlc.basename)
 
-    options = get_options(ctx.attr._rule, ctx)
-    args.add_all(options)
-
-
-    for d in all_deps.to_list():
-        # print("ALL_DEPS: %s" % d)
-        if d.extension not in ["cmxa", "cmi", "mli", "a", "o"]:
-            # includes.append("-I", d.dirname)
-            args.add(d.path) # d.basename)
-
-    # _paths = depset(transitive=paths_indirect).to_list()
-    # args.add_all(_paths, before_each="-I") #, uniquify = True)
-
-    # print("ALL_DEPS for MODULE %s" % ctx.label)
-    # # for d in reversed(all_deps.to_list()):
+    args.add_all(_options)
     # for d in all_deps.to_list():
     #     # print("ALL_DEPS: %s" % d)
-    #     # "Option -a cannot be used with .cmxa input files."
-    #     if d.extension not in ["cmxa", "cma", "cmi", "mli", "a", "o"]:
-    #         args.add(d.path)
+    #     # if d.extension == "o":
 
-    # ## use depgraph to ensure correct ordering, filter to include only direct deps
-    # ## FIXME: use merged_module_links_depsets, merged_archive_links_depsets?
     # submods = ctx.files.submodules
     # for dep in nslibMarker.depgraph.to_list():
     #     if dep in submods:
@@ -116,9 +118,6 @@ def impl_ns_archive(ctx):
 
     args.add("-o", ns_archive_file)
 
-    if ctx.label.name == "Tezos_crypto":
-        for d in ocamlProvider.files.to_list():
-            print("NSLIBPROV DEP: %s" % d)
 
     if ctx.attr._rule == "ocaml_ns_archive":
         mnemonic = "CompileOcamlNsArchive"
@@ -144,8 +143,7 @@ def impl_ns_archive(ctx):
             tgt=ctx.label.name,
         )
     )
-    ################
-    ################
+    ###################
 
     default_depset = depset(
         order  = dsorder,
@@ -207,31 +205,14 @@ def impl_ns_archive(ctx):
         paths = ocamlProviderPaths_depset
     )
 
-    # print("NS_ARCHIVE ADJUNCTS: %s" % adjunctsMarker)
     outputGroupInfo = OutputGroupInfo(
-        # module_links  = module_links,
-        # archive_links = archive_links,
-        # depgraph = depgraph,
-        # archived_modules = archived_modules,
+        resolver = ns_resolver,
         ppx_adjuncts = ppx_adjuncts_depset,
-        cclibs = cclib_files_depset,
-        all_files = depset(transitive=[
-            default_depset,
-            ocamlProviderFiles_depset,
-            # module_links,
-            # archive_links,
             ppx_adjuncts_depset,
             cclib_files_depset
         ])
     )
 
-    if ctx.attr._rule == "ocaml_ns_archive":
-        nsArchiveMarker = OcamlNsArchiveMarker(marker = "OcamlNsArchiveMarker")
-    else:
-        nsArchiveMarker = PpxNsArchiveMarker(marker = "PpxNsArchiveMarker")
-
-
-    return [
         newDefaultInfo,
         nsArchiveMarker,
         ocamlProvider,

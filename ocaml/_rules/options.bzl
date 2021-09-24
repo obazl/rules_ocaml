@@ -91,7 +91,7 @@ def options_executable(ws):
         ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = [[OcamlArchiveMarker],
+            providers = [[OcamlArchiveProvider],
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
                          [OcamlModuleMarker],
@@ -100,23 +100,13 @@ def options_executable(ws):
                          [PpxArchiveMarker],
                          [PpxLibraryMarker],
                          [PpxModuleMarker],
-                         [PpxNsArchiveMarker],
-                         [PpxNsLibraryMarker],
                          [CcInfo]],
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
             default = "@ocaml//executable:deps"
         ),
-        # deps_opam = attr.string_list(
-        #     doc = "List of OPAM package names"
-        # ),
-        deps_adjunct = attr.label_list(
-            doc = """List of non-opam adjunct dependencies (labels).""",
-            # providers = [[DefaultInfo], [PpxModuleMarker]]
-        ),
-        # deps_adjunct_opam = attr.string_list(
-        #     doc = """List of opam adjunct dependencies (pkg name strings).""",
+
         # ),
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
@@ -191,9 +181,7 @@ def options_module(ws):
                      [OcamlNsLibraryMarker],
                      # [OcamlNsResolverProvider],
                      [PpxArchiveMarker],
-                     [PpxModuleMarker],
-                     [PpxNsArchiveMarker],
-                     [PpxNsLibraryMarker]]
+                     [PpxModuleMarker]]
 
     else:
         ## FIXME: providers for ppx_module
@@ -300,9 +288,7 @@ def options_pack_library(ws):
                      [OcamlNsLibraryMarker],
                      # [OcamlNsResolverProvider],
                      [PpxArchiveMarker],
-                     [PpxModuleMarker],
-                     [PpxNsArchiveMarker],
-                     [PpxNsLibraryMarker]]
+                     [PpxModuleMarker]]
 
     else:
         ## FIXME: providers for ppx_module
@@ -396,11 +382,7 @@ def options_ns_archive(ws):
         # _threads     = attr.label(default = ws + "//ns/threads"),
         _warnings    = attr.label(default = ws + "//archive:warnings"),
 
-        # resolver = attr.label(
-        #     doc = "Code to use as the ns resolver module instead of generated code. The module specified must contain pseudo-recursive alias equations for all submodules.  If this attribute is specified, an ns resolver module will be generated for resolving the alias equations of the provided module.",
-        #     # allow_single_file = [".ml"]
-        #     providers = [OcamlModuleMarker],
-        # ),
+        shared = attr.bool(
 
         _ns_resolver = attr.label(
             doc = "Experimental",

@@ -40,8 +40,6 @@ def _ocaml_import_impl(ctx):
     providers = []
 
     all_deps_list = []
-    paths_direct   = []
-    paths_indirect = []
     ## OcamlImportMarker is a marker, always empty
 
     archive_files     = []
@@ -63,57 +61,13 @@ def _ocaml_import_impl(ctx):
 
     for dep in ctx.attr.deps:
         # print("IDEP: {host} => {d}".format(host=ctx.label, d = dep.label))
-        ################ OCamlMarker ################
-        if OcamlProvider in dep:
-            all_deps_list.append(dep[OcamlProvider].files)
-            paths_indirect.append(dep[OcamlProvider].paths)
 
-        # if OcamlArchiveMarker in dep:
-        #     all_deps_list.append(dep[OcamlArchiveMarker].files)
-            # an archive dep will be a dep of a module, subdep of an archive
+        # DefaultInfo.files == directly generated files, for display only
 
             # OcamlArchiveMarker.archive is a File list (ctx.files.archive)
             # but an archive dep here is a subdep
 
-            # ocaml_archivedeps_archive_files.append(dep[OcamlArchiveMarker].archive)
-            # archive_depsets.append(dep[OcamlArchiveMarker].files)
-            # archive_component_depsets.append(dep[OcamlArchiveMarker].components)
-            # archive_subdep_depsets.append(dep[OcamlArchiveMarker].subdeps)
-
-        # if OcamlModuleMarker in dep:
-        #     all_deps_list.append(dep[OcamlModuleMarker].files)
-            # ocaml_sigs_depset_list.append(dep[OcamlModuleMarker].sigs)
-            # ocaml_module_depsets.append(dep[OcamlModuleMarker].deps)
-            # ocaml_module_subdepsets.append(dep[OcamlModuleMarker].subdeps)
-
-        # if OcamlPathsMarker in dep:
-        #     paths_indirect.append(dep[OcamlPathsMarker].paths)
-
-        ################################################################
-        # if OcamlImportArchivesMarker in dep:
-        #     archive_files.append(
-        #         dep[OcamlImportArchivesMarker].archives
-        #     )
-
-        # if OcamlImportPluginsMarker in dep:
-        #     plugin_depsets.append(
-        #         dep[OcamlImportPluginsMarker].plugins
-        #     )
-
-        # if OcamlImportSignaturesMarker in dep:
-        #     module_depsets.append(
-        #         dep[OcamlImportSignaturesMarker].signatures
-        #     )
-
-        # if OcamlImportPpxAdjunctsMarker in dep:
-        #     ppx_adjunct_depsets.append(
-        #         dep[OcamlImportPpxAdjunctsMarker].ppx_adjuncts
-        #     )
-
-        # if OcamlImportPathsMarker in dep:
-        #     paths_indirect.append(dep[OcamlImportPathsMarker].paths)
-
-    ## then directs
+    #### DIRECT DEPS: archives, plugins, sigs ####
     outputDepsets = {}
     if ctx.attr.archive:
         direct_files.extend(ctx.files.archive)
@@ -210,158 +164,34 @@ def _ocaml_import_impl(ctx):
 
     if ctx.attr.modules:
         direct_files.extend(ctx.files.modules)
-    ## now ppx (adjunct) deps. no need for paths
-    if ctx.attr.deps_adjunct:
-        # ppx deps may contain any of the providers
-        # since they are target labels, not file labels
-        # so we must iterate over their providers
-        ppxdeps = []
-        for dep in ctx.attr.deps_adjunct:
-            # if OcamlImportArchivesMarker in dep:
-            #     ppxes = dep[OcamlImportArchivesMarker].archives
-            #     ppxdeps.append(ppxes)
-            # if OcamlImportPluginsMarker in dep:
-            #     ppxes = dep[OcamlImportPluginsMarker].plugins
-            #     ppxdeps.append(ppxes)
-            # if OcamlImportSignaturesMarker in dep:
-            #     ppxes = dep[OcamlImportSignaturesMarker].signatures
-            #     ppxdeps.append(ppxes)
 
-            if OcamlProvider in dep:
-                all_deps_list.append(dep[OcamlProvider].files)
-                paths_indirect.append(dep[OcamlProvider].paths)
-
-            # if OcamlImportPathsMarker in dep:
-            #     ps = dep[OcamlImportPathsMarker].paths
-            #     paths_indirect.append(ps)
-
-            # if OcamlImportPpxAdjunctsMarker in dep:
-            #     ppxes = dep[OcamlImportPpxAdjunctsMarker].ppx_adjuncts
-            #     ppxdeps.append(ppxes)
-        ppx_adjuncts_depset  = depset(
-            order = dsorder,
-            transitive = ppxdeps + ppx_adjunct_depsets
-        )
         # outputDepsets["ppx_adjuncts"] = ppx_adjuncts_depset
         # p = OcamlImportPpxAdjunctsMarker(ppx_adjuncts = ppx_adjuncts_depset)
         # providers.append(p)
-    else:
-        ppx_adjuncts_depset  = depset(
-            order = dsorder,
-            transitive = ppx_adjunct_depsets
-        )
-        outputDepsets["ppx_adjuncts"] = ppx_adjuncts_depset
-        # p = OcamlImportPpxAdjunctsMarker(ppx_adjuncts = ppx_adjuncts_depset)
+
         # providers.append(p)
 
     ################################################################
     ##  PROVIDERS ##
     ################################################################
-    providers.append(DefaultInfo())
-
-    ## WARNING: adding OutputGroupInfo has no effect. --output_groups
-    ## never prints anything.
-
-    # outputGroupInfo = OutputGroupInfo(
-    #     archives = outputDepsets.get("archives") if outputDepsets.get("archives") else depset(),
-    #     plugins = outputDepsets.get("plugins") if outputDepsets.get("plugins") else depset(),
-    #     modules = outputDepsets.get("modules") if outputDepsets.get("modules") else depset(),
-    #     ppx_adjuncts = outputDepsets.get("ppx_adjuncts") if outputDepsets.get("ppx_adjuncts") else depset(),
-
-    #     # cclibs = cclib_files_depset,
-    #     all_files = depset(transitive=[
-    #         outputDepsets.get("archives") if outputDepsets.get("archives") else depset(),
-    #         outputDepsets.get("plugins") if outputDepsets.get("plugins") else depset(),
-    #         outputDepsets.get("modules") if outputDepsets.get("modules") else depset(),
-    #         outputDepsets.get("ppx_adjuncts") if outputDepsets.get("ppx_adjuncts") else depset()
-    #     ])
-    # )
-    # providers.append(outputGroupInfo)
+    direct_default_depset = depset(
 
     providers.append(OcamlImportMarker(marker = "OcamlImportMarker"))
 
-    _ocamlProvider = OcamlProvider(
-        # files = depset(
-        #     order = dsorder,
-        #     direct = ctx.files.signature if ctx.files.signature else [],
-        #     transitive=ocaml_sigs_depset_list
-        # ),
-        files = depset(
-            direct = ctx.files.archive,
-            transitive = [depset(
-                direct = direct_files,
-                transitive = all_deps_list
-            )]
-        ),
-        paths = depset(
-            direct = paths_direct,
-            transitive = paths_indirect
+    if archives_depset:
         )
     )
     print("Sig OcamlProvider: %s" % _ocamlProvider)
     providers.append(_ocamlProvider)
 
-    # _ocamlModuleMarker = OcamlModuleMarker(
-    #     files = depset(
-    #         order = dsorder,
-    #         direct = ctx.files.signature if ctx.files.signature else [],
-    #         transitive=ocaml_sigs_depset_list
-    #     ),
-    #     sigs = depset(
-    #         order = dsorder,
-    #         direct = ctx.files.signature if ctx.files.signature else [],
-    #         transitive=ocaml_sigs_depset_list
-    #     ),
-    #     deps = modules_depset,
-    #     subdeps = depset(order = dsorder,
-    #                      transitive=ocaml_module_subdepsets),
-    # )
-    # providers.append(_ocamlModuleMarker)
 
-    ## ctx.attr.archive = list of Targets; convert to list of Files
-    # _ocamlArchiveMarker = OcamlArchiveMarker(
-    #     files = depset(
-    #         direct = ctx.files.archive,
-    #         transitive = [depset(
-    #             direct = archive_files,
-    #             transitive = archive_depsets
-    #         )]
-    #     ),
-    #     archive = ctx.files.archive,
-    #     # component deps should be empty for imported archives
-    #     components = depset(order = dsorder,
-    #                         transitive = archive_component_depsets),
-    #     subdeps = depset(order = dsorder,
-    #                      transitive=archive_subdep_depsets)
-    # )
-    # providers.append(_ocamlArchiveMarker)
-
-    # _ocamlPathsMarker = OcamlPathsMarker(
-    #     paths  = depset(
-    #         order = dsorder,
-    #         direct = paths_direct,
-    #         transitive = paths_indirect)
-    # )
-    # providers.append(_ocamlPathsMarker)
-    # print("PATHSPATHS: %s " % _ocamlPathsMarker)
 
     # print("EXPORTING IMPORT PROVIDERS for %s:" % ctx.label.name)
     # for p in providers:
     #     print(" P: %s" % p)
-    # print(providers)
-
-    # ctx.actions.do_nothing(mnemonic="IMPORT ACTION",
-    #                        inputs = outputDepsets.get("archives"))
 
     return providers
 
-    # return [
-    #     DefaultInfo(),
-    #     outputGroupInfo,
-    #     OcamlImportMarker()
-    # ]
-
-################################################################
 ################################################################
 ocaml_import = rule(
     implementation = _ocaml_import_impl,
