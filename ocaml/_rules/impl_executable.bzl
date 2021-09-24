@@ -6,14 +6,12 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
 
      "PpxAdjunctsProvider",
+     "PpxExecutableMarker",
      "OcamlArchiveProvider",
      "OcamlExecutableMarker",
      "OcamlModuleMarker",
-     # "OcamlPathsMarker",
      "OcamlSDK",
      "OcamlTestMarker",
-     "PpxExecutableMarker",
-     "PpxModuleMarker"
 )
 
 load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
@@ -94,10 +92,10 @@ def impl_executable(ctx):
     paths_direct   = []
     paths_indirect = []
 
-    direct_ppx_adjunct_depsets = []
-    direct_ppx_adjunct_depsets_paths = []
-    indirect_ppx_adjunct_depsets      = []
-    indirect_ppx_adjunct_depsets_paths = []
+    direct_ppx_codep_depsets = []
+    direct_ppx_codep_depsets_paths = []
+    indirect_ppx_codep_depsets      = []
+    indirect_ppx_codep_depsets_paths = []
 
     direct_inputs_depsets = []
     direct_linkargs_depsets = []
@@ -126,13 +124,13 @@ def impl_executable(ctx):
         if PpxAdjunctsProvider in dep:
             ppxadep = dep[PpxAdjunctsProvider]
             # print("FOUND PPXAdjuncts %s" % ppxadep)
-            if hasattr(ppxadep, "ppx_adjuncts"):
-                if ppxadep.ppx_adjuncts:
-                    # print("PPXADEP.ppx_adjuncts: %s" % ppxadep.ppx_adjuncts)
-                    indirect_ppx_adjunct_depsets.append(ppxadep.ppx_adjuncts)
-            if hasattr(ppxadep, "ppx_adjunct_paths"):
-                if ppxadep.ppx_adjunct_paths:
-                    indirect_ppx_adjunct_depsets_paths.append(ppxadep.ppx_adjunct_paths)
+            if hasattr(ppxadep, "ppx_codeps"):
+                if ppxadep.ppx_codeps:
+                    # print("PPXADEP.ppx_codeps: %s" % ppxadep.ppx_codeps)
+                    indirect_ppx_codep_depsets.append(ppxadep.ppx_codeps)
+            if hasattr(ppxadep, "ppx_codep_paths"):
+                if ppxadep.ppx_codep_paths:
+                    indirect_ppx_codep_depsets_paths.append(ppxadep.ppx_codep_paths)
 
 
         ################ OCamlProvider ################
@@ -296,25 +294,25 @@ def impl_executable(ctx):
 
     ## src files depend on the ppx executable we're compiling
     ## so we need to pass adjunct deps
-    ## NB: ctx.files.deps_adjunct will not deliver imported source files,
+    ## NB: ctx.files.ppx_codeps will not deliver imported source files,
     ## so we need to iterate over providers
 
-    ## executables do not support deps_adjunct attr - they must be attached
+    ## executables do not support ppx_codeps attr - they must be attached
     ## to the module that injects the dep.
 
-    ppx_adjuncts_paths_depset = depset(
-        direct = direct_ppx_adjunct_depsets_paths,
-        transitive = indirect_ppx_adjunct_depsets_paths
+    ppx_codeps_paths_depset = depset(
+        direct = direct_ppx_codep_depsets_paths,
+        transitive = indirect_ppx_codep_depsets_paths
     )
 
-    ppx_adjuncts_depset = depset(
-        # direct     = ppx_adjunct_direct,
-        transitive = indirect_ppx_adjunct_depsets
+    ppx_codeps_depset = depset(
+        # direct     = ppx_codep_direct,
+        transitive = indirect_ppx_codep_depsets
     )
 
     ppxAdjunctsProvider = PpxAdjunctsProvider(
-        ppx_adjuncts = ppx_adjuncts_depset,
-        paths = ppx_adjuncts_paths_depset
+        ppx_codeps = ppx_codeps_depset,
+        paths = ppx_codeps_paths_depset
     )
     # print("EXE {m} adjuncts provider: {p}".format(m=ctx.label, p = adjuncts_provider))
 
@@ -332,16 +330,16 @@ def impl_executable(ctx):
         fail("Wrong rule called impl_executable: %s" % ctx.attr._rule)
 
     outputGroupInfo = OutputGroupInfo(
-        ppx_adjuncts = ppx_adjuncts_depset,
+        ppx_codeps = ppx_codeps_depset,
         # cc = cclib_deps,
         inputs = inputs_depset,
         all = depset(transitive=[
-            ppx_adjuncts_depset,
+            ppx_codeps_depset,
             # depset(cclib_deps),
         ])
     )
 
-    # print("EXE delivering ppx_adjuncts: %s" % ppxAdjunctsProvider)
+    # print("EXE delivering ppx_codeps: %s" % ppxAdjunctsProvider)
     results = [
         defaultInfo,
         outputGroupInfo,

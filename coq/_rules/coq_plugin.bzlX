@@ -1,6 +1,5 @@
 load("//ocaml:providers.bzl",
      "OcamlArchiveProvider",
-     "OcamlImportProvider",
      "OcamlLibraryProvider",
      "OcamlModuleProvider",
      "OcamlNsArchiveProvider",
@@ -48,7 +47,7 @@ coq_plugin = rule(
 
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OcamlImportProvider],
+            providers = [## [OcamlImportProvider],
                          [OcamlLibraryProvider],
                          # [OcamlArchiveProvider],
                          [OcamlModuleProvider],

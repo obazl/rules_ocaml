@@ -1,11 +1,11 @@
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlVerboseFlagProvider",
-     "OcamlModuleProvider")
+     "OcamlModuleMarker")
 
 ################################################################
 def _ocaml_null_module_impl(ctx):
-  return OcamlModuleProvider()
+  return OcamlModuleMarker()
 
 ocaml_null_module = rule(
   implementation = _ocaml_null_module_impl,

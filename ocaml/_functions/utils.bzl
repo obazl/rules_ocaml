@@ -1,15 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl",
-     "OcamlSDK",
-     "OcamlArchiveProvider",
-     "OcamlSignatureProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "PpxArchiveProvider",
-     "PpxExecutableProvider",
-     "PpxModuleProvider")
+load("//ocaml:providers.bzl", "OcamlSDK")
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 

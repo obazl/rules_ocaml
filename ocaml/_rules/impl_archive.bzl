@@ -2,7 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
-     "CcDepsProvider",
+     # "CcDepsProvider",
      "CompilationModeSettingProvider",
 
      "PpxAdjunctsProvider",
@@ -280,7 +280,7 @@ def impl_archive(ctx):
         files = default_depset
     )
 
-    ppx_adjuncts_depset = ppxAdjunctsProvider.ppx_adjuncts
+    ppx_codeps_depset = ppxAdjunctsProvider.ppx_codeps
     ###########################
     new_inputs_depset = depset(
         direct     = action_outputs + ns_resolver,
@@ -351,7 +351,7 @@ def impl_archive(ctx):
 
     outputGroupInfo = OutputGroupInfo(
         resolver = ns_resolver,
-        ppx_adjuncts = ppx_adjuncts_depset,
+        ppx_codeps = ppx_codeps_depset,
         # cclibs = cclib_files_depset,
         inputs = ocamlProvider.files,
         linkargs = linkargs_depset,
@@ -361,7 +361,7 @@ def impl_archive(ctx):
             # default_depset,
             ocamlProvider_files,
             archiveProvider_files,
-            ppx_adjuncts_depset,
+            ppx_codeps_depset,
             # cclib_files_depset,
         ])
     )

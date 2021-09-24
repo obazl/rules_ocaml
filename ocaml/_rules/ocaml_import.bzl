@@ -1,20 +1,10 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "OcamlProvider",
      "OcamlArchiveProvider",
-     "PpxAdjunctsProvider",
-
-     "OcamlModuleMarker",
-     # "OcamlPathsMarker",
-     "OcamlImportMarker", # marker
-
-     # "OcamlImportArchivesMarker",
-     # "OcamlImportPluginsMarker",
-     # "OcamlImportSignaturesMarker",
-     # "OcamlImportPathsMarker",
-     # "OcamlImportPpxAdjunctsMarker"
-     )
+     "OcamlImportMarker",
+     "OcamlProvider",
+     "PpxAdjunctsProvider")
 
 load(":impl_common.bzl", "dsorder", "opam_lib_prefix")
 
@@ -42,8 +32,6 @@ def _ocaml_import_impl(ctx):
     providers = []
 
     all_deps_list = []
-    ## OcamlImportMarker is a marker, always empty
-
     archives_list         = []
     archive_deps_list     = []
     archive_inputs_list   = []
@@ -53,11 +41,11 @@ def _ocaml_import_impl(ctx):
     sig_depsets = []
     module_depsets   = []
     ## direct ppx adjuncts
-    ppx_adjunct_deps_list = []
-    ppx_adjunct_archives_list = []
-    ppx_adjunct_paths_list = []
+    ppx_codep_deps_list = []
+    ppx_codep_archives_list = []
+    ppx_codep_paths_list = []
     ## indirect ppx adjuncts
-    indirect_ppx_adjunct_deps_list = []
+    indirect_ppx_codep_deps_list = []
 
 
     # ocaml_archive_deps_archive_files = []
@@ -96,12 +84,12 @@ def _ocaml_import_impl(ctx):
                     archive_inputs_list.append(opdep.archive_deps)
             # indirect_paths_list.append(opdep.paths)
 
-            if hasattr(opdep, "ppx_adjuncts"):
-                if opdep.ppx_adjuncts:
-                    indirect_ppx_adjunct_deps_list.append(opdep.ppx_adjuncts)
-            if hasattr(opdep, "ppx_adjunct_paths"):
-                if opdep.ppx_adjunct_paths:
-                    ppx_adjunct_paths_list.append(opdep.ppx_adjunct_paths)
+            if hasattr(opdep, "ppx_codeps"):
+                if opdep.ppx_codeps:
+                    indirect_ppx_codep_deps_list.append(opdep.ppx_codeps)
+            if hasattr(opdep, "ppx_codep_paths"):
+                if opdep.ppx_codep_paths:
+                    ppx_codep_paths_list.append(opdep.ppx_codep_paths)
 
         if OcamlArchiveProvider in dep:
             archives_list.append(dep[DefaultInfo].files)
@@ -214,7 +202,7 @@ def _ocaml_import_impl(ctx):
         direct_files.extend(ctx.files.modules)
 
     ################################
-    for dep in ctx.attr.deps_adjunct:
+    for dep in ctx.attr.ppx_codeps:
         # print("FOUND PPX ADJUNCT")
         # Recall ocaml_import gens nothing, but puts principal deps in
         # DefaultInfo.files
@@ -222,33 +210,33 @@ def _ocaml_import_impl(ctx):
         if OcamlProvider in dep:
             opdep = dep[OcamlProvider]
             # print("OPDEP: %s" % opdep)
-            ppx_adjunct_deps_list.append(opdep.archives)
+            ppx_codep_deps_list.append(opdep.archives)
             # instead look in archives
-            ppx_adjunct_archives_list.append(opdep.files)
-            # ppx_adjunct_archives_list.append(opdep.archives)
-            if hasattr(opdep, "ppx_adjuncts"):
-                if opdep.ppx_adjuncts:
-                    # print("OPDEP.ppx_adjuncts: %s" % opdep.ppx_adjuncts)
-                    ppx_adjunct_deps_list.append(opdep.ppx_adjuncts)
-            if hasattr(opdep, "ppx_adjunct_paths"):
-                if opdep.ppx_adjunct_paths:
-                    ppx_adjunct_paths_list.append(dep[OcamlProvider].ppx_adjunct_paths)
+            ppx_codep_archives_list.append(opdep.files)
+            # ppx_codep_archives_list.append(opdep.archives)
+            if hasattr(opdep, "ppx_codeps"):
+                if opdep.ppx_codeps:
+                    # print("OPDEP.ppx_codeps: %s" % opdep.ppx_codeps)
+                    ppx_codep_deps_list.append(opdep.ppx_codeps)
+            if hasattr(opdep, "ppx_codep_paths"):
+                if opdep.ppx_codep_paths:
+                    ppx_codep_paths_list.append(dep[OcamlProvider].ppx_codep_paths)
 
-    # print("ppx_adjunct_deps_list: %s" % ppx_adjunct_deps_list)
-    # print("indirect_ppx_adjunct_deps_list: %s" % indirect_ppx_adjunct_deps_list)
-    ppx_adjuncts_depset  = depset(
+    # print("ppx_codep_deps_list: %s" % ppx_codep_deps_list)
+    # print("indirect_ppx_codep_deps_list: %s" % indirect_ppx_codep_deps_list)
+    ppx_codeps_depset  = depset(
         order = dsorder,
-        # direct = ppx_adjunct_deps_list,
-        transitive = ppx_adjunct_deps_list + indirect_ppx_adjunct_deps_list
+        # direct = ppx_codep_deps_list,
+        transitive = ppx_codep_deps_list + indirect_ppx_codep_deps_list
     )
-    # print("PPX_ADJUNCTS_DEPSET: %s" % ppx_adjuncts_depset)
+    # print("PPX_ADJUNCTS_DEPSET: %s" % ppx_codeps_depset)
 
-        # outputDepsets["ppx_adjuncts"] = ppx_adjuncts_depset
-        # p = OcamlImportPpxAdjunctsMarker(ppx_adjuncts = ppx_adjuncts_depset)
+        # outputDepsets["ppx_codeps"] = ppx_codeps_depset
+        # p = OcamlImportPpxAdjunctsMarker(ppx_codeps = ppx_codeps_depset)
         # providers.append(p)
 
-    outputDepsets["ppx_adjuncts"] = ppx_adjuncts_depset
-    # p = OcamlImportPpxAdjunctsMarker(ppx_adjuncts = ppx_adjuncts_depset)
+    outputDepsets["ppx_codeps"] = ppx_codeps_depset
+    # p = OcamlImportPpxAdjunctsMarker(ppx_codeps = ppx_codeps_depset)
         # providers.append(p)
 
     ################################################################
@@ -263,8 +251,6 @@ def _ocaml_import_impl(ctx):
     )
     providers.append(defaultInfo)
 
-    providers.append(OcamlImportMarker(marker = "OcamlImportMarker"))
-
     if archives_depset:
         _archives = archives_depset
     else:
@@ -275,15 +261,15 @@ def _ocaml_import_impl(ctx):
     else:
         _archive_deps = []
 
-    if ppx_adjuncts_depset:
+    if ppx_codeps_depset:
         ppxAdjunctsProvider = PpxAdjunctsProvider(
-            paths = depset(ppx_adjunct_paths_list),
-            ppx_adjuncts = ppx_adjuncts_depset,
+            paths = depset(ppx_codep_paths_list),
+            ppx_codeps = ppx_codeps_depset,
         )
         providers.append(ppxAdjunctsProvider)
-        _ppx_adjuncts = ppx_adjuncts_depset
+        _ppx_codeps = ppx_codeps_depset
     else:
-        _ppx_adjuncts = depset()
+        _ppx_codeps = depset()
 
     ocamlProvider_files_depset = depset(
         direct = direct_files,
@@ -311,7 +297,7 @@ def _ocaml_import_impl(ctx):
         files = ocamlProvider_files_depset,
         archives = _archives,
         archive_deps = _archive_deps,
-        ppx_adjuncts = _ppx_adjuncts,
+        ppx_codeps = _ppx_codeps,
         # paths = depset(
         #     direct = direct_paths_list,
         #     transitive = indirect_paths_list
@@ -319,6 +305,7 @@ def _ocaml_import_impl(ctx):
     )
     providers.append(_ocamlProvider)
 
+    providers.append(OcamlImportMarker(marker = "OcamlImport"))
 
     ## WARNING: --output_groups produces no output, since we have no
     ## "generated" files to provide; everything imported is a "source
@@ -326,7 +313,7 @@ def _ocaml_import_impl(ctx):
     outputGroupInfo = OutputGroupInfo(
         archives = archives_depset if archives_depset else depset(),
         archive_deps = archive_inputs_depset if archive_inputs_depset else depset(),
-        ppx_adjuncts = _ppx_adjuncts,
+        ppx_codeps = _ppx_codeps,
         # cc = action_inputs_ccdep_filelist,
         # inputs = inputs_depset,
         all = depset(
@@ -336,7 +323,7 @@ def _ocaml_import_impl(ctx):
                 ocamlProvider_files_depset,
                 archives_depset if archives_depset else depset(),
                 archive_inputs_depset if archive_inputs_depset else depset(),
-                ppx_adjuncts_depset,
+                ppx_codeps_depset,
                 # cclib_files_depset,
                 # depset(ccDepsProvider.ccdeps_map.keys()),
                 # depset(action_inputs_ccdep_filelist)
@@ -366,27 +353,11 @@ ocaml_import = rule(
         # ocaml_import can only depend on other ocaml_imports
         deps = attr.label_list(
             allow_files = True,
-            providers = [[OcamlImportMarker],
-                         # [OcamlArchiveProvider],
-                         # [OcamlModuleMarker]
-                         ],
-                         # [OcamlImportArchivesMarker],
-                         # [OcamlImportPluginsMarker],
-                         # [OcamlImportSignaturesMarker],
-                         # [OcamlImportPathsMarker],
-                         # [OcamlImportPpxAdjunctsMarker]]
+            providers = [OcamlImportMarker],
         ),
-        deps_adjunct = attr.label_list(
+        ppx_codeps = attr.label_list(
             allow_files = True,
-            providers = [[OcamlImportMarker],
-                         # [OcamlModuleMarker],
-                         # [OcamlImportMarker],
-                         # [OcamlImportArchivesMarker],
-                         # [OcamlImportPluginsMarker],
-                         # [OcamlImportSignaturesMarker],
-                         # [OcamlImportPathsMarker],
-                         # [OcamlImportPpxAdjunctsMarker]]
-                         ]
+            providers = [[OcamlImportMarker]]
         ),
         modules = attr.label_list(
             allow_files = True

@@ -6,7 +6,6 @@ load("//ocaml:providers.bzl",
      "OcamlProvider",
 
      "PpxAdjunctsProvider",
-     "CcDepsProvider",
      "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlImportMarker",
@@ -14,12 +13,8 @@ load("//ocaml:providers.bzl",
      "OcamlModuleMarker",
      "OcamlNsMarker",
      "OcamlNsResolverProvider",
-     # "OcamlPathsMarker",
      "OcamlSDK",
-     "OcamlSignatureProvider",
-
-     "PpxArchiveMarker",
-     "PpxModuleMarker")
+     "OcamlSignatureProvider")
 
 load("//ocaml/_rules/utils:rename.bzl",
      "get_module_name",
@@ -42,7 +37,7 @@ load(":options.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_ccdeps.bzl", "handle_ccdeps", "link_ccdeps", "dump_ccdep")
+load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
 
 load(":impl_common.bzl",
      "dsorder",
@@ -211,18 +206,18 @@ def _ocaml_signature_impl(ctx):
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[PpxAdjunctsProvider]
 
-        for ppx_adjunct in provider.ppx_adjuncts.to_list():
-            adjunct_deps.append(ppx_adjunct)
-            # if OcamlImportArchivesMarker in ppx_adjunct:
-            #     adjuncts = ppx_adjunct[OcamlImportArchivesMarker].archives
+        for ppx_codep in provider.ppx_codeps.to_list():
+            adjunct_deps.append(ppx_codep)
+            # if OcamlImportArchivesMarker in ppx_codep:
+            #     adjuncts = ppx_codep[OcamlImportArchivesMarker].archives
             #     for f in adjuncts.to_list():
-            if ppx_adjunct.extension in ["cmxa", "a"]:
-                if (ppx_adjunct.path.startswith(opam_lib_prefix)):
-                    dir = paths.relativize(ppx_adjunct.dirname, opam_lib_prefix)
+            if ppx_codep.extension in ["cmxa", "a"]:
+                if (ppx_codep.path.startswith(opam_lib_prefix)):
+                    dir = paths.relativize(ppx_codep.dirname, opam_lib_prefix)
                     includes.append( "+../" + dir )
                 else:
-                    includes.append(ppx_adjunct.dirname)
-                args.add(ppx_adjunct.path)
+                    includes.append(ppx_codep.dirname)
+                args.add(ppx_codep.path)
 
     paths_depset  = depset(
         order = dsorder,
@@ -349,11 +344,11 @@ def _ocaml_signature_impl(ctx):
     cclibs = {}
     if len(indirect_cc_deps) > 0:
         cclibs.update(indirect_cc_deps)
-    ccProvider = CcDepsProvider(
-        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
-        ccdeps_map = cclibs
+    # ccProvider = CcDepsProvider(
+    #     ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
+    #     ccdeps_map = cclibs
 
-    )
+    # )
     # print("OUTPUT CCPROVIDER: %s" % ccProvider)
     new_inputs_depset = depset(
         direct = [out_cmi],
@@ -391,7 +386,7 @@ def _ocaml_signature_impl(ctx):
         defaultInfo,
         ocamlProvider,
         sigProvider,
-        ccProvider
+        # ccProvider
     ]
 
     if ccInfo_list:
@@ -448,16 +443,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         deps = attr.label_list(
             doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
             providers = [
-                # [OcamlSignatureProvider],
-                # [OcamlProvider],
-                # [CcDepsProvider]
+                [OcamlProvider],
                 [OcamlArchiveProvider],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],
                 [OcamlModuleMarker],
                 [OcamlNsMarker],
-                [PpxArchiveMarker],
-                [PpxModuleMarker],
             ],
             # cfg = ocaml_signature_deps_out_transition
         ),

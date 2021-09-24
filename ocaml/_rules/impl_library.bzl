@@ -193,11 +193,11 @@ def impl_library(ctx):
     # print("NSLIB_DefaultInfo: %s" % defaultInfo)
 
     ################ ppx adjunct deps ################
-    ppx_adjuncts_depset = depset(
+    ppx_codeps_depset = depset(
         transitive = indirect_adjunct_depsets
     )
     ppxAdjunctsProvider = PpxAdjunctsProvider(
-        ppx_adjuncts = ppx_adjuncts_depset,
+        ppx_codeps = ppx_codeps_depset,
         paths        = depset(transitive = indirect_adjunct_path_depsets)
     )
 
@@ -285,7 +285,7 @@ def impl_library(ctx):
     outputGroupInfo = OutputGroupInfo(
         resolver = ns_resolver,
         # resolver = ctx.files._ns_resolver, # depset([rf]),
-        ppx_adjuncts = ppx_adjuncts_depset,
+        ppx_codeps = ppx_codeps_depset,
         # cc = depset(action_inputs_ccdep_filelist),
         all = depset(
             order = dsorder,

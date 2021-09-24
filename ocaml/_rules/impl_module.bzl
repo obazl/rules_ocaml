@@ -4,25 +4,14 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
-     "OcamlCcInfo",
      "OcamlArchiveProvider",
      "CompilationModeSettingProvider",
 
      "PpxAdjunctsProvider",
-     "CcDepsProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlSignatureProvider",
-     "OcamlSDK",
-     "PpxModuleMarker")
-
-# load("//ocaml:providers.bzl",
-#      "OcamlImportMarker",
-#      "OcamlImportArchivesMarker",
-#      "OcamlImportPluginsMarker",
-#      "OcamlImportSignaturesMarker",
-#      "OcamlImportPathsMarker",
-#      "OcamlImportPpxAdjunctsMarker")
+     "OcamlSDK")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -42,7 +31,7 @@ load("//ocaml/_functions:module_naming.bzl",
      "file_to_lib_name",
      "normalize_module_name")
 
-load(":impl_ccdeps.bzl", "handle_ccdeps", "link_ccdeps", "dump_ccdep")
+load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
 
 load(":impl_common.bzl",
      "dsorder",
@@ -334,14 +323,14 @@ def impl_module(ctx):
     if ctx.attr.ppx:
         provider = ctx.attr.ppx[PpxAdjunctsProvider]
 
-        ## NB: it seems to be sufficient to put the ppx_adjunct in the
+        ## NB: it seems to be sufficient to put the ppx_codep in the
         ## search path with -I; the archive itself need not be added?
         ## omitting the path: e.g. "Unbound module Ppx_inline_test_lib"
         ## adding the path makes the compile work.
-        ## BUT: the ppx_adjunct must be propagated to
+        ## BUT: the ppx_codep must be propagated to
         ## ocaml_executable, otherwise the link will fail with:
         ## "No implementations provided for the following modules:..."
-        dlist = provider.ppx_adjuncts.to_list()
+        dlist = provider.ppx_codeps.to_list()
         args.add("-ccopt", "-DPPX_ADJUNCTS_START")
         for f in dlist: ## provider.files.to_list():
             adjunct_deps.append(f)
@@ -557,14 +546,14 @@ def impl_module(ctx):
 
     ## pass on adjunct deps rec'd from deps of this module
     ## do we need to do this?
-    ppx_adjuncts_depset = depset(
+    ppx_codeps_depset = depset(
         order = dsorder,
         direct = adjunct_deps,
         transitive = indirect_adjunct_depsets
     )
 
     adjunctsMarker = PpxAdjunctsProvider(
-        ppx_adjuncts = ppx_adjuncts_depset,
+        ppx_codeps = ppx_codeps_depset,
         paths = depset(order = dsorder,
                        transitive = indirect_adjunct_path_depsets)
     )
@@ -623,7 +612,7 @@ def impl_module(ctx):
     outputGroupInfo = OutputGroupInfo(
         archives = archives_depset if archives_depset else depset(),
         archive_deps = archive_inputs_depset if archive_inputs_depset else depset(),
-        ppx_adjuncts = ppx_adjuncts_depset,
+        ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         inputs = inputs_depset,
         all = depset(
@@ -633,7 +622,7 @@ def impl_module(ctx):
                 ocamlProvider_files_depset,
                 archives_depset if archives_depset else depset(),
                 archive_inputs_depset if archive_inputs_depset else depset(),
-                ppx_adjuncts_depset,
+                ppx_codeps_depset,
                 # cclib_files_depset,
                 # depset(ccDepsProvider.ccdeps_map.keys()),
                 # depset(action_inputs_ccdep_filelist)
@@ -641,14 +630,9 @@ def impl_module(ctx):
         )
     )
 
-    if (ctx.attr._rule == "ocaml_module"):
-        moduleMarker = OcamlModuleMarker(marker="OcamlModule")
-    else:
-        moduleMarker = PpxModuleMarker(marker="PpxModule")
-
     providers = [
         defaultInfo,
-        moduleMarker,
+        OcamlModuleMarker(marker="OcamlModule"),
         ocamlProvider,
         # archiveProvider,
         nsResolverProvider,

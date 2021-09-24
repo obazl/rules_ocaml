@@ -1,5 +1,4 @@
 load("//ocaml:providers.bzl",
-     "OcamlCcInfo",
      "OcamlArchiveProvider",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
@@ -8,10 +7,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsMarker",
      "OcamlSignatureProvider",
 
-     "PpxArchiveMarker",
-     "PpxExecutableMarker",
-     "PpxLibraryMarker",
-     "PpxModuleMarker")
+     "PpxExecutableMarker")
 
 load("//ocaml/_transitions:transitions.bzl",
      "ocaml_module_sig_out_transition",
@@ -76,7 +72,7 @@ def options_executable(ws):
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
-            providers = [[OcamlModuleMarker], [PpxModuleMarker]],
+            providers = [[OcamlModuleMarker]],
             default = None
         ),
         data = attr.label_list(
@@ -94,22 +90,12 @@ def options_executable(ws):
                          [OcamlLibraryMarker],
                          [OcamlModuleMarker],
                          [OcamlNsMarker],
-                         [PpxArchiveMarker],
-                         [PpxLibraryMarker],
-                         [PpxModuleMarker],
                          [CcInfo]],
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
             default = "@ocaml//executable:deps"
         ),
-
-        ## NB! executables do not support deps_adjunct - they must be
-        ## attached to the module that injects the dep.
-        # deps_adjunct = attr.label_list(
-        #     doc = """List of non-opam adjunct dependencies (labels).""",
-        #     # providers = [[DefaultInfo], [PpxModuleMarker]]
-        # ),
 
         ## FIXME: add cc_linkopts?
         cc_deps = attr.label_keyed_string_dict(
@@ -146,23 +132,14 @@ def options_executable(ws):
 #######################
 def options_library(ws):
 
-    if ws == "ocaml":
-        _providers = [
-            [OcamlArchiveProvider],
-            [OcamlImportMarker],
-            [OcamlLibraryMarker],
-            [OcamlModuleMarker],
-            [OcamlNsResolverProvider],
-            [OcamlNsMarker],
-            [OcamlSignatureProvider],
-            [PpxArchiveMarker]
-        ]
-    else:
-        _providers =[
-            [PpxLibraryMarker],
-            [PpxModuleMarker],
-            [PpxArchiveMarker]
-        ]
+    _providers = [
+        [OcamlArchiveProvider],
+        [OcamlLibraryMarker],
+        [OcamlModuleMarker],
+        [OcamlNsResolverProvider],
+        [OcamlNsMarker],
+        [OcamlSignatureProvider],
+    ]
 
     return dict(
         modules = attr.label_list(
@@ -174,21 +151,13 @@ def options_library(ws):
 #######################
 def options_module(ws):
 
-    if ws == "ocaml":
-        _providers = [[OcamlArchiveProvider],
-                     [CcInfo],
-                     [OcamlImportMarker],
-                     [OcamlSignatureProvider],
-                     [OcamlLibraryMarker],
-                     [OcamlModuleMarker],
-                     [OcamlNsMarker],
-                     # [OcamlNsResolverProvider],
-                     [PpxArchiveMarker],
-                     [PpxModuleMarker]]
-
-    else:
-        ## FIXME: providers for ppx_module
-        _providers = []
+    _providers = [[OcamlArchiveProvider],
+                  [OcamlImportMarker],
+                  [OcamlLibraryMarker],
+                  [OcamlModuleMarker],
+                  [OcamlNsMarker],
+                  [OcamlSignatureProvider],
+                  [CcInfo]]
 
     ws = "@" + ws
 
@@ -285,97 +254,81 @@ def options_module(ws):
     )
 
 #######################
-def options_pack_library(ws):
+# def options_pack_library(ws):
 
-    if ws == "ocaml":
-        providers = [[OcamlArchiveProvider],
-                     [OcamlImportMarker],
-                     [OcamlSignatureProvider],
-                     [OcamlLibraryMarker],
-                     [OcamlModuleMarker],
-                     [OcamlNsMarker],
-                     [PpxArchiveMarker],
-                     [PpxModuleMarker]]
+#     providers = [[OcamlArchiveProvider],
+#                  [OcamlSignatureProvider],
+#                  [OcamlLibraryMarker],
+#                  [OcamlModuleMarker],
+#                  [OcamlNsMarker]]
 
-    else:
-        ## FIXME: providers for ppx_module
-        providers = []
+#     ws = "@" + ws
 
-    ws = "@" + ws
+#     return dict(
+#         _opts     = attr.label(default = ws + "//module:opts"),     # string list
+#         _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
+#         _threads   = attr.label(default = ws + "//module/threads"),   # bool
+#         _warnings = attr.label(default = ws + "//module:warnings"), # string list
 
-    return dict(
-        _opts     = attr.label(default = ws + "//module:opts"),     # string list
-        _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
-        _threads   = attr.label(default = ws + "//module/threads"),   # bool
-        _warnings = attr.label(default = ws + "//module:warnings"), # string list
+#         ################
+#         deps = attr.label_list(
+#             doc = "List of OCaml dependencies.",
+#             providers = providers,
+#             # transition undoes changes that may have been made by ns_lib
+#             # cfg = ocaml_module_deps_out_transition
+#         ),
+#         # _allowlist_function_transition = attr.label(
+#         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+#         # ),
+#         _deps = attr.label(
+#             doc = "Global deps, apply to all instances of rule. Added last.",
+#             default = ws + "//module:deps"
+#         ),
+#         # data = attr.label_list(
+#         #     allow_files = True,
+#         #     doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."
+#         # ),
+#         ################
+#         cc_deps = attr.label_keyed_string_dict(
+#             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+#             """,
+#             # providers = [[CcInfo]]
+#             # cfg = ocaml_module_cc_deps_out_transition
+#         ),
+#         _cc_deps = attr.label(
+#             doc = "Global cc-deps, apply to all instances of rule. Added last.",
+#             default = ws + "//module:deps"
+#         ),
 
-        ################
-        deps = attr.label_list(
-            doc = "List of OCaml dependencies.",
-            providers = providers,
-            # transition undoes changes that may have been made by ns_lib
-            # cfg = ocaml_module_deps_out_transition
-        ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
-        _deps = attr.label(
-            doc = "Global deps, apply to all instances of rule. Added last.",
-            default = ws + "//module:deps"
-        ),
-        # data = attr.label_list(
-        #     allow_files = True,
-        #     doc = "Runtime dependencies: list of labels of data files needed by this module at runtime."
-        # ),
-        ################
-        cc_deps = attr.label_keyed_string_dict(
-            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
-            """,
-            # providers = [[CcInfo]]
-            # cfg = ocaml_module_cc_deps_out_transition
-        ),
-        _cc_deps = attr.label(
-            doc = "Global cc-deps, apply to all instances of rule. Added last.",
-            default = ws + "//module:deps"
-        ),
-
-        ################
-        # ns = attr.label(
-        #     doc = "Label of ocaml_ns target"
-        # ),
-        # _ns_resolver = attr.label(
-        #     doc = "Experimental",
-        #     providers = [OcamlNsResolverProvider],
-        #     default = "@ocaml//ns",
-        # ),
-        # _ns_submodules = attr.label(
-        #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-        #     default = "@ocaml//ns:submodules",  # => string_list_setting
-        #     # allow_files = True,
-        #     # mandatory = True
-        # ),
-        # _ns_strategy = attr.label(
-        #     doc = "Experimental",
-        #     default = "@ocaml//ns:strategy"
-        # ),
-    )
+#         ################
+#         # ns = attr.label(
+#         #     doc = "Label of ocaml_ns target"
+#         # ),
+#         # _ns_resolver = attr.label(
+#         #     doc = "Experimental",
+#         #     providers = [OcamlNsResolverProvider],
+#         #     default = "@ocaml//ns",
+#         # ),
+#         # _ns_submodules = attr.label(
+#         #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+#         #     default = "@ocaml//ns:submodules",  # => string_list_setting
+#         #     # allow_files = True,
+#         #     # mandatory = True
+#         # ),
+#         # _ns_strategy = attr.label(
+#         #     doc = "Experimental",
+#         #     default = "@ocaml//ns:strategy"
+#         # ),
+#     )
 
 #######################
 def options_ns_archive(ws):
 
-    if ws == "ocaml":
-        _submod_providers   = [
-            [OcamlModuleMarker],
-            [OcamlNsMarker],
-            [OcamlSignatureProvider]
-        ]
-    else:
-        _submod_providers   = [
-            [OcamlModuleMarker],
-            [OcamlNsMarker],
-            [OcamlSignatureProvider],
-            [PpxModuleMarker],
-        ]
+    _submod_providers   = [
+        [OcamlModuleMarker],
+        [OcamlNsMarker],
+        [OcamlSignatureProvider]
+    ]
 
     ws = "@" + ws
 
@@ -437,22 +390,10 @@ def options_ns_archive(ws):
 #######################
 def options_ns_library(ws):
 
-    if ws == "ocaml":
-        _submod_providers   = [
-            [OcamlModuleMarker],
-            [OcamlNsMarker],
-            [PpxModuleMarker],
-            # [OcamlSignatureProvider]
-        ]
-        # _sublib_providers = [
-        #     # [OcamlNsMarker],
-        #     [OcamlNsMarker],
-        # ]
-    else:
-        ## FIXME: ppx providers
-        _submod_providers = [PpxModuleMarker]
-        # _sublib_providers = [OamlNsMarker]
-        # _sublib_providers = [OamlNsLibraryMarker]
+    _submod_providers   = [
+        [OcamlModuleMarker],
+        [OcamlNsMarker],
+    ]
 
     ws_prefix = "@ocaml" ## + ws
 

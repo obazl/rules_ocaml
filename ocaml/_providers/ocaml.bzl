@@ -8,8 +8,8 @@ OcamlProvider = provider(
         "files"             : "file depset",
         "archives"          : "file depset",
         "archive_deps"       : "file depset of archive deps",
-        "ppx_adjuncts"      : "file depset",
-        "ppx_adjunct_paths" : "string depset",
+        "ppx_codeps"      : "file depset",
+        "ppx_codep_paths" : "string depset",
         "cc_deps"           : "dictionary depset",
         "ns_resolver"       : "single target",
     }
@@ -39,35 +39,35 @@ OcamlNsResolverProvider = provider(
     }
 )
 
-OcamlCcInfo = provider(
-    doc = "Provides CcInfo deps",
+OcamlSignatureProvider = provider(
+    doc = "OCaml interface provider.",
     fields = {
-        "ccinfo": "depset of CcInfo providers",
+        # "deps": "sig deps",
+
+        "mli": ".mli input file",
+        "cmi": ".cmi output file",
+        # "module_links":    "Depset of module files to be linked by executable or archive rules.",
+        # "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
+        # "paths":    "Depset of paths for -I params",
+        # "depgraph": "Depset containing transitive closure of deps",
+        # "archived_modules": "Depset containing archive contents"
     }
+    # fields = module_fields
+    # {
+    #     # "ns_module": "Name of ns module (string)",
+    #     "paths"    : "Depset of search path strings",
+    #     "resolvers": "Depset of resolver module names",
+    #     "deps_opam" : "Depset of OPAM package names"
+
+    #     # "payload": "An [OcamlInterfacePayload](#ocamlinterfacepayload) structure.",
+    #     # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)."
+    # }
 )
 
-PpxAdjunctsProvider = provider(
-    doc = "PPX Adjunct Deps provider.",
-    fields = {
-        "ppx_adjuncts": "file depset",
-        "paths": "string depset"
-    }
-)
-
-# AdjunctDepsMarker    = provider(doc = "OCaml PPX Adjunct Deps Marker provider.")
-
-# OcamlArchiveMarker   = provider(doc = "OCaml Archive Marker provider.")
-OcamlExecutableMarker   = provider(doc = "OCaml Executable Marker provider.")
+OcamlExecutableMarker = provider(doc = "OCaml Executable Marker provider.")
 OcamlImportMarker    = provider(doc = "OCaml Library Marker provider.")
 OcamlLibraryMarker   = provider(doc = "OCaml Library Marker provider.")
 OcamlModuleMarker    = provider(doc = "OCaml Module Marker provider.")
 OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")
 OcamlSignatureMarker = provider(doc = "OCaml Signature Marker provider.")
 OcamlTestMarker      = provider(doc = "OCaml Test Marker provider.")
-
-PpxArchiveMarker = provider(doc = "Ppx Archive Marker provider.")
-PpxExecutableMarker = provider(doc = "Ppx Executable Marker provider.")
-PpxModuleMarker = provider(doc = "Ppx Module Marker provider.")
-PpxLibraryMarker = provider(doc = "Ppx Library Marker provider.")
-# PpxNsArchiveMarker = provider(doc = "Ppx NsArchive Marker provider.")
-PpxNsLibraryMarker = provider(doc = "Ppx NsLibrary Marker provider.")

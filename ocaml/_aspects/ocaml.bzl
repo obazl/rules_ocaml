@@ -1,14 +1,3 @@
-load("//ocaml:providers.bzl",
-     "AdjunctDepsProvider",
-     "CcDepsProvider",
-     # "OcamlDepsetProvider",
-     "OcamlSignatureProvider",
-     "OcamlModuleProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlNsResolverProvider",
-     # "OpamDepsProvider",
-     "OcamlSDK")
-
 ####################################
 def _print_aspect_impl(target, ctx):
     print("TARGET: %s" % target)
@@ -30,9 +19,9 @@ def _print_aspect_impl(target, ctx):
             #     print("Path: %s" % path)
             # if OpamDepsProvider in f:
             #     print("OPAM deps: %s" % f[OpamDepsProvider])
-            # if OcamlModuleProvider in f:
-            #     print("Module Paths: %s" % f[OcamlModuleProvider].paths)
-            #     print("Module resolvers: %s" % f[OcamlModuleProvider].resolvers)
+            # if OcamlModuleMarker in f:
+            #     print("Module Paths: %s" % f[OcamlModuleMarker].paths)
+            #     print("Module resolvers: %s" % f[OcamlModuleMarker].resolvers)
             print("Submod: {m} -> {f}".format(
                 m = m, f = f.label)
                   )
@@ -54,9 +43,9 @@ def _providers_impl(target, ctx):
         print(dep)
 
     report = "REPORT "
-    if CcDepsProvider in target:
+    if CcInfo in target:
         report = report + "CC DEPS:"
-        for cc in target[CcDepsProvider].libs:
+        for cc in target[CcInfo].libs:
             report = report + str(cc)
 
     report_file = ctx.actions.declare_file("providers.txt")

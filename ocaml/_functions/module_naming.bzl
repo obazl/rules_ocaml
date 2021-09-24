@@ -1,15 +1,15 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl",
-     "OcamlSDK",
-     "OcamlArchiveProvider",
-     "OcamlSignatureProvider",
-     "OcamlLibraryProvider",
-     "OcamlModuleProvider",
-     "PpxArchiveProvider",
-     "PpxExecutableProvider",
-     "PpxModuleProvider")
+# load("//ocaml:providers.bzl",
+#      # "OcamlSDK",
+#      # "OcamlArchiveProvider",
+#      # "OcamlSignatureProvider",
+#      # "OcamlLibraryProvider",
+#      # "OcamlModuleProvider",
+#      # "PpxArchiveProvider",
+#      "PpxExecutableProvider",
+#      "PpxModuleProvider")
 
 ###############################
 def submodule_from_label_string(s):

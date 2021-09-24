@@ -65,7 +65,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
             doc = "Dependency to be added last.",
             default = "@ppx//executable:deps"
         ),
-        deps_adjunct = attr.label_list(
+        ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),

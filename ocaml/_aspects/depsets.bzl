@@ -1,13 +1,5 @@
-load("@obazl_rules_ocaml//ocaml:providers.bzl",
-     "AdjunctDepsProvider",
-     "CcDepsProvider",
-     # "OcamlDepsetProvider",
-     "OcamlSignatureProvider",
-     "OcamlModuleProvider",
-     "OcamlNsLibraryProvider",
-     "OcamlNsResolverProvider",
-     # "OpamDepsProvider",
-     "OcamlSDK")
+# load("@obazl_rules_ocaml//ocaml:providers.bzl",
+#      "OcamlModuleProvider")
 
 ####################################
 def _depsets_aspect_impl(target, ctx):
@@ -22,8 +14,8 @@ def _depsets_aspect_impl(target, ctx):
             # if OpamDepsProvider in dep:
             #     for pkg in dep[OpamDepsProvider].pkgs.to_list():
             #         print("OPAM dep pkg: %s" % pkg)
-    if hasattr(ctx.rule.attr, 'deps_adjunct'):
-        for dep in ctx.rule.attr.deps_adjunct:
+    if hasattr(ctx.rule.attr, 'ppx_codeps'):
+        for dep in ctx.rule.attr.ppx_codeps:
             print("ppx dep: %s" % dep)
 
     # ocaml_library, ocaml_archive
@@ -52,7 +44,7 @@ def _depsets_aspect_impl(target, ctx):
 
 depsets_aspect = aspect(
     implementation = _depsets_aspect_impl,
-    attr_aspects = ["deps", "deps_adjunct", "modules", "submodules"],
+    attr_aspects = ["deps", "ppx_codeps", "modules", "submodules"],
 )
 
 ####################################
@@ -100,9 +92,9 @@ def _providers_impl(target, ctx):
         print(dep)
 
     report = "REPORT "
-    if CcDepsProvider in target:
+    if CcInfo in target:
         report = report + "CC DEPS:"
-        for cc in target[CcDepsProvider].libs:
+        for cc in target[CcInfo].libs:
             report = report + str(cc)
 
     report_file = ctx.actions.declare_file("providers.txt")

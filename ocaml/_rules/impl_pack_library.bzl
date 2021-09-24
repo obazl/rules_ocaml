@@ -4,7 +4,6 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "PpxAdjunctsProvider",
-     "CcDepsProvider",
      "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
@@ -402,7 +401,7 @@ def impl_pack_library(ctx):
         )
 
     adjunctsMarker = PpxAdjunctsProvider(
-        ppx_adjuncts = depset(transitive = indirect_adjunct_depsets),
+        ppx_codeps = depset(transitive = indirect_adjunct_depsets),
         paths = depset(transitive = indirect_adjunct_path_depsets)
     )
 
@@ -411,16 +410,16 @@ def impl_pack_library(ctx):
     cclibs.update(ctx.attr.cc_deps)
     if len(indirect_cc_deps) > 0:
         cclibs.update(indirect_cc_deps)
-    ccMarker = CcDepsProvider(
-        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
-        libs = cclibs
+    # ccMarker = CcDepsProvider(
+    #     ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
+    #     libs = cclibs
 
-    )
+    # )
     print("OUTPUT CCPROVIDER: %s" % ccMarker)
 
     return [
         defaultInfo,
         moduleMarker,
         adjunctsMarker,
-        ccMarker
+        # ccMarker
     ]

@@ -4,8 +4,7 @@ load("//ocaml:providers.bzl",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
-     "OcamlSignatureMarker",
-     "PpxArchiveMarker") ## what about PpxModule?
+     "OcamlSignatureMarker")
 
 load(":options.bzl", "options")
 
@@ -40,15 +39,12 @@ ocaml_archive = rule(
 
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OcamlImportMarker],
+            providers = [[OcamlArchiveProvider],
+                         [OcamlImportMarker],
                          [OcamlLibraryMarker],
-                         [OcamlArchiveProvider],
                          [OcamlModuleMarker],
-                         # [OcamlNsMarker],
                          [OcamlNsMarker],
-                         [OcamlSignatureMarker],
-                         # [PpxArchiveMarker]
-                         ],
+                         [OcamlSignatureMarker]],
         ),
 
         ## FIXME: do archive rules need to support cc_deps?
