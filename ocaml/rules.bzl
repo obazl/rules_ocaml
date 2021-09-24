@@ -6,9 +6,10 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice.
 """
 
-load("//ocaml/_rules:ocaml_null.bzl"     , _ocaml_null = "ocaml_null")
+load("//ocaml/_rules:ocaml_null.bzl", _ocaml_null = "ocaml_null")
 
-load("//ocaml/_rules:ocaml_archive.bzl"     , _ocaml_archive = "ocaml_archive")
+load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
+
 load("//ocaml/_rules:ocaml_executable.bzl"  , _ocaml_executable = "ocaml_executable")
 load("//ocaml/_rules:ocaml_genrule.bzl"      , _ocaml_genrule = "ocaml_genrule")
 load("//ocaml/_rules:ocaml_import.bzl"      , _ocaml_import = "ocaml_import")
@@ -49,19 +50,6 @@ ocaml_signature  = _ocaml_signature
 ocaml_test       = _ocaml_test
 ocaml_yacc       = _ocaml_yacc
 
-## experimental
-# x_ocaml_ns     = _x_ocaml_ns
-# x_ocaml_module     = _x_ocaml_module
-# x_ocaml_ns_library = _x_ocaml_ns_library
-
 ppx_executable   = _ppx_executable
 ppx_expect_test  = _ppx_expect_test
 ppx_test         = _ppx_test
-# macros
-# ocaml_ns_archive_macro = _ocaml_ns_archive_macro
-# ocaml_preproc = _ocaml_preproc
-
-# ocaml_redirector_gen = _ocaml_redirector_gen
-# ocaml_submodule_rename = _ocaml_submodule_rename
-
-# x_cppo_filegroup = _x_cppo_filegroup
