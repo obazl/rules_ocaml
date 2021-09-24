@@ -22,7 +22,10 @@ def _this_module_in_submod_list(ctx, src, submodules):
     (this_module, ext) = paths.split_extension(src.basename)
     this_module = capitalize_initial_char(this_module)
     this_owner  = src.owner
-    ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+    if type(ctx.attr._ns_resolver) == "list":
+        ns_resolver = ctx.attr._ns_resolver[0][OcamlNsResolverProvider]
+    else:
+        ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
 
     result = False
 
@@ -43,10 +46,27 @@ def _this_module_in_submod_list(ctx, src, submodules):
 def get_module_name (ctx, src):
     ## src: for modules, ctx.file.struct, for sigs, ctx.file.src
     debug = False
-    # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
-    #     debug = True
 
-    ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+    if ctx.label.name in ["environment_context__sig"]:
+        debug = True
+        print("get_module_name %s" % src)
+        print(" ctx.label: %s" % ctx.label)
+
+    # _ns_resolver for modules, sigs has out transition, which forces this
+    # to a list:
+    if type(ctx.attr._ns_resolver) == "list":
+        ns_resolver = ctx.attr._ns_resolver[0]
+        print("NSR: %s" % ns_resolver)
+    else:
+        ns_resolver = ctx.attr._ns_resolver
+
+    if OcamlNsResolverProvider in ns_resolver:
+        ns_resolver = ns_resolver[OcamlNsResolverProvider]
+    else:
+        print("MISSING OcamlNsResolverProvider")
+
+    if debug:
+        print("ns_resolver: %s" % ns_resolver)
 
     ns     = None
     ns_sep = "__"
@@ -54,8 +74,8 @@ def get_module_name (ctx, src):
     (this_module, extension) = paths.split_extension(src.basename)
     this_module = capitalize_initial_char(this_module)
 
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "prefixes"): # "prefix"):
-        ns_prefixes = ctx.attr._ns_resolver[OcamlNsResolverProvider].prefixes # .prefix
+    if hasattr(ns_resolver, "prefixes"): # "prefix"):
+        ns_prefixes = ns_resolver.prefixes # .prefix
         if len(ns_prefixes) == 0:
             out_module = this_module
         elif this_module == ns_prefixes[-1]:
@@ -130,7 +150,7 @@ def rename_module(ctx, src):  # , pfx):
 ################################################################
 def rename_srcfile(ctx, src, dest):
     """Rename src file.  Copies input src to output dest"""
-    print("**** RENAME SRC {s} => {d} ****".format(s=src, d=dest))
+    # print("**** RENAME SRC {s} => {d} ****".format(s=src, d=dest))
 
     inputs  = [src]
 
