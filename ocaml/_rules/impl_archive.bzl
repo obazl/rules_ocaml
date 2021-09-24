@@ -8,32 +8,30 @@ load("//ocaml:providers.bzl",
      "PpxAdjunctsProvider",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
-     # "OcamlPathsMarker",
-     "OcamlSDK",
-     "PpxArchiveMarker")
+     "OcamlNsMarker",
+     "OcamlNsResolverProvider")
 
 load("//ocaml/_functions:utils.bzl",
-     "get_opamroot",
-     "get_sdkpath",
      "get_projroot",
+     "get_sdkpath",
 )
 
-load("//ocaml/_rules/utils:utils.bzl", "get_options")
+load(":impl_library.bzl", "impl_library")
 
 load("//ocaml/_functions:module_naming.bzl", "normalize_module_name")
 
-load(":impl_common.bzl",
-     "dsorder",
-     # "merge_deps",
-     "tmpdir"
-     )
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-##################################################
+load(":impl_common.bzl", "tmpdir", "dsorder")
+
+#################
 def impl_archive(ctx):
 
+    print("**** NS_ARCH {} ****************".format(ctx.label))
+
     debug = False
-    # if (ctx.label.name == "zexe_backend_common"):
-    #     debug = True
+    # if ctx.label.name == "Bare_structs":
+    #     debug = True #False
 
     env = {"PATH": get_sdkpath(ctx)}
 
@@ -41,14 +39,39 @@ def impl_archive(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    indirect_adjunct_depsets      = []
-    indirect_adjunct_path_depsets = []
-    indirect_cc_deps  = {}
+    ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
 
-    ################
-    # default_outputs = []
+    ################################
+    ####  call impl_ns_library  ####
+    # FIXME: smooth this out!
+    nslib_providers = impl_library(ctx)
+
+    defaultInfo = nslib_providers[0]
+    ocamlProvider = nslib_providers[1]
+    ppxAdjunctsProvider = nslib_providers[2]
+    outputGroupInfo = nslib_providers[3]
+    _ = nslib_providers[4] # OcamlLibraryMarker
+    if ctx.attr._rule.startswith("ocaml_ns"):
+        nslibMarker = nslib_providers[5]
+        ccInfo  = nslib_providers[6] if len(nslib_providers) == 7 else False
+    else:
+        ccInfo  = nslib_providers[5] if len(nslib_providers) == 6 else False
+
+    ################################
+    print("==== resume NS_ARCH {} ****************".format(ctx.label))
+
+    if ocamlProvider.ns_resolver == None:
+        print("NO NSRESOLVER FROM NSLIB")
+        fail("NO NSRESOLVER FROM NSLIB")
+    else:
+        if debug:
+            print("ARCH GOT NSRESOLVER FROM NSLIB: %s" % ocamlProvider.ns_resolver)
+
+    all_deps = ocamlProvider.files
+    paths_direct = []
+    paths_indirect = ocamlProvider.paths
+
     action_outputs = []
-    rule_outputs   = []
 
     _options = get_options(ctx.attr._rule, ctx)
 
@@ -67,19 +90,21 @@ def impl_archive(ctx):
     else:
         ext = ".cma"
 
-    if shared:
-        module_name = ctx.label.name
-        out_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext)
-    else:
-        out_cm_a = ctx.actions.declare_file(tmpdir + module_name + ext)
-    action_outputs.append(out_cm_a)
-    rule_outputs.append(out_cm_a)
+    # ns_ext = ".cmxa" if mode == "native" else ".cma"
+
+    #### declare output files ####
+    ## same for plain and ns archives
+    archive_name = normalize_module_name(ctx.label.name)
+    archive_filename = tmpdir + archive_name + ext
+    archive_file = ctx.actions.declare_file(archive_filename)
+    paths_direct.append(archive_file.dirname)
+    action_outputs.append(archive_file)
 
     if mode == "native":
-        if  not shared:
-            out_a = ctx.actions.declare_file(tmpdir + module_name + ".a")
-            action_outputs.append(out_a)
-            rule_outputs.append(out_a)
+        archive_a_filename = tmpdir + archive_name + ".a"
+        archive_a_file = ctx.actions.declare_file(archive_a_filename)
+        paths_direct.append(archive_a_file.dirname)
+        action_outputs.append(archive_a_file)
 
     #########################
     args = ctx.actions.args()
@@ -91,248 +116,268 @@ def impl_archive(ctx):
 
     args.add_all(_options)
 
-    # merge_deps(ctx.attr.modules,
-    #            merged_module_links_depsets,
-    #            merged_archive_links_depsets,
-    #            merged_paths_depsets,
-    #            merged_depgraph_depsets,
-    #            merged_archived_modules_depsets,
-    #            # indirect_opam_depsets,
-    #            indirect_adjunct_depsets,
-    #            indirect_adjunct_path_depsets,
-    #            # indirect_adjunct_opam_depsets,
-    #            indirect_cc_deps)
+    ## cmxa files will not work unless their submodules are in the
+    ## same directory as the cmxa file. or so I inferred based on
+    ## experiment. since transitions change the build output dirs, we
+    ## address this by brute force for the moment: copy resolver and
+    ## all submodules to cmxa directory.
+    # new_resolvers = []
+    # for resolver_file in ctx.files._ns_resolver:
+    #     new_resolver_file = ctx.actions.declare_file(resolver_file.basename)
+    #     print("RESOLVER FILE: {rf} => {newrf}".format(
+    #         rf = resolver_file, newrf = new_resolver_file))
+    #     ctx.actions.run_shell(
+    #         inputs = [resolver_file],
+    #         outputs = [new_resolver_file],
+    #         command = "cp -v {src} {dst}".format(
+    #             src = resolver_file.path, dst = new_resolver_file.path
+    #         )
+    #     )
+    #     new_resolvers.append(new_resolver_file)
+    #     # if resolver_file.extension not in ["cmi", "o"]:
+    #     #     args.add(resolver_file)
 
-    # indirect_paths_depset = depset(transitive = merged_paths_depsets)
-    # for path in indirect_paths_depset.to_list():
-    #     includes.append(path)
+    # new_deps = []
+    # for dep_file in ctx.files.submodules:
+    #         new_dep_file = ctx.actions.declare_file(dep_file.basename)
+    #         print("CP DEP FILE: {df} => {newdf}".format(
+    #             df = dep_file, newdf = new_dep_file))
+    #         ctx.actions.run_shell(
+    #             inputs = [dep_file],
+    #             outputs = [new_dep_file],
+    #             command = "cp -v {src} {dst}".format(
+    #                 src = dep_file.path, dst = new_dep_file.path
+    #             )
+    #         )
+    #         new_deps.append(new_dep_file)
+    #         # if resolver_file.extension not in ["cmi", "o"]:
+    #         #     args.add(resolver_file)
+    #         new_depset = depset(new_deps)
 
-    # args.add_all(includes, before_each="-I", uniquify = True)
+    provider_output = []
+    # for d in all_deps.to_list():
+    # # for d in new_depset.to_list():
+    #     # print("ALL_DEPS: %s" % d)
+    #     # if d.extension == "o":
+    #     #     provider_output.append(d)
+    #     if d.extension not in ["cmxa", "cmi", "mli", "ml", "a", "o"]:
+    #         # includes.append("-I", d.dirname)
+    #         if d.basename != "Bare_functor_outputs.cmx":
+    #             args.add(d.path) # d.basename)
 
-    paths_direct = [d.dirname for d in rule_outputs]
-    paths_indirect = []
-    all_deps_list = []
-
-    for dep in ctx.attr.modules:
-        print("MDEP: {host} => {d}".format(host=ctx.label, d = dep.label))
-        ################ OCamlMarker ################
-        if OcamlProvider in dep:
-            all_deps_list.append(dep[OcamlProvider].files)
-            paths_indirect.append(dep[OcamlProvider].paths)
-
-        # ################ Paths ################
-        # if OcamlPathsMarker in dep:
-        #     ps = dep[OcamlPathsMarker].paths
-        #     print("MPATHS: %s" % ps)
-        #     paths_indirect.append(ps)
-
-        # ################ Archive Deps ################
-        # if OcamlArchiveProvider in dep:
-        #     all_deps_list.append(dep[OcamlArchiveProvider].files)
-
-        # ################ module deps ################
-        # if OcamlModuleMarker in dep:
-        #     all_deps_list.append(dep[OcamlModuleMarker].files)
+    # inputs_depset = depset(
+    #     order = dsorder,
+    #     direct = ctx.files._ns_resolver,
+    #     # direct = new_resolvers,
+    #     transitive = [all_deps]
+    #     # transitive = [new_depset]
+    # )
 
 
-    all_deps = depset(
-        order = dsorder,
-        transitive = all_deps_list
-    )
+    ## Option -a cannot be used with .cmxa input files.
 
-    print("ALL_DEPS for MODULE %s" % ctx.label)
-    # for d in reversed(all_deps.to_list()):
-    for d in all_deps.to_list():
-        # print("ALL_DEPS: %s" % d)
-        # "Option -a cannot be used with .cmxa input files."
-        if d.extension not in ["cmxa", "cma", "cmi", "mli", "a", "o"]:
-            args.add(d.path)
-
-    # ## modules to include in archive must be on command line
-    # ## use depsets to get the right ordering, then select to get only direct deps
-    # ## module links only; archives cannot depend on archives
-    # module_links_depset = depset(transitive = merged_module_links_depsets)
-    # for dep in module_links_depset.to_list():
-    #     if ctx.attr.standalone:
-    #         if dep.extension not in ["cmi"]:
+    # submods = ctx.files.submodules
+    # for dep in nslibMarker.depgraph.to_list():
+    #     if dep in submods:
+    #         if dep.extension in ["cmx", "cmxa"]:
     #             args.add(dep)
-    #     else:
-    #         if dep in ctx.files.modules:
-    #             if dep.extension not in ["cmi"]:
-    #                 args.add(dep)
+    #     ## direct submod deplist may not contain resolver
+    #     elif dep.extension == "cmx":
+    #         mod = normalize_module_name(dep.basename)
+    #         if mod == archive_name:
+    #             args.add(dep)
+    #         elif mod == archive_name + "__0Resolver":
+    #             args.add(dep)
 
-    # direct_inputs = []
-    # if ctx.attr.resolver:
-    #     args.add(resolver_outputs[0])
-    #     direct_inputs = resolver_outputs
+    ## Submodules can be listed in ctx.files.submodules in any order,
+    ## so we need to put them in correct order on the command line.
+    ## Order is encoded in their depsets, which were merged by
+    ## impl_ns_library; the result contains the files of
+    ## ctx.files.submodules in the correct order.
+    ## submod[DefaultInfo].files won't work, it contains only one
+    ## module OcamlProvider. linkargs contains the deptree we need,
+    ## but it may contain additional modules, so we need to filter. we
+    ## also must take namespaces into account.
+    submod_arglist = []
+    subdeps_list = []
+    for dep in ocamlProvider.linkargs.to_list():
+        if debug:
+            print("LINKARG %s" % dep)
+        the_deps = ctx.attr.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.attr.modules
+        if dep in the_deps:
+            if debug:
+                print("LINKMATCH %s" % dep)
+            submod_arglist.append(dep)
+        else:
+            print("LINKSKIP %s" % dep)
+            subdeps_list.append(dep)
+    if debug:
+        print("LINKFILTERED %s" % submod_arglist)
 
-    if shared:
-        args.add("-shared")
+    ordered_submodules_depset = depset(direct=submod_arglist)
+    for dep in ordered_submodules_depset.to_list():
+        if dep.extension == "cmx":
+            args.add(dep)
+
+    args.add("-a")
+
+    args.add("-o", archive_file)
+
+    # if ocamlProvider.ns_resolver != None:
+    #     print("ARCH GOT NSRESOLVER FROM NSLIB: %s" % ocamlProvider.ns_resolver)
+    #     args.add_all(ocamlProvider.ns_resolver)
+    #     args.add("-DFOO")
+    #     args.add_all(ctx.files._ns_resolver)
+
+
+    if ctx.attr._rule == "ocaml_ns_archive":
+        mnemonic = "CompileOcamlNsArchive"
+    elif ctx.attr._rule == "ocaml_archive":
+        mnemonic = "CompileOcamlArchive"
     else:
-        args.add("-a")
-    args.add("-o", out_cm_a)
-
-    inputs_depset = depset(
-        # direct     = direct_inputs,
-        transitive = [all_deps]  ## merged_depgraph_depsets
-    )
+        fail("Unexpected rule type for impl_archive: %s" % ctx.attr._rule)
 
     ################
+    # print("NSARCH {a} INPUTS_DEPSET: {ds}".format(
+    #     a = ctx.label.name, ds = ocamlProvider.files))
+
     ################
     ctx.actions.run(
         env = env,
         executable = tc.ocamlfind,
         arguments = [args],
-        inputs = inputs_depset,
+        inputs = ocamlProvider.inputs,
         outputs = action_outputs,
-        tools = [tc.ocamlfind, tc.ocamlopt],
-        mnemonic = "CompileOcamlArchive" if ctx.attr._rule == "ocaml_archive" else "CompilePpxArchive",
-        progress_message = "{mode} compiling {arch}: @{ws}//{pkg}:{tgt}".format(
+        mnemonic = mnemonic,
+        progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,
-            arch = ctx.attr._rule,
+            rule = ctx.attr._rule,
             ws  = ctx.label.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
         )
     )
-    ################
-    ################
+    ###################
+    #### PROVIDERS ####
+    ###################
+
+    ## DefaultInfo.files: .cmxa only
+    ## OcamlProvider
+    ##   .files: .cmxa, .a, all_deps=resolver, submod deps, archive deps
+    ##   .archives: depset of archive deps
+    ##   .archive_deps: depset of deps of archive deps
+    ##   .path: depset of all dep paths
+    ## OcamlArchiveProvider
+    ##   .files: archives_depset
 
     default_depset = depset(
-        order = dsorder,
-        direct = [out_cm_a]
+        order  = dsorder,
+        direct = [archive_a_file, archive_file],
+        # transitive = [ocamlProvider.files]
     )
 
-    defaultInfo = DefaultInfo(
+    newDefaultInfo = DefaultInfo(
         files = default_depset
     )
 
-    paths_depset = depset(
-        direct = paths_direct, ## [out_cm_a.dirname],
-        transitive = paths_indirect
+    ppx_adjuncts_depset = ppxAdjunctsProvider.ppx_adjuncts
+    ###########################
+    new_inputs_depset = depset(
+        direct     = action_outputs + ns_resolver,
+        transitive = [ocamlProvider.inputs]
     )
 
-    ## Avoid duplicate defns: remove direct deps from merged links depset
-    # links = depset(transitive = merged_module_links_depsets)
-    # filtered_links = []
-    # for link in links.to_list():
-    #     if not link in ctx.files.modules:
-    #         filtered_links.append(link)
-    # #     else:
-    # #         print("FILTERING OUT: %s" % link)
-    # # print("ARCHIVE MDEPSET: %s" % filtered_links)
-
-    # module_links     = depset(
-    #     order = dsorder,
-    #     direct = [out_cm_a],
-    #     # ppx? direct = [out_cm_a],
-    #     transitive = [depset(direct=filtered_links)]
-    # )
-    # archive_links = depset(
-    #     order = dsorder,
-    #     direct = [out_cm_a],
-    #     transitive = merged_archive_links_depsets
-    # )
-    # depgraph = depset(
-    #     order = dsorder,
-    #     # ppx? direct = outputs,
-    #     direct = rule_outputs, # + resolver_outputs,
-    #     transitive = merged_depgraph_depsets
-    # )
-    # archived_modules = depset(
-    #     order = dsorder,
-    #     transitive = merged_archived_modules_depsets
-    # )
-
-    # if ctx.attr._rule in ["ocaml_archive"]: # , "coq_plugin"]:
-    #     archiveMarker = OcamlArchiveProvider(
-    #         files = depset(
-    #             direct = rule_outputs,
-    #             transitive = all_deps_list
-    #         ),
-    #         module_links = module_links,
-    #         archive_links = archive_links,
-    #         paths = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-    # elif ctx.attr._rule == "ppx_archive":
-    #     archiveMarker = PpxArchiveMarker(
-    #         files = depset(
-    #             direct = rule_outputs,
-    #             transitive = all_deps_list
-    #         ),
-    #         module_links = module_links,
-    #         archive_links = archive_links,
-    #         paths = paths_depset,
-    #         depgraph = depgraph,
-    #         archived_modules = archived_modules
-    #     )
-
-    ################ ppx adjunct deps ################
-    ppx_adjuncts_depset = depset(
-        # direct = adjunct_deps,
-        transitive = indirect_adjunct_depsets
+    subdeps_depset = depset(
+        ## subdeps excluding direct deps
+        direct = subdeps_list
     )
 
-    adjunctsMarker = PpxAdjunctsProvider(
-        ppx_adjuncts       = ppx_adjuncts_depset,
-        paths = depset(transitive = indirect_adjunct_path_depsets)
+    linkargs_depset = depset(
+        direct     = action_outputs, #[archive_file],
+        ## FIXME: ocamlProvider.linkargs will contain all the stuff for an ns library
+        transitive = [subdeps_depset]
+        # transitive = [ordered_submodules_depset]
+        # transitive = [ocamlProvider.linkargs]
+    )
+    paths_depset  = depset(
+        order = dsorder,
+        direct = paths_direct,
+        transitive = [ocamlProvider.paths]
+        # transitive = paths_indirect
     )
 
-    cclibs = {}
-    if len(indirect_cc_deps) > 0:
-        cclibs.update(indirect_cc_deps)
-    ccMarker = CcDepsProvider(
-        ## WARNING: cc deps must be passed as a dictionary, not a file depset!!!
-        ccdeps_map = cclibs
-    )
-    cclib_files = []
-    for tgt in cclibs.keys():
-        cclib_files.extend(tgt.files.to_list())
-    cclib_files_depset = depset(cclib_files)
-
-    if ctx.attr._rule in ["ocaml_archive"]: # , "coq_plugin"]:
-        archiveProvider = OcamlArchiveProvider(
-            ## files = FIXME
-        )
-    else:
-        archiveProvider = PpxArchiveMarker(
-            ## files = FIXME
-        )
-
-    ocamlProviderDepset = depset(
+    # provider_depset = depset(provider_output)
+    ocamlProvider_files = depset(
         order  = dsorder,
-        direct = action_outputs, # + [out_cmi] + mli_out,
-        transitive = [all_deps]
+        direct = action_outputs, #  + ctx.files._ns_resolver,
+        transitive = [ocamlProvider.files]
+
+        # transitive = [new_depset]
+        # transitive = [all_deps]
+        # transitive = [provider_depset]
+    )
+    ocamlProviderPaths_depset  = depset(
+        order = dsorder,
+        direct = paths_direct,
+        transitive = [ocamlProvider.paths]
+    )
+
+    archiveProvider_files = depset(
+        direct = action_outputs, # + ctx.files._ns_resolver,
+        transitive =
+            [ocamlProvider.archives] if ocamlProvider.archives else []
+    )
+
+    _archive_deps = depset(
+        direct = action_outputs,
+        transitive = [ocamlProvider.archive_deps] if ocamlProvider.archive_deps else None
     )
 
     ocamlProvider = OcamlProvider(
-        files = ocamlProviderDepset,
-        paths = paths_depset
+        inputs   = new_inputs_depset,
+        linkargs = linkargs_depset,
+        paths    = paths_depset,
+        # paths = ocamlProviderPaths_depset
+
+        files = ocamlProvider_files,
+        # archives = archiveProvider_files,
+        archives = depset(action_outputs), # archiveProvider_files,
+        archive_deps = _archive_deps,
+    )
+
+    archiveProvider = OcamlArchiveProvider(
+        files = archiveProvider_files
     )
 
     outputGroupInfo = OutputGroupInfo(
-        # module_links  = module_links,
-        # archive_links = archive_links,
-        # depgraph = depgraph,
-        # archived_modules = archived_modules,
+        resolver = ns_resolver,
         ppx_adjuncts = ppx_adjuncts_depset,
-        cclibs = cclib_files_depset,
-        all_files = depset(transitive=[
-            # module_links,
-            # archive_links,
+        # cclibs = cclib_files_depset,
+        inputs = ocamlProvider.files,
+        linkargs = linkargs_depset,
+        subdeps = subdeps_depset,
+        archives = archiveProvider_files,
+        all = depset(transitive=[
+            # default_depset,
+            ocamlProvider_files,
+            archiveProvider_files,
             ppx_adjuncts_depset,
-            cclib_files_depset
+            # cclib_files_depset,
         ])
     )
 
-    return [defaultInfo,
-            archiveProvider,
-            outputGroupInfo,
-            # archiveMarker,
-            adjunctsMarker,
-            ccMarker
-            ]
+    providers = [
+        newDefaultInfo,
+        ocamlProvider,
+        archiveProvider,
+        OcamlNsMarker(marker = "OcamlNsMarker"),
+        outputGroupInfo,
+        ppxAdjunctsProvider,
+        # ccDepsProvider
+    ]
+    if ccInfo:
+        providers.append(ccInfo)
+
+    return providers
 
 
