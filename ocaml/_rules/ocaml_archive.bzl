@@ -1,5 +1,6 @@
 load("//ocaml:providers.bzl",
-     "OcamlArchiveProvider",
+     "OcamlProvider",
+     "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
@@ -39,7 +40,7 @@ ocaml_archive = rule(
 
         modules = attr.label_list(
             doc = "List of component modules.",
-            providers = [[OcamlArchiveProvider],
+            providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
                          [OcamlModuleMarker],
@@ -86,7 +87,7 @@ ocaml_archive = rule(
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
     # cfg     = nsarchive_in_transition,
-    provides = [OcamlArchiveProvider],
+    provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
