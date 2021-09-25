@@ -1,17 +1,13 @@
-# load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-# load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "OcamlProvider",
-     # "OcamlArchiveProvider",
      "CompilationModeSettingProvider",
-
+     "OcamlProvider",
      "PpxAdjunctsProvider",
+
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
-     "OcamlSignatureProvider",
-     "OcamlSDK")
+     "OcamlSignatureProvider")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -19,14 +15,13 @@ load("//ocaml/_rules/utils:rename.bzl",
      "get_module_name",
      "rename_srcfile")
 
-load("//ocaml/_rules/utils:utils.bzl",
-     "get_options",
-     )
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_sdkpath",
 )
+
 load("//ocaml/_functions:module_naming.bzl",
      "file_to_lib_name",
      "normalize_module_name")
@@ -46,27 +41,11 @@ def impl_module(ctx):
 
     debug = False
 
-    # print("++ MODULE {}".format(ctx.label))
-
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 1:
             fail("Only one ppx_tag allowed currently.")
 
-    if debug:
-        print("")
-        if ctx.attr._rule == "ocaml_module":
-            print("Start: OCAMLMOD %s" % ctx.label)
-        elif ctx.attr._rule == "ppx_module":
-            print("Start: PPXMOD %s" % ctx.label)
-        else:
-            fail("Unexpected rule for 'impl_module': %s" % ctx.attr._rule)
-
-        print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver[DefaultInfo])
-        print("  _NS_RESOLVER Marker: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
-
-    env = {
-        "PATH": get_sdkpath(ctx),
-    }
+    env = {"PATH": get_sdkpath(ctx)}
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -185,24 +164,20 @@ def impl_module(ctx):
 
     for dep in the_deps:
         if CcInfo in dep:
-            ## we do not need to do anything with ccdeps here,
-            ## just pass them on in a provider
             ccInfo_list.append(dep[CcInfo])
 
         if OcamlProvider in dep:
-            # ignore DefaultInfo, its just for printing, not propagation
             indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
             indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
     ################ Signature Dep ################
     if ctx.attr.sig:
-        dep = ctx.attr.sig
-
-        # ignore DefaultInfo, its just for printing, not propagation
-        indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
-        indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
-        indirect_paths_depsets.append(dep[OcamlProvider].paths)
+        indirect_inputs_depsets.append(ctx.attr.sig[OcamlProvider].inputs)
+        indirect_linkargs_depsets.append(
+            ctx.attr.sig[OcamlProvider].linkargs
+        )
+        indirect_paths_depsets.append(ctx.attr.sig[OcamlProvider].paths)
 
     ################ PPX Adjunct Deps ################
     ## add adjunct_deps from ppx provider
@@ -259,7 +234,6 @@ def impl_module(ctx):
         ## this will only be the case if this is a submodule in an ns
         args.add("-no-alias-deps")
         args.add("-open", ns_resolver[OcamlNsResolverProvider].resolver)
-        # args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
 
     # attr '_ns_resolver' a label_flag that resolves to a (fixed)
     # ocaml_ns_resolver target whose params are set by transition fns.
@@ -284,9 +258,6 @@ def impl_module(ctx):
         + ctx.files.deps_runtime,
         transitive = indirect_inputs_depsets
     )
-    if ctx.label.name == "_Test":
-        print("{m} INPUTS_DEPSET: {ds}".format(
-            m = ctx.label.name, ds = inputs_depset))
 
     args.add("-c")
 
@@ -322,20 +293,6 @@ def impl_module(ctx):
         files = default_depset
     )
 
-    ## pass on adjunct deps rec'd from deps of this module
-    ## do we need to do this?
-    ppx_codeps_depset = depset(
-        order = dsorder,
-        direct = adjunct_deps,
-        transitive = indirect_adjunct_depsets
-    )
-
-    adjunctsMarker = PpxAdjunctsProvider(
-        ppx_codeps = ppx_codeps_depset,
-        paths = depset(order = dsorder,
-                       transitive = indirect_adjunct_path_depsets)
-    )
-
     ocamlProvider_files_depset = depset(
         order  = dsorder,
         direct = action_outputs, # + [out_cmi] + mli_out,
@@ -354,12 +311,45 @@ def impl_module(ctx):
         files = ocamlProvider_files_depset,
     )
 
+    ################################################################
+    providers = [
+        defaultInfo,
+        OcamlModuleMarker(marker="OcamlModule"),
+        ocamlProvider,
+    ]
+
+    ## FIXME: make this conditional:
+    ## if this module is a submodule in a namespace:
     nsResolverProvider = OcamlNsResolverProvider(
         files = ctx.attr._ns_resolver.files,
         paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
     )
+    providers.append(nsResolverProvider)
 
-    ################################################################
+
+
+    ## if this is a ppx module, its ppx_codeps (direct or indirect)
+    ## must be passed to any ppx_executable that depends on it.
+    ## FIXME: make this conditional:
+    ## if module has direct or indirect ppx_codeps:
+    ppx_codeps_depset = depset(
+        order = dsorder,
+        direct = adjunct_deps,
+        transitive = indirect_adjunct_depsets
+    )
+    ppxCoDepsProvider = PpxAdjunctsProvider(
+        ppx_codeps = ppx_codeps_depset,
+        paths = depset(order = dsorder,
+                       transitive = indirect_adjunct_path_depsets)
+    )
+    providers.append(ppxCoDepsProvider)
+
+    ## now merge ccInfo list
+    if ccInfo_list:
+        ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+        providers.append(ccInfo )
+
+    ################
     outputGroupInfo = OutputGroupInfo(
         ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
@@ -374,19 +364,6 @@ def impl_module(ctx):
             ]
         )
     )
-
-    providers = [
-        defaultInfo,
-        OcamlModuleMarker(marker="OcamlModule"),
-        ocamlProvider,
-        nsResolverProvider, # FIXME: only if is submodule?
-        outputGroupInfo,
-        adjunctsMarker,
-    ]
-
-    ## now merge ccInfo list
-    if ccInfo_list:
-        ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
-        providers.append(ccInfo )
+    providers.append(outputGroupInfo)
 
     return providers
