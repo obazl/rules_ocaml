@@ -3,6 +3,9 @@ load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
+## see: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl
+
+
 ## DefaultInfo.files will be empty for cc_import deps, so in
 ## that case use CcInfo.
 
@@ -77,10 +80,10 @@ def dump_ccdep(ctx, dep):
 ##     - construct inputs_depset
 ##     - extract runfiles
 def link_ccdeps(ctx,
-                default_linkmode,
-                ccInfo,
-                args):
-    print("link_ccdeps %s" % ctx.label)
+                default_linkmode, # platform default
+                args,
+                ccInfo):
+    # print("link_ccdeps %s" % ctx.label)
 
     inputs_list = []
     runfiles    = []
@@ -105,6 +108,7 @@ def link_ccdeps(ctx,
 
     return [inputs_list, runfiles]
 
+################################################################
 def x(ctx,
       cc_deps_dict,
       default_linkmode,
@@ -113,27 +117,27 @@ def x(ctx,
       cclib_deps,
       cc_runfiles):
     dfiles = dep[DefaultInfo].files.to_list()
-    print("dep[DefaultInfo].files count: %s" % len(dfiles))
+    # print("dep[DefaultInfo].files count: %s" % len(dfiles))
     if len(dfiles) > 0:
         for f in dfiles:
             print("  %s" % f)
-        print("dep[CcInfo].linking_context:")
+        # print("dep[CcInfo].linking_context:")
         cc_info = dep[CcInfo]
         compilation_ctx = cc_info.compilation_context
         linking_ctx     = cc_info.linking_context
         linker_inputs = linking_ctx.linker_inputs.to_list()
-        print("linker_inputs count: %s" % len(linker_inputs))
-        for linput in linker_inputs:
-            print("NEW LINKER_INPUT")
-            print(" LINKFLAGS: %s" % linput.user_link_flags)
-            print(" LINKLIB[0]: %s" % linput.libraries[0].static_library.path)
+        # print("linker_inputs count: %s" % len(linker_inputs))
+        # for linput in linker_inputs:
+            # print("NEW LINKER_INPUT")
+            # print(" LINKFLAGS: %s" % linput.user_link_flags)
+            # print(" LINKLIB[0]: %s" % linput.libraries[0].static_library.path)
 
             ## ?filter on prefix for e.g. csdk: example/ocaml
             # for lib in linput.libraries:
             #     print(" LINKLIB: %s" % lib.static_library.path)
-    else:
-        for dep in dfiles:
-            print(" Default f: %s" % dep)
+    # else:
+    #     for dep in dfiles:
+    #         print(" Default f: %s" % dep)
 
 
     ## FIXME: static v. dynamic linking of cc libs in bytecode mode
