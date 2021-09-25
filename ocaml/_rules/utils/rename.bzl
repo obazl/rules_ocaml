@@ -46,11 +46,6 @@ def get_module_name (ctx, src):
     ## src: for modules, ctx.file.struct, for sigs, ctx.file.src
     debug = False
 
-    if ctx.label.name in ["environment_context__sig"]:
-        debug = True
-        print("get_module_name %s" % src)
-        print(" ctx.label: %s" % ctx.label)
-
     # _ns_resolver for modules, sigs has out transition, which forces this
     # to a list:
     if type(ctx.attr._ns_resolver) == "list":

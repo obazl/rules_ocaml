@@ -2,7 +2,9 @@
 
 load("//ocaml/_providers:ocaml.bzl",
      _OcamlProvider           = "OcamlProvider",
-     _OcamlArchiveProvider    = "OcamlArchiveProvider",
+     # FIXME: choose one:
+     _OcamlArchiveMarker     = "OcamlArchiveMarker",
+     _OcamlArchiveProvider   = "OcamlArchiveProvider",
      _OcamlNsResolverProvider = "OcamlNsResolverProvider",
 
      ## markers
@@ -17,12 +19,13 @@ load("//ocaml/_providers:ocaml.bzl",
      _OcamlTestMarker    = "OcamlTestMarker",
      )
 
-load("//ocaml/_providers:ppx.bzl",
+load("//ocaml/_providers:ppx.bzl", # FIXME: //ppx/_providers.bzl?
      _PpxAdjunctsProvider     = "PpxAdjunctsProvider",
      _PpxExecutableMarker = "PpxExecutableMarker"
      )
 
 OcamlProvider                      = _OcamlProvider
+OcamlArchiveMarker                 = _OcamlArchiveMarker
 OcamlArchiveProvider               = _OcamlArchiveProvider
 OcamlNsResolverProvider            = _OcamlNsResolverProvider
 PpxAdjunctsProvider                = _PpxAdjunctsProvider

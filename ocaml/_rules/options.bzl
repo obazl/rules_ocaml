@@ -1,5 +1,5 @@
 load("//ocaml:providers.bzl",
-     "OcamlArchiveProvider",
+     "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OcamlNsResolverProvider",
@@ -85,7 +85,7 @@ def options_executable(ws):
         ),
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
-            providers = [[OcamlArchiveProvider],
+            providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
                          [OcamlModuleMarker],
@@ -133,7 +133,7 @@ def options_executable(ws):
 def options_library(ws):
 
     _providers = [
-        [OcamlArchiveProvider],
+        [OcamlArchiveMarker],
         [OcamlLibraryMarker],
         [OcamlModuleMarker],
         [OcamlNsResolverProvider],
@@ -151,7 +151,7 @@ def options_library(ws):
 #######################
 def options_module(ws):
 
-    _providers = [[OcamlArchiveProvider],
+    _providers = [[OcamlArchiveMarker],
                   [OcamlImportMarker],
                   [OcamlLibraryMarker],
                   [OcamlModuleMarker],
@@ -256,7 +256,7 @@ def options_module(ws):
 #######################
 # def options_pack_library(ws):
 
-#     providers = [[OcamlArchiveProvider],
+#     providers = [[OcamlArchiveMarker],
 #                  [OcamlSignatureProvider],
 #                  [OcamlLibraryMarker],
 #                  [OcamlModuleMarker],
