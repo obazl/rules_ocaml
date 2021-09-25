@@ -64,6 +64,7 @@ OcamlSignatureProvider = provider(
     # }
 )
 
+OcamlArchiveMarker    = provider(doc = "OCaml Archive Marker provider.")
 OcamlExecutableMarker = provider(doc = "OCaml Executable Marker provider.")
 OcamlImportMarker    = provider(doc = "OCaml Library Marker provider.")
 OcamlLibraryMarker   = provider(doc = "OCaml Library Marker provider.")
