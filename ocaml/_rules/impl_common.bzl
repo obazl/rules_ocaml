@@ -1,17 +1,4 @@
 ## ocaml/_rules/impl_common.bzl
-
-load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-
-load("//ocaml:providers.bzl",
-     "PpxAdjunctsProvider",
-     "OcamlArchiveProvider",
-     "OcamlLibraryMarker",
-     "OcamlModuleMarker",
-     "OcamlNsMarker",
-     "OcamlNsResolverProvider",
-     "OcamlSignatureMarker",
-     )
-
 tmpdir = "" # "__obazl/"
 
 dsorder = "postorder"
