@@ -133,9 +133,13 @@ def impl_module(ctx):
         action_outputs.append(out_o)
         direct_linkargs.append(out_o)
 
+    ns_resolver = ctx.attr._ns_resolver
+    ns_resolver_files = ctx.files._ns_resolver
+
     paths_direct = [d.dirname for d in direct_linkargs]
-    if ctx.files._ns_resolver:
-        paths_direct.extend([f.dirname for f in ctx.files._ns_resolver])
+    if ns_resolver:
+        paths_direct.extend([f.dirname for f in ns_resolver_files])
+    # print("RESOLVER PATHS: %s" % paths_direct)
 
     if ctx.attr.ppx:
         # module_name was derived above. ppx xform does not change it.
@@ -238,6 +242,8 @@ def impl_module(ctx):
     )
 
     args.add_all(paths_depset.to_list(), before_each="-I")
+    args.add_all(includes, before_each="-I", uniquify = True)
+
 
     _linkargs_depset = depset(
         transitive = indirect_linkargs_depsets
@@ -248,12 +254,12 @@ def impl_module(ctx):
         transitive = [_linkargs_depset]
     )
 
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
+    # if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
+    if hasattr(ns_resolver[OcamlNsResolverProvider], "resolver"):
         ## this will only be the case if this is a submodule in an ns
         args.add("-no-alias-deps")
-        args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
-
-    args.add_all(includes, before_each="-I", uniquify = True)
+        args.add("-open", ns_resolver[OcamlNsResolverProvider].resolver)
+        # args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
 
     # attr '_ns_resolver' a label_flag that resolves to a (fixed)
     # ocaml_ns_resolver target whose params are set by transition fns.
@@ -273,12 +279,14 @@ def impl_module(ctx):
 
     inputs_depset = depset(
         order = dsorder,
-        direct = [structfile]
+        direct = [structfile] + ns_resolver_files
         + mli_out
-        + ctx.files.deps_runtime
-        + ctx.files._ns_resolver,
+        + ctx.files.deps_runtime,
         transitive = indirect_inputs_depsets
     )
+    if ctx.label.name == "_Test":
+        print("{m} INPUTS_DEPSET: {ds}".format(
+            m = ctx.label.name, ds = inputs_depset))
 
     args.add("-c")
 
