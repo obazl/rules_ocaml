@@ -1,19 +1,17 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
-     "OcamlProvider",
      "CompilationModeSettingProvider",
+     "OcamlProvider",
+     "OcamlNsResolverProvider",
 
-     "PpxAdjunctsProvider",
      "OcamlArchiveMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
-     "OcamlNsResolverProvider")
 
-load("//ocaml/_functions:utils.bzl",
-     "get_projroot",
-     "get_sdkpath",
-)
+     "PpxAdjunctsProvider")
+
+load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
 load(":impl_library.bzl", "impl_library")
 
@@ -25,8 +23,6 @@ load(":impl_common.bzl", "tmpdir", "dsorder")
 
 #################
 def impl_archive(ctx):
-
-    # print("**** NS_ARCH {} ****************".format(ctx.label))
 
     debug = False
     # if ctx.label.name == "Bare_structs":
@@ -47,7 +43,7 @@ def impl_archive(ctx):
 
     defaultInfo = lib_providers[0]
     libOcamlProvider = lib_providers[1]
-    ppxAdjunctsProvider = lib_providers[2]
+    ppxAdjunctsProvider = lib_providers[2] ## FIXME: only as needed
     outputGroupInfo = lib_providers[3]
     _ = lib_providers[4] # OcamlLibraryMarker
     if ctx.attr._rule.startswith("ocaml_ns"):
@@ -57,8 +53,6 @@ def impl_archive(ctx):
         ccInfo  = lib_providers[5] if len(lib_providers) == 6 else False
 
     ################################
-    # print("==== resume NS_ARCH {} ****************".format(ctx.label))
-
     if libOcamlProvider.ns_resolver == None:
         print("NO NSRESOLVER FROM NSLIB")
         fail("NO NSRESOLVER FROM NSLIB")
@@ -66,7 +60,6 @@ def impl_archive(ctx):
         if debug:
             print("ARCH GOT NSRESOLVER FROM NSLIB: %s" % libOcamlProvider.ns_resolver)
 
-    all_deps = libOcamlProvider.files
     paths_direct = []
     paths_indirect = libOcamlProvider.paths
 
@@ -88,8 +81,6 @@ def impl_archive(ctx):
             ext = ".cmxa"
     else:
         ext = ".cma"
-
-    # ns_ext = ".cmxa" if mode == "native" else ".cma"
 
     #### declare output files ####
     ## same for plain and ns archives
@@ -115,7 +106,6 @@ def impl_archive(ctx):
 
     args.add_all(_options)
 
-    provider_output = []
     ## Submodules can be listed in ctx.files.submodules in any order,
     ## so we need to put them in correct order on the command line.
     ## Order is encoded in their depsets, which were merged by
@@ -179,8 +169,6 @@ def impl_archive(ctx):
     )
     newDefaultInfo = DefaultInfo(files = default_depset)
 
-    ppx_codeps_depset = ppxAdjunctsProvider.ppx_codeps
-
     new_inputs_depset = depset(
         direct     = action_outputs + ns_resolver,
         transitive = [libOcamlProvider.inputs]
@@ -202,22 +190,22 @@ def impl_archive(ctx):
         transitive = [libOcamlProvider.paths]
     )
 
-    libOcamlProvider_files = depset(
-        order  = dsorder,
-        direct = action_outputs,
-        transitive = [libOcamlProvider.files]
-    )
-    libOcamlProviderPaths_depset  = depset(
-        order = dsorder,
-        direct = paths_direct,
-        transitive = [libOcamlProvider.paths]
-    )
-
-    libOcamlProvider = OcamlProvider(
+    ocamlProvider = OcamlProvider(
         inputs   = new_inputs_depset,
         linkargs = linkargs_depset,
         paths    = paths_depset,
     )
+
+    providers = [
+        newDefaultInfo,
+        ocamlProvider,
+        OcamlArchiveMarker(marker = "OcamlArchive"),
+    ]
+
+    # FIXME: only if needed
+    # if has ppx codeps:
+    providers.append(ppxAdjunctsProvider)
+    ppx_codeps_depset = ppxAdjunctsProvider.ppx_codeps
 
     outputGroupInfo = OutputGroupInfo(
         resolver = ns_resolver,
@@ -225,20 +213,13 @@ def impl_archive(ctx):
         linkargs = linkargs_depset,
         subdeps = subdeps_depset,
         all = depset(transitive=[
-            libOcamlProvider_files,
+            new_inputs_depset,
             ppx_codeps_depset,
             # cclib_files_depset,
         ])
     )
+    providers.append(outputGroupInfo)
 
-    providers = [
-        newDefaultInfo,
-        libOcamlProvider,
-        OcamlArchiveMarker(marker = "OcamlArchive"),
-        outputGroupInfo,
-        ppxAdjunctsProvider,
-        # ccDepsProvider
-    ]
     if ccInfo:
         providers.append(ccInfo)
 
