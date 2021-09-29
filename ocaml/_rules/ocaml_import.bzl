@@ -34,7 +34,8 @@ def _ocaml_import_impl(ctx):
     indirect_ppx_codep_deps_list = []
 
     #### INDIRECT DEPS first ####
-    indirect_inputs_depsets = []
+    indirect_inputs_list = [] # files from ctx.attr.all
+    indirect_inputs_depsets = [] # depsets from ctx.attr.deps
     indirect_linkargs_depsets = []
     indirect_paths_depsets = []
 
@@ -54,11 +55,17 @@ def _ocaml_import_impl(ctx):
                 if opdep.ppx_codep_paths:
                     ppx_codep_paths_list.append(opdep.ppx_codep_paths)
 
+    direct_paths_list   = []
+
+    if ctx.attr.all:
+        indirect_inputs_list.extend(ctx.files.all)
+        for f in ctx.files.all:
+            direct_paths_list.append( f.dirname )
+
     #### DIRECT DEPS: archives, plugins, sigs ####
     direct_default_files = []
     direct_inputs_list = []
     direct_linkargs_list = []
-    direct_paths_list   = []
 
     outputDepsets = {}
     direct_archive = []
@@ -71,11 +78,11 @@ def _ocaml_import_impl(ctx):
 
         direct_archive.extend(ctx.files.archive)
         for f in ctx.files.archive:
-            if (f.path.startswith(opam_lib_prefix)):
-                dir = paths.relativize(f.dirname, opam_lib_prefix)
-                direct_paths_list.append( "+../" + dir )
-            else:
-                direct_paths_list.append( f.dirname )
+            # if (f.path.startswith(opam_lib_prefix)):
+            #     dir = paths.relativize(f.dirname, opam_lib_prefix)
+            #     direct_paths_list.append( "+../" + dir )
+            # else:
+            direct_paths_list.append( f.dirname )
 
     #### DIRECT PLUGINS DEPS ####
     if ctx.attr.plugin:
@@ -168,7 +175,7 @@ def _ocaml_import_impl(ctx):
     ################
     new_inputs_depset = depset(
         direct = direct_inputs_list,
-        transitive = indirect_inputs_depsets
+        transitive = indirect_inputs_depsets + [depset(indirect_inputs_list)]
     )
     linkargs_depset = depset(
         direct = direct_linkargs_list,
@@ -178,6 +185,7 @@ def _ocaml_import_impl(ctx):
         direct = direct_paths_list,
         transitive = indirect_paths_depsets
     )
+
     ################
     _ocamlProvider = OcamlProvider(
         inputs   = new_inputs_depset,
@@ -207,12 +215,28 @@ def _ocaml_import_impl(ctx):
 ################################################################
 ocaml_import = rule(
     implementation = _ocaml_import_impl,
-    doc = """Imports a pre-compiled OCaml binary. [User Guide](../ug/ocaml_import.md).
+    doc = """Imports pre-compiled OCaml files. [User Guide](../ug/ocaml_import.md).
 
-**NOT YET SUPPORTED**
     """,
     attrs = dict(
+        archive = attr.label_list(
+            default = [],
+            allow_files = True
+        ),
+        all = attr.label_list(
+            doc = "Glob all cm* files except for 'archive' or 'plugin' so theey can be added to action inputs (rather than cmd line). I.e. the (transitive) deps of an archive, which must be accessible to the compiler (via search path, not command line), and so must be added to the action inputs.",
+            allow_files = True
+        ),
         srcs = attr.label_list(
+            allow_files = True
+        ),
+        modules = attr.label_list(
+            allow_files = True
+        ),
+        signature = attr.label_list(
+            allow_files = True
+        ),
+        plugin = attr.label_list(
             allow_files = True
         ),
         # ocaml_import can only depend on other ocaml_imports
@@ -223,19 +247,6 @@ ocaml_import = rule(
         ppx_codeps = attr.label_list(
             allow_files = True,
             providers = [[OcamlImportMarker]]
-        ),
-        modules = attr.label_list(
-            allow_files = True
-        ),
-        signature = attr.label_list(
-            allow_files = True
-        ),
-        archive = attr.label_list(
-            default = [],
-            allow_files = True
-        ),
-        plugin = attr.label_list(
-            allow_files = True
         ),
         version = attr.string(),
         doc = attr.string(),
