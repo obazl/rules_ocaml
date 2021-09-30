@@ -50,7 +50,7 @@ def options(ws):
             default = ws + "//mode",
         ),
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path") # ppx also uses this
+            default = Label("@ocaml//:sdkpath") # ppx also uses this
         ),
     )
 
@@ -68,7 +68,7 @@ def options_executable(ws):
             default = "@ocaml//executable:opts"
         ),
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",

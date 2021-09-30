@@ -76,7 +76,7 @@ ocaml_archive = rule(
             default = "@ocaml//:projroot"
         ),
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         _rule = attr.string( default = "ocaml_archive" ),
         # _allowlist_function_transition = attr.label(

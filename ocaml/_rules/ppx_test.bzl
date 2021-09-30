@@ -66,7 +66,7 @@ ppx_x_test = rule(
   test = True,
   attrs = dict(
     _sdkpath = attr.label(
-      default = Label("@ocaml//:path")
+      default = Label("@ocaml//:sdkpath")
     ),
     ppx = attr.label(
         mandatory = True,
@@ -159,7 +159,7 @@ fi
 #   test = True,
 #   attrs = dict(
 #     _sdkpath = attr.label(
-#       default = Label("@ocaml//:path")
+#       default = Label("@ocaml//:sdkpath")
 #     ),
 #     ppx = attr.label(
 #         mandatory = True,
@@ -445,7 +445,7 @@ ppx_expect_test = rule(
     test = True,
     attrs = dict(
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         ppx = attr.label(
             # mandatory = True,
@@ -627,7 +627,7 @@ ppx_test = rule(
     test = True,
     attrs = dict(
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         verbose = attr.bool(
             doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",

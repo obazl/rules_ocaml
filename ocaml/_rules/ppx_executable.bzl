@@ -90,7 +90,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         ),
         _rule = attr.string( default = "ppx_executable" ),
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode

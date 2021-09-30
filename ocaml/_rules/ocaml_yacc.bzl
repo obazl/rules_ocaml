@@ -53,7 +53,7 @@ ocaml_yacc = rule(
     """,
     attrs = dict(
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         src = attr.label(
             doc = "A single .mly ocamlyacc source file label",

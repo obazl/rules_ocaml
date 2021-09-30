@@ -66,7 +66,7 @@ ocaml_lex = rule(
     """,
     attrs = dict(
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         src = attr.label(
             doc = "A single .mll source file label",

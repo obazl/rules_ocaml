@@ -68,7 +68,7 @@ def get_projroot(ctx):
 
 #####################
 def get_sdkpath(ctx):
-  sdkpath = ctx.attr._sdkpath[OcamlSDK].path + "/bin"
+  sdkpath = ctx.attr._sdkpath[BuildSettingInfo].value + "/bin"
   return sdkpath + ":/usr/bin:/bin:/usr/sbin:/sbin"
 
 #####################

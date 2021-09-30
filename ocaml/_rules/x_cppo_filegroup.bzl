@@ -112,7 +112,7 @@ dir (e.g. bazel-bin/src)
 
     attrs = dict(
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         doc = attr.string(
             doc = "Docstring for module"

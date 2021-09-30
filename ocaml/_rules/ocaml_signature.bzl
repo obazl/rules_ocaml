@@ -336,7 +336,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
         _rule = attr.string( default = "ocaml_signature" ),
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
     ),
     incompatible_use_toolchain_transition = True,
