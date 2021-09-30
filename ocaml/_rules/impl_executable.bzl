@@ -109,9 +109,9 @@ def impl_executable(ctx):
             if hasattr(ppxadep, "ppx_codeps"):
                 if ppxadep.ppx_codeps:
                     indirect_ppx_codep_depsets.append(ppxadep.ppx_codeps)
-            if hasattr(ppxadep, "ppx_codep_paths"):
-                if ppxadep.ppx_codep_paths:
-                    indirect_ppx_codep_depsets_paths.append(ppxadep.ppx_codep_paths)
+            if hasattr(ppxadep, "paths"):
+                if ppxadep.paths:
+                    indirect_ppx_codep_depsets_paths.append(ppxadep.paths)
 
     ################################################################
     #### MAIN ####
@@ -146,9 +146,15 @@ def impl_executable(ctx):
         transitive = direct_linkargs_depsets
     )
 
+    # args.add("external/ounit2/oUnit2.cmx")
+
     for dep in linkargs_depset.to_list():
-        if dep.extension not in ["a", "o", "cmi", "mli"]:
-            args.add(dep)
+        if dep.extension not in ["a", "o", "cmi", "mli", "cmti"]:
+            if dep.basename != "oUnit2.cmx":
+                args.add(dep)
+
+    # args.add("external/ounit2/oUnit.cmx")
+
 
     args.add_all(includes, before_each="-I", uniquify=True)
 
@@ -251,13 +257,13 @@ def impl_executable(ctx):
         )
         providers.append(ppxAdjunctsProvider)
 
-        outputGroupInfo = OutputGroupInfo(
-            ppx_codeps = ppx_codeps_depset,
-            inputs = inputs_depset,
-            all = depset(transitive=[
-                ppx_codeps_depset,
-            ])
-        )
-        providers.append(outputGroupInfo)
+        # outputGroupInfo = OutputGroupInfo(
+        #     ppx_codeps = ppx_codeps_depset,
+        #     inputs = inputs_depset,
+        #     all = depset(transitive=[
+        #         ppx_codeps_depset,
+        #     ])
+        # )
+        # providers.append(outputGroupInfo)
 
     return providers

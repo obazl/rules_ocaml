@@ -91,19 +91,22 @@ def _build_opam_bootstrapper_local(repo_ctx):
 
     local_bin = home + "/.local/bin"
 
-    build_sh = repo_ctx.path(Label("@obazl_tools_opam//bootstrap:build.sh"))
-    # print("BUILD_SH: %s" % build_sh)
+    build_sh = repo_ctx.path(
+        Label("@opam//bootstrap:build.sh")
+        # Label("@obazl_tools_opam//bootstrap:build.sh")
+    )
+    print("BUILD_SH: %s" % build_sh)
 
     build_dir = build_sh.dirname
-    # print("BUILD_DIR: %s" % build_dir)
+    print("BUILD_DIR: %s" % build_dir)
 
     bootstrapper = build_dir.get_child("opam_bootstrap")
-    # print("checking for opam bootstrapper: %s" % bootstrapper)
+    print("checking for opam bootstrapper: %s" % bootstrapper)
     repo_ctx.report_progress("checking for opam bootstrapper:  %s" % bootstrapper)
 
     if bootstrapper.exists:
         repo_ctx.report_progress("found opam bootstrapper")
-        # print("found opam bootstrapper")
+        print("found opam bootstrapper")
         _ = 1
     else:
         cmd_env = {}
@@ -127,7 +130,7 @@ def _build_opam_bootstrapper_local(repo_ctx):
         fail("Could not find opam_bootstrap executable")
 
     repo_ctx.report_progress("running opam bootstrapper")
-    # print("running opam_bootstrap")
+    print("running opam_bootstrapper")
     # bootstrapper = repo_ctx.path(Label("@obazl_tools_opam//bootstrap:opam_bootstrap"))
     # print("BOOTSTRAP CMD: %s" % bootstrapper)
 
@@ -260,7 +263,7 @@ def _install_build_templates(repo_ctx):
 
 ################################################################
 def install(repo_ctx):
-
+    print("_opam_repo: install")
     # _build_re2c(repo_ctx)
 
     _build_opam_bootstrapper_local(repo_ctx)

@@ -14,24 +14,6 @@ def ocaml_register_toolchains(installation = None, noocaml = None):
     native.register_toolchains("@ocaml//toolchain:ocaml_macos")
     native.register_toolchains("@ocaml//toolchain:ocaml_linux")
 
-#########################
-def _ocaml_sdk_impl(ctx):
-    return [OcamlSDK(path=ctx.attr.path)]
-
-## We use a trick to obtain the absolute path of the sdk, which we
-## need to set the PATH env var for the compilers. This rule is only
-## used in the BUILD file that we generate, parameterized by the path
-## at load time (which we can do from within a repository_rule).
-## So rules that need the sdk path can get it from "@ocaml_sdk//:path"
-ocaml_sdkpath = rule(
-    implementation = _ocaml_sdk_impl,
-    attrs = {
-        "path": attr.string(
-            mandatory = True
-        ),
-    },
-)
-
 ################################################################
 _ocaml_tools_attrs = {
     "path": attr.string(),
@@ -51,37 +33,37 @@ _ocaml_tools_attrs = {
     # ),
 
     "_ocamlc": attr.label(
-        default = Label("@ocaml//:bin/ocamlc"),
+        default = Label("@ocaml//bin:ocamlc"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlc_opt": attr.label(
-        default = Label("@ocaml//:bin/ocamlc.opt"),
+        default = Label("@ocaml//bin:ocamlc.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlopt": attr.label(
-        default = Label("@ocaml//:bin/ocamlopt"),
+        default = Label("@ocaml//bin:ocamlopt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlopt_opt": attr.label(
-        default = Label("@ocaml//:bin/ocamlopt.opt"),
+        default = Label("@ocaml//bin:ocamlopt.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamllex": attr.label(
-        default = Label("@ocaml//:bin/ocamllex"),
+        default = Label("@ocaml//bin:ocamllex"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "_ocamlyacc": attr.label(
-        default = Label("@ocaml//:bin/ocamlyacc"),
+        default = Label("@ocaml//bin:ocamlyacc"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
@@ -97,24 +79,24 @@ _ocaml_tools_attrs = {
             # "-opaque" # Does not generate cross-module optimization information (reduces necessary recompilation on module change)
     ]
     ),
-    "_ocamlfind": attr.label(
-        default = Label("@ocaml//:bin/ocamlfind"),
-        executable = True,
-        allow_single_file = True,
-        cfg = "exec",
-    ),
+    # "_ocamlfind": attr.label(
+    #     default = Label("@ocaml//:bin/ocamlfind"),
+    #     executable = True,
+    #     allow_single_file = True,
+    #     cfg = "exec",
+    # ),
     # "_ocamlbuild": attr.label(
     #     default = Label("@ocaml//:ocamlbuild"),
     #     executable = True,
     #     allow_single_file = True,
     #     cfg = "exec",
     # ),
-    "_ocamldep": attr.label(
-        default = Label("@ocaml//:bin/ocamldep"),
-        executable = True,
-        allow_single_file = True,
-        cfg = "exec",
-    ),
+    # "_ocamldep": attr.label(
+    #     default = Label("@ocaml//:bin/ocamldep"),
+    #     executable = True,
+    #     allow_single_file = True,
+    #     cfg = "exec",
+    # ),
     "_dllpath": attr.label(
         ## FIXME default = Label("@opam//pkg:stublibs"),
     )
@@ -225,7 +207,7 @@ def _ocaml_toolchain_impl(ctx):
         linkopts  = None,
 
         # ocamlbuild = ctx.attr._ocamlbuild.files.to_list()[0],
-        ocamlfind  = ctx.attr._ocamlfind.files.to_list()[0],
+        # ocamlfind  = ctx.attr._ocamlfind.files.to_list()[0],
         # ocamldep   = ctx.attr._ocamldep.files.to_list()[0],
         # objext     = ".cmx" if mode == "native" else ".cmo",
         # archext    = ".cmxa" if mode == "native" else ".cma",

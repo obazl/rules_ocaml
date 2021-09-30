@@ -10,7 +10,7 @@ load("@obazl_rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
 package(default_visibility = ["//visibility:public"])
 
 exports_files(glob(["bin/**"]))
-exports_files(glob(["_lib/**"]))
+exports_files(glob(["**"]))
 
 toolchain_type(
     name = "toolchain_type",
@@ -18,10 +18,6 @@ toolchain_type(
 )
 
 ocaml_null_module(name="null")
-
-exports_files(glob(["switch/bin/**"]))
-
-string_setting( name = "projroot", build_setting_default = "{projroot}")
 
 platform(
     name = "bytecode",

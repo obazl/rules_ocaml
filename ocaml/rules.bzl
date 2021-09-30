@@ -6,6 +6,9 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice.
 """
 
+load("//ocaml/_repo_rules:new_local_pkg_repository.bzl",
+     _new_local_pkg_repository = "new_local_pkg_repository")
+
 load("//ocaml/_rules:ocaml_null.bzl", _ocaml_null = "ocaml_null")
 
 load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
@@ -34,6 +37,8 @@ load("//ocaml/_rules:ppx_executable.bzl" ,
 load("//ocaml/_rules:ppx_test.bzl",
      _ppx_expect_test = "ppx_expect_test",
      _ppx_test = "ppx_test")
+
+new_local_pkg_repository = _new_local_pkg_repository
 
 ocaml_null = _ocaml_null
 

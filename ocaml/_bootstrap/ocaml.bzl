@@ -10,8 +10,37 @@ load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_register_toolchains")
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
 
 
-# load("//opam:_opam.bzl", "opam_configure")
+load("//ocaml/_repo_rules:new_local_pkg_repository.bzl",
+     "new_local_pkg_repository")
+
 load("//opam:_opam_repo.bzl", opam_install = "install")
+
+rules_ocaml_ws = "@obazl_rules_ocaml"
+
+################
+def install_new_local_pkg_repos():
+
+    ## FIXME: get switch pfx from repo_ctx.execute
+    OPAM_SWITCH_PREFIX = "/Users/gar/.opam/4.10"
+
+    new_local_pkg_repository(
+        name = "ocaml.compiler-libs",
+        path = OPAM_SWITCH_PREFIX + "/lib/ocaml/compiler-libs",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.compiler-libs.REPO"
+    )
+
+    new_local_pkg_repository(
+        name = "ocaml.ffi",
+        path = OPAM_SWITCH_PREFIX + "/lib/ocaml/caml",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.ffi.REPO"
+    )
+
+    new_local_pkg_repository(
+        name = "ocaml.threads",
+        path = OPAM_SWITCH_PREFIX + "/lib/ocaml/threads",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.threads.REPO"
+    )
+
 
 ##################################
 def _throw_opam_cmd_error(cmd, r):
@@ -145,6 +174,42 @@ def _discover_switch(repo_ctx):
     return opam_root, opam_switch, opam_prefix
 
 ################################
+def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
+    repo_ctx.report_progress("installing ocaml core pkg templates")
+
+    ws = rules_ocaml_ws
+
+    repo_ctx.template(
+        "compiler-libs/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "ffi/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:ffi.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "threads/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:threads.BUILD"),
+        executable = False,
+    )
+
+    # repo_ctx.template(
+    #     "lib/threads/posix/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.lib.threads.posix"),
+    #     executable = False,
+    # )
+
+    repo_ctx.template(
+        "lib/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.stdlib"),
+        executable = False,
+    )
+
+################################
 def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     repo_ctx.report_progress("installing templates")
 
@@ -160,23 +225,7 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
         },
     )
 
-    repo_ctx.template(
-        "lib/threads/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.lib.threads"),
-        executable = False,
-    )
-
-    repo_ctx.template(
-        "lib/threads/posix/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.lib.threads.posix"),
-        executable = False,
-    )
-
-    repo_ctx.template(
-        "lib/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.stdlib"),
-        executable = False,
-    )
+    _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix)
 
     repo_ctx.template(
         "toolchain/BUILD.bazel",
@@ -191,14 +240,14 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     )
 
     ## FIXME: call this ffi instead of csdk?
-    repo_ctx.template(
-        "csdk/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.csdk"),
-        executable = False,
-        # substitutions = {
-        #     "{sdkpath}": opam_switch_prefix
-        # },
-    )
+    # repo_ctx.template(
+    #     "csdk/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.csdk"),
+    #     executable = False,
+    #     # substitutions = {
+    #     #     "{sdkpath}": opam_switch_prefix
+    #     # },
+    # )
 
     ## No, ctypes is not part of std ffi
     # repo_ctx.template(
@@ -439,35 +488,6 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     #     },
     # )
 
-##########################################
-def _symlink_tool(repo_ctx, prefix, tool):
-
-    tool_path = repo_ctx.path(prefix + "/bin/" + tool)
-    if tool_path.exists:
-        repo_ctx.symlink(tool_path, "tools/" + tool)
-    else:
-        if repo_ctx.attr.verbose:
-            print(
-                "WARNING: could not find {tool} at {path}".format(
-                    tool = tool,
-                    path = tool_path
-                )
-            )
-
-##########################################
-def _symlink_core_tools(repo_ctx, prefix):
-
-    tool_path = repo_ctx.path(prefix + "/bin/" + "ocamlfind")
-    if tool_path.exists:
-        repo_ctx.symlink(tool_path, "tools/" + "ocamlfind")
-    else:
-        fail(
-                "ERROR: could not find {tool} at {path}; please run 'opam install {tool}'.".format(
-                    tool = "ocamlfind",
-                    path = tool_path
-                )
-            )
-
 ######################################################
 # def _install_coq_symlinks(repo_ctx, coq_sdk):
 
@@ -484,60 +504,19 @@ def _symlink_core_tools(repo_ctx, prefix):
 #                     )
 #                 )
 
-######################################################
-def _symlink_compilers(repo_ctx, opam_switch_prefix):
-
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlc")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlc.byte")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlc.opt")
-
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlopt")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlopt.byte")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlopt.opt")
-
-########################################################
-## FIXME: parameterize with tool names from BuildConfig file
-def _symlink_extra_tools(repo_ctx, opam_switch_prefix):
-
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamllex")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamllex.byte")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamllex.opt")
-
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlyacc")
-    ## evidently only one version of ocamlyacc is provided
-    # _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlyacc.byte")
-    # _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlyacc.opt")
-
-    ## non-core tools
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocaml")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo.byte")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocamlobjinfo.opt")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "cppo")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "menhir")
-    _symlink_tool(repo_ctx, opam_switch_prefix, "ocaml-crunch")
-
 #####################################
 def _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix):
     if repo_ctx.attr.verbose:
-        repo_ctx.report_progress("creating symlinks")
+        repo_ctx.report_progress("creating OPAM symlinks")
 
-    repo_ctx.symlink(opam_root, "opamroot")
-    # repo_ctx.symlink(opam_switch_prefix, "switch")
-    repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml", "csdk/ocaml")
-    # repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml/caml", "csdk/include")
-    repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "csdk/ctypes/api")
+    repo_ctx.file("bin/BUILD.bazel",
+                  content = """exports_files(glob([\"**\"]))""")
 
-    _symlink_core_tools(repo_ctx, opam_switch_prefix)
-
-    _symlink_compilers(repo_ctx, opam_switch_prefix)
-
-    _symlink_extra_tools(repo_ctx, opam_switch_prefix)
-
-    # repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "lib/ctypes/api")
-    # repo_ctx.symlink(opam_switch_prefix + "/lib/integers", "csdk/integers/api")
-
-    repo_ctx.symlink(opam_switch_prefix + "/lib/stublibs", "runtime")
+    bindir = opam_switch_prefix + "/bin"
+    binpath = repo_ctx.path(bindir)
+    binfiles = binpath.readdir()
+    for file in binfiles:
+        repo_ctx.symlink(file, "bin/" + file.basename)
 
 ###############################
 def _is_pkg_installed(repo_ctx, pkg, opam_switch):
@@ -648,16 +627,15 @@ def _ocaml_repo_impl(repo_ctx):
 
     ## hack - see opam/_opam_repo.bzl
     ## symlinks before templates
-    repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml", "csdk/ocaml")
-    repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "lib/ctypes/csdk")
+    repo_ctx.symlink(opam_switch_prefix + "/lib/ocaml", "lib")
+
+    _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix)
 
     ## WARNING: install the templates BEFORE configuring (verifying) the opam switch, otherwise
     ## we get tons of restarts.
     _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix)
 
-    opam_install(repo_ctx)
-
-    # _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix)
+    # opam_install(repo_ctx) #, bootstrap_debug=repo_ctx.attr.bootstrap_debug)
 
     # _install_coq_symlinks(repo_ctx, ".") # coq_sdk
 
@@ -915,7 +893,7 @@ def ocaml_configure(
       opam: an [OpamConfig](#provider-opamconfig) provider
       debug: enable debugging
     """
-    # print("ocaml.configure")
+    print("ocaml.configure")
 
     if switch and (build or opam):
         fail("ocaml_configure: param 'switch' cannot be combined with 'build' or 'opam'.")
@@ -943,7 +921,9 @@ def ocaml_configure(
             # pin,
             # force,
             verbose = verbose,
-            debug = debug)
+            debug = debug,
+            bootstrap_debug = bootstrap_debug,
+        )
     else:
         # print("no opam")
         _ocaml_repo(name="ocaml",
@@ -960,7 +940,10 @@ def ocaml_configure(
                     # findlib_pkgs = None,
                     # pin_specs = None,
                     verbose = verbose,
-                    debug = debug)
+                    debug = debug,
+                    bootstrap_debug = bootstrap_debug)
+
+    install_new_local_pkg_repos()
 
     ocaml_register_toolchains(installation="host")
     # coq_register_toolchains(installation="host")

@@ -135,10 +135,10 @@ def impl_ns_resolver(ctx):
     ################################
     args = ctx.actions.args()
 
-    if mode == "native":
-        args.add(tc.ocamlopt.basename)
-    else:
-        args.add(tc.ocamlc.basename)
+    # if mode == "native":
+    #     args.add(tc.ocamlopt.basename)
+    # else:
+    #     args.add(tc.ocamlc.basename)
 
     if ctx.attr._warnings:
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
@@ -159,13 +159,18 @@ def impl_ns_resolver(ctx):
     args.add("-impl")
     args.add(resolver_src_file.path)
 
+    if mode == "native":
+        exe = tc.ocamlopt.basename
+    else:
+        exe = tc.ocamlc.basename
+
     ctx.actions.run(
         env = env,
-        executable = tc.ocamlfind,
+        executable = exe,
         arguments = [args],
         inputs = action_inputs,
         outputs = action_outputs,
-        tools = [tc.ocamlfind, tc.ocamlopt],
+        tools = [tc.ocamlopt],
         mnemonic = "OcamlNsResolverAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsResolverAction",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = mode,

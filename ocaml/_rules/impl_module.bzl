@@ -59,8 +59,8 @@ def impl_module(ctx):
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
     ################
-    indirect_adjunct_depsets      = []
-    indirect_adjunct_path_depsets = []
+    indirect_ppx_codep_depsets      = []
+    indirect_ppx_codep_path_depsets = []
     indirect_cc_deps  = {}
 
     ################
@@ -179,14 +179,22 @@ def impl_module(ctx):
         )
         indirect_paths_depsets.append(ctx.attr.sig[OcamlProvider].paths)
 
-    ################ PPX Adjunct Deps ################
-    ## add adjunct_deps from ppx provider
-    ## adjunct deps in the dep graph are NOT compile deps of this module.
-    ## only the adjunct deps of the ppx are.
-    adjunct_deps = []
-    # print("TGT: %s" % ctx.label.name)
+    ################ PPX Co-Deps ################
+    ## ppx_codeps of the ppx executable are structural deps of this
+    ## module. They thus become elements in the depgraph of anything
+    ## that depends on this module, so they are passed on just like
+    ## regular deps.
+
+    ## Modules that do ppx processing may have a ppx_codeps attribute,
+    ## for the deps they inject into the files they preprocess. They
+    ## are _NOT_ structural deps of the module itself. It follow that
+    ## they are passed on in a PpxCodepsProvider, not in
+    ## OcamlProvider.
+
+    ppx_codeps_list = []
+
     if ctx.attr.ppx:
-        provider = ctx.attr.ppx[PpxAdjunctsProvider]
+        ppx_codeps_info = ctx.attr.ppx[PpxAdjunctsProvider]
 
         ## NB: it seems to be sufficient to put the ppx_codep in the
         ## search path with -I; the archive itself need not be added?
@@ -195,25 +203,40 @@ def impl_module(ctx):
         ## BUT: the ppx_codep must be propagated to
         ## ocaml_executable, otherwise the link will fail with:
         ## "No implementations provided for the following modules:..."
-        dlist = provider.ppx_codeps.to_list()
-        args.add("-ccopt", "-DPPX_ADJUNCTS_START")
-        for f in dlist: ## provider.files.to_list():
-            adjunct_deps.append(f)
-            if f.extension in ["cmxa", "a"]:
-                if (f.path.startswith(opam_lib_prefix)):
-                    dir = paths.relativize(f.dirname, opam_lib_prefix)
-                    includes.append( "+../" + dir )
-                else:
-                    includes.append(f.dirname)
-        args.add("-ccopt", "-DPPX_ADJUNCTS_END")
+        indirect_ppx_codep_depsets.append(ppx_codeps_info.ppx_codeps)
+        indirect_ppx_codep_path_depsets.append(ppx_codeps_info.paths)
 
-        for path in provider.paths.to_list():
-            includes.append(path)
+        # dlist = ppx_codeps_info.ppx_codeps.to_list()
+        # args.add("-ccopt", "-DPPX_ADJUNCTS_START")
+        # for f in dlist: ## ppx_codeps_info.files.to_list():
+        #     ppx_codeps_list.append(f)
+        #     if f.extension in ["cmxa", "a"]:
+        #         # if (f.path.startswith(opam_lib_prefix)):
+        #         #     dir = paths.relativize(f.dirname, opam_lib_prefix)
+        #         #     includes.append( "+../" + dir )
+        #         # else:
+        #         includes.append(f.dirname)
+        # args.add("-ccopt", "-DPPX_ADJUNCTS_END")
+
+        # for path in ppx_codeps_info.paths.to_list():
+        #     includes.append(path)
+
+    if ctx.label.name == "_Hello":
+        print("PPX_CODEPS depsets:")
+        print(indirect_ppx_codep_depsets)
+
+    # args.add("-I", "/Users/gar/.opam/4.10/lib/ounit2")
+    # args.add("-I", "demos/external/ounit2")
+
+    # linkargs = depset(transitive=indirect_linkargs_depsets)
+    # for larg in linkargs.to_list():
+    #     if larg.extension in ["cmxa", "cmx"]:
+    #         args.add("-I", larg.dirname)
 
     paths_depset  = depset(
         order = dsorder,
         direct = paths_direct,
-        transitive = indirect_paths_depsets
+        transitive = indirect_paths_depsets + indirect_ppx_codep_path_depsets
     )
 
     args.add_all(paths_depset.to_list(), before_each="-I")
@@ -256,7 +279,7 @@ def impl_module(ctx):
         direct = [structfile] + ns_resolver_files
         + mli_out
         + ctx.files.deps_runtime,
-        transitive = indirect_inputs_depsets
+        transitive = indirect_inputs_depsets + indirect_ppx_codep_depsets
     )
 
     args.add("-c")
@@ -334,15 +357,15 @@ def impl_module(ctx):
     ## if module has direct or indirect ppx_codeps:
     ppx_codeps_depset = depset(
         order = dsorder,
-        direct = adjunct_deps,
-        transitive = indirect_adjunct_depsets
+        direct = ppx_codeps_list,
+        transitive = indirect_ppx_codep_depsets
     )
-    ppxCoDepsProvider = PpxAdjunctsProvider(
+    ppxCodepsProvider = PpxAdjunctsProvider(
         ppx_codeps = ppx_codeps_depset,
         paths = depset(order = dsorder,
-                       transitive = indirect_adjunct_path_depsets)
+                       transitive = indirect_ppx_codep_path_depsets)
     )
-    providers.append(ppxCoDepsProvider)
+    providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
     if ccInfo_list:

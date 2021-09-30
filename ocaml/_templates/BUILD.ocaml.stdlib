@@ -1,1 +1,2 @@
-# DO NOT REMOVE
+
+exports_files(glob(["**"]))

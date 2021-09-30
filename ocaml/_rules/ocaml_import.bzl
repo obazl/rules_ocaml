@@ -26,12 +26,24 @@ def _ocaml_import_impl(ctx):
     providers = []
 
     ## direct ppx adjuncts
-    ppx_codep_deps_list = []
-    ppx_codep_archives_list = []
-    ppx_codep_paths_list = []
+    # ppx_codep_deps_list = []
+    # ppx_codep_archives_list = []
+    # ppx_codep_paths_list = []
 
-    ## indirect ppx adjuncts
-    indirect_ppx_codep_deps_list = []
+    has_ppx_codeps = False
+    # indirect_ppx_codep_deps_list = []
+    indirect_ppx_codep_depsets      = []
+    indirect_ppx_codep_path_depsets = []
+
+    # for deps listed in ctx.attr.ppx_codeps
+    ## files with OcamlProvider:
+    direct_ppx_codep_inputs_list = []
+    direct_ppx_codep_linkargs_list = []
+    direct_ppx_codep_paths_list = []
+    ## targets with PpxCodepsProvider:
+    direct_ppx_codep_depsets      = []
+    direct_ppx_codep_path_depsets = []
+
 
     #### INDIRECT DEPS first ####
     indirect_inputs_list = [] # files from ctx.attr.all
@@ -44,16 +56,25 @@ def _ocaml_import_impl(ctx):
         indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
         indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
-        ################ OCamlMarker ################
-        if OcamlProvider in dep:
-            opdep = dep[OcamlProvider]
-            # all_deps_list.append(opdep.files)
-            if hasattr(opdep, "ppx_codeps"):
-                if opdep.ppx_codeps:
-                    indirect_ppx_codep_deps_list.append(opdep.ppx_codeps)
-            if hasattr(opdep, "ppx_codep_paths"):
-                if opdep.ppx_codep_paths:
-                    ppx_codep_paths_list.append(opdep.ppx_codep_paths)
+        # if OcamlProvider in dep:  ## isn't this always true?
+        #     opdep = dep[OcamlProvider]
+        #     # all_deps_list.append(opdep.files)
+        #     if hasattr(opdep, "ppx_codeps"):
+        #         if opdep.ppx_codeps:
+        #             indirect_ppx_codep_deps_list.append(opdep.ppx_codeps)
+        #     if hasattr(opdep, "ppx_codep_paths"):
+        #         if opdep.ppx_codep_paths:
+        #             ppx_codep_paths_list.append(opdep.ppx_codep_paths)
+
+        if PpxAdjunctsProvider in dep:
+            codep = dep[PpxAdjunctsProvider]
+            if hasattr(codep, "ppx_codeps"):
+                if codep.ppx_codeps:
+                    has_ppx_codeps = True
+                    indirect_ppx_codep_depsets.append(codep.ppx_codeps)
+            if hasattr(codep, "paths"):
+                if codep.paths:
+                    indirect_ppx_codep_path_depsets.append(codep.paths)
 
     direct_paths_list   = []
 
@@ -67,7 +88,7 @@ def _ocaml_import_impl(ctx):
     direct_inputs_list = []
     direct_linkargs_list = []
 
-    outputDepsets = {}
+    outputGroupDepsets = {}
     direct_archive = []
     if ctx.attr.archive:  # a label_list of file targets
         direct_default_files.extend(ctx.files.archive)
@@ -103,12 +124,12 @@ def _ocaml_import_impl(ctx):
             order = dsorder,
             direct = ctx.files.plugin,
         )
-        outputDepsets["plugins"] = plugins_depset
+        outputGroupDepsets["plugins"] = plugins_depset
     else:
         plugins_depset = depset(
             order = dsorder,
         )
-        outputDepsets["plugins"] = plugins_depset
+        outputGroupDepsets["plugins"] = plugins_depset
 
     ################################
     if ctx.attr.signature:
@@ -131,24 +152,35 @@ def _ocaml_import_impl(ctx):
         direct_files.extend(ctx.files.modules)
 
     ################################
+    ## direct ppx_codeps on imports will be depsets, not files
     for dep in ctx.attr.ppx_codeps:
+        has_ppx_codeps = True
         if OcamlProvider in dep:
+            print("{t}: OcamlProvider in ppx_codep: {d}".format(
+                t = ctx.label.name, d = dep))
             opdep = dep[OcamlProvider]
-            ppx_codep_deps_list.append(opdep.inputs)
-            ppx_codep_archives_list.append(opdep.linkargs)
-            if hasattr(opdep, "ppx_codeps"):
-                if opdep.ppx_codeps:
-                    ppx_codep_deps_list.append(opdep.ppx_codeps)
-            if hasattr(opdep, "ppx_codep_paths"):
-                if opdep.ppx_codep_paths:
-                    ppx_codep_paths_list.append(dep[OcamlProvider].ppx_codep_paths)
+            direct_ppx_codep_inputs_list.append(opdep.inputs)
+            direct_ppx_codep_linkargs_list.append(opdep.linkargs)
+            direct_ppx_codep_paths_list.append(opdep.paths)
+            # if hasattr(opdep, "ppx_codeps"):
+            #     if opdep.ppx_codeps:
+            #         ppx_codep_deps_list.append(opdep.ppx_codeps)
+            # if hasattr(opdep, "paths"):
+            #     if opdep.ppx_codep_paths:
+            #         ppx_codep_paths_list.append(opdep.paths)
 
-    ppx_codeps_depset  = depset(
-        order = dsorder,
-        transitive = ppx_codep_deps_list + indirect_ppx_codep_deps_list
-    )
-
-    outputDepsets["ppx_codeps"] = ppx_codeps_depset
+        if PpxAdjunctsProvider in dep:
+            print("{t}: PpxCodepsProvider in ppx_codep: {d}".format(
+                t = ctx.label.name, d = dep))
+            codep = dep[PpxAdjunctsProvider]
+            if hasattr(codep, "ppx_codeps"):
+                print("yyyy")
+                has_ppx_codeps = True
+                if codep.ppx_codeps:
+                    direct_ppx_codep_depsets.append(codep.ppx_codeps)
+            if hasattr(codep, "paths"):
+                if codep.paths:
+                    direct_ppx_codep_path_depsets.append(codep.paths)
 
     ################################################################
     ##  PROVIDERS ##
@@ -162,15 +194,32 @@ def _ocaml_import_impl(ctx):
     )
     providers.append(defaultInfo)
 
-    if ppx_codeps_depset:
+    ################
+    if has_ppx_codeps:
+        ppx_codeps_depset  = depset(
+            order = dsorder,
+            transitive = direct_ppx_codep_inputs_list +
+            indirect_ppx_codep_depsets + direct_ppx_codep_depsets
+        )
+
+        print("CODEP direct paths list: %s" % direct_ppx_codep_paths_list)
+        print("direct_ppx_codep_path_depsets: %s" % direct_ppx_codep_path_depsets)
+        print("indirect_ppx_codep_path_depsets: %s" % indirect_ppx_codep_path_depsets)
+        ppx_codep_paths_depset = depset(
+            transitive = direct_ppx_codep_paths_list +
+            direct_ppx_codep_path_depsets + indirect_ppx_codep_path_depsets
+        )
         ppxAdjunctsProvider = PpxAdjunctsProvider(
-            paths = depset(ppx_codep_paths_list),
+            paths      = ppx_codep_paths_depset,
             ppx_codeps = ppx_codeps_depset,
         )
         providers.append(ppxAdjunctsProvider)
-        _ppx_codeps = ppx_codeps_depset
-    else:
-        _ppx_codeps = depset()
+
+        # if ctx.label.name == "ppx_sexp_conv":
+        print("PpxAdjunctsProvider.paths for %s" % ctx.label)
+        print(ppxAdjunctsProvider.paths)
+
+        outputGroupDepsets["ppx_codeps"] = ppx_codeps_depset
 
     ################
     new_inputs_depset = depset(
@@ -192,23 +241,27 @@ def _ocaml_import_impl(ctx):
         linkargs = linkargs_depset,
         paths    = paths_depset,
 
-        ppx_codeps = _ppx_codeps,
+        # ppx_codeps = _ppx_codeps,
     )
+    # if ctx.label.name == "ppx_sexp_conv":
+    #     print("OcamlProvider.ppx_codeps from target %s" % ctx.label)
+    #     print(_ocamlProvider.ppx_codeps)
+
     providers.append(_ocamlProvider)
 
     providers.append(OcamlImportMarker(marker = "OcamlImport"))
 
-    outputGroupInfo = OutputGroupInfo(
-        ppx_codeps = _ppx_codeps,
-        all = depset(
-            order = dsorder,
-            transitive=[
-                ppx_codeps_depset,
-            ]
-        )
-    )
+    # outputGroupInfo = OutputGroupInfo(
+    #     # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
+    #     all = depset(
+    #         order = dsorder,
+    #         transitive=[
+    #             ppx_codeps_depset,
+    #         ]
+    #     )
+    # )
 
-    providers.append(outputGroupInfo)
+    # providers.append(outputGroupInfo)
 
     return providers
 

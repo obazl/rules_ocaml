@@ -30,9 +30,15 @@ def impl_archive(ctx):
 
     env = {"PATH": get_sdkpath(ctx)}
 
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
     tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    if mode == "native":
+        exe = tc.ocamlopt.basename
+    else:
+        exe = tc.ocamlc.basename
+
 
     ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
 
@@ -99,10 +105,10 @@ def impl_archive(ctx):
     #########################
     args = ctx.actions.args()
 
-    if mode == "native":
-        args.add(tc.ocamlopt.basename)
-    else:
-        args.add(tc.ocamlc.basename)
+    # if mode == "native":
+    #     args.add(tc.ocamlopt.basename)
+    # else:
+    #     args.add(tc.ocamlc.basename)
 
     args.add_all(_options)
 
@@ -146,10 +152,11 @@ def impl_archive(ctx):
     ################
     ctx.actions.run(
         env = env,
-        executable = tc.ocamlfind,
+        executable = exe,
         arguments = [args],
         inputs = libOcamlProvider.inputs,
         outputs = action_outputs,
+        tools = [tc.ocamlopt, tc.ocamlc],
         mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,

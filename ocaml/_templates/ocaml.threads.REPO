@@ -1,0 +1,20 @@
+load(
+    "@obazl_rules_ocaml//ocaml:rules.bzl",
+    "ocaml_import"
+)
+
+ocaml_import(
+    name = "threads",
+    version = "[distributed with OCaml]",
+    archive = select({
+        "@ocaml//mode:bytecode": ["//:threads.cma"],
+        "@ocaml//mode:native"  : [
+            "//:threads.cmxa",
+            "//:threads.a"
+        ],
+     }),
+    deps = [
+        "@unix//:unix"
+    ],
+    visibility = ["@ocaml//threads:__pkg__"]
+)
