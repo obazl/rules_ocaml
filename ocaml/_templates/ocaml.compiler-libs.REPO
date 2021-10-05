@@ -18,6 +18,7 @@ ocaml_import(
         "@ocaml//mode:native": [
         ],
     }),
+    all = glob(["*.c*"]),
     visibility = ["//visibility:public"]
 )
 

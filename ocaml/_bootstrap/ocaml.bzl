@@ -36,11 +36,16 @@ def install_new_local_pkg_repos():
     )
 
     new_local_pkg_repository(
+        name = "ocaml.dynlink",
+        path = OPAM_SWITCH_PREFIX + "/lib/ocaml",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.dynlink.REPO"
+    )
+
+    new_local_pkg_repository(
         name = "ocaml.threads",
         path = OPAM_SWITCH_PREFIX + "/lib/ocaml/threads",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.threads.REPO"
     )
-
 
 ##################################
 def _throw_opam_cmd_error(cmd, r):
@@ -186,6 +191,18 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
     )
 
     repo_ctx.template(
+        "compiler-libs/common/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.common.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "dynlink/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:dynlink.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
         "ffi/BUILD.bazel",
         Label(ws + "//ocaml/_templates/ocaml_REPO:ffi.BUILD"),
         executable = False,
@@ -197,11 +214,11 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
 
-    # repo_ctx.template(
-    #     "lib/threads/posix/BUILD.bazel",
-    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.lib.threads.posix"),
-    #     executable = False,
-    # )
+    repo_ctx.template(
+        "threads/posix/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:threads.posix.BUILD"),
+        executable = False,
+    )
 
     repo_ctx.template(
         "lib/BUILD.bazel",

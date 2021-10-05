@@ -221,9 +221,9 @@ def impl_module(ctx):
         # for path in ppx_codeps_info.paths.to_list():
         #     includes.append(path)
 
-    if ctx.label.name == "_Hello":
-        print("PPX_CODEPS depsets:")
-        print(indirect_ppx_codep_depsets)
+    # if ctx.label.name == "_Hello":
+    #     print("PPX_CODEPS depsets:")
+    #     print(indirect_ppx_codep_depsets)
 
     # args.add("-I", "/Users/gar/.opam/4.10/lib/ounit2")
     # args.add("-I", "demos/external/ounit2")

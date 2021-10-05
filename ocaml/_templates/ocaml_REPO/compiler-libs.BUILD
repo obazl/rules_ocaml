@@ -10,13 +10,13 @@ alias(
 )
 
 alias(
-    name = "common",
-    actual = "@ocaml.compiler-libs//:common"
+    name = "bytecomp",
+    actual = "@ocaml.compiler-libs//:bytecomp"
 )
 
 alias(
-    name = "bytecomp",
-    actual = "@ocaml.compiler-libs//:bytecomp"
+    name = "common",
+    actual = "@ocaml.compiler-libs//:common"
 )
 
 alias(

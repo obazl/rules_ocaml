@@ -4,7 +4,7 @@ load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_module")
 ocaml_module(
     name = "driver",
     struct = ":driver.ml",
-    deps   = ["@ocaml//lib/ppxlib"],
+    deps   = ["@ppxlib//:ppxlib"],
     opts = ["-linkall"],
     visibility = ["//visibility:public"]
 )

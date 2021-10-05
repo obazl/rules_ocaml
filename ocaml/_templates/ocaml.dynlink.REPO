@@ -4,17 +4,16 @@ load(
 )
 
 ocaml_import(
-    name = "threads",
+    name = "dynlink",
     version = "[distributed with OCaml]",
     archive = select({
-        "@ocaml//mode:bytecode": ["//:threads.cma"],
+        "@ocaml//mode:bytecode": ["//:dynlink.cma"],
         "@ocaml//mode:native"  : [
-            "//:threads.cmxa",
-            "//:threads.a"
+            "//:dynlink.cmxa",
+            "//:dynlink.a"
         ],
      }),
-    deps = [
-        "@unix//:unix"
-    ],
+    all = glob(["dyn*.*"]),
+    # all = glob(["*.cmx", "*.cmi", "*.a", "*.o"]),
     visibility = ["//visibility:public"],
 )

@@ -82,6 +82,9 @@ def _ocaml_import_impl(ctx):
         indirect_inputs_list.extend(ctx.files.all)
         for f in ctx.files.all:
             direct_paths_list.append( f.dirname )
+    if ctx.label.name == "cmdliner":
+        print("cmdliner ALL")
+        print(ctx.attr.all)
 
     #### DIRECT DEPS: archives, plugins, sigs ####
     direct_default_files = []
@@ -156,8 +159,8 @@ def _ocaml_import_impl(ctx):
     for dep in ctx.attr.ppx_codeps:
         has_ppx_codeps = True
         if OcamlProvider in dep:
-            print("{t}: OcamlProvider in ppx_codep: {d}".format(
-                t = ctx.label.name, d = dep))
+            # print("{t}: OcamlProvider in ppx_codep: {d}".format(
+            #     t = ctx.label.name, d = dep))
             opdep = dep[OcamlProvider]
             direct_ppx_codep_inputs_list.append(opdep.inputs)
             direct_ppx_codep_linkargs_list.append(opdep.linkargs)
@@ -170,11 +173,10 @@ def _ocaml_import_impl(ctx):
             #         ppx_codep_paths_list.append(opdep.paths)
 
         if PpxAdjunctsProvider in dep:
-            print("{t}: PpxCodepsProvider in ppx_codep: {d}".format(
-                t = ctx.label.name, d = dep))
+            # print("{t}: PpxCodepsProvider in ppx_codep: {d}".format(
+            #     t = ctx.label.name, d = dep))
             codep = dep[PpxAdjunctsProvider]
             if hasattr(codep, "ppx_codeps"):
-                print("yyyy")
                 has_ppx_codeps = True
                 if codep.ppx_codeps:
                     direct_ppx_codep_depsets.append(codep.ppx_codeps)
@@ -202,9 +204,6 @@ def _ocaml_import_impl(ctx):
             indirect_ppx_codep_depsets + direct_ppx_codep_depsets
         )
 
-        print("CODEP direct paths list: %s" % direct_ppx_codep_paths_list)
-        print("direct_ppx_codep_path_depsets: %s" % direct_ppx_codep_path_depsets)
-        print("indirect_ppx_codep_path_depsets: %s" % indirect_ppx_codep_path_depsets)
         ppx_codep_paths_depset = depset(
             transitive = direct_ppx_codep_paths_list +
             direct_ppx_codep_path_depsets + indirect_ppx_codep_path_depsets
@@ -216,9 +215,6 @@ def _ocaml_import_impl(ctx):
         providers.append(ppxAdjunctsProvider)
 
         # if ctx.label.name == "ppx_sexp_conv":
-        print("PpxAdjunctsProvider.paths for %s" % ctx.label)
-        print(ppxAdjunctsProvider.paths)
-
         outputGroupDepsets["ppx_codeps"] = ppx_codeps_depset
 
     ################
@@ -226,6 +222,12 @@ def _ocaml_import_impl(ctx):
         direct = direct_inputs_list,
         transitive = indirect_inputs_depsets + [depset(indirect_inputs_list)]
     )
+
+    ctx.actions.do_nothing(
+        mnemonic = "ocaml_import",
+        inputs =new_inputs_depset
+    )
+
     linkargs_depset = depset(
         direct = direct_linkargs_list,
         transitive = indirect_linkargs_depsets
@@ -262,6 +264,10 @@ def _ocaml_import_impl(ctx):
     # )
 
     # providers.append(outputGroupInfo)
+
+    # if ctx.label.name == "irmin-pack":
+    #     print("IRMIN PROVIDERS")
+    #     print(providers)
 
     return providers
 
