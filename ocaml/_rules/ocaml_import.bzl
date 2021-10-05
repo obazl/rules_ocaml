@@ -82,9 +82,6 @@ def _ocaml_import_impl(ctx):
         indirect_inputs_list.extend(ctx.files.all)
         for f in ctx.files.all:
             direct_paths_list.append( f.dirname )
-    if ctx.label.name == "cmdliner":
-        print("cmdliner ALL")
-        print(ctx.attr.all)
 
     #### DIRECT DEPS: archives, plugins, sigs ####
     direct_default_files = []

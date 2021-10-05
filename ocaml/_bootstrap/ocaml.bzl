@@ -20,30 +20,30 @@ rules_ocaml_ws = "@obazl_rules_ocaml"
 ################
 def install_new_local_pkg_repos():
 
-    ## FIXME: get switch pfx from repo_ctx.execute
-    OPAM_SWITCH_PREFIX = "/Users/gar/.opam/4.10"
+    # path attr: relative to OPAM_SWITCH_PREFIX
 
     new_local_pkg_repository(
         name = "ocaml.compiler-libs",
-        path = OPAM_SWITCH_PREFIX + "/lib/ocaml/compiler-libs",
+        # path = OPAM_SWITCH_PREFIX + "/lib/ocaml/compiler-libs",
+        path = "ocaml/compiler-libs",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.compiler-libs.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.ffi",
-        path = OPAM_SWITCH_PREFIX + "/lib/ocaml/caml",
+        path = "ocaml/caml",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.ffi.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.dynlink",
-        path = OPAM_SWITCH_PREFIX + "/lib/ocaml",
+        path = "ocaml",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.dynlink.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.threads",
-        path = OPAM_SWITCH_PREFIX + "/lib/ocaml/threads",
+        path = "ocaml/threads",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.threads.REPO"
     )
 
@@ -670,9 +670,9 @@ _ocaml_repo = repository_rule(
     configure = True,
     # local = True,
     environ = [
-        "OBAZL_OPAM_VERIFY",
-        "OPAMSWITCH",
-        "CAML_LD_LIBRARY_PATH"
+        # "OBAZL_OPAM_VERIFY",
+        "OPAM_SWITCH_PREFIX",
+        # "CAML_LD_LIBRARY_PATH"
     ],
     attrs = dict(
         hermetic        = attr.bool( default = False ),
@@ -910,7 +910,7 @@ def ocaml_configure(
       opam: an [OpamConfig](#provider-opamconfig) provider
       debug: enable debugging
     """
-    print("ocaml.configure")
+    # print("ocaml.configure")
 
     if switch and (build or opam):
         fail("ocaml_configure: param 'switch' cannot be combined with 'build' or 'opam'.")

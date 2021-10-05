@@ -8,20 +8,28 @@ def impl_new_local_pkg_repository(repo_ctx):
 
     # print("impl_new_local_pkg_repository")
 
+    if "OPAM_SWITCH_PREFIX" in repo_ctx.os.environ:
+        opam_switch_prefix = repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib"
+    else:
+        fail("env var OPAM_SWITH_PREFIX must be passed  in attr 'environ'")
+
     ## symlinks before build files
 
     ## FIXME: get opam switch prefix and add to path
 
     ## top-level subdir and bldfile
-    srcpath = repo_ctx.path(repo_ctx.attr.path).realpath
-    # print("SRCPATH: %s" % srcpath)
-    # dirs = srcpath.readdir()
-    cmd = ["ls", "-p", str(srcpath) + "/"]
+    linkpath = opam_switch_prefix + "/" + repo_ctx.attr.path
+    linkpath = repo_ctx.path(linkpath).realpath
+    # if repo_ctx.name == "ocaml.ffi":
+    #     print("OCAML.FFI linkpath: %s" % linkpath)
+
+    cmd = ["ls", "-p", str(linkpath) + "/"]
     r = repo_ctx.execute(
         cmd,
     )
     if r.return_code == 0:
         dirlist = r.stdout.strip().splitlines()
+
         # print("DIRLIST %s" % dirlist)
     elif r.return_code == 1:
         print("{cmd} rc    : {rc}".format(
@@ -42,7 +50,7 @@ def impl_new_local_pkg_repository(repo_ctx):
 
     for f in dirlist:
         if (not f.endswith("/")):
-            fpath = repo_ctx.path(str(srcpath) + "/" + f)
+            fpath = repo_ctx.path(str(linkpath) + "/" + f)
 
             if (fpath.basename not in [
                 "BUILD.bazel", "BUILD", "WORKSPACE.bazel",  "WORKSPACE",
@@ -57,21 +65,20 @@ def impl_new_local_pkg_repository(repo_ctx):
 
     # print("SUBPACKAGES: %s" % repo_ctx.attr.subpackages)
 
-    if repo_ctx.attr.subpackages:
-        if repo_ctx.name == "cmdliner":
-            print("CMDLINER SUBPACKAGES")
+    # if repo_ctx.attr.subpackages:
 
     for [build_file, linkage] in repo_ctx.attr.subpackages.items():
         lst = linkage.split(" ", 2)
         # print("Linkage: {sd} <= {lnk}".format(
         #     sd = lst[0], lnk = lst[1]))
-        srcpath = repo_ctx.path(lst[1]).realpath
+        linkpath = opam_switch_prefix + "/" + lst[1]
+        linkpath = repo_ctx.path(linkpath).realpath
 
-        # print("SRCPATH: %s" % srcpath)
-        cmd = ["ls", "-p", str(srcpath) + "/"]
+        # print("LINKPATH: %s" % linkpath)
+        cmd = ["ls", "-p", str(linkpath) + "/"]
         r = repo_ctx.execute(
             cmd,
-            # working_directory = str(srcpath)
+            # working_directory = str(linkpath)
         )
         if r.return_code == 0:
             dirlist = r.stdout.strip().splitlines()
@@ -93,12 +100,12 @@ def impl_new_local_pkg_repository(repo_ctx):
                 cmd=cmd, stderr= r.stderr))
             fail(" cmd failure.")
 
-        # dirs = srcpath.readdir()
+        # dirs = linkpath.readdir()
         for f in dirlist:
             # print("LINKING: %s" % f)
 
             if not f.endswith("/") and f not in ["META"]:
-                fpath = repo_ctx.path(str(srcpath) + "/" + f)
+                fpath = repo_ctx.path(str(linkpath) + "/" + f)
                 [bn, ext] = paths.split_extension(fpath.basename)
                 repo_ctx.symlink(fpath, lst[0] + "/" + fpath.basename)
 
@@ -107,34 +114,34 @@ def impl_new_local_pkg_repository(repo_ctx):
 ###################
 new_local_pkg_repository = repository_rule(
     implementation = impl_new_local_pkg_repository,
-        attrs = dict(
-            path = attr.string(
-                doc = "Path to opam, relative to OPAM_SWITCH_PREFIX"
-            ),
-            build_file = attr.label(
-                allow_single_file = True,
-            ),
-            subpackages = attr.label_keyed_string_dict(
+    environ = ["OPAM_SWITCH_PREFIX"],
+    attrs = dict(
+        path = attr.string(
+            doc = "Path to opam, relative to OPAM_SWITCH_PREFIX"
+        ),
+        build_file = attr.label(
+            allow_single_file = True,
+        ),
+        subpackages = attr.label_keyed_string_dict(
 
             ),
-            build_file_content = attr.string(
-                doc =
-                "The content for the BUILD file for this repository. " +
-                "Either build_file or build_file_content can be specified, but " +
-                "not both.",
-            ),
-            workspace_file = attr.label(
-                doc =
-                "The file to use as the `WORKSPACE` file for this repository. " +
-                "Either `workspace_file` or `workspace_file_content` can be " +
-                "specified, or neither, but not both.",
-            ),
-            workspace_file_content = attr.string(
-                doc =
-                "The content for the WORKSPACE file for this repository. " +
-                "Either `workspace_file` or `workspace_file_content` can be " +
-                "specified, or neither, but not both.",
-            ),
-
-        )
+        build_file_content = attr.string(
+            doc =
+            "The content for the BUILD file for this repository. " +
+            "Either build_file or build_file_content can be specified, but " +
+            "not both.",
+        ),
+        workspace_file = attr.label(
+            doc =
+            "The file to use as the `WORKSPACE` file for this repository. " +
+            "Either `workspace_file` or `workspace_file_content` can be " +
+            "specified, or neither, but not both.",
+        ),
+        workspace_file_content = attr.string(
+            doc =
+            "The content for the WORKSPACE file for this repository. " +
+            "Either `workspace_file` or `workspace_file_content` can be " +
+            "specified, or neither, but not both.",
+        ),
+    )
 )
