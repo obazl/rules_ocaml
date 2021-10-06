@@ -1,11 +1,4 @@
-## @ocaml.compiler-libs/bytecomp/BUILD.bazel
-
-## findlib: ${OPAMSWITCHPREFIX}/lib/compiler-libs/META
-
-load(
-    "@obazl_rules_ocaml//ocaml:rules.bzl",
-    "ocaml_import"
-)
+load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_import")
 
 # findlib META does not say what pkg "compiler-libs" contains!
 ocaml_import(
@@ -18,7 +11,7 @@ ocaml_import(
         "@ocaml//mode:native": [
         ],
     }),
-    all = glob(["*.c*"]),
+    all = glob(["*.cm*", "*.o", "*.a"]),
     visibility = ["//visibility:public"]
 )
 

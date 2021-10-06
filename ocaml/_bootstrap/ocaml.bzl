@@ -36,15 +36,33 @@ def install_new_local_pkg_repos():
     )
 
     new_local_pkg_repository(
+        name = "ocaml.bigarray",
+        path = "ocaml",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.bigarray.REPO"
+    )
+
+    new_local_pkg_repository(
         name = "ocaml.dynlink",
         path = "ocaml",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.dynlink.REPO"
     )
 
     new_local_pkg_repository(
+        name = "ocaml.str",
+        path = "ocaml",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.str.REPO"
+    )
+
+    new_local_pkg_repository(
         name = "ocaml.threads",
         path = "ocaml/threads",
         build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.threads.REPO"
+    )
+
+    new_local_pkg_repository(
+        name = "ocaml.unix",
+        path = "ocaml",
+        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.unix.REPO"
     )
 
 ##################################
@@ -185,6 +203,12 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
     ws = rules_ocaml_ws
 
     repo_ctx.template(
+        "lib/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.stdlib"),
+        executable = False,
+    )
+
+    repo_ctx.template(
         "compiler-libs/BUILD.bazel",
         Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.BUILD"),
         executable = False,
@@ -193,6 +217,25 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
     repo_ctx.template(
         "compiler-libs/common/BUILD.bazel",
         Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.common.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "compiler-libs/bytecomp/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.bytecomp.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
+        "compiler-libs/optcomp/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.optcomp.BUILD"),
+        executable = False,
+    )
+
+
+    repo_ctx.template(
+        "bigarray/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:bigarray.BUILD"),
         executable = False,
     )
 
@@ -209,22 +252,28 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
     )
 
     repo_ctx.template(
+        "str/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:str.BUILD"),
+        executable = False,
+    )
+
+    repo_ctx.template(
         "threads/BUILD.bazel",
         Label(ws + "//ocaml/_templates/ocaml_REPO:threads.BUILD"),
         executable = False,
     )
 
     repo_ctx.template(
-        "threads/posix/BUILD.bazel",
-        Label(ws + "//ocaml/_templates/ocaml_REPO:threads.posix.BUILD"),
+        "unix/BUILD.bazel",
+        Label(ws + "//ocaml/_templates/ocaml_REPO:unix.BUILD"),
         executable = False,
     )
 
-    repo_ctx.template(
-        "lib/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.stdlib"),
-        executable = False,
-    )
+    # repo_ctx.template(
+    #     "threads/posix/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates/ocaml_REPO:threads.posix.BUILD"),
+    #     executable = False,
+    # )
 
 ################################
 def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
@@ -609,7 +658,6 @@ def _configure_requested_switch(repo_ctx, opam_switch, opam_switch_prefix):
         print("  Pinning")
         # result = repo_ctx.execute(["opam", "config", "var", pkg + ":pinned"])
     elif repo_ctx.attr.verify:
-        repo_ctx.report_progress("XXXXXXXXXXXXXXXX")
         _verify_opam_pkgs(repo_ctx, opam_switch)
 
 #########################################################################

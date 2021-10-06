@@ -1,7 +1,4 @@
-load(
-    "@obazl_rules_ocaml//ocaml:rules.bzl",
-    "ocaml_import"
-)
+load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_import")
 
 ocaml_import(
     name = "dynlink",
@@ -14,6 +11,5 @@ ocaml_import(
         ],
      }),
     all = glob(["dyn*.*"]),
-    # all = glob(["*.cmx", "*.cmi", "*.a", "*.o"]),
     visibility = ["//visibility:public"],
 )

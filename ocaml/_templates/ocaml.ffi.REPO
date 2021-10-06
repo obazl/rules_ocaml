@@ -3,7 +3,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "ffi",
     hdrs = glob(["*.h", "*.tbl"]),
-    # textual_hdrs = glob(["*.*"]),
     include_prefix = "caml",
     visibility = ["//visibility:public"],
 )
