@@ -7,7 +7,7 @@ load("//ocaml:providers.bzl",
 
      "PpxAdjunctsProvider",
      "CompilationModeSettingProvider",
-     "OcamlArchiveProvider",
+     "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
@@ -46,6 +46,59 @@ load(":impl_common.bzl",
 
 scope = tmpdir
 
+def _extract_cmi(ctx):
+    if len(ctx.attr.ns_submodule) > 1:
+        fail("only one ns_submodule supported")
+    (ns, module) = ctx.attr.ns_submodule.items()[0];
+    print("Extracting cmi {cmi} from {ns}".format(
+        cmi = module, ns = ns))
+    # print("NS marker: %s" % ns[OcamlNsMarker])
+    # print("OcamlProvider: %s" % ns[OcamlProvider])
+
+    in_cmi  = None
+    out_cmi = None
+    # for f in ns[OcamlProvider].inputs.to_list(): # nope
+    # for f in ns[OcamlProvider].linkargs.to_list(): #nope
+    for f in ns[OcamlProvider].linkargs.to_list():
+        print("linkarg: %s" % f)
+        if f.basename.endswith(module + ".cmi"):
+            in_cmi = f
+
+    if in_cmi == None:
+        print("LBL: %s" % ctx.label)
+        fail("ns_submodule submodule: '{m}' not found".format(m=module))
+
+    if ctx.attr.as_cmi:
+        if ctx.attr.as_cmi.endswith(".cmi"):
+            as_cmi = ctx.attr.as_cmi
+        else:
+            as_cmi = ctx.attr.as_cmi + ".cmi"
+        out_cmi = ctx.actions.declare_file(as_cmi)
+
+        ctx.actions.symlink(
+            output = out_cmi,
+            target_file = in_cmi
+        )
+
+    else:
+        out_cmi = in_cmi
+
+    default_depset = depset(
+        order = dsorder,
+            direct = [out_cmi],
+    )
+
+    defaultInfo = DefaultInfo(
+        files = default_depset
+    )
+
+    sigProvider = OcamlSignatureProvider(
+        # mli = mlifile,
+        cmi = out_cmi
+    )
+
+    return [defaultInfo, sigProvider]
+
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
 
@@ -54,6 +107,9 @@ def _ocaml_signature_impl(ctx):
     #     debug = True
 
     env = {"PATH": get_sdkpath(ctx)}
+
+    if ctx.attr.ns_submodule:
+        return _extract_cmi(ctx)
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -80,6 +136,11 @@ def _ocaml_signature_impl(ctx):
                                      module_name + ".mli")
     else:
         tmp = capitalize_initial_char(ctx.file.src.basename)
+
+        # FIXME: if src is foo.ml, then use -i to extract mli and compile it
+        # instead of renaming src to .mli?
+        # OR: do not rename, just pass -intf foo.ml -o foo.cmi???
+
         if (tmp != module_name + ".mli"):
             mlifile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
         else:
@@ -170,13 +231,23 @@ def _ocaml_signature_impl(ctx):
     args.add_all(paths_depset.to_list(), before_each="-I")
 
     ## FIXME: do we need the resolver for sigfiles?
-    for f in ctx.files._ns_resolver:
-        if f.extension == "cmx":
-            args.add("-I", f.dirname) ## REQUIRED, even if cmx has full path
-            args.add(f.path)
+    # for f in ctx.files._ns_resolver:
+    #     if f.extension == "cmx":
+    #         args.add("-I", f.dirname) ## REQUIRED, even if cmx has full path
+    #         args.add(f.path)
+
+    if OcamlProvider in ctx.attr._ns_resolver:
+        ns_resolver_depset = [ctx.attr._ns_resolver[OcamlProvider].inputs]
+    else:
+        ns_resolver_depset = []
 
     if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
         ## this will only be the case if this is a submodule of an nslib
+        # if OcamlProvider in ctx.attr._ns_resolver:
+        for f in ctx.attr._ns_resolver[DefaultInfo].files.to_list():
+            args.add("-I", f.dirname)
+            args.add(f)
+
         args.add("-no-alias-deps")
         args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
 
@@ -187,8 +258,8 @@ def _ocaml_signature_impl(ctx):
 
     inputs_depset = depset(
         order = dsorder,
-        direct = [mlifile] + ctx.files._ns_resolver,
-        transitive = indirect_inputs_depsets
+        direct = [mlifile], # + ctx.files._ns_resolver,
+        transitive = indirect_inputs_depsets + ns_resolver_depset
     )
 
     ################
@@ -294,16 +365,29 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 
         src = attr.label(
             doc = "A single .mli source file label",
-            allow_single_file = [".mli", ".cmi"]
+            allow_single_file = [".mli", ".ml"] #, ".cmi"]
         ),
+
+        ns_submodule = attr.label_keyed_string_dict(
+            doc = "Extract cmi file from namespaced module",
+            providers = [
+                [OcamlNsMarker, OcamlArchiveMarker],
+            ]
+        ),
+
+        as_cmi = attr.string(
+            doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
+        ),
+
         pack = attr.string(
             doc = "Experimental",
         ),
+
         deps = attr.label_list(
-            doc = "List of OCaml dependencies. See [Dependencies](#deps) for details.",
+            doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
             providers = [
                 [OcamlProvider],
-                # [OcamlArchiveProvider],
+                [OcamlArchiveMarker],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],
                 [OcamlModuleMarker],
@@ -344,3 +428,198 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
+
+################################################################
+## extract cmi from ns resolver
+########## RULE:  OCAML_NS_SIGNATURE  ################
+def _ocaml_ns_signature_impl(ctx):
+
+    ns = ctx.attr.ns
+    print("Extracting resolver cmi from {ns}".format(ns = ns))
+    # print("NS marker: %s" % ns[OcamlNsMarker])
+    # print("OcamlProvider: %s" % ns[OcamlProvider])
+
+    in_cmi  = None
+    out_cmi = None
+
+    if OcamlNsMarker in ctx.attr.ns:
+        ns_name = ctx.attr.ns[OcamlNsMarker].ns_name
+
+    if ns_name == None:
+        print("LBL: %s" % ctx.label)
+        fail("ns resolver for {ns} not found".format(ns=ns))
+    else:
+        for f in ns[OcamlProvider].filesets.to_list():
+            # print("fileset f: %s" % f)
+            if f.basename.endswith(ns_name + ".cmi"):
+                in_cmi = f
+
+    if in_cmi == None:
+        print("LBL: %s" % ctx.label)
+        fail("ns resolver cmi {cmi} for {ns} not found".format(
+            cmi = ns_name + ".cmi", ns=ns))
+
+    if ctx.attr.as_cmi:
+        if ctx.attr.as_cmi.endswith(".cmi"):
+            as_cmi = ctx.attr.as_cmi
+        else:
+            as_cmi = ctx.attr.as_cmi + ".cmi"
+        out_cmi = ctx.actions.declare_file(as_cmi)
+
+        ctx.actions.symlink(
+            output = out_cmi,
+            target_file = in_cmi
+        )
+
+    else:
+        out_cmi = in_cmi
+
+    default_depset = depset(
+        order = dsorder,
+            direct = [out_cmi],
+    )
+
+    defaultInfo = DefaultInfo(
+        files = default_depset
+    )
+
+    sigProvider = OcamlSignatureProvider(
+        # mli = mlifile,
+        cmi = out_cmi
+    )
+
+    return [defaultInfo, sigProvider]
+
+#######################
+ocaml_ns_signature = rule(
+    implementation = _ocaml_ns_signature_impl,
+    doc = """Extract .cmi from ns lib or archive.
+    """,
+    attrs = dict(
+        rule_options,
+        ## RULE DEFAULTS
+        _linkall     = attr.label(default = "@ocaml//signature/linkall"), # FIXME: call it alwayslink?
+        _threads     = attr.label(default = "@ocaml//signature/threads"),
+        _warnings  = attr.label(default = "@ocaml//signature:warnings"),
+        #### end options ####
+
+        ns = attr.label(
+            doc = "An ocaml_ns_library or ocaml_ns_archive",
+            allow_single_file = True,
+            providers = [OcamlNsMarker]
+        ),
+
+        as_cmi = attr.string(
+            doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
+        ),
+
+        _mode       = attr.label(
+            default = "@ocaml//mode",
+        ),
+        _rule = attr.string( default = "ocaml_ns_signature" ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:sdkpath")
+        ),
+    ),
+    incompatible_use_toolchain_transition = True,
+    provides = [OcamlSignatureProvider],
+    executable = False,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+)
+
+################################################################
+## extract cmi from ns submodule
+########## RULE:  OCAML_NS_SUBSIGNATURE  ################
+def _ocaml_ns_subsignature_impl(ctx):
+
+    ns = ctx.attr.ns
+    print("Extracting cmi for submodule {m} from {ns}".format(
+        m = ctx.attr.module, ns = ns, ))
+    # print("NS marker: %s" % ns[OcamlNsMarker])
+    # print("OcamlProvider: %s" % ns[OcamlProvider])
+
+    in_cmi  = None
+    out_cmi = None
+
+    for f in ns[OcamlProvider].filesets.to_list():
+        print("fileset f: %s" % f)
+        if f.basename.endswith(ctx.attr.module + ".cmi"):
+            in_cmi = f
+
+    if in_cmi == None:
+        print("LBL: %s" % ctx.label)
+        fail("cmi for submodule {m} of ns {ns} not found".format(
+            m = ctx.attr.module + ".cmi", ns=ns))
+
+    if ctx.attr.as_cmi:
+        if ctx.attr.as_cmi.endswith(".cmi"):
+            as_cmi = ctx.attr.as_cmi
+        else:
+            as_cmi = ctx.attr.as_cmi + ".cmi"
+        out_cmi = ctx.actions.declare_file(as_cmi)
+
+        ctx.actions.symlink(
+            output = out_cmi,
+            target_file = in_cmi
+        )
+
+    else:
+        out_cmi = in_cmi
+
+    default_depset = depset(
+        order = dsorder,
+            direct = [out_cmi],
+    )
+
+    defaultInfo = DefaultInfo(
+        files = default_depset
+    )
+
+    sigProvider = OcamlSignatureProvider(
+        # mli = mlifile,
+        cmi = out_cmi
+    )
+
+    return [defaultInfo, sigProvider]
+
+#######################
+ocaml_ns_subsignature = rule(
+    implementation = _ocaml_ns_subsignature_impl,
+    doc = """Extract .cmi from ns submodule
+    """,
+    attrs = dict(
+        rule_options,
+        ## RULE DEFAULTS
+        _linkall     = attr.label(default = "@ocaml//signature/linkall"), # FIXME: call it alwayslink?
+        _threads     = attr.label(default = "@ocaml//signature/threads"),
+        _warnings  = attr.label(default = "@ocaml//signature:warnings"),
+        #### end options ####
+
+        ns = attr.label(
+            doc = "An ocaml_ns_library or ocaml_ns_archive",
+            allow_single_file = True,
+            providers = [OcamlNsMarker]
+        ),
+
+        module = attr.string(
+            doc = "Module whose .cmi we want",
+        ),
+
+        as_cmi = attr.string(
+            doc = "Creates a symlink from the extracted cmi file. Use to rename .cmi file."
+        ),
+
+        _mode       = attr.label(
+            default = "@ocaml//mode",
+        ),
+        _rule = attr.string( default = "ocaml_ns_signature" ),
+        _sdkpath = attr.label(
+            default = Label("@ocaml//:sdkpath")
+        ),
+    ),
+    incompatible_use_toolchain_transition = True,
+    provides = [OcamlSignatureProvider],
+    executable = False,
+    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+)
+
