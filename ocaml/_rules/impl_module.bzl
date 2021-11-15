@@ -65,10 +65,10 @@ def impl_module(ctx):
 
     ################
     includes   = []
-    default_outputs   = []
-    action_outputs   = []
+    default_outputs    = [] # just the cmx/cmo files, for efaultInfo
+    action_outputs   = [] # .cmx, .cmi, .o
     direct_linkargs = []
-    out_cmi = None
+    old_cmi = None
 
     ## module name is derived from sigfile name, so start with sig
     # if we have an input cmi, we will pass it on as Provider output,
@@ -76,15 +76,16 @@ def impl_module(ctx):
     ## TODO: support compile of mli source
     module_name = None
     mlifile = None
+    cmifile = None
     if ctx.attr.sig:
         # print("SIG_%s" % ctx.label.name)
 
         # derive module name from sigfile
         # for submodules, sigfile name will already contain ns prefix
         sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        out_cmi = sigProvider.cmi
+        cmifile = sigProvider.cmi
         mlifile = sigProvider.mli
-        module_name = out_cmi.basename[:-4]
+        module_name = cmifile.basename[:-4]
         if sigProvider.mli.is_source:  # not a generated file
             tmp = capitalize_initial_char(sigProvider.mli.basename)
             normalized_modname = normalize_module_name(sigProvider.mli.basename) + ".mli"
@@ -99,8 +100,8 @@ def impl_module(ctx):
         # detects and adds ns prefix if appropriate:
         (from_name, module_name) = get_module_name(ctx, ctx.file.struct)
         # and declare cmi output, since ocaml will generate it
-        out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
-        action_outputs.append(out_cmi)
+        new_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
+        action_outputs.append(new_cmi)
 
     out_cm_ = ctx.actions.declare_file(scope + module_name + ext) # fname)
     action_outputs.append(out_cm_)
@@ -196,11 +197,11 @@ def impl_module(ctx):
     if ctx.attr.ppx:
         ppx_codeps_info = ctx.attr.ppx[PpxAdjunctsProvider]
 
-        ## NB: it seems to be sufficient to put the ppx_codep in the
+        ## NB: it seems to be sufficient to put the ppx_codeps in the
         ## search path with -I; the archive itself need not be added?
         ## omitting the path: e.g. "Unbound module Ppx_inline_test_lib"
         ## adding the path makes the compile work.
-        ## BUT: the ppx_codep must be propagated to
+        ## BUT: the ppx_codeps must be propagated to
         ## ocaml_executable, otherwise the link will fail with:
         ## "No implementations provided for the following modules:..."
         indirect_ppx_codep_depsets.append(ppx_codeps_info.ppx_codeps)
@@ -255,6 +256,8 @@ def impl_module(ctx):
     # if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
     if hasattr(ns_resolver[OcamlNsResolverProvider], "resolver"):
         ## this will only be the case if this is a submodule in an ns
+        # print("NS RESOLVER FILES: %s" % ns_resolver_files)
+        args.add(ns_resolver_files[0])
         args.add("-no-alias-deps")
         args.add("-open", ns_resolver[OcamlNsResolverProvider].resolver)
 
@@ -270,16 +273,26 @@ def impl_module(ctx):
     ## otherwise the ocaml compiler will not use the cmx file, it will generate
     ## one from the module source.
     mli_out = [mlifile] if mlifile else []
+    cmi_out = [cmifile] if cmifile else []
 
     ## runtime deps must be added to the depgraph (so they get built),
     ## but not the command line (they are not build-time deps).
 
+    if OcamlProvider in ns_resolver:
+        # print("LBL: %s" % ctx.label)
+        # print("NS RESOLVER: %s" % ns_resolver)
+        # print("NS RESOLVER DefaultInfo: %s" % ns_resolver[DefaultInfo])
+        # print("NS RESOLVER OcamlProvider: %s" % ns_resolver[OcamlProvider])
+        ns_deps = [ns_resolver[OcamlProvider].inputs]
+    else:
+        ns_deps = []
+
     inputs_depset = depset(
         order = dsorder,
         direct = [structfile] + ns_resolver_files
-        + mli_out
+        + mli_out # + cmi_out?
         + ctx.files.deps_runtime,
-        transitive = indirect_inputs_depsets + indirect_ppx_codep_depsets
+        transitive = indirect_inputs_depsets + indirect_ppx_codep_depsets + ns_deps
     )
 
     args.add("-c")
@@ -309,7 +322,7 @@ def impl_module(ctx):
 
     default_depset = depset(
         order = dsorder,
-        direct = action_outputs
+        direct = default_outputs
     )
 
     defaultInfo = DefaultInfo(
@@ -318,7 +331,7 @@ def impl_module(ctx):
 
     ocamlProvider_files_depset = depset(
         order  = dsorder,
-        direct = action_outputs, # + [out_cmi] + mli_out,
+        direct = action_outputs + cmi_out + mli_out,
     )
 
     new_inputs_depset = depset(
@@ -327,6 +340,7 @@ def impl_module(ctx):
     )
 
     ocamlProvider = OcamlProvider(
+        filesets = depset(direct=action_outputs + cmi_out),
         inputs   = new_inputs_depset,
         linkargs = linkargs_depset,
         paths    = paths_depset,

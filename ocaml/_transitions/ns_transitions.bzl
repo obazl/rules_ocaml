@@ -83,6 +83,8 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     #     nslib_submod = False
 
     nslib_name = normalize_module_name(attr.name)
+    if attr.ns:
+        nslib_name = normalize_module_name(attr.ns)
     ns_prefixes = []
     ns_prefixes.extend(settings["@ocaml//ns:prefixes"])
     ns_submodules = settings["@ocaml//ns:submodules"]

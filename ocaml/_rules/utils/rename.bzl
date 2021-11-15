@@ -126,19 +126,24 @@ def rename_module(ctx, src):  # , pfx):
 
   cmd = cmd + " true;"
 
-  ## use native.genrule?
-  ctx.actions.run_shell(
-      exec_group = "compile",
-      command = cmd,
-      inputs = inputs,
-      outputs = [outfile],
-      mnemonic = ctx.attr._rule + "_rename_module",
-      progress_message = "{rule}: rename_module {src}".format(
-          rule = ctx.attr._rule,
-          # n    = ctx.label.name,
-        src  = src
-      )
+  ctx.actions.symlink(
+      output = outfile,
+      target_file = src
   )
+
+  # ctx.actions.run_shell(
+  #     exec_group = "compile",
+  #     command = cmd,
+  #     inputs = inputs,
+  #     outputs = [outfile],
+  #     mnemonic = ctx.attr._rule + "_rename_module",
+  #     progress_message = "{rule}: rename_module {src}".format(
+  #         rule = ctx.attr._rule,
+  #         # n    = ctx.label.name,
+  #       src  = src
+  #     )
+  # )
+
   return outfile
 
 ################################################################

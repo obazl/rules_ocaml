@@ -70,6 +70,9 @@ def options_executable(ws):
         _sdkpath = attr.label(
             default = Label("@ocaml//:sdkpath")
         ),
+        exe  = attr.string(
+            doc = "By default, executable name is derived from 'name' attribute; use this to override."
+        ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
             providers = [[OcamlModuleMarker]],
@@ -348,14 +351,6 @@ def options_ns_archive(ws):
             providers = [OcamlModuleMarker],
         ),
 
-        _ns_resolver = attr.label(
-            doc = "Experimental",
-            # allow_single_file = True,
-            providers = [OcamlNsResolverProvider],
-            default = "@ocaml//ns",
-            cfg = ocaml_nslib_submodules_out_transition
-        ),
-
         submodules = attr.label_list(
             doc = "List of *_module submodules",
             allow_files = [".cmo", ".cmx", ".cmi"],
@@ -373,6 +368,14 @@ def options_ns_archive(ws):
             default = "@ocaml//ns:submodules",  # => string_list_setting
             # allow_files = True,
             # mandatory = True
+        ),
+
+        _ns_resolver = attr.label(
+            doc = "Experimental",
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            default = "@ocaml//ns",
+            cfg = ocaml_nslib_submodules_out_transition
         ),
 
         _allowlist_function_transition = attr.label(
@@ -446,6 +449,11 @@ def options_ns_library(ws):
 def options_ns_opts(ws):
 
     return dict(
+
+        ns = attr.string(
+            doc = "Namespace name is derived from 'name' attribute by default; use this to override."
+        ),
+
         _ns_prefixes   = attr.label(
             doc = "Experimental",
             default = "@ocaml//ns:prefixes"
@@ -506,7 +514,7 @@ options_ppx = dict(
             doc = "Format of output of PPX transform. Value must be one of '@ppx//print:binary', '@ppx//print:text'.  See [PPX Support](../ug/ppx.md#ppx_print) for more information",
             default = "@ppx//print"
         ),
-        ppx_tags  = attr.string_list(
-            doc = "DEPRECATED. List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
-        )
+        # ppx_tags  = attr.string_list(
+        #     doc = "DEPRECATED. List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
+        # )
 )

@@ -1,4 +1,5 @@
 load("//ocaml:providers.bzl",
+     "OcamlProvider",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker")
@@ -34,7 +35,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         _rule = attr.string(default = "ocaml_ns_library")
     ),
     cfg     = nslib_in_transition,
-    provides = [OcamlNsMarker, OcamlLibraryMarker],
+    provides = [OcamlNsMarker, OcamlLibraryMarker, OcamlProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )
