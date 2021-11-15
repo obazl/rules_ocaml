@@ -1,11 +1,27 @@
+# An Ocaml "fileset" is the set of files emitted by the Ocaml
+# compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi.
+
+# DefaultInfo.files == whatever is appropriate for the cmd line, e.g. .cmx for modules, .cmxa for archives, .cmi for sigs.
+
+# OcamlProvider.filesets == filesets appropriate for target type. E.g.
+# for ns archives, DefaultInfo.files contains the cmxa file, and
+# OcamlProvider.filesets contains the filesets for the resolver and
+# submodules. For libs, contains filesets for all modules, plus the
+# resolver fileset if the lib is namespaced.
+
+# Filesets allow us to extract elements (e.g. cmi files) from
+# namespaced libs and archives.
+
 OcamlProvider = provider(
-    doc = "OCaml module provider.",
+    doc = "OCaml build provider; content depends on target rule type.",
     fields = {
+        "filesets": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
+
         "inputs"             : "file depset",
         "linkargs"             : "file depset",
         "paths"             : "string depset",
 
-        "files"             : "file depset",
+        "files"             : "DEPRECATED",
         "archives"          : "file depset",
         "archive_deps"       : "file depset of archive deps",
         "ppx_codeps"      : "file depset",
@@ -36,6 +52,7 @@ OcamlNsResolverProvider = provider(
         "resolver_file": "file",
         "resolver": "Name of resolver module",
         "prefixes": "List of alias prefix segs",
+        "ns_name": "ns name (joined prefixes)"
     }
 )
 
