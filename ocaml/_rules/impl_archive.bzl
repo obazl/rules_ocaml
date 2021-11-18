@@ -107,11 +107,11 @@ def impl_archive(ctx):
     ## same for plain and ns archives
     if ctx.attr._rule.startswith("ocaml_ns"):
         if ctx.attr.ns:
-            archive_name = normalize_module_name(ctx.attr.ns)
+            archive_name = ctx.attr.ns ## normalize_module_name(ctx.attr.ns)
         else:
-            archive_name = normalize_module_name(ctx.label.name)
+            archive_name = ctx.label.name ## normalize_module_name(ctx.label.name)
     else:
-        archive_name = normalize_module_name(ctx.label.name)
+        archive_name = ctx.label.name ## normalize_module_name(ctx.label.name)
 
     if debug:
         print("archive_name: %s" % archive_name)
