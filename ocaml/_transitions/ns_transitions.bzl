@@ -10,24 +10,27 @@ load("//ocaml/_functions:module_naming.bzl",
 
 #######################################
 def print_config_state(settings, attr):
-
+    print("CONFIG State:")
     print("  rule name: %s" % attr.name)
+    print("  ns: %s" % settings["@ocaml//ns"])
     print("  ns:prefixes: %s" % settings["@ocaml//ns:prefixes"])
     print("  ns:submodules: %s" % settings["@ocaml//ns:submodules"])
-    if hasattr(attr, "submodules"):
-        print("  attr.submodules: %s" % attr.submodules)
+    print("/CONFIG State")
 
 ##############################################
 def _nsarchive_in_transition_impl(settings, attr):
-    # print("_nsarchive_in_transition_impl %s" % attr.name)
     debug = False
-    # if attr.name in ["color"]:
+    # if attr.name in ["tezos-protocol-compiler"]:
     #     debug = True
 
     if debug:
         print("")
         print(">>> nsarchive_in_transition")
+        # if not settings["@ocaml//ns:prefixes"]:
         print_config_state(settings, attr)
+        if hasattr(attr, "submodules"):
+            print("  attr.submodules: %s" % attr.submodules)
+        print("ATTRS:")
         print(attr)
 
     # # if this in ns:submodules
@@ -46,16 +49,18 @@ def _nsarchive_in_transition_impl(settings, attr):
     #             break
 
     return {
+        # "@ocaml//ns:prefixes"  : [],
         "@ocaml//ns:prefixes"  : [],
         "@ocaml//ns:submodules": [],
     }
 
 ###################
+##FIXME: rename to ns_in_transition, it applies to all rule types
 nsarchive_in_transition = transition(
-    ## """Reset ConfigState for both @ocaml and @ppx.""",
+    ## """Reset ConfigState for ocaml_ns_archive, ocaml_archive.""",
     implementation = _nsarchive_in_transition_impl,
     inputs = [
-        # "@ocaml//ns:transitivity",
+        # "@ocaml//ns",  ##FIXME not available for executable
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",
     ],

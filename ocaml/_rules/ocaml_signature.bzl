@@ -2,6 +2,8 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
+load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+
 load("//ocaml:providers.bzl",
      "OcamlProvider",
 
@@ -46,58 +48,58 @@ load(":impl_common.bzl",
 
 scope = tmpdir
 
-def _extract_cmi(ctx):
-    if len(ctx.attr.ns_submodule) > 1:
-        fail("only one ns_submodule supported")
-    (ns, module) = ctx.attr.ns_submodule.items()[0];
-    print("Extracting cmi {cmi} from {ns}".format(
-        cmi = module, ns = ns))
-    # print("NS marker: %s" % ns[OcamlNsMarker])
-    # print("OcamlProvider: %s" % ns[OcamlProvider])
+# def _extract_cmi(ctx):
+#     if len(ctx.attr.ns_submodule) > 1:
+#         fail("only one ns_submodule supported")
+#     (ns, module) = ctx.attr.ns_submodule.items()[0];
+#     print("Extracting cmi {cmi} from {ns}".format(
+#         cmi = module, ns = ns))
+#     # print("NS marker: %s" % ns[OcamlNsMarker])
+#     # print("OcamlProvider: %s" % ns[OcamlProvider])
 
-    in_cmi  = None
-    out_cmi = None
-    # for f in ns[OcamlProvider].inputs.to_list(): # nope
-    # for f in ns[OcamlProvider].linkargs.to_list(): #nope
-    for f in ns[OcamlProvider].linkargs.to_list():
-        print("linkarg: %s" % f)
-        if f.basename.endswith(module + ".cmi"):
-            in_cmi = f
+#     in_cmi  = None
+#     out_cmi = None
+#     # for f in ns[OcamlProvider].inputs.to_list(): # nope
+#     # for f in ns[OcamlProvider].linkargs.to_list(): #nope
+#     for f in ns[OcamlProvider].linkargs.to_list():
+#         print("linkarg: %s" % f)
+#         if f.basename.endswith(module + ".cmi"):
+#             in_cmi = f
 
-    if in_cmi == None:
-        print("LBL: %s" % ctx.label)
-        fail("ns_submodule submodule: '{m}' not found".format(m=module))
+#     if in_cmi == None:
+#         print("LBL: %s" % ctx.label)
+#         fail("ns_submodule submodule: '{m}' not found".format(m=module))
 
-    if ctx.attr.as_cmi:
-        if ctx.attr.as_cmi.endswith(".cmi"):
-            as_cmi = ctx.attr.as_cmi
-        else:
-            as_cmi = ctx.attr.as_cmi + ".cmi"
-        out_cmi = ctx.actions.declare_file(as_cmi)
+#     if ctx.attr.as_cmi:
+#         if ctx.attr.as_cmi.endswith(".cmi"):
+#             as_cmi = ctx.attr.as_cmi
+#         else:
+#             as_cmi = ctx.attr.as_cmi + ".cmi"
+#         out_cmi = ctx.actions.declare_file(as_cmi)
 
-        ctx.actions.symlink(
-            output = out_cmi,
-            target_file = in_cmi
-        )
+#         ctx.actions.symlink(
+#             output = out_cmi,
+#             target_file = in_cmi
+#         )
 
-    else:
-        out_cmi = in_cmi
+#     else:
+#         out_cmi = in_cmi
 
-    default_depset = depset(
-        order = dsorder,
-            direct = [out_cmi],
-    )
+#     default_depset = depset(
+#         order = dsorder,
+#             direct = [out_cmi],
+#     )
 
-    defaultInfo = DefaultInfo(
-        files = default_depset
-    )
+#     defaultInfo = DefaultInfo(
+#         files = default_depset
+#     )
 
-    sigProvider = OcamlSignatureProvider(
-        # mli = mlifile,
-        cmi = out_cmi
-    )
+#     sigProvider = OcamlSignatureProvider(
+#         # mli = mlifile,
+#         cmi = out_cmi
+#     )
 
-    return [defaultInfo, sigProvider]
+#     return [defaultInfo, sigProvider]
 
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
@@ -108,8 +110,8 @@ def _ocaml_signature_impl(ctx):
 
     env = {"PATH": get_sdkpath(ctx)}
 
-    if ctx.attr.ns_submodule:
-        return _extract_cmi(ctx)
+    # if ctx.attr.ns_submodule:
+    #     return _extract_cmi(ctx)
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -368,12 +370,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             allow_single_file = [".mli", ".ml"] #, ".cmi"]
         ),
 
-        ns_submodule = attr.label_keyed_string_dict(
-            doc = "Extract cmi file from namespaced module",
-            providers = [
-                [OcamlNsMarker, OcamlArchiveMarker],
-            ]
-        ),
+        # ns_submodule = attr.label_keyed_string_dict(
+        #     doc = "Extract cmi file from namespaced module",
+        #     providers = [
+        #         [OcamlNsMarker, OcamlArchiveMarker],
+        #     ]
+        # ),
 
         as_cmi = attr.string(
             doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
@@ -435,7 +437,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 def _ocaml_ns_signature_impl(ctx):
 
     ns = ctx.attr.ns
-    print("Extracting resolver cmi from {ns}".format(ns = ns))
+    # print("Extracting resolver cmi from {ns}".format(ns = ns))
     # print("NS marker: %s" % ns[OcamlNsMarker])
     # print("OcamlProvider: %s" % ns[OcamlProvider])
 
@@ -449,7 +451,7 @@ def _ocaml_ns_signature_impl(ctx):
         print("LBL: %s" % ctx.label)
         fail("ns resolver for {ns} not found".format(ns=ns))
     else:
-        for f in ns[OcamlProvider].filesets.to_list():
+        for f in ns[OcamlProvider].fileset.to_list():
             # print("fileset f: %s" % f)
             if f.basename.endswith(ns_name + ".cmi"):
                 in_cmi = f
@@ -520,7 +522,14 @@ ocaml_ns_signature = rule(
         _sdkpath = attr.label(
             default = Label("@ocaml//:sdkpath")
         ),
-    ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
+oz    ),
+    ## this is not an ns archive, and it does not use ns ConfigState,
+    ## but we need to reset the ConfigState anyway, so the deps are
+    ## not affected if this is a dependency of an ns aggregator.
+    # cfg     = nsarchive_in_transition,
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
@@ -533,16 +542,16 @@ ocaml_ns_signature = rule(
 def _ocaml_ns_subsignature_impl(ctx):
 
     ns = ctx.attr.ns
-    print("Extracting cmi for submodule {m} from {ns}".format(
-        m = ctx.attr.module, ns = ns, ))
+    # print("Extracting cmi for submodule {m} from {ns}".format(
+    #     m = ctx.attr.module, ns = ns, ))
     # print("NS marker: %s" % ns[OcamlNsMarker])
     # print("OcamlProvider: %s" % ns[OcamlProvider])
 
     in_cmi  = None
     out_cmi = None
 
-    for f in ns[OcamlProvider].filesets.to_list():
-        print("fileset f: %s" % f)
+    for f in ns[OcamlProvider].fileset.to_list():
+        # print("fileset f: %s" % f)
         if f.basename.endswith(ctx.attr.module + ".cmi"):
             in_cmi = f
 
@@ -616,7 +625,14 @@ ocaml_ns_subsignature = rule(
         _sdkpath = attr.label(
             default = Label("@ocaml//:sdkpath")
         ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
+    ## this is not an ns archive, and it does not use ns ConfigState,
+    ## but we need to reset the ConfigState anyway, so the deps are
+    ## not affected if this is a dependency of an ns aggregator.
+    cfg     = nsarchive_in_transition,
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,

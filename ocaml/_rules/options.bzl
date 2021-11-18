@@ -11,6 +11,7 @@ load("//ocaml:providers.bzl",
 
 load("//ocaml/_transitions:transitions.bzl",
      "ocaml_module_sig_out_transition",
+     "ocaml_executable_deps_out_transition",
      "ocaml_module_deps_out_transition")
 
 load("//ocaml/_transitions:ns_transitions.bzl",
@@ -75,8 +76,10 @@ def options_executable(ws):
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
+            allow_single_file = True,
             providers = [[OcamlModuleMarker]],
-            default = None
+            default = None,
+            cfg = ocaml_executable_deps_out_transition
         ),
         data = attr.label_list(
             allow_files = True,
@@ -94,6 +97,7 @@ def options_executable(ws):
                          [OcamlModuleMarker],
                          [OcamlNsMarker],
                          [CcInfo]],
+            cfg = ocaml_executable_deps_out_transition
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
@@ -125,9 +129,9 @@ def options_executable(ws):
         mode = attr.label(
             default = ws + "//mode"
         ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     )
     return attrs
 

@@ -40,7 +40,7 @@ def dump_library_to_link(ctx, idx, lib):
 
 #########################
 def dump_ccdep(ctx, dep):
-    print("dump_ccdep %s" % ctx.label)
+    print("DUMP_CCDEP for %s" % ctx.label)
     print("CcInfo dep: {d}".format(d = dep))
     dfiles = dep[DefaultInfo].files.to_list()
     print("dep[DefaultInfo].files count: %s" % len(dfiles))
@@ -72,6 +72,9 @@ def dump_ccdep(ctx, dep):
         for dep in dfiles:
             print(" Default f: %s" % dep)
 
+################
+def dump_CcInfo(ctx, ccInfo):
+    print("dumping CcInfo")
 
 ################################################################
 ## to be called from {ocaml,ppx}_executable

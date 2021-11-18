@@ -98,10 +98,10 @@ def impl_library(ctx):
     for f in direct_dep_files:
         paths_direct.append(f.dirname)
 
-    if ctx.label.name == "tezos-shell":
-        print("LBL: %s" % ctx.label)
-        for dep in direct_deps_attr:
-            print("DEP: %s" % dep[OcamlProvider].filesets)
+    # if ctx.label.name == "tezos-shell":
+    #     print("LBL: %s" % ctx.label)
+    #     for dep in direct_deps_attr:
+    #         print("DEP: %s" % dep[OcamlProvider].fileset)
 
     #### INDIRECT DEPS first ####
     # these are "indirect" from the perspective of the consumer
@@ -112,18 +112,35 @@ def impl_library(ctx):
 
     ccInfo_list = []
 
+    direct_module_deps_files = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.modules
+
     direct_module_deps = ctx.attr.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.attr.modules
 
     for dep in direct_module_deps:
+        # if ctx.label.name == 'tezos-base':
+        #     print("DEPPP: %s" % dep)
         # ignore DefaultInfo, its just for printing, not propagation
 
         if OcamlProvider in dep: # should always be True
-            # print("directdep: %s" % dep[OcamlProvider])
+            # if ctx.label.name == 'tezos-base':
+            #     print("directdep: %s" % dep[OcamlProvider])
 
-            indirect_fileset_depsets.append(dep[OcamlProvider].filesets)
+            indirect_fileset_depsets.append(dep[OcamlProvider].fileset)
 
-            # linkargs: what goes on cmd line to build archive or executable
+            # linkargs: what goes on cmd line to build archive or
+            # executable FIXME: __excluding__ sibling modules! Why?
+            # because even if we put only indirect deps in linkargs,
+            # the head (direct) dep could still appear anywhere in the
+            # dep closure; in particular, we may have sibling deps, in
+            # which case omitting the head dep for linkargs would do
+            # us no good. So we need to filter to remove ALL
+            # (sub)modules from linkargs.
+
+            # if linkarg not in direct_module_deps_files:
             indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+
+            # if ctx.label.name == "tezos-base":
+            #     print("LIBDEP LINKARGS: %s" % dep[OcamlProvider].linkargs)
             # indirect_linkargs_depsets.append(dep[OcamlProvider].files)
 
             ## inputs == all deps
@@ -134,15 +151,13 @@ def impl_library(ctx):
         if CcInfo in dep:
             ## we do not need to do anything with ccdeps here,
             ## just pass them on in a provider
+            # if ctx.label.name == "tezos-legacy-store":
+            #     dump_ccdep(ctx, dep)
             ccInfo_list.append(dep[CcInfo])
 
         if PpxAdjunctsProvider in dep:
             indirect_adjunct_path_depsets.append(dep[PpxAdjunctsProvider].paths)
             indirect_adjunct_depsets.append(dep[PpxAdjunctsProvider].ppx_codeps)
-
-    if ctx.attr._rule.startswith("ocaml_ns"):
-        for f in ns_resolver[DefaultInfo].files.to_list():
-            paths_direct.append(f.dirname)
 
     # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
 
@@ -152,6 +167,25 @@ def impl_library(ctx):
         transitive = ([ns_resolver_depset] if ns_resolver_depset else []) + indirect_inputs_depsets
         # + [depset(direct_dep_files)]
     )
+
+    ## To put direct deps in dep-order, we need to merge the linkargs
+    ## deps and iterate over them:
+    new_linkargs = []
+    ## start with ns_resolver:
+    if ctx.attr._rule.startswith("ocaml_ns"):
+        for f in ns_resolver[DefaultInfo].files.to_list():
+            paths_direct.append(f.dirname)
+            new_linkargs.append(f)
+
+    linkargs_depset = depset(
+        order = dsorder,
+        ## direct = ns_resolver_files,
+        transitive = indirect_linkargs_depsets
+        # transitive = ([ns_resolver_depset] if ns_resolver_depset else []) + indirect_linkargs_depsets
+    )
+    for dep in inputs_depset.to_list():
+        if dep in direct_dep_files:
+            new_linkargs.append(dep)
 
     #######################
     ## Do we need to do this? Why?
@@ -193,19 +227,17 @@ def impl_library(ctx):
         transitive = ([ns_resolver_depset] if ns_resolver_depset else []) + [inputs_depset]
         # + indirect_inputs_depsets
     )
-    linkargs_depset = depset(
-        order = dsorder,
-        ## direct = ns_resolver_files,
-        transitive = ([ns_resolver_depset] if ns_resolver_depset else []) + indirect_linkargs_depsets
-    )
+
     paths_depset  = depset(
         order = dsorder,
         direct = paths_direct,
         transitive = indirect_paths_depsets
     )
-    # print("new_inputs_depset: %s" % new_inputs_depset)
+
+    # print("new_linkargs: %s" % new_linkargs)
     ocamlProvider = OcamlProvider(
-        filesets = depset(
+        files   = depset(direct=new_linkargs),
+        fileset = depset(
             transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
         ),
         inputs   = new_inputs_depset,
@@ -246,9 +278,12 @@ def impl_library(ctx):
             ),
         )
 
+    # if ctx.label.name == "tezos-legacy-store":
+    #     print("ccInfo_list ct: %s" % len(ccInfo_list))
+    ccInfo_merged = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+    # if ctx.label.name == "tezos-legacy-store":
+    #     print("ccInfo_merged: %s" % ccInfo_merged)
     if ccInfo_list:
-        providers.append(
-            cc_common.merge_cc_infos(cc_infos = ccInfo_list)
-        )
+        providers.append(ccInfo_merged)
 
     return providers

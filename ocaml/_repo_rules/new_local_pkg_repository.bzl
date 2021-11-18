@@ -122,9 +122,12 @@ new_local_pkg_repository = repository_rule(
         build_file = attr.label(
             allow_single_file = True,
         ),
-        subpackages = attr.label_keyed_string_dict(
 
-            ),
+        subpackages = attr.label_keyed_string_dict(
+            doc = """Entry key is path to build file, value is 'linkage' pair. First element is directory path to be created under repo root; the build file will be copied to it. Second element is a directory under $OPAM_SWITCH_PREFIX/lib; files therein will be linked to the repo subdirectory made by first element.  I.e. first element is a repo subdir that will contain the BUILD file and the symlinks into the OPAM lib tree.
+            """
+        ),
+
         build_file_content = attr.string(
             doc =
             "The content for the BUILD file for this repository. " +

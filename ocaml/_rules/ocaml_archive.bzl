@@ -79,14 +79,15 @@ ocaml_archive = rule(
             default = Label("@ocaml//:sdkpath")
         ),
         _rule = attr.string( default = "ocaml_archive" ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
     incompatible_use_toolchain_transition = True,
     ## this is not an ns archive, and it does not use ns ConfigState,
-    ## but we need to reset the ConfigState anyway, so the deps are not affected.
-    # cfg     = nsarchive_in_transition,
+    ## but we need to reset the ConfigState anyway, so the deps are
+    ## not affected if this is a dependency of an ns aggregator.
+    cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],

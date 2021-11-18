@@ -20,9 +20,9 @@ def print_config_state(settings, attr):
 def _executable_in_transition_impl(settings, attr):
     ## FIXME: ppx_executable uses @ppx//mode to set @ocaml//mode
     return {
-        "@ocaml//mode"          : settings["@ocaml//mode:mode"],
-        "@ppx//mode"            : settings["@ocaml//mode:mode"], ## Why?
-        "@ocaml//ns:prefixes"   : [],
+        # "@ocaml//mode"          : settings["@ocaml//mode:mode"],
+        # "@ppx//mode"            : settings["@ocaml//mode:mode"], ## Why?
+        "@ocaml//ns:prefixes"   : ["foo"],
         "@ocaml//ns:submodules" : [],
     }
 
@@ -30,12 +30,14 @@ def _executable_in_transition_impl(settings, attr):
 executable_in_transition = transition(
     implementation = _executable_in_transition_impl,
     inputs = [
-        "@ocaml//mode:mode",
-        "@ppx//mode:mode",
+        # "@ocaml//mode:mode",
+        # "@ppx//mode:mode",
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
     ],
     outputs = [
-        "@ocaml//mode",
-        "@ppx//mode",
+        # "@ocaml//mode",
+        # "@ppx//mode",
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",
     ]
@@ -45,13 +47,13 @@ executable_in_transition = transition(
 def _ocaml_executable_deps_out_transition_impl(settings, attr):
     # print(">>> OCAML_EXECUTABLE_DEPS_OUT_TRANSITION: %s" % attr.name)
 
-    if attr.mode:
-        mode = attr.mode
-    else:
-        mode = settings["@ocaml//mode:mode"]
+    # if attr.mode:
+    #     mode = attr.mode
+    # else:
+    #     mode = settings["@ocaml//mode:mode"]
 
     return {
-        "@ppx//mode": mode,
+        # "@ppx//mode": mode,
         "@ocaml//ns:prefixes": [],
         "@ocaml//ns:submodules": []
     }
@@ -60,10 +62,12 @@ def _ocaml_executable_deps_out_transition_impl(settings, attr):
 ocaml_executable_deps_out_transition = transition(
     implementation = _ocaml_executable_deps_out_transition_impl,
     inputs = [
-        "@ocaml//mode:mode",
+        # "@ocaml//mode:mode",
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules"
     ],
     outputs = [
-        "@ppx//mode",
+        # "@ppx//mode",
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules"
     ]

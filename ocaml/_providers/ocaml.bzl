@@ -15,8 +15,9 @@
 OcamlProvider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
     fields = {
-        "filesets": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
+        "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
 
+        "closure"             : "File depset of transitive closure of deps",
         "inputs"             : "file depset",
         "linkargs"             : "file depset",
         "paths"             : "string depset",

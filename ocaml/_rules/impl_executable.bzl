@@ -95,8 +95,9 @@ def impl_executable(ctx):
     ccInfo_list = []
 
     for dep in ctx.attr.deps:
-
+        # print("DEP: %s" % dep[OcamlProvider])
         if CcInfo in dep:
+            # print("CcInfo dep: %s" % dep)
             ccInfo_list.append(dep[CcInfo])
 
         direct_inputs_depsets.append(dep[OcamlProvider].inputs)
@@ -115,24 +116,35 @@ def impl_executable(ctx):
 
     ################################################################
     #### MAIN ####
-    main = ctx.attr.main
-    if CcInfo in main:
-        ccInfo_list.append(main[CcInfo])
+    action_inputs_ccdep_filelist = []
 
-    ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
-    [
-        action_inputs_ccdep_filelist,
-        cc_runfiles
-     ] = link_ccdeps(ctx,
-                     tc.linkmode,
-                     args,
-                     ccInfo)
+    if ctx.attr.main:
+        main = ctx.attr.main
+        if CcInfo in main[0]:
+            print("CcInfo main: %s" % main[0][CcInfo])
+            ccInfo_list.append(main[0][CcInfo])
 
-    direct_inputs_depsets.append(main[OcamlProvider].inputs)
-    direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
-    direct_paths_depsets.append(main[OcamlProvider].paths)
+        ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+        [
+            action_inputs_ccdep_filelist,
+            cc_runfiles
+        ] = link_ccdeps(ctx,
+                        tc.linkmode,
+                        args,
+                        ccInfo)
 
-    paths_indirect.append(main[OcamlProvider].paths)
+        direct_inputs_depsets.append(main[0][OcamlProvider].inputs)
+        direct_linkargs_depsets.append(main[0][OcamlProvider].linkargs)
+        direct_paths_depsets.append(main[0][OcamlProvider].paths)
+
+        direct_linkargs_depsets.append(main[0][DefaultInfo].files)
+
+        paths_indirect.append(main[0][OcamlProvider].paths)
+
+    if ctx.label.name == "tezos-node.exe":
+        print("CcInfo_list: {cc}".format(cc=ccInfo_list))
+        print("CcInfo merged: {cc}".format(cc=ccInfo))
+        print("Cc deps: {cc}".format(cc = action_inputs_ccdep_filelist))
 
     ################
     paths_depset  = depset(
@@ -145,13 +157,29 @@ def impl_executable(ctx):
     linkargs_depset = depset(
         transitive = direct_linkargs_depsets
     )
+    direct_inputs_depset = depset(
+        transitive = direct_inputs_depsets
+    )
 
     # args.add("external/ounit2/oUnit2.cmx")
 
+    ## Archives containing deps needed by direct deps or main must be
+    ## on cmd line.  FIXME: how to include only those actually needed?
+
     for dep in linkargs_depset.to_list():
-        if dep.extension not in ["a", "o", "cmi", "mli", "cmti"]:
-            if dep.basename != "oUnit2.cmx":
+    # for dep in direct_inputs_depset.to_list():
+        # if dep.extension not in ["a", "o", "cmi", "mli", "cmti"]:
+            # if dep.basename != "oUnit2.cmx":  ## FIXME: why?
+        if dep.extension in ["cmx", "cmxa"]:
                 args.add(dep)
+
+    ## all direct deps must be on cmd line:
+    # for dep in ctx.files.deps:
+    #     print("DIRECT DEP: %s" % dep)
+    #     args.add(dep)
+
+    ## 'main' dep must come last on cmd line
+    # args.add(ctx.file.main)
 
     # args.add("external/ounit2/oUnit.cmx")
 
@@ -161,7 +189,7 @@ def impl_executable(ctx):
     args.add("-o", out_exe)
 
     inputs_depset = depset(
-        transitive = direct_inputs_depsets
+        transitive = [direct_inputs_depset]
         + [depset(action_inputs_ccdep_filelist)]
     )
 

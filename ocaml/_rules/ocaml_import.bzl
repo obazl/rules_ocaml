@@ -52,8 +52,12 @@ def _ocaml_import_impl(ctx):
     indirect_paths_depsets = []
 
     for dep in ctx.attr.deps:
+        # print("import dep: %s" % dep[OcamlProvider])
         indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
+
         indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+        indirect_linkargs_depsets.append(dep[DefaultInfo].files)
+
         indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
         # if OcamlProvider in dep:  ## isn't this always true?
@@ -91,7 +95,6 @@ def _ocaml_import_impl(ctx):
     outputGroupDepsets = {}
     direct_archive = []
     if ctx.attr.archive:  # a label_list of file targets
-        direct_default_files.extend(ctx.files.archive)
         direct_inputs_list.extend(ctx.files.archive)
         direct_linkargs_list.extend(ctx.files.archive)
         for dep in ctx.files.archive:
@@ -99,6 +102,8 @@ def _ocaml_import_impl(ctx):
 
         direct_archive.extend(ctx.files.archive)
         for f in ctx.files.archive:
+            if f.extension == "cmxa":
+                direct_default_files.append(f)
             # if (f.path.startswith(opam_lib_prefix)):
             #     dir = paths.relativize(f.dirname, opam_lib_prefix)
             #     direct_paths_list.append( "+../" + dir )
@@ -226,7 +231,7 @@ def _ocaml_import_impl(ctx):
     )
 
     linkargs_depset = depset(
-        direct = direct_linkargs_list,
+        direct = direct_default_files,
         transitive = indirect_linkargs_depsets
     )
     paths_depset = depset(
@@ -250,17 +255,22 @@ def _ocaml_import_impl(ctx):
 
     providers.append(OcamlImportMarker(marker = "OcamlImport"))
 
-    # outputGroupInfo = OutputGroupInfo(
-    #     # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
-    #     all = depset(
-    #         order = dsorder,
-    #         transitive=[
-    #             ppx_codeps_depset,
-    #         ]
-    #     )
-    # )
+    outputGroupInfo = OutputGroupInfo(
+        # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
+        files = direct_default_depset,
 
-    # providers.append(outputGroupInfo)
+        inputs   = new_inputs_depset,
+        linkargs = linkargs_depset,
+
+        # all = depset(
+        #     order = dsorder,
+        #     transitive=[
+        #         ppx_codeps_depset,
+        #     ]
+        # )
+    )
+
+    providers.append(outputGroupInfo)
 
     # if ctx.label.name == "irmin-pack":
     #     print("IRMIN PROVIDERS")

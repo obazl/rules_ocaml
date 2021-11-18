@@ -3,6 +3,7 @@ load(":options.bzl", "options", "options_executable")
 load(":impl_executable.bzl", "impl_executable")
 
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
+## load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 
 ################################
 rule_options = options("ocaml")
@@ -32,12 +33,15 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default  = "ocaml_executable" ),
-        # _allowlist_function_transition = attr.label(
-        #     ## required for transition fn of attribute _mode
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
-    # cfg     = executable_in_transition,
+    ## this is not an ns archive, and it does not use ns ConfigState,
+    ## but we need to reset the ConfigState anyway, so the deps are
+    ## not affected if this is a dependency of an ns aggregator.
+    # cfg     = nsarchive_in_transition,
+    cfg     = executable_in_transition,
     executable = True,
     toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
 )

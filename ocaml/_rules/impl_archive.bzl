@@ -51,8 +51,8 @@ def impl_archive(ctx):
     # print("CALL IMPL_LIB %s" % ctx.label)
     lib_providers = impl_library(ctx)
 
-    lib_DefaultInfo = lib_providers[0]
-    # print("lib_DefaultInfo: %s" % lib_DefaultInfo.files.to_list())
+    libDefaultInfo = lib_providers[0]
+    # print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
 
     libOcamlProvider = lib_providers[1]
     # print("libOcamlProvider.inputs type: %s" % type(libOcamlProvider.inputs))
@@ -71,6 +71,10 @@ def impl_archive(ctx):
         ccInfo  = lib_providers[6] if len(lib_providers) == 7 else False
     else:
         ccInfo  = lib_providers[5] if len(lib_providers) == 6 else False
+
+    # if ctx.label.name == "tezos-legacy-store":
+    #     print("LEGACY CC: %s" % ccInfo)
+        # dump_ccdep(ctx, dep)
 
     ################################
     if libOcamlProvider.ns_resolver == None:
@@ -147,7 +151,6 @@ def impl_archive(ctx):
     ## but it may contain additional modules, so we need to filter.
 
     submod_arglist = [] # direct deps
-    linkargs_list = []   # indirect deps
 
     ## ns_archives have submodules, plain archives have modules
     direct_submodule_deps = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.modules
@@ -166,7 +169,8 @@ def impl_archive(ctx):
     # the latter excludes them (since they are in the archive)
     # NB also: ns_resolver only present if lib is ns
     # for dep in libOcamlProvider.linkargs.to_list():
-    for dep in lib_DefaultInfo.files.to_list():
+    ## libDefaultInfo is the DefaultInfo provider of the underlying lib
+    for dep in libDefaultInfo.files.to_list():
         # print("linkarg: %s" % dep)
         if dep in direct_submodule_deps: # add direct deps to cmd line...
             submod_arglist.append(dep)
@@ -180,8 +184,8 @@ def impl_archive(ctx):
                 fail("ns lib contains extra linkarg: %s" % dep)
         else:
             # linkargs should match direct deps list?
-            # fail("lib contains extra linkarg: %s" % dep)
-            submod_arglist.append(dep)
+            fail("lib contains extra linkarg: %s" % dep)
+            # submod_arglist.append(dep)
 
     ordered_submodules_depset = depset(direct=submod_arglist)
 
@@ -193,9 +197,49 @@ def impl_archive(ctx):
     #             if f.extension == "cmx":
     #                 args.add(f)
 
-    for dep in ordered_submodules_depset.to_list():
-        if dep.extension in ["cmx"]:
+    # for dep in ordered_submodules_depset.to_list():
+    for dep in libOcamlProvider.inputs.to_list():
+        # print("inputs dep: %s" % dep)
+        if dep in submod_arglist:
             args.add(dep)
+
+    linkargs_list = []
+    # lbl_name = "tezos-lwt-result-stdlib.bare.structs"
+    # if ctx.label.name == lbl_name:
+    #     print("ns_name: %s" % nsMarker.ns_name)
+    for dep in libOcamlProvider.linkargs.to_list():
+        #FIXME: dep is not namespaced so we won't match ever:
+        # if ctx.label.name == lbl_name:
+        #     print("RULE: %s" % ctx.attr._rule)
+        #     print("TESTING: %s" % dep.basename)
+        if ctx.attr._rule.startswith("ocaml_ns"):
+            # if ctx.label.name == lbl_name:
+                # print("NS PFX: %s" % nsMarker.ns_name + "__")
+                # print("TEST1: %s" % dep.basename.startswith(nsMarker.ns_name + "__"))
+                # print("TEST2: %s" % (dep.basename != nsMarker.ns_name + ".cmxa"))
+            if dep.basename.startswith(nsMarker.ns_name):
+                if (dep.basename != nsMarker.ns_name + ".cmxa"):
+                    if not dep.basename.startswith(nsMarker.ns_name + "__"):
+                        # if ctx.label.name == lbl_name:
+                        #     print("xxxx")
+                        linkargs_list.append(dep)
+                    # else:
+                    #     if ctx.label.name == lbl_name:
+                    #         print("OMIT1 %s" % dep)
+                # else:
+                #     if ctx.label.name == lbl_name:
+                #         print("OMIT RESOLVER: %s" % dep)
+            else:
+                # if ctx.label.name == lbl_name:
+                #     print("APPEND: %s" % dep)
+                linkargs_list.append(dep)
+        else:
+            if not dep in direct_submodule_deps:
+                linkargs_list.append(dep)
+
+    # for dep in submod_arglist:
+    #     # if dep.extension in ["cmx"]:
+    #     args.add(dep)
 
     args.add("-a")
 
@@ -231,7 +275,7 @@ def impl_archive(ctx):
     ###################
     default_depset = depset(
         order  = dsorder,
-        direct = [archive_file] # archive_a_file,
+        direct = [archive_file] # .cmxa
     )
     newDefaultInfo = DefaultInfo(files = default_depset)
 
@@ -240,15 +284,16 @@ def impl_archive(ctx):
         transitive = [libOcamlProvider.inputs]
     )
 
-    linkargs_depsets = depset(
-        ## indirect deps (excluding direct deps, i.e. submodules & resolver)
-        direct = linkargs_list
-    )
+    # linkargs_depsets = depset(
+    #     ## indirect deps (excluding direct deps, i.e. submodules & resolver)
+    #     # direct = linkargs_list,
+    #     transitive = [libOcamlProvider.linkargs]
+    # )
 
     linkargs_depset = depset(
-        direct     = action_outputs, #[archive_file],
-        transitive = [linkargs_depsets]
+        direct     = linkargs_list
         # transitive = [libOcamlProvider.linkargs]
+        # transitive = [linkargs_depsets]
     )
     paths_depset  = depset(
         order = dsorder,
@@ -257,8 +302,10 @@ def impl_archive(ctx):
     )
 
     ocamlProvider = OcamlProvider(
-        filesets = libOcamlProvider.filesets,
+        files   = libOcamlProvider.files,
+        fileset = libOcamlProvider.fileset,
         inputs   = new_inputs_depset,
+        # linkargs = depset(transitive = [libOcamlProvider.linkargs]),
         linkargs = linkargs_depset,
         paths    = paths_depset,
     )
@@ -278,7 +325,6 @@ def impl_archive(ctx):
         # resolver = ns_resolver,
         ppx_codeps = ppx_codeps_depset,
         linkargs = linkargs_depset,
-        subdeps = linkargs_depsets,
         all = depset(transitive=[
             new_inputs_depset,
             ppx_codeps_depset,

@@ -2,7 +2,9 @@ load("//ocaml:providers.bzl",
      "PpxExecutableMarker",
      "OcamlModuleMarker")
 
-load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
+load("//ocaml/_transitions:transitions.bzl",
+     "ocaml_executable_deps_out_transition",
+     "executable_in_transition")
 
 load(":options.bzl", "options")
 
@@ -33,10 +35,13 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         main = attr.label(
             doc = "A `ppx_module` to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
             # mandatory = True,
-            # allow_single_file = [".ml", ".cmx"],
+            allow_single_file = True,
             providers = [[OcamlModuleMarker]],
-            default = None
+            default = None,
+            cfg = ocaml_executable_deps_out_transition
         ),
+
+       # FIXME: no need for ppx attrib on ppx_executable?
         ppx  = attr.label(
             doc = "PPX binary (executable).",
             providers = [PpxExecutableMarker],
@@ -46,9 +51,12 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         #     doc = "Format of output of PPX transform, binary (default) or text",
         #     default = "@ppx//print"
         # ),
+
+        ##FIXME: use std 'args' attrib, common to all "*_binary" rules
         runtime_args = attr.string_list(
-            doc = "List of args that must be passed to the ppx_executable at runtime. E.g. -inline-test-lib."
+            doc = "List of args that will be passed to the ppx_executable at runtime. E.g. -inline-test-lib. CAVEAT: will be used wherever the exec is run, and passed before command line args.  For finer granularity use the 'ppx_args' attr of e.g. ocaml_module."
         ),
+
         data  = attr.label_list(
             doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
@@ -60,6 +68,7 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
         deps = attr.label_list(
             doc = "Deps needed to build this ppx executable.",
             providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
+            cfg = ocaml_executable_deps_out_transition
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",

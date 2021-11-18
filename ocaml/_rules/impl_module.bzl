@@ -67,7 +67,7 @@ def impl_module(ctx):
     includes   = []
     default_outputs    = [] # just the cmx/cmo files, for efaultInfo
     action_outputs   = [] # .cmx, .cmi, .o
-    direct_linkargs = []
+    # direct_linkargs = []
     old_cmi = None
 
     ## module name is derived from sigfile name, so start with sig
@@ -105,18 +105,18 @@ def impl_module(ctx):
 
     out_cm_ = ctx.actions.declare_file(scope + module_name + ext) # fname)
     action_outputs.append(out_cm_)
-    direct_linkargs.append(out_cm_)
+    # direct_linkargs.append(out_cm_)
     default_outputs.append(out_cm_)
 
     if mode == "native":
         out_o = ctx.actions.declare_file(scope + module_name + ".o")
         action_outputs.append(out_o)
-        direct_linkargs.append(out_o)
+        # direct_linkargs.append(out_o)
 
     ns_resolver = ctx.attr._ns_resolver
     ns_resolver_files = ctx.files._ns_resolver
 
-    paths_direct = [d.dirname for d in direct_linkargs]
+    paths_direct = [out_cm_.dirname] # d.dirname for d in direct_linkargs]
     if ns_resolver:
         paths_direct.extend([f.dirname for f in ns_resolver_files])
     # print("RESOLVER PATHS: %s" % paths_direct)
@@ -165,12 +165,25 @@ def impl_module(ctx):
 
     for dep in the_deps:
         if CcInfo in dep:
+            if ctx.label.name == "Main":
+                dump_ccdep(ctx, dep)
             ccInfo_list.append(dep[CcInfo])
 
+        ## dep's DefaultInfo.files depend on OcamlProvider.linkargs,
+        ## so add the latter before the former
+
         if OcamlProvider in dep:
+
+            # if ctx.label.name == "Mempool":
+            #     print("DEP: %s" % dep[DefaultInfo].files)
+            #     for ds in dep[OcamlProvider].linkargs.to_list():
+            #         print("DS: %s" % ds)
+
             indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
             indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
+
+        indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
     ################ Signature Dep ################
     if ctx.attr.sig:
@@ -244,20 +257,23 @@ def impl_module(ctx):
     args.add_all(includes, before_each="-I", uniquify = True)
 
 
-    _linkargs_depset = depset(
-        transitive = indirect_linkargs_depsets
-    )
+    # _linkargs_depset = depset(
+    #     transitive = indirect_linkargs_depsets
+    # )
 
-    linkargs_depset = depset(
-        direct = direct_linkargs,
-        transitive = [_linkargs_depset]
-    )
+    # linkargs_depset = depset(
+    #     # direct = direct_linkargs,
+    #     transitive = indirect_linkargs_depsets
+    #     # transitive = [_linkargs_depset]
+    # )
 
     # if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
     if hasattr(ns_resolver[OcamlNsResolverProvider], "resolver"):
+
         ## this will only be the case if this is a submodule in an ns
         # print("NS RESOLVER FILES: %s" % ns_resolver_files)
-        args.add(ns_resolver_files[0])
+        # args.add(ns_resolver_files[0])
+
         args.add("-no-alias-deps")
         args.add("-open", ns_resolver[OcamlNsResolverProvider].resolver)
 
@@ -273,7 +289,7 @@ def impl_module(ctx):
     ## otherwise the ocaml compiler will not use the cmx file, it will generate
     ## one from the module source.
     mli_out = [mlifile] if mlifile else []
-    cmi_out = [cmifile] if cmifile else []
+    cmi_out = [cmifile] if cmifile else [new_cmi]
 
     ## runtime deps must be added to the depgraph (so they get built),
     ## but not the command line (they are not build-time deps).
@@ -339,13 +355,14 @@ def impl_module(ctx):
         transitive = indirect_inputs_depsets
     )
 
-    ocamlProvider = OcamlProvider(
-        filesets = depset(direct=action_outputs + cmi_out),
-        inputs   = new_inputs_depset,
-        linkargs = linkargs_depset,
-        paths    = paths_depset,
+    linkset    = depset(transitive = indirect_linkargs_depsets)
 
-        files = ocamlProvider_files_depset,
+    ocamlProvider = OcamlProvider(
+        # files = ocamlProvider_files_depset,
+        fileset = depset(direct=action_outputs + cmi_out),
+        inputs   = new_inputs_depset,
+        linkargs = linkset,
+        paths    = paths_depset,
     )
 
     ################################################################
@@ -388,6 +405,10 @@ def impl_module(ctx):
 
     ################
     outputGroupInfo = OutputGroupInfo(
+        # cc         = ccInfo.linking_context.linker_inputs.libraries,
+        cmi        = depset(direct=cmi_out),
+        fileset    = depset(direct=action_outputs + cmi_out),
+        linkset    = linkset,
         ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         inputs = inputs_depset,
