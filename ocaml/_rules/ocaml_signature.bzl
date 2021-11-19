@@ -525,7 +525,7 @@ ocaml_ns_signature = rule(
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
-oz    ),
+    ),
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are
     ## not affected if this is a dependency of an ns aggregator.
