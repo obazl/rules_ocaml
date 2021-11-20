@@ -59,8 +59,13 @@ def impl_library(ctx):
             ns_resolver_depset = ns_resolver[OcamlProvider].inputs
 
         if OcamlNsResolverProvider in ns_resolver:
+            # print("LBL: %s" % ctx.label)
             # print("ns_resolver: %s" % ns_resolver[OcamlNsResolverProvider])
-            ns_name = ns_resolver[OcamlNsResolverProvider].ns_name
+            if hasattr(ns_resolver[OcamlNsResolverProvider], "ns_name"):
+                ns_name = ns_resolver[OcamlNsResolverProvider].ns_name
+            else:
+                # FIXME: when does this happen?
+                ns_name = ""
 
     # print("ns_resolver_depset: %s" % ns_resolver_depset)
 
@@ -147,6 +152,8 @@ def impl_library(ctx):
             indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
 
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
+
+        indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
         if CcInfo in dep:
             ## we do not need to do anything with ccdeps here,

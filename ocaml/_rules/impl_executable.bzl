@@ -104,6 +104,8 @@ def impl_executable(ctx):
         direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
         direct_paths_depsets.append(dep[OcamlProvider].paths)
 
+        direct_linkargs_depsets.append(dep[DefaultInfo].files)
+
         ################ PpxAdjunctsProvider ################
         if PpxAdjunctsProvider in dep:
             ppxadep = dep[PpxAdjunctsProvider]
