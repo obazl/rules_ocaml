@@ -184,7 +184,8 @@ def options_module(ws):
         sig = attr.label(
             doc = "Single label of a target producing OcamlSignatureProvider (i.e. rule 'ocaml_signature'). Optional.",
             allow_single_file = True, # [".cmi"],
-            providers = [OcamlSignatureProvider],
+            ## FIXME: how to specify OcamlSignatureProvider OR FileProvider?
+            #providers = [[OcamlSignatureProvider]],
             # cfg = ocaml_module_sig_out_transition
         ),
         ################

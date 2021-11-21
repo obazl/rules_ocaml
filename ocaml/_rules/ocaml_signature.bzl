@@ -130,25 +130,40 @@ def _ocaml_signature_impl(ctx):
     ################
     includes   = []
 
-    (from_name, module_name) = get_module_name(ctx, ctx.file.src)
+    sig_src = ctx.file.src
+    if debug:
+        print("sig_src: %s" % sig_src)
+
+    # add prefix if namespaced. from_name == normalized module name
+    # derived from sig_src; module_name == prefixed if ns else same as
+    # from_name.
+    (from_name, module_name) = get_module_name(ctx, sig_src)
 
     if ctx.attr.ppx:
+        ## mlifile output is generated output of ppx processing
         mlifile = impl_ppx_transform("ocaml_signature", ctx,
-                                     ctx.file.src,
+                                     sig_src,
                                      module_name + ".mli")
     else:
-        tmp = capitalize_initial_char(ctx.file.src.basename)
-
-        # FIXME: if src is foo.ml, then use -i to extract mli and compile it
-        # instead of renaming src to .mli?
-        # OR: do not rename, just pass -intf foo.ml -o foo.cmi???
-
-        if (tmp != module_name + ".mli"):
-            mlifile = rename_srcfile(ctx, ctx.file.src, module_name + ".mli")
+        if from_name == module_name:
+            ## no ns
+            mlifile = sig_src
         else:
-            mlifile = ctx.file.src
+            # namespaced w/o ppx: symlink sig_src to prefixed name, so
+            # that output dir will contain both renamed input mli and
+            # output cmi.
+            ns_sig_src = module_name + ".mli"
+            if debug:
+                print("ns_sig_src: %s" % ns_sig_src)
+            mlifile = ctx.actions.declare_file(scope + ns_sig_src)
+            ctx.actions.symlink(output = mlifile,
+                                target_file = sig_src)
+            if debug:
+                print("mlifile %s" % mlifile)
 
     out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
+    if debug:
+        print("out_cmi %s" % out_cmi)
 
     #########################
     args = ctx.actions.args()
@@ -397,9 +412,6 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
             ],
             # cfg = ocaml_signature_deps_out_transition
         ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
         ################################################################
         ## do we need resolver for sigfiles?
         _ns_resolver = attr.label(
@@ -424,6 +436,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         _sdkpath = attr.label(
             default = Label("@ocaml//:sdkpath")
         ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
     ),
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
