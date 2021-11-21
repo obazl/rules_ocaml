@@ -318,8 +318,8 @@ def impl_module(ctx):
 
     for dep in the_deps:
         if CcInfo in dep:
-            if ctx.label.name == "Main":
-                dump_ccdep(ctx, dep)
+            # if ctx.label.name == "Main":
+            #     dump_ccdep(ctx, dep)
             ccInfo_list.append(dep[CcInfo])
 
         ## dep's DefaultInfo.files depend on OcamlProvider.linkargs,

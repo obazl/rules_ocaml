@@ -5,6 +5,9 @@ load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 ## see: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl
 
+## does this still apply?
+# "Library outputs of cc_library shouldn't be relied on, and should be considered as a implementation detail and are toolchain dependent (e.g. if you're using gold linker, we don't produce .a libs at all and use lib-groups instead, also linkstatic=0 on cc_test is something that might change in the future). Ideally you should wait for cc_shared_library (https://docs.google.com/document/d/1d4SPgVX-OTCiEK_l24DNWiFlT14XS5ZxD7XhttFbvrI/edit#heading=h.jwrigiapdkr2) or use cc_binary(name="libfoo.so", linkshared=1) with the hack you mentioned in the meantime. The actual location of shared library dependencies should be available from Skyalrk. Eventually."
+## src: https://github.com/bazelbuild/bazel/issues/4218
 
 ## DefaultInfo.files will be empty for cc_import deps, so in
 ## that case use CcInfo.
@@ -40,27 +43,27 @@ def dump_library_to_link(ctx, idx, lib):
 
 #########################
 def dump_ccdep(ctx, dep):
-    print("DUMP_CCDEP for %s" % ctx.label)
-    print("CcInfo dep: {d}".format(d = dep))
+    # print("DUMP_CCDEP for %s" % ctx.label)
+    # print("CcInfo dep: {d}".format(d = dep))
     dfiles = dep[DefaultInfo].files.to_list()
-    print("dep[DefaultInfo].files count: %s" % len(dfiles))
+    # print("dep[DefaultInfo].files count: %s" % len(dfiles))
     if len(dfiles) > 0:
-        for f in dfiles:
-            print("  %s" % f)
+        # for f in dfiles:
+        #     print("  %s" % f)
 
         ## ASSUMPTION: all files in DefaultInfo are also in CcInfo
-        print("dep[CcInfo].linking_context:")
+        # print("dep[CcInfo].linking_context:")
         cc_info = dep[CcInfo]
         compilation_ctx = cc_info.compilation_context
         linking_ctx     = cc_info.linking_context
         linker_inputs = linking_ctx.linker_inputs.to_list()
-        print("linker_inputs count: %s" % len(linker_inputs))
+        # print("linker_inputs count: %s" % len(linker_inputs))
         lidx = 0
         for linput in linker_inputs:
-            print(" linker_input[{i}]".format(i=lidx))
-            print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+            # print(" linker_input[{i}]".format(i=lidx))
+            # print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
             libs = linput.libraries
-            print(" libs count: %s" % len(libs))
+            # print(" libs count: %s" % len(libs))
             if len(libs) > 0:
                 i = 0
                 for lib in linput.libraries:
@@ -68,9 +71,9 @@ def dump_ccdep(ctx, dep):
                     i = i+1
             lidx = lidx + 1
 
-    else:
-        for dep in dfiles:
-            print(" Default f: %s" % dep)
+    # else:
+    #     for dep in dfiles:
+    #         print(" Default f: %s" % dep)
 
 ################
 def dump_CcInfo(ctx, ccInfo):

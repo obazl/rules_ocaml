@@ -143,10 +143,10 @@ def impl_executable(ctx):
 
         paths_indirect.append(main[0][OcamlProvider].paths)
 
-    if ctx.label.name == "tezos-node.exe":
-        print("CcInfo_list: {cc}".format(cc=ccInfo_list))
-        print("CcInfo merged: {cc}".format(cc=ccInfo))
-        print("Cc deps: {cc}".format(cc = action_inputs_ccdep_filelist))
+    # if ctx.label.name == "tezos-node.exe":
+    #     print("CcInfo_list: {cc}".format(cc=ccInfo_list))
+    #     print("CcInfo merged: {cc}".format(cc=ccInfo))
+    #     print("Cc deps: {cc}".format(cc = action_inputs_ccdep_filelist))
 
     ################
     paths_depset  = depset(
