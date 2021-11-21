@@ -123,7 +123,7 @@ def impl_executable(ctx):
     if ctx.attr.main:
         main = ctx.attr.main
         if CcInfo in main[0]:
-            print("CcInfo main: %s" % main[0][CcInfo])
+            # print("CcInfo main: %s" % main[0][CcInfo])
             ccInfo_list.append(main[0][CcInfo])
 
         ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
