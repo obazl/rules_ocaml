@@ -13,7 +13,7 @@ load("//ocaml:providers.bzl",
      "OcamlTestMarker",
 )
 
-load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
+load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
