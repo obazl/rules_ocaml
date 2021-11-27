@@ -42,18 +42,19 @@ def dump_library_to_link(ctx, idx, lib):
     #     print(" lib[{i}].dynamic_library == None".format(i=idx))
 
 #########################
-def dump_ccdep(ctx, dep):
-    # print("DUMP_CCDEP for %s" % ctx.label)
+def dump_CcInfo(ctx, cc_info): # dep):
+    # print("DUMP_CCINFO for %s" % ctx.label)
     # print("CcInfo dep: {d}".format(d = dep))
-    dfiles = dep[DefaultInfo].files.to_list()
-    # print("dep[DefaultInfo].files count: %s" % len(dfiles))
-    if len(dfiles) > 0:
+
+    # dfiles = dep[DefaultInfo].files.to_list()
+    # if len(dfiles) > 0:
+
         # for f in dfiles:
         #     print("  %s" % f)
 
         ## ASSUMPTION: all files in DefaultInfo are also in CcInfo
         # print("dep[CcInfo].linking_context:")
-        cc_info = dep[CcInfo]
+        # cc_info = dep[CcInfo]
         compilation_ctx = cc_info.compilation_context
         linking_ctx     = cc_info.linking_context
         linker_inputs = linking_ctx.linker_inputs.to_list()
@@ -74,10 +75,6 @@ def dump_ccdep(ctx, dep):
     # else:
     #     for dep in dfiles:
     #         print(" Default f: %s" % dep)
-
-################
-def dump_CcInfo(ctx, ccInfo):
-    print("dumping CcInfo")
 
 ################################################################
 ## to be called from {ocaml,ppx}_executable
