@@ -1,4 +1,6 @@
-load("//ocaml:providers.bzl", "OcamlLibraryMarker")
+load("//ocaml:providers.bzl",
+     "CompilationModeSettingProvider",
+     "OcamlLibraryMarker")
 
 load(":options.bzl", "options", "options_library")
 
@@ -7,12 +9,28 @@ load(":impl_library.bzl", "impl_library")
 load("//ocaml/_transitions:transitions.bzl", "reset_in_transition")
 
 ###############################
+def _ocaml_library(ctx):
+
+    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    if mode == "native":
+        tool = tc.ocamlopt # .basename
+    else:
+        tool = tc.ocamlc  #.basename
+
+    tool_args = []
+
+    return impl_library(ctx, mode, tool, tool_args)
+
+###############################
 rule_options = options("ocaml")
 rule_options.update(options_library("ocaml"))
 
 #####################
 ocaml_library = rule(
-    implementation = impl_library,
+    implementation = _ocaml_library,
     doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OcamlLibraryMarker](providers_ocaml.md#ocamllibraryprovider).
 
 **WARNING** Not yet fully supported - subject to change. Use with caution.
@@ -42,5 +60,5 @@ Packages](../ug/collections.md).
     cfg     = reset_in_transition,
     provides = [OcamlLibraryMarker],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

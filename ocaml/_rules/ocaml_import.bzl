@@ -255,6 +255,9 @@ def _ocaml_import_impl(ctx):
 
     providers.append(OcamlImportMarker(marker = "OcamlImport"))
 
+    # if executable:
+    #     providers.append(OcamlExecutableMarker(marker = "OcamlExecutable"))
+
     outputGroupInfo = OutputGroupInfo(
         # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
         files = direct_default_depset,
@@ -320,5 +323,5 @@ ocaml_import = rule(
     ),
     provides = [OcamlImportMarker],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

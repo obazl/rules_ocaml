@@ -2,7 +2,25 @@ load(":impl_executable.bzl", "impl_executable")
 
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
+load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
+
 load(":options.bzl", "options", "options_executable")
+
+###############################
+def _ocaml_test(ctx):
+
+    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    if mode == "native":
+        tool = tc.ocamlopt # .basename
+    else:
+        tool = tc.ocamlc  #.basename
+
+    tool_args = []
+
+    return impl_executable(ctx, mode, tc.linkmode, tool, tool_args)
 
 ################################
 rule_options = options("ocaml")
@@ -10,7 +28,7 @@ rule_options.update(options_executable("ocaml"))
 
 ##################
 ocaml_test = rule(
-    implementation = impl_executable,
+    implementation = _ocaml_test,
     doc = """OCaml test rule.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_test`
@@ -34,5 +52,5 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     ),
     # cfg = executable_in_transition,
     test = True,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

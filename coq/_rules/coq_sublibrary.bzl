@@ -1,6 +1,6 @@
 load("@bazel_skylib//lib:collections.bzl", "collections")
 
-load("@obazl_rules_ocaml//ocaml:providers.bzl",
+load("@rules_ocaml//ocaml:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlModuleProvider")
 
@@ -25,8 +25,8 @@ def impl_coq_sublibrary(ctx):
     # }
 
     # tc = ctx.toolchains["@coq_sdk//toolchains:toolchain_type"]
-    tc = ctx.toolchains["@obazl_rules_ocaml//coq:toolchain_type"]
-    # tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@ocaml//coq:toolchain_type"]
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -288,7 +288,7 @@ coq_sublibrary = rule(
     ),
     provides = [CoqSublibraryProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//coq:toolchain_type"],
-    # toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"]
+    toolchains = ["@ocaml//coq:toolchain_type"],
+    # toolchains = ["@ocaml//ocaml:toolchain"]
     # toolchains = ["@coq_sdk//toolchains:toolchain_type"],
 )

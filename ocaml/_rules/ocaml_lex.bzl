@@ -3,9 +3,9 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",)
 
-load("//ocaml/_functions:utils.bzl",
-     "get_sdkpath",
-)
+# load("//ocaml/_functions:utils.bzl",
+#      "get_sdkpath",
+# )
 
 load(":impl_common.bzl", "tmpdir")
 
@@ -21,8 +21,8 @@ def _ocaml_lex_impl(ctx):
 
   mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
-  env = {"PATH": get_sdkpath(ctx)}
+  tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+  # env = {"PATH": get_sdkpath(ctx)}
 
   # lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
 
@@ -42,7 +42,7 @@ def _ocaml_lex_impl(ctx):
   args.add(ctx.file.src)
 
   ctx.actions.run(
-      env = env,
+      # env = env,
       executable = tc.ocamllex,
       arguments = [args],
       inputs = [ctx.file.src],
@@ -86,5 +86,5 @@ ocaml_lex = rule(
     ),
     # provides = [],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

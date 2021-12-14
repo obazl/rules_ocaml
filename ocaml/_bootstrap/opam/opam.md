@@ -25,7 +25,12 @@ downloading.  So we could e.g. build wget and tell opam to use that.
 Another way around this would be to install a repo locally ahead of time,
 and tell opam to use that.  Apparently this is not an unusual use-case.
 
-"Defining your own repository, either locally or online, is quite easy: you can start off by cloning the official repository if you intend it as a replacement, or just create a new directory with a packages sub-directory, and a repo file containing at least an opam-version field. See the packaging guide if you need help on the package format."
+"Defining your own repository, either locally or online, is quite
+easy: you can start off by cloning the official repository if you
+intend it as a replacement, or just create a new directory with a
+packages sub-directory, and a repo file containing at least an
+opam-version field. See the packaging guide if you need help on the
+package format." (https://opam.ocaml.org/doc/Usage.html)
 
 In principle, we could use Bazel facilities to download/configure an
 opam repo within a Bazel repository (@opam-repository), then run opam
@@ -41,45 +46,20 @@ e.g.
 ocaml-base-compiler                    4.12.0 Official release 4.12.0
 ```
 
-
-## Timings
-
-Bare init just downloads opam-repository:
-
-```
-$ time opam init --root=. --bare --no-setup --yes
-[NOTE] Will configure from built-in defaults.
-Checking for available remotes: rsync and local, git.
-  - you won't be able to use mercurial repositories unless you install the hg command on your system.
-  - you won't be able to use darcs repositories unless you install the darcs command on your system.
-
-
-<><> Fetching repository information ><><><><><><><><><><><><><><><><><><><>  🐫
-[default] Initialised
-opam init --root=. --bare --no-setup --yes  4.38s user 21.00s system 75% cpu 33.632 total
-```
-
-With compiler:
-
-```
-$ time opam init --root=. --no-setup --no-opamrc --compiler=ocaml-base-compiler.4.12.0 --yes
-449.17s user 149.46s system 316% cpu 3:08.98 total
-```
-
-Space: 542 MB
-
-
-
 ## opam init
 
-Takes two direct args, ADDRESS of a repo and NAME of the repo.
+Takes two direct args, ADDRESS of a repo and NAME of the repo. The
+`--root` sets the root directory for the installation.
 
-So the user can specify a repo address.
+So the user can specify a repo address. Examples:
 
 * `opam init --root=. --bare --no-setup`
+* `opam init --root=./.opam --bare --no-setup`
 * `opam init --root=. --compiler=ocaml-base-compiler.4.12.0`
 
 * `opam init ${HOME}/obazl/opam/opam-repository -k local --root=. --compiler=ocaml-base-compiler.4.12.0`
+
+NB: init starts by fetching the repo; this can take a while.
 
 
 `opam init` flags:
@@ -128,3 +108,36 @@ env vars:
 
 * OPAMROOT see option `--root`. This is automatically set by `opam env
   --root=DIR --set-root`."
+
+Import:
+
+`$ opam switch import FILE`
+
+## Timings
+
+Bare init just downloads opam-repository:
+
+```
+$ time opam init --root=. --bare --no-setup --yes
+[NOTE] Will configure from built-in defaults.
+Checking for available remotes: rsync and local, git.
+  - you won't be able to use mercurial repositories unless you install the hg command on your system.
+  - you won't be able to use darcs repositories unless you install the darcs command on your system.
+
+
+<><> Fetching repository information ><><><><><><><><><><><><><><><><><><><>  🐫
+[default] Initialised
+opam init --root=. --bare --no-setup --yes  4.38s user 21.00s system 75% cpu 33.632 total
+```
+
+With compiler:
+
+```
+$ time opam init --root=. --no-setup --no-opamrc --compiler=ocaml-base-compiler.4.12.0 --yes
+449.17s user 149.46s system 316% cpu 3:08.98 total
+```
+
+Space: 542 MB
+
+
+

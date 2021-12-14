@@ -1,14 +1,18 @@
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
+load("//ocaml/_repo_rules:ocaml.bzl", "ocaml_repository")
 
-def config():
+def ocaml_configure():
 
-    native.new_local_repository(
-        name = "ocaml.compiler-libs",
-        path = "%workspace%/.opam/4.10/lib/ocaml/compiler-libs",
-        build_file = "@//.opam/ocaml:BUILD.bazel"
-        # build_files = {
-        #     ##  build_file: path
-        #     "@//.opam/ocaml:BUILD.bazel": "/Users/gar/.opam/4.10/bin",
-        #     "@rules_ocaml//ocaml/_templates/BUILD.ocaml.archive": "/Users/gar/.opam/4.10/archive"
-        # }
+    maybe(
+        http_archive,
+        name = "bazel_skylib",
+        urls = [
+            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.1.1/bazel-skylib-1.1.1.tar.gz",
+            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.1.1/bazel-skylib-1.1.1.tar.gz",
+        ],
+        sha256 = "c6966ec828da198c5d9adbaa94c05e3a1c7f21bd012a0b29ba8ddbccb2c93b0d",
     )
+
+    ocaml_repository()

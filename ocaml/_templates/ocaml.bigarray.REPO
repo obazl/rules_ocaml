@@ -1,4 +1,4 @@
-load("@obazl_rules_ocaml//ocaml:rules.bzl", "ocaml_import")
+load("@rules_ocaml//build:rules.bzl", "ocaml_import")
 
 ocaml_import(
     name = "bigarray",

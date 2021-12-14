@@ -1,7 +1,7 @@
 load("//coq:providers.bzl",
      "CoqLibraryProvider")
 
-load("@obazl_rules_ocaml//ocaml/_functions:utils.bzl",
+load("@rules_ocaml//ocaml/_functions:utils.bzl",
      "get_opamroot",
      "get_sdkpath"
 )
@@ -22,7 +22,7 @@ def impl_coq_library(ctx):
     # env = {"OPAMROOT": get_opamroot(),
     #        "PATH": get_sdkpath(ctx)}
 
-    # tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 

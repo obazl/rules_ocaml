@@ -25,12 +25,12 @@ def submodule_from_label_string(s):
 ################################
 def normalize_module_label(lbl):
     """Normalize module label: remove leading path segs, extension and prefixed underscores, capitalize first char."""
-    # print("NORMALIZING LBL: %s" % lbl)
+    # print("NORMALIZING LBL: %s" % lbl.label.name)
     (segs, sep, basename) = lbl.rpartition(":")
     (basename, ext) = paths.split_extension(basename)
     basename = basename.strip("_")
     result = basename[:1].capitalize() + basename[1:]
-    # print("RESULT: %s" % result)
+    # print("Normalized: %s" % result)
     return result
 
 ###############################

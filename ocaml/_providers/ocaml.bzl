@@ -17,6 +17,8 @@ OcamlProvider = provider(
     fields = {
         "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
 
+        "cmi" : "Cmi files provided",
+
         "closure"             : "File depset of transitive closure of deps",
         "inputs"             : "file depset",
         "linkargs"             : "file depset",

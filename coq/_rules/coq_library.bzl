@@ -18,7 +18,7 @@ def impl_coq_library(ctx):
     # env = {"OPAMROOT": get_opamroot(),
     #        "PATH": get_sdkpath(ctx)}
 
-    # tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -102,5 +102,5 @@ coq_library = rule(
     # cfg     = nslib_in_transition,
     provides = [CoqLibraryProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

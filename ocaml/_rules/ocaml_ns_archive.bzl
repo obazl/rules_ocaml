@@ -31,5 +31,5 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     cfg     = nsarchive_in_transition,
     provides = [OcamlNsMarker, OcamlArchiveMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

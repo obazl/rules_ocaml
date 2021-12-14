@@ -9,6 +9,23 @@ may change without notice.
 load("//ocaml/_repo_rules:new_local_pkg_repository.bzl",
      _new_local_pkg_repository = "new_local_pkg_repository")
 
+# load("//ocaml/_rules:bootstrap_archive.bzl",
+#      _bootstrap_archive = "bootstrap_archive")
+# load("//ocaml/_rules:bootstrap_executable.bzl",
+#      _bootstrap_executable = "bootstrap_executable")
+# load("//ocaml/_rules:bootstrap_module.bzl",
+#      _bootstrap_module = "bootstrap_module")
+# load("//ocaml/_rules:bootstrap_ns_library.bzl",
+#      _bootstrap_ns_library = "bootstrap_ns_library")
+# load("//ocaml/_rules:bootstrap_ns_resolver.bzl",
+#      _bootstrap_ns_resolver = "bootstrap_ns_resolver")
+# load("//ocaml/_rules:bootstrap_ocamllex.bzl",
+#      _bootstrap_ocamllex = "bootstrap_ocamllex")
+# load("//ocaml/_rules:bootstrap_ocamlyacc.bzl",
+#      _bootstrap_ocamlyacc = "bootstrap_ocamlyacc")
+# load("//ocaml/_rules:bootstrap_signature.bzl",
+#      _bootstrap_signature = "bootstrap_signature")
+
 load("//ocaml/_rules:ocaml_null.bzl", _ocaml_null = "ocaml_null")
 
 load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
@@ -46,6 +63,15 @@ load("//ocaml/_rules:ppx_test.bzl",
 new_local_pkg_repository = _new_local_pkg_repository
 
 ocaml_null = _ocaml_null
+
+# bootstrap_archive      = _bootstrap_archive
+# bootstrap_executable      = _bootstrap_executable
+# bootstrap_module      = _bootstrap_module
+# bootstrap_ns_library  = _bootstrap_ns_library
+# bootstrap_ns_resolver = _bootstrap_ns_resolver
+# bootstrap_ocamllex    = _bootstrap_ocamllex
+# bootstrap_ocamlyacc   = _bootstrap_ocamlyacc
+# bootstrap_signature   = _bootstrap_signature
 
 ocaml_archive    = _ocaml_archive
 ocaml_executable = _ocaml_executable

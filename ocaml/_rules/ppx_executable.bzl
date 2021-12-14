@@ -98,9 +98,9 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
 
         ),
         _rule = attr.string( default = "ppx_executable" ),
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:sdkpath")
-        ),
+        # _sdkpath = attr.label(
+        #     default = Label("@ocaml//:sdkpath")
+        # ),
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -111,5 +111,5 @@ By default, this rule adds `-predicates ppx_driver` to the command line.
     # provides = [DefaultInfo, PpxExecutableMarker],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

@@ -65,9 +65,9 @@ ppx_x_test = rule(
   implementation = _ppx_x_test_impl,
   test = True,
   attrs = dict(
-    _sdkpath = attr.label(
-      default = Label("@ocaml//:sdkpath")
-    ),
+    # _sdkpath = attr.label(
+    #   default = Label("@ocaml//:sdkpath")
+    # ),
     ppx = attr.label(
         mandatory = True,
         providers = [[PpxExecutableMarker]],
@@ -94,7 +94,7 @@ ppx_x_test = rule(
     ),
     message = attr.string()
   ),
-  toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+  toolchains = ["@ocaml//ocaml:toolchain"],
 )
 
 ################################################################
@@ -189,7 +189,7 @@ fi
 #     ),
 #     message = attr.string()
 #   ),
-#   toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+#   toolchains = ["@ocaml//ocaml:toolchain"],
 # )
 
 ################################################################
@@ -444,9 +444,9 @@ ppx_expect_test = rule(
     implementation = _ppx_expect_impl,
     test = True,
     attrs = dict(
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:sdkpath")
-        ),
+        # _sdkpath = attr.label(
+        #     default = Label("@ocaml//:sdkpath")
+        # ),
         ppx = attr.label(
             # mandatory = True,
             providers = [[DefaultInfo], [PpxExecutableMarker]],
@@ -499,7 +499,7 @@ ppx_expect_test = rule(
         message = attr.string()
     ),
     cfg     = ppx_mode_transition,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )
 
 ###################################################
@@ -626,9 +626,9 @@ ppx_test = rule(
     implementation = _ppx_test_impl,
     test = True,
     attrs = dict(
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:sdkpath")
-        ),
+        # _sdkpath = attr.label(
+        #     default = Label("@ocaml//:sdkpath")
+        # ),
         verbose = attr.bool(
             doc = "Adds 'set -x' to the script run by this rule, so the effective command (with substitutions) will be written to the log.",
             default = False
@@ -666,5 +666,5 @@ ppx_test = rule(
         mode = attr.string(default = "native"),
         message = attr.string()
     ),
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

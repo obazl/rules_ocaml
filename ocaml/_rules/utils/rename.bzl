@@ -7,24 +7,25 @@ load("//ocaml:providers.bzl",
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_fs_prefix",
-     "get_sdkpath",
+     # "get_sdkpath",
 )
 load("//ocaml/_functions:module_naming.bzl", "submodule_from_label_string")
 
-load("//ocaml/_rules:impl_common.bzl", "tmpdir")
+load("//ocaml/_rules:impl_common.bzl", "tmpdir", "module_sep")
 
 ######################################################
 def _this_module_in_submod_list(ctx, src, submodules):
-    ## NB: src is a File, from a label attrib (struct/src), not to be confused with the rule name.
-    # src.owner is the label of the rule that produces the file.
-    # By obazl rules, module names after normalization must match the filename in their src/struct attrib.
+    # src: File
+    # submodules: list of strings (bottomup) or labels (topdown)
+    print("_this_module_in_submod_list submodules: %s" % submodules)
     (this_module, ext) = paths.split_extension(src.basename)
     this_module = capitalize_initial_char(this_module)
     this_owner  = src.owner
-    if type(ctx.attr._ns_resolver) == "list":
-        ns_resolver = ctx.attr._ns_resolver[0][OcamlNsResolverProvider]
-    else:
-        ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+
+    # if type(ctx.attr._ns_resolver) == "list":
+    #     ns_resolver = ctx.attr._ns_resolver[0][OcamlNsResolverProvider]
+    # else:
+    #     ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
 
     result = False
 
@@ -42,33 +43,64 @@ def _this_module_in_submod_list(ctx, src, submodules):
 ## FIXME: we don't need this for executables (including test rules)
 # if this is a submodule, add the prefix
 # otherwise, if ppx, rename
+# derive module name from ns prefixes
 def get_module_name (ctx, src):
+    # print("get_module_name: %s" % src)
     ## src: for modules, ctx.file.struct, for sigs, ctx.file.src
     debug = False
 
+    # we get prefix list from ns_resolver module. they're also in the
+    # config state (@ocaml//ns:prefixes), which is how ns_resolver
+    # gets them. they are also available in hidden _ns_prefixes for
+    # all *_ns_* rules, but those could be changed by transitions.
+    # only the ones in the ns_resolver module are reliable.(?)
+
     # _ns_resolver for modules, sigs has out transition, which forces this
     # to a list:
-    if type(ctx.attr._ns_resolver) == "list":
-        ns_resolver = ctx.attr._ns_resolver[0]
-        print("NSR: %s" % ns_resolver)
-    else:
-        ns_resolver = ctx.attr._ns_resolver
 
-    if OcamlNsResolverProvider in ns_resolver:
-        ns_resolver = ns_resolver[OcamlNsResolverProvider]
+    ns_resolver = False
+    bottomup = False
+    if hasattr(ctx.attr, "ns"):
+        # print("HAS ctx.attr.ns")
+        if ctx.attr.ns:
+            # print("BOTTOMUP")
+            bottomup = True
+            ns_resolver = ctx.attr.ns
+            prefix = ns_resolver.label.name
+        else:
+            if type(ctx.attr._ns_resolver) == "list":
+                ns_resolver = ctx.attr._ns_resolver[0]
+                # print("NSR: %s" % ns_resolver)
+            else:
+                ns_resolver = ctx.attr._ns_resolver
     else:
-        print("MISSING OcamlNsResolverProvider")
+        if type(ctx.attr._ns_resolver) == "list":
+            ns_resolver = ctx.attr._ns_resolver[0]
+            # print("NSR: %s" % ns_resolver)
+        else:
+            ns_resolver = ctx.attr._ns_resolver
+
+    if ns_resolver:
+        # print("RENAME ns_resolver: %s" % ns_resolver)
+        if OcamlNsResolverProvider in ns_resolver:
+            ns_resolver = ns_resolver[OcamlNsResolverProvider]
+        else:
+            print("MISSING OcamlNsResolverProvider")
 
     if debug:
         print("ns_resolver: %s" % ns_resolver)
 
     ns     = None
-    ns_sep = "__"
+    # module_sep = "__"
 
     (this_module, extension) = paths.split_extension(src.basename)
     this_module = capitalize_initial_char(this_module)
+    # if ctx.label.name == "Char_cmi":
+    #     print("this_module: %s" % this_module)
 
-    if hasattr(ns_resolver, "prefixes"): # "prefix"):
+    if bottomup:
+        out_module = prefix + module_sep + this_module
+    elif hasattr(ns_resolver, "prefixes"): # "prefix"):
         ns_prefixes = ns_resolver.prefixes # .prefix
         if len(ns_prefixes) == 0:
             out_module = this_module
@@ -77,18 +109,33 @@ def get_module_name (ctx, src):
             out_module = this_module
         else:
             if len(ns_resolver.submodules) > 0:
-                if _this_module_in_submod_list(ctx, src, ns_resolver.submodules):
-                    # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
-                    #     fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
+                if bottomup:
+                    # print("sm: %s" % ns_resolver.submodules)
+                    # print("this_module: %s" % this_module)
+                    if this_module in ns_resolver.submodules:
+                        fs_prefix = module_sep.join(ns_prefixes) + "__"
+                        out_module = fs_prefix + this_module
                     # else:
-                    fs_prefix = "__".join(ns_prefixes) + "__"
-                    out_module = fs_prefix + this_module
                 else:
-                    out_module = this_module
+                    if _this_module_in_submod_list(ctx,
+                                                   src,
+                                                   ns_resolver.submodules):
+                        # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
+                        #     fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
+                        # else:
+                        fs_prefix = module_sep.join(ns_prefixes) + "__"
+                        out_module = fs_prefix + this_module
+                    else:
+                        out_module = this_module
             else:
                 out_module = this_module
     else: ## not a submodule
         out_module = this_module
+
+    if ctx.label.name == "Std_exit":
+        out_module = "std_exit"
+    if ctx.label.name == "Stdlib":
+        out_module = "stdlib"
 
     return this_module, out_module
 

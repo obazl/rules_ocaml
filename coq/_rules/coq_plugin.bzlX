@@ -86,7 +86,7 @@ coq_plugin = rule(
             default = "@ocaml//:projroot"
         ),
         _sdkpath = attr.label(
-            default = Label("@ocaml//:path")
+            default = Label("@ocaml//:sdkpath")
         ),
         _rule = attr.string( default = "coq_plugin" ),
         _allowlist_function_transition = attr.label(
@@ -98,5 +98,5 @@ coq_plugin = rule(
     cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

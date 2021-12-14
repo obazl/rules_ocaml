@@ -35,11 +35,12 @@ load("//ocaml/_functions:module_naming.bzl", "normalize_module_label")
 load(":options.bzl",
      "options",
      "options_ns_opts",
-     "options_ppx")
+     "options_ppx",
+     "options_signature")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_ccdeps.bzl", "link_ccdeps", "dump_ccdep")
+load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
 
 load(":impl_common.bzl",
      "dsorder",
@@ -115,7 +116,7 @@ def _ocaml_signature_impl(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
     if mode == "native":
         exe = tc.ocamlopt.basename
@@ -349,6 +350,7 @@ def _ocaml_signature_impl(ctx):
 
 ################################
 rule_options = options("ocaml")
+rule_options.update(options_signature)
 rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
@@ -375,15 +377,15 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         ## RULE DEFAULTS
-        _linkall     = attr.label(default = "@ocaml//signature/linkall"), # FIXME: call it alwayslink?
-        _threads     = attr.label(default = "@ocaml//signature/threads"),
+        # _linkall     = attr.label(default = "@ocaml//signature/linkall"), # FIXME: call it alwayslink?
+        # _threads     = attr.label(default = "@ocaml//signature/threads"),
         _warnings  = attr.label(default = "@ocaml//signature:warnings"),
         #### end options ####
 
-        src = attr.label(
-            doc = "A single .mli source file label",
-            allow_single_file = [".mli", ".ml"] #, ".cmi"]
-        ),
+        # src = attr.label(
+        #     doc = "A single .mli source file label",
+        #     allow_single_file = [".mli", ".ml"] #, ".cmi"]
+        # ),
 
         # ns_submodule = attr.label_keyed_string_dict(
         #     doc = "Extract cmi file from namespaced module",
@@ -392,50 +394,56 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     ]
         # ),
 
-        as_cmi = attr.string(
-            doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
-        ),
+        # as_cmi = attr.string(
+        #     doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
+        # ),
 
-        pack = attr.string(
-            doc = "Experimental",
-        ),
+        # pack = attr.string(
+        #     doc = "Experimental",
+        # ),
 
-        deps = attr.label_list(
-            doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
-            providers = [
-                [OcamlProvider],
-                [OcamlArchiveMarker],
-                [OcamlImportMarker],
-                [OcamlLibraryMarker],
-                [OcamlModuleMarker],
-                [OcamlNsMarker],
-            ],
-            # cfg = ocaml_signature_deps_out_transition
-        ),
-        ################################################################
-        ## do we need resolver for sigfiles?
-        _ns_resolver = attr.label(
-            doc = "Experimental",
-            providers = [OcamlNsResolverProvider],
-            default = "@ocaml//ns",
-            # cfg = ocaml_signature_deps_out_transition
-        ),
+        # deps = attr.label_list(
+        #     doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
+        #     providers = [
+        #         [OcamlProvider],
+        #         [OcamlArchiveMarker],
+        #         [OcamlImportMarker],
+        #         [OcamlLibraryMarker],
+        #         [OcamlModuleMarker],
+        #         [OcamlNsMarker],
+        #     ],
+        #     # cfg = ocaml_signature_deps_out_transition
+        # ),
 
-        _ns_submodules = attr.label( # _list(
-            doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
-        ),
+        # data = attr.label_list(
+        #     allow_files = True
+        # ),
+
+        # ################################################################
+        # _ns_resolver = attr.label(
+        #     doc = "Experimental",
+        #     providers = [OcamlNsResolverProvider],
+        #     default = "@ocaml//ns",
+        #     # cfg = ocaml_signature_deps_out_transition
+        # ),
+
+        # _ns_submodules = attr.label( # _list(
+        #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+        #     default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
+        # ),
         # _ns_strategy = attr.label(
         #     doc = "Experimental",
         #     default = "@ocaml//ns:strategy"
         # ),
-        _mode       = attr.label(
-            default = "@ocaml//mode",
-        ),
+        # _mode       = attr.label(
+        #     default = "@ocaml//mode",
+        # ),
+
         _rule = attr.string( default = "ocaml_signature" ),
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:sdkpath")
-        ),
+
+        # _sdkpath = attr.label(
+        #     default = Label("@ocaml//:sdkpath")
+        # ),
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
@@ -443,7 +451,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )
 
 ################################################################
@@ -548,7 +556,7 @@ ocaml_ns_signature = rule(
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )
 
 ################################################################
@@ -636,7 +644,7 @@ ocaml_ns_subsignature = rule(
         _mode       = attr.label(
             default = "@ocaml//mode",
         ),
-        _rule = attr.string( default = "ocaml_ns_signature" ),
+        _rule = attr.string( default = "ocaml_signature" ),
         _sdkpath = attr.label(
             default = Label("@ocaml//:sdkpath")
         ),
@@ -651,6 +659,5 @@ ocaml_ns_subsignature = rule(
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )
-

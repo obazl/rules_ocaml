@@ -12,7 +12,7 @@ load("//ocaml/_functions:module_naming.bzl",
 def print_config_state(settings, attr):
     print("CONFIG State:")
     print("  rule name: %s" % attr.name)
-    print("  ns: %s" % settings["@ocaml//ns"])
+    # print("  ns: %s" % settings["@ocaml//ns"])
     print("  ns:prefixes: %s" % settings["@ocaml//ns:prefixes"])
     print("  ns:submodules: %s" % settings["@ocaml//ns:submodules"])
     print("/CONFIG State")
@@ -88,8 +88,9 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     #     nslib_submod = False
 
     nslib_name = normalize_module_name(attr.name)
-    if attr.ns:
-        nslib_name = normalize_module_name(attr.ns)
+    if hasattr(attr, "ns"):
+        if attr.ns:
+            nslib_name = normalize_module_name(attr.ns)
     ns_prefixes = []
     ns_prefixes.extend(settings["@ocaml//ns:prefixes"])
     ns_submodules = settings["@ocaml//ns:submodules"]
@@ -97,6 +98,9 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     ## convert submodules label list to module name list
     attr_submodules = []
     attr_submodule_labels = []
+
+    ## submodules is a label list of targets, but since the targets
+    ## have not yet been build the vals are labels not targets
     for submod_label in attr.submodules:
         submod = normalize_module_name(submod_label.name)
         attr_submodules.append(submod)
@@ -161,6 +165,94 @@ ocaml_nslib_submodules_out_transition = transition(
         "@ocaml//ns:submodules",
     ],
     outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+################################################################
+################################################################
+
+################
+def _bootstrap_nslib_submodules_out_transition_impl(settings, attr):
+    print("_bootstrap_nslib_submodules_out_transition_impl %s" % attr.name)
+
+    debug = False
+    if debug:
+        print("")
+        print(">>> bootstrap_nslib_submodules_out_transition_impl")
+        if attr.resolver:
+            print("user-provided resolver: %s" % attr.resolver)
+        print_config_state(settings, attr)
+
+    # if attr.name.startswith("#"):
+    #     nslib_submod = True
+    # else:
+    #     nslib_submod = False
+
+    nslib_name = normalize_module_name(attr.name)
+    if attr.ns:
+        nslib_name = normalize_module_name(attr.ns)
+    ns_prefixes = []
+    ns_prefixes.extend(settings["@ocaml//ns:prefixes"])
+    ns_submodules = settings["@ocaml//ns:submodules"]
+
+    # print("nslib_name: %s" % nslib_name)
+
+    ## convert submodules label list to module name list
+    attr_submodules = []
+    attr_submodule_labels = []
+
+    ## submodules is a label list of targets, but since the targets
+    ## have not yet been built the vals are labels not targets
+    for submod_label in attr.submodules:
+        submod = normalize_module_name(submod_label.name)
+        attr_submodules.append(submod)
+        attr_submodule_labels.append(str(submod_label))
+
+    nslib_module = capitalize_initial_char(nslib_name)
+    if len(ns_prefixes) == 0 and ns_submodules == []:
+        ## this is a toplevelnslib, not a descendant of another nslib
+        ns_prefixes.append(nslib_module)
+        ns_submodules = attr_submodules
+    elif nslib_module in ns_submodules:
+        ## this is nslib is a submodule of a parent nslib
+        ns_prefixes.append(nslib_module)
+    elif nslib_module not in ns_prefixes:
+        # this is a descendant of another nslib, but it is not a
+        # submodule; e.g. child of a submodule
+        # - params are inherited from remote ns lib
+        ns_prefixes.append(nslib_module)
+    # else:
+        ## this is an ns lib submodule of a parent nslib
+        ## no changes to ConfigState
+
+    if debug:
+        print(" setting ConfigState:")
+        print("  @ocaml//ns:prefixes: %s" % ns_prefixes)
+        print("  @ocaml//ns:submodules: %s" % attr_submodule_labels)
+
+    if attr.resolver:
+        resolver = attr.resolver
+    else:
+        resolver = settings["@ocaml//bootstrap/ns:resolver"]
+
+    return {
+        "@ocaml//bootstrap/ns:resolver": resolver,
+        "@ocaml//ns:prefixes": ns_prefixes,
+        "@ocaml//ns:submodules": attr_submodule_labels,
+    }
+
+#########################################
+bootstrap_nslib_submodules_out_transition = transition(
+    implementation = _bootstrap_nslib_submodules_out_transition_impl,
+    inputs = [
+        "@ocaml//bootstrap/ns:resolver",
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//bootstrap/ns:resolver",
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",
     ]

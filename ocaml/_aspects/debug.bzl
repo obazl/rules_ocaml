@@ -1,4 +1,4 @@
-load("@obazl_rules_ocaml//ocaml:providers.bzl", "OcamlProvider")
+load("@rules_ocaml//ocaml:providers.bzl", "OcamlProvider")
 
 ####################################
 NsResolverInfo = provider(

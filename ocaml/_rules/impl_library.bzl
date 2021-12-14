@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
@@ -12,12 +13,11 @@ load("//ocaml:providers.bzl",
 
      "PpxAdjunctsProvider")
 
+load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
-load(":impl_ccdeps.bzl", "dump_ccdep")
+load(":impl_ccdeps.bzl", "dump_CcInfo")
 
-load("//ocaml/_functions:utils.bzl", "get_sdkpath")
-
-load(":impl_common.bzl", "dsorder")
+# load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
 ## Library targets do not produce anything, they just pass on their deps.
 
@@ -27,36 +27,43 @@ load(":impl_common.bzl", "dsorder")
 ## deps.
 
 #################
-def impl_library(ctx):
+def impl_library(ctx, mode, tool, tool_args):
 
     debug = False
     # print("**** NS_LIB {} ****************".format(ctx.label))
 
-    env = {"PATH": get_sdkpath(ctx)}
+    # env = {"PATH": get_sdkpath(ctx)}
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     ns_resolver_depset = None
-    ns_resolver_module = []
+    ns_resolver_module = None
     ns_resolver = []
     ns_resolver_files = []
+    the_ns_resolvers = []
 
     # WARNING: due to transition processing, ns_resolver providers
     # must be indexed by [0]
 
     if ctx.attr._rule.startswith("ocaml_ns"):
-        # print("tgt: %s" % ctx.label)
-        # print("rule: %s" % ctx.attr._rule)
-        ns_resolver = ctx.attr._ns_resolver[0] # index by int
-        # print("ns_resolver: %s" % ns_resolver)
-        ns_resolver_module = ctx.files._ns_resolver
-        # print("ns_resolver_module: %s" % ns_resolver_module)
-        if OcamlProvider in ns_resolver: ##ctx.attr._ns_resolver[0]:
-            # print("ns_resolver provider: %s" % ns_resolver[OcamlProvider])
-            ns_resolver_files = ns_resolver[OcamlProvider].inputs
-            ns_resolver_depset = ns_resolver[OcamlProvider].inputs
+        print("tgt: %s" % ctx.label)
+        print("rule: %s" % ctx.attr._rule)
+
+        if hasattr(ctx.attr, "resolver"):
+            if ctx.attr.resolver:
+                # user-provided
+                ns_resolver = ctx.attr.resolver
+                ns_resolver_module = ctx.file.resolver
+                ns_name = ctx.attr.ns
+        else:
+            if len(ctx.files._ns_resolver) > 0:
+                ns_resolver = ctx.attr._ns_resolver[0] # index by int
+                ns_resolver_module = ctx.files._ns_resolver[0]
+
+        print("ns_resolver: %s" % ns_resolver)
+        print("ns_resolver_module: %s" % ns_resolver_module)
 
         if OcamlNsResolverProvider in ns_resolver:
             # print("LBL: %s" % ctx.label)
@@ -67,7 +74,45 @@ def impl_library(ctx):
                 # FIXME: when does this happen?
                 ns_name = ""
 
+        ## if ns_resolver ends in __0Resolver, then we know that one
+        ## of the submodules is a user-provided resolver; the
+        ## __0Resolver was just used to compile the submodules. So we
+        ## need to find the user-provided resolver (its name matches
+        ## the ns name), and make all the other submodules depend on
+        ## it.
+
+        ## pathological case: ns contains a single user-provided
+        ## resolver. in that case we have no aliases so no resolver.
+        ## there would be no point in such an ns but its possible.
+        if ns_resolver_module:
+            print("LBL: %s" % ctx.label)
+            (ns_resolver_mname, ext) = paths.split_extension(ns_resolver_module.basename)
+            print("ns_resolver_mname: %s" % ns_resolver_mname)
+            if ns_resolver_mname == ns_name + resolver_suffix:
+                print("Resolver is user-provided")
+                user_provided_resolver = True
+            else:
+                user_provided_resolver = False
+        else:
+            user_provided_resolver = False
+
+        if user_provided_resolver:
+            ##FIXME: efficiency
+            for submodule in ctx.files.submodules:
+                (bname, ext) = paths.split_extension(submodule.basename)
+                if bname == ns_name:
+                    print("Found user-provided resolver submodule")
+                    the_ns_resolvers.append(submodule)
+        # else:
+        if OcamlProvider in ns_resolver: ##ctx.attr._ns_resolver[0]:
+            # print("ns_resolver provider: %s" % ns_resolver[OcamlProvider])
+            ns_resolver_files = ns_resolver[OcamlProvider].inputs
+            ns_resolver_depset = ns_resolver[OcamlProvider].inputs
+
+        # the_ns_resolvers.append(ns_resolver_module[0])
+
     # print("ns_resolver_depset: %s" % ns_resolver_depset)
+    # print("ns_name: %s" % ns_name)
 
     ################
     ## FIXME: does lib need to handle adjunct deps? they're carried by
@@ -88,11 +133,11 @@ def impl_library(ctx):
         direct_dep_files = ctx.files.submodules
         direct_deps_attr = ctx.attr.submodules
     elif ctx.attr._rule == "ocaml_archive":
-        direct_dep_files = ctx.files.modules
-        direct_deps_attr = ctx.attr.modules
+        direct_dep_files = ctx.files.manifest
+        direct_deps_attr = ctx.attr.manifest
     elif ctx.attr._rule == "ocaml_library":
-        direct_dep_files = ctx.files.modules
-        direct_deps_attr = ctx.attr.modules
+        direct_dep_files = ctx.files.manifest
+        direct_deps_attr = ctx.attr.manifest
     else:
         fail("impl_library called by non-aggregator: %s" % ctx.attr._rule)
 
@@ -117,9 +162,9 @@ def impl_library(ctx):
 
     ccInfo_list = []
 
-    direct_module_deps_files = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.modules
+    direct_module_deps_files = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
 
-    direct_module_deps = ctx.attr.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.attr.modules
+    direct_module_deps = ctx.attr.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.attr.manifest
 
     for dep in direct_module_deps:
         # if ctx.label.name == 'tezos-base':
@@ -159,7 +204,7 @@ def impl_library(ctx):
             ## we do not need to do anything with ccdeps here,
             ## just pass them on in a provider
             # if ctx.label.name == "tezos-legacy-store":
-            #     dump_ccdep(ctx, dep)
+            #     dump_CcInfo(ctx, dep)
             ccInfo_list.append(dep[CcInfo])
 
         if PpxAdjunctsProvider in dep:
@@ -167,6 +212,16 @@ def impl_library(ctx):
             indirect_adjunct_depsets.append(dep[PpxAdjunctsProvider].ppx_codeps)
 
     # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
+
+    # normalized_direct_dep_files = []
+    # for dep in direct_dep_files:
+    #     print("direct dep: %s" % dep)
+    #     print("the_ns_resolvers: %s" % the_ns_resolvers)
+    #     # (bname, ext) = paths.split_extension(dep.basename)
+    #     if dep.basename not in the_ns_resolvers: ## [0].basename:
+    #         normalized_direct_dep_files.append(dep)
+    #     else:
+    #         print("removing %s" % dep)
 
     inputs_depset = depset(
         order = dsorder,
@@ -180,9 +235,10 @@ def impl_library(ctx):
     new_linkargs = []
     ## start with ns_resolver:
     if ctx.attr._rule.startswith("ocaml_ns"):
-        for f in ns_resolver[DefaultInfo].files.to_list():
-            paths_direct.append(f.dirname)
-            new_linkargs.append(f)
+        if ns_resolver:
+            for f in ns_resolver[DefaultInfo].files.to_list():
+                paths_direct.append(f.dirname)
+                new_linkargs.append(f)
 
     linkargs_depset = depset(
         order = dsorder,
@@ -203,12 +259,17 @@ def impl_library(ctx):
     #######################
     # print("INPUTS_DEPSET: %s" % inputs_depset)
 
+    # print("the_ns_resolvers: %s" % the_ns_resolvers)
+
     #### PROVIDERS ####
     defaultDepset = depset(
         order = dsorder,
-        direct = ns_resolver_module,
-        # FIXME: problem is direct_dep_files are not dep-ordered
+        # direct = normalized_direct_dep_files, # ns_resolver_module,
+        # transitive = [depset(direct = the_ns_resolvers)]
+
+        direct = the_ns_resolvers + [ns_resolver_module] if ns_resolver_module else [],
         transitive = [depset(direct_dep_files)]
+        # transitive = [depset(normalized_direct_dep_files)]
     )
 
     defaultInfo = DefaultInfo(
@@ -281,7 +342,7 @@ def impl_library(ctx):
         providers.append(
             OcamlNsMarker(
                 marker = "OcamlNsMarker",
-                ns_name = ns_name
+                ns_name = ns_name if ns_resolver else ""
             ),
         )
 

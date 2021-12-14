@@ -1,4 +1,5 @@
 load("//ocaml:providers.bzl",
+     "CompilationModeSettingProvider",
      "OcamlProvider",
      "OcamlArchiveMarker",
      "OcamlImportMarker",
@@ -13,9 +14,25 @@ load("impl_archive.bzl", "impl_archive")
 
 load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 
+###############################
+def _ocaml_archive(ctx):
+
+    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    if mode == "native":
+        tool = tc.ocamlopt # .basename
+    else:
+        tool = tc.ocamlc  #.basename
+
+    tool_args = []
+
+    return impl_archive(ctx, mode, tc.linkmode, tool, tool_args)
+
 #####################
 ocaml_archive = rule(
-    implementation = impl_archive,
+    implementation = _ocaml_archive,
     doc = """Generates an OCaml archive file.""",
     attrs = dict(
         options("ocaml"),
@@ -38,7 +55,7 @@ ocaml_archive = rule(
             default = False
         ),
 
-        modules = attr.label_list(
+        manifest = attr.label_list(
             doc = "List of component modules.",
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
@@ -75,9 +92,9 @@ ocaml_archive = rule(
         _projroot = attr.label(
             default = "@ocaml//:projroot"
         ),
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:sdkpath")
-        ),
+        # _sdkpath = attr.label(
+        #     default = Label("@ocaml//:sdkpath")
+        # ),
         _rule = attr.string( default = "ocaml_archive" ),
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -90,5 +107,5 @@ ocaml_archive = rule(
     cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

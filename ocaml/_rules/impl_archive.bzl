@@ -11,7 +11,7 @@ load("//ocaml:providers.bzl",
 
      "PpxAdjunctsProvider")
 
-load("//ocaml/_functions:utils.bzl", "get_sdkpath")
+# load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
 load(":impl_library.bzl", "impl_library")
 
@@ -22,22 +22,23 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 load(":impl_common.bzl", "tmpdir", "dsorder")
 
 #################
-def impl_archive(ctx):
+def impl_archive(ctx, mode, linkmode, tool, tool_args):
 
     debug = False # True
     # if ctx.label.name == "Bare_structs":
     #     debug = True #False
 
-    env = {"PATH": get_sdkpath(ctx)}
+    # env = {"PATH": get_sdkpath(ctx)}
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
-    if mode == "native":
-        exe = tc.ocamlopt.basename
-    else:
-        exe = tc.ocamlc.basename
+    # if mode == "native":
+    #     tool = tc.ocamlopt # .basename
+    # else:
+    #     tool = tc.ocamlc # .basename
+    # tool_args = []
 
     # ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
 
@@ -49,7 +50,7 @@ def impl_archive(ctx):
     ####  call impl_ns_library  ####
     # FIXME: improve the return vals handling
     # print("CALL IMPL_LIB %s" % ctx.label)
-    lib_providers = impl_library(ctx)
+    lib_providers = impl_library(ctx, mode, tool, tool_args)
 
     libDefaultInfo = lib_providers[0]
     # print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
@@ -83,7 +84,9 @@ def impl_archive(ctx):
     else:
         ns_resolver = libOcamlProvider.ns_resolver
         if debug:
-            print("ARCH GOT NSRESOLVER FROM NSLIB: %s" % libOcamlProvider.ns_resolver)
+            print("ARCH GOT NSRESOLVER FROM NSLIB")
+            for f in libOcamlProvider.ns_resolver: # .files.to_list():
+                print("nsrsolver: %s" % f)
 
     paths_direct = []
     paths_indirect = libOcamlProvider.paths
@@ -134,10 +137,7 @@ def impl_archive(ctx):
     #########################
     args = ctx.actions.args()
 
-    # if mode == "native":
-    #     args.add(tc.ocamlopt.basename)
-    # else:
-    #     args.add(tc.ocamlc.basename)
+    args.add_all(tool_args)
 
     args.add_all(_options)
 
@@ -153,7 +153,8 @@ def impl_archive(ctx):
     submod_arglist = [] # direct deps
 
     ## ns_archives have submodules, plain archives have modules
-    direct_submodule_deps = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.modules
+    # direct_submodule_deps = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.modules
+    direct_submodule_deps = ctx.files.manifest
 
     if OcamlProvider in ns_resolver:
         ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
@@ -200,7 +201,10 @@ def impl_archive(ctx):
     # for dep in ordered_submodules_depset.to_list():
     for dep in libOcamlProvider.inputs.to_list():
         # print("inputs dep: %s" % dep)
+        # print("ns_resolver: %s" % ns_resolver)
         if dep in submod_arglist:
+            args.add(dep)
+        elif dep == ns_resolver:
             args.add(dep)
 
     linkargs_list = []
@@ -218,7 +222,7 @@ def impl_archive(ctx):
                 # print("TEST1: %s" % dep.basename.startswith(nsMarker.ns_name + "__"))
                 # print("TEST2: %s" % (dep.basename != nsMarker.ns_name + ".cmxa"))
             if dep.basename.startswith(nsMarker.ns_name):
-                if (dep.basename != nsMarker.ns_name + ".cmxa"):
+                if (dep.basename != nsMarker.ns_name + ".cmxa") and (dep.basename != nsMarker.ns_name + ".cma"):
                     if not dep.basename.startswith(nsMarker.ns_name + "__"):
                         # if ctx.label.name == lbl_name:
                         #     print("xxxx")
@@ -254,12 +258,12 @@ def impl_archive(ctx):
 
     ################
     ctx.actions.run(
-        env = env,
-        executable = exe,
+        # env = env,
+        executable = tool,
         arguments = [args],
         inputs = libOcamlProvider.inputs,
         outputs = action_outputs,
-        tools = [tc.ocamlopt, tc.ocamlc],
+        tools = [tool] + tool_args, # [tc.ocamlopt, tc.ocamlc],
         mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
             mode = mode,

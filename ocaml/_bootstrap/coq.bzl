@@ -144,7 +144,7 @@ def _discover_switch(repo_ctx):
 def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     repo_ctx.report_progress("installing templates")
 
-    ws = "@obazl_rules_ocaml"
+    ws = "@ocaml"
 
     repo_ctx.template(
         "BUILD.bazel",
@@ -200,7 +200,7 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     )
     repo_ctx.template(
         "aspects/ppx.bzl",
-        Label("@obazl_rules_ocaml//ocaml/_aspects:ppx.bzl"),
+        Label("@rules_ocaml//ocaml/_aspects:ppx.bzl"),
         executable = False,
     )
 

@@ -5,7 +5,9 @@ load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
 # load("//coq/_toolchains:coq_toolchains.bzl", "coq_register_toolchains")
 
-load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_register_toolchains")
+# load("//ocaml/_toolchains:ocaml_toolchains.bzl",
+#      "bootstrap_register_toolchains",
+#      "ocaml_register_toolchains")
 
 load("//ocaml/_debug:utils.bzl", "debug_report_progress")
 
@@ -15,54 +17,54 @@ load("//ocaml/_repo_rules:new_local_pkg_repository.bzl",
 
 load("//opam:_opam_repo.bzl", opam_install = "install")
 
-rules_ocaml_ws = "@obazl_rules_ocaml"
+rules_ocaml_ws = "@ocaml"
 
 ################
 def install_new_local_pkg_repos():
-
+    print("INSTALLING new local pkg repos")
     # path attr: relative to OPAM_SWITCH_PREFIX
 
     new_local_pkg_repository(
         name = "ocaml.compiler-libs",
         # path = OPAM_SWITCH_PREFIX + "/lib/ocaml/compiler-libs",
         path = "ocaml/compiler-libs",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.compiler-libs.REPO"
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.compiler-libs.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.ffi",
         path = "ocaml/caml",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.ffi.REPO"
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.ffi.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.bigarray",
         path = "ocaml",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.bigarray.REPO"
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.bigarray.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.dynlink",
         path = "ocaml",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.dynlink.REPO"
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.dynlink.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.str",
         path = "ocaml",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.str.REPO"
-    )
-
-    new_local_pkg_repository(
-        name = "ocaml.threads",
-        path = "ocaml/threads",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.threads.REPO"
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.str.REPO"
     )
 
     new_local_pkg_repository(
         name = "ocaml.unix",
         path = "ocaml",
-        build_file = "@obazl_rules_ocaml//ocaml/_templates:ocaml.unix.REPO"
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.unix.REPO"
+    )
+
+    new_local_pkg_repository(
+        name = "ocaml.threads",
+        path = "ocaml/threads",
+        build_file = "@rules_ocaml//ocaml/_templates:ocaml.threads.REPO"
     )
 
 ##################################
@@ -111,6 +113,8 @@ def _get_opam_var(repo_ctx, var, switch=None):
 ##############################
 def _discover_switch(repo_ctx):
     "Configures the opam switch."
+
+    ## OBSOLETE
 
     ## We only use OPAM for discovery, not for access.
 
@@ -208,11 +212,11 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
         executable = False,
     )
 
-    repo_ctx.template(
-        "compiler-libs/BUILD.bazel",
-        Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.BUILD"),
-        executable = False,
-    )
+    # repo_ctx.template(
+    #     "compiler-libs/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates/ocaml_REPO:compiler-libs.BUILD"),
+    #     executable = False,
+    # )
 
     repo_ctx.template(
         "compiler-libs/common/BUILD.bazel",
@@ -279,7 +283,7 @@ def _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix):
 def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     repo_ctx.report_progress("installing templates")
 
-    ws = "@obazl_rules_ocaml"
+    ws = "@ocaml"
 
     repo_ctx.template(
         "BUILD.bazel",
@@ -292,6 +296,12 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     )
 
     _install_ocaml_core_pkgs(repo_ctx, projroot, opam_switch_prefix)
+
+    repo_ctx.template( ## for bootstrapping the OCaml compilers
+        "bootstrap/ns/BUILD.bazel",
+        Label(ws + "//ocaml/_templates:BUILD.ocaml.bootstrap.ns"),
+        executable = False,
+    )
 
     repo_ctx.template(
         "toolchain/BUILD.bazel",
@@ -327,26 +337,31 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
 
     ## TEMPORARY HACK
     #### ASPECTS ####
-    repo_ctx.template(
-        "aspects/BUILD.bazel",
-        Label(ws + "//ocaml/_templates:BUILD.ocaml.aspects"),
-        executable = False,
-    )
-    repo_ctx.template(
-        "aspects/debug.bzl",
-        Label("@obazl_rules_ocaml//ocaml/_aspects:debug.bzl"),
-        executable = False,
-    )
-    repo_ctx.template(
-        "aspects/ppx.bzl",
-        Label("@obazl_rules_ocaml//ocaml/_aspects:ppx.bzl"),
-        executable = False,
-    )
-    repo_ctx.template(
-        "aspects/depsets.bzl",
-        Label("@obazl_rules_ocaml//ocaml/_aspects:depsets.bzl"),
-        executable = False,
-    )
+    # repo_ctx.template(
+    #     "aspects/BUILD.bazel",
+    #     Label(ws + "//ocaml/_templates:BUILD.ocaml.aspects"),
+    #     executable = False,
+    # )
+    # repo_ctx.template(
+    #     "aspects/debug.bzl",
+    #     Label("@rules_ocaml//ocaml/_aspects:debug.bzl"),
+    #     executable = False,
+    # )
+    # repo_ctx.template(
+    #     "aspects/ppx.bzl",
+    #     Label("@rules_ocaml//ocaml/_aspects:ppx.bzl"),
+    #     executable = False,
+    # )
+    # repo_ctx.template(
+    #     "aspects/depsets.bzl",
+    #     Label("@ocaml//aspects:depsets.bzl"),
+    #     executable = False,
+    # )
+    # repo_ctx.template(
+    #     "aspects/providers.bzl",
+    #     Label("@ocaml//aspects:providers.bzl"),
+    #     executable = False,
+    # )
 
     # #### BUILD CONFIG FLAGS ####
     repo_ctx.template(
@@ -671,6 +686,7 @@ def _configure_default_switch(repo_ctx, opam_switch, opam_switch_prefix):
 
 ###############################
 def _ocaml_repo_impl(repo_ctx):
+    print("xxxxxxxxxxxxxxxx")
     repo_ctx.report_progress("Bootstrapping ocaml repo")
     if repo_ctx.attr.debug:
         print("_ocaml_repo_impl")
@@ -939,17 +955,19 @@ def config_opam(
 ##############################
 # def configure(debug = False, opam = None): # , **kwargs):
 def ocaml_configure(
-        opam     = None,
-        build    = None,
-        switch   = None,
-        # hermetic = False,
-        # verify   = False,
-        # install  = False,
-        # pin      = False,
-        # force    = False,
-        debug    = False,
-        bootstrap_debug = False,
-        verbose  = False):
+    opam     = None,
+    build    = None,
+    switch   = None,
+    # hermetic = False,
+    # verify   = False,
+    # install  = False,
+    # pin      = False,
+    # force    = False,
+    debug    = False,
+
+    bootstrap = False,
+    bootstrap_debug = False,
+    verbose  = False):
     # is_rules_ocaml = False,
     #                 opam = None):
     """Declares workspaces (repositories) the Ocaml rules depend on.
@@ -969,6 +987,8 @@ def ocaml_configure(
     if build and switch:
         fail("configure params 'build' and 'switch' incompatible, pass one or the other.")
 
+    install_new_local_pkg_repos()
+
     ppx_repo(name="ppx")
 
     # obazl_repo(name="obazl")
@@ -976,6 +996,9 @@ def ocaml_configure(
     # opam_configure()
 
     default_build = None
+
+    print("config repo")
+
     if opam:
         config_opam(
             opam,
@@ -990,8 +1013,8 @@ def ocaml_configure(
             bootstrap_debug = bootstrap_debug,
         )
     else:
-        # print("no opam")
-        _ocaml_repo(name="ocaml",
+        print("no opam")
+        _ocaml_repo(name="ocamlfoobar",
                     # hermetic = hermetic,
                     # verify   = verify,
                     # install  = install,
@@ -1008,9 +1031,6 @@ def ocaml_configure(
                     debug = debug,
                     bootstrap_debug = bootstrap_debug)
 
-    install_new_local_pkg_repos()
-
-    ocaml_register_toolchains(installation="host")
     # coq_register_toolchains(installation="host")
 
     # print("ocaml_configure done")

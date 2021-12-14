@@ -1,4 +1,4 @@
-load("@obazl_rules_ocaml//coq/_toolchains:coq_toolchains.bzl",
+load("@ocaml//coq/_toolchains:coq_toolchains.bzl",
      "coq_toolchain")
 
 toolchain_type(

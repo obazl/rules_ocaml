@@ -10,8 +10,8 @@ def coq_register_toolchains(installation = None, noocaml = None):
     # native.register_toolchains("@coq_sdk//toolchains:coq_linux")
     # native.register_toolchains("@coq_sdk//toolchains:coq_macos")
 
-    native.register_toolchains("@obazl_rules_ocaml//coq:coq_linux")
-    native.register_toolchains("@obazl_rules_ocaml//coq:coq_macos")
+    native.register_toolchains("@ocaml//coq:coq_linux")
+    native.register_toolchains("@ocaml//coq:coq_macos")
 
 ################################################################
 _coq_tools_attrs = {

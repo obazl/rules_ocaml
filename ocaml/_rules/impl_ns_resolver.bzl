@@ -1,22 +1,24 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
-     "OcamlProvider",
      "CompilationModeSettingProvider",
+     "OcamlProvider",
      "OcamlNsResolverProvider")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",
      "get_fs_prefix",
-     "get_sdkpath",
+     # "get_sdkpath",
 )
+
+load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_functions:module_naming.bzl", "normalize_module_label")
 
 load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
 #################
-def impl_ns_resolver(ctx):
+def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     debug = False
     # if ctx.label.name == "":
@@ -29,38 +31,52 @@ def impl_ns_resolver(ctx):
         print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
-    submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
+    if ctx.attr.submodules:
+        submodules = ctx.attr.submodules
+    else:
+        submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
+
     if len(submodules) < 1:
         if debug:
             print("NO SUBMODULES")
         return [DefaultInfo(),
                 OcamlNsResolverProvider()]
-    # print("submodules: %s" % submodules)
 
-    env = {"PATH": get_sdkpath(ctx)}
+    if debug:
+        print("submodules: %s" % submodules)
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # env = {"PATH": get_sdkpath(ctx)}
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+
+    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    # if mode == "native":
+    #     exe = tc.ocamlopt.basename
+    # else:
+    #     exe = tc.ocamlc.basename
 
     ################
     default_outputs = [] ## .cmx only
     action_outputs = []  ## .cmx, .cmi, .o
     rule_outputs = [] # excludes .cmi
 
-    obj_cm_ = None
-    obj_cmi = None
+    out_cm_ = None
+    out_cmi = None
 
     aliases = []
 
-    ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
+    if ctx.attr.ns:
+        ns_prefixes = [ctx.attr.ns]
+    else:
+        ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
-    user_main = False
+    user_ns_resolver = None
 
     for submod_label in submodules:  # e.g. [Color, Red, Green, Blue], where main = Color
-        # print("submod_label: %s" % submod_label)
+        print("submod_label: %s" % submod_label)
         submodule = normalize_module_label(submod_label)
-        # print("submodule normed: %s" % submodule)
+        print("submodule normed: %s" % submodule)
         # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
         #     ## NB: submodules may come from different pkgs
         #     fs_prefix = get_fs_prefix(submod_label)
@@ -68,24 +84,27 @@ def impl_ns_resolver(ctx):
         # else:
         fs_prefix = ""
         alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
+        print("alias_prefix: %s" % alias_prefix)
 
         ## an ns can be used as a submodule of another ns
         nslib_submod = False
-        if submodule.startswith("#"):
-            # this is an nslib submodule, do not prefix
-            nslib_submod = True
-            submodule = capitalize_initial_char(submodule[1:])
+        # if submodule.startswith("#"):
+        #     # this is an nslib submodule, do not prefix
+        #     nslib_submod = True
+        #     submodule = capitalize_initial_char(submodule[1:])
 
         if len(ns_prefixes) > 0:
             if len(ns_prefixes) == 1:
+                # print("lbl: %s" % ctx.label)
                 # print("one ns_prefixes: %s" % ns_prefixes)
+                # print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
-                    user_main = True
+                    user_ns_resolver = submod_label
                     continue ## no alias for main module
             elif submodule == ns_prefixes[-1]:
                 # this is main nslib module
-                user_main = True
+                user_ns_resolver = submod_label
                 continue ## no alias for main module
 
         # print("submodule pre: %s" % submodule)
@@ -102,21 +121,55 @@ def impl_ns_resolver(ctx):
     # print("aliases: %s" % aliases)
 
     ns_name = module_sep.join(ns_prefixes)
-    if user_main:
-        resolver_module_name = ns_name + resolver_suffix
+
+    ################################################################
+    ## user-provided resolver
+    if user_ns_resolver:
+        print("User-provided resolver for ns: %s" % ns_name)
+        print(" resolver: %s" % user_ns_resolver)
+
+        defaultInfo = DefaultInfo()
+        #     files = depset(
+        #         order  = dsorder,
+        #         # direct = default_outputs # action_outputs
+        #         direct = user_ns_resolver
+        #     )
+        # )
+
+        # nsResolverProvider = OcamlNsResolverProvider(
+        #     # resolver_file = resolver_src_file,
+        #     # submodules = submodules,
+        #     # resolver = resolver_module_name,
+        #     # prefixes   = ns_prefixes,
+        #     ns_name    = ns_name
+        # )
+
+        # ocamlProvider = OcamlProvider(
+        #     inputs    = depset(
+        #         order = dsorder,
+        #         # transitive = user_ns_resolver
+        #     ),
+        #     paths     = depset(direct = [out_cmi.dirname]),
+        # )
+
+        return [DefaultInfo(),
+                OcamlNsResolverProvider(ns_name = ns_name)]
+        # resolver_module_name = ns_name + resolver_suffix
+
+    ################################################################
     else:
         resolver_module_name = ns_name
 
     # do not generate a resolver module unless we have at least one alias
     if len(aliases) < 1:
-        # print("NO ALIASES: %s" % ctx.label)
+        print("NO ALIASES: %s" % ctx.label)
         return [DefaultInfo(),
                 OcamlNsResolverProvider(ns_name = ns_name)]
 
     resolver_src_filename = resolver_module_name + ".ml"
     resolver_src_file = ctx.actions.declare_file(resolver_src_filename)
 
-    # print("resolver_module_name: %s" % resolver_module_name)
+    print("resolver_module_name: %s" % resolver_module_name)
     ## action: generate ns resolver module file with alias content
     ##################
     ctx.actions.write(
@@ -127,31 +180,31 @@ def impl_ns_resolver(ctx):
 
     ## then compile it:
 
-    obj_cmi_fname = resolver_module_name + ".cmi"
-    obj_cmi = ctx.actions.declare_file(obj_cmi_fname)
-    action_outputs.append(obj_cmi)
+    out_cmi_fname = resolver_module_name + ".cmi"
+    out_cmi = ctx.actions.declare_file(out_cmi_fname)
+    action_outputs.append(out_cmi)
 
     if mode == "native":
         obj_o_fname = resolver_module_name + ".o"
         obj_o = ctx.actions.declare_file(obj_o_fname)
         action_outputs.append(obj_o)
-        rule_outputs.append(obj_o)
-        obj_cm__fname = resolver_module_name + ".cmx"
+        # rule_outputs.append(obj_o)
+        out_cm__fname = resolver_module_name + ".cmx"
     else:
-        obj_cm__fname = resolver_module_name + ".cmo"
+        out_cm__fname = resolver_module_name + ".cmo"
 
-    obj_cm_ = ctx.actions.declare_file(obj_cm__fname)
-    action_outputs.append(obj_cm_)
-    default_outputs.append(obj_cm_)
-    rule_outputs.append(obj_cm_)
+    out_cm_ = ctx.actions.declare_file(out_cm__fname)
+    action_outputs.append(out_cm_)
+    default_outputs.append(out_cm_)
+    # rule_outputs.append(out_cm_)
 
     ################################
     args = ctx.actions.args()
 
-    # if mode == "native":
-    #     args.add(tc.ocamlopt.basename)
-    # else:
-    #     args.add(tc.ocamlc.basename)
+    args.add_all(tool_args)
+
+    _options = get_options(ctx.attr._rule, ctx)
+    args.add_all(_options)
 
     if ctx.attr._warnings:
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
@@ -167,23 +220,21 @@ def impl_ns_resolver(ctx):
 
     args.add("-c")
 
-    args.add("-o", obj_cm_)
+    args.add("-o", out_cm_)
 
     args.add("-impl")
     args.add(resolver_src_file.path)
 
-    if mode == "native":
-        exe = tc.ocamlopt.basename
-    else:
-        exe = tc.ocamlc.basename
+    inputs_depset = depset(direct = action_inputs)
 
+    print("TOOL: %s" % tool)
     ctx.actions.run(
-        env = env,
-        executable = exe,
+        # env = env,
+        executable = tool,
         arguments = [args],
-        inputs = action_inputs,
+        inputs = inputs_depset,
         outputs = action_outputs,
-        tools = [tc.ocamlopt],
+        tools = [tool] + tool_args,
         mnemonic = "OcamlNsResolverAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsResolverAction",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = mode,
@@ -210,12 +261,36 @@ def impl_ns_resolver(ctx):
         ns_name    = ns_name
     )
 
+    linkset    = depset(direct = [out_cm_])
+
+    fileset_depset = depset(direct=action_outputs)
+
+    closure_depset = depset(
+        direct = action_outputs
+    )
+
     ocamlProvider = OcamlProvider(
-        inputs    = depset(
-            order = dsorder,
-            direct = rule_outputs + action_outputs
-        ),
-        paths     = depset(direct = [obj_cmi.dirname]),
+        cmi      = depset(direct = [out_cmi]),
+        fileset  = fileset_depset,
+        linkargs = linkset,
+        inputs   = closure_depset, ## inputs_depset,
+        paths    = depset(direct = [out_cmi.dirname]),
+    )
+
+    outputGroupInfo = OutputGroupInfo(
+        cmi        = depset(direct=[out_cmi]),
+        fileset    = fileset_depset,
+        # linkset    = linkset,
+        inputs = inputs_depset,
+        # all = depset(
+        #     order = dsorder,
+        #     transitive=[
+        #         default_depset,
+        #         ocamlProvider_files_depset,
+        #         ppx_codeps_depset,
+        #         # depset(action_inputs_ccdep_filelist)
+        #     ]
+        # )
     )
 
     # print("resolver provider: %s" % ocamlProvider)
@@ -224,4 +299,5 @@ def impl_ns_resolver(ctx):
         defaultInfo,
         nsResolverProvider,
         ocamlProvider,
+        outputGroupInfo
     ]

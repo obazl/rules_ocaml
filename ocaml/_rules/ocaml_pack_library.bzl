@@ -29,5 +29,5 @@ ocaml_pack_library = rule(
     # cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )

@@ -6,6 +6,8 @@ load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
 
+load("//ocaml/_rules:impl_common.bzl", "module_sep")
+
 #######################################
 def print_config_state(settings, attr):
 
@@ -127,6 +129,87 @@ module_in_transition = transition(
         "@ocaml//ns:submodules",
     ],
     outputs = [
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ]
+)
+
+################################################################
+################################################################
+################################################################
+## we need to reset submods list to null on inbound txn so that each
+## module will only be built one. Example: half-diamond dep, where X
+## is a dep of both a namespaced module and a non-namespaced module,
+## and X itself is non-namespaced. we need X to have the same config
+## state in all cases so it is only built once.
+def _bootstrap_module_in_transition_impl(settings, attr):
+    # print("_bootstrap_module_in_transition_impl %s" % attr.name)
+    debug = False
+    # if attr.name in ["Stdlib", "Stdlib_cmi", "Uchar"]:
+    #     debug = True
+
+    if debug:
+        print(">>> bootstrap_ocaml_module_in_transition")
+        print_config_state(settings, attr)
+        print(" resolver: %s" % settings["@ocaml//bootstrap/ns:resolver"])
+        print("  t: %s" % type(settings["@ocaml//bootstrap/ns:resolver"]))
+
+    module = None
+    ## if struct uses select() it will not be resolved yet, so we need to test
+    if hasattr(attr, "struct"):
+        if attr.struct:
+            structfile = attr.struct.name
+            (basename, ext) = paths.split_extension(structfile)
+            module = capitalize_initial_char(basename)
+
+    submodules = []
+    for submodule_label in settings["@ocaml//ns:submodules"]:
+        submodule = normalize_module_label(submodule_label)
+        submodules.append(submodule)
+
+    ## We decide whether or not this module is namespaced, and whether
+    ## it needs to be renamed.
+
+    if module in settings["@ocaml//ns:prefixes"]:
+        # true if this module is user-provided resolver?
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    elif module in submodules:
+        prefixes     = settings["@ocaml//ns:prefixes"]
+        submodules = settings["@ocaml//ns:submodules"]
+    else:
+        # reset to default values
+        prefixes   = []
+        submodules = []
+
+    if debug:
+        print("OUT STATE:")
+        print("  ns:prefixes: %s" % prefixes)
+        print("  ns:submodules: %s" % submodules)
+
+    if prefixes:
+        # no change
+        resolver = settings["@ocaml//bootstrap/ns:resolver"]
+    else:
+        # reset to default
+        resolver = Label("@ocaml//bootstrap/ns:ns_bootstrap")
+
+    return {
+        "@ocaml//bootstrap/ns:resolver": resolver,
+        "@ocaml//ns:prefixes"   : prefixes,
+        "@ocaml//ns:submodules" : submodules,
+    }
+
+##############################
+bootstrap_module_in_transition = transition(
+    implementation = _bootstrap_module_in_transition_impl,
+    inputs = [
+        "@ocaml//bootstrap/ns:resolver",
+        "@ocaml//ns:prefixes",
+        "@ocaml//ns:submodules",
+    ],
+    outputs = [
+        "@ocaml//bootstrap/ns:resolver",
         "@ocaml//ns:prefixes",
         "@ocaml//ns:submodules",
     ]

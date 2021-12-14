@@ -17,7 +17,7 @@ load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load("//ocaml/_functions:utils.bzl", "get_sdkpath")
+# load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
@@ -26,7 +26,7 @@ load(":options.bzl", "options")
 load(":impl_common.bzl", "dsorder", "opam_lib_prefix")
 
 #########################
-def impl_executable(ctx):
+def impl_executable(ctx, mode, linkmode, tool, tool_args):
 
     debug = False
     # if ctx.label.name == "test":
@@ -40,18 +40,18 @@ def impl_executable(ctx):
             tgt  = ctx.label.name
         ))
 
-    env = {
-        "PATH": get_sdkpath(ctx),
-    }
+    # env = {
+    #     "PATH": get_sdkpath(ctx),
+    # }
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
-    if mode == "native":
-        exe = tc.ocamlopt.basename
-    else:
-        exe = tc.ocamlc.basename
+    # if mode == "native":
+    #     exe = tc.ocamlopt.basename
+    # else:
+    #     exe = tc.ocamlc.basename
 
     ################
     direct_cc_deps    = {}
@@ -67,13 +67,17 @@ def impl_executable(ctx):
     #########################
     args = ctx.actions.args()
 
-    if mode == "bytecode":
+    args.add_all(tool_args)
+
+    # if mode == "bytecode":
         ## FIXME: -custom only needed if linking with CC code?
         ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
-        args.add("-custom")
+        # args.add("-custom")
 
     _options = get_options(rule, ctx)
-    args.add_all(_options, uniquify=True)
+    print("OPTIONS: %s" % _options)
+    # do not uniquify options, it collapses all -I
+    args.add_all(_options)
 
     if "-g" in _options:
         args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
@@ -116,37 +120,43 @@ def impl_executable(ctx):
                 if ppxadep.paths:
                     indirect_ppx_codep_depsets_paths.append(ppxadep.paths)
 
+    action_inputs_ccdep_filelist = []
+    manifest_list = []
+
     ################################################################
     #### MAIN ####
-    action_inputs_ccdep_filelist = []
-
     if ctx.attr.main:
         main = ctx.attr.main
-        if CcInfo in main[0]:
+        if CcInfo in main: # [0]:
             # print("CcInfo main: %s" % main[0][CcInfo])
-            ccInfo_list.append(main[0][CcInfo])
+            ccInfo_list.append(main[CcInfo]) # [0][CcInfo])
 
         ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
         [
             action_inputs_ccdep_filelist,
             cc_runfiles
         ] = link_ccdeps(ctx,
-                        tc.linkmode,
+                        linkmode,
                         args,
                         ccInfo)
 
-        direct_inputs_depsets.append(main[0][OcamlProvider].inputs)
-        direct_linkargs_depsets.append(main[0][OcamlProvider].linkargs)
-        direct_paths_depsets.append(main[0][OcamlProvider].paths)
+        if OcamlProvider in main:
+            if hasattr(main[OcamlProvider], "archive_manifests"):
+                manifest_list.append(main[OcamlProvider].archive_manifests)
 
-        direct_linkargs_depsets.append(main[0][DefaultInfo].files)
+        direct_inputs_depsets.append(main[OcamlProvider].inputs)
+        direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
+        direct_paths_depsets.append(main[OcamlProvider].paths)
 
-        paths_indirect.append(main[0][OcamlProvider].paths)
+        # direct_linkargs_depsets.append(main[DefaultInfo].files)
 
-    # if ctx.label.name == "tezos-node.exe":
-    #     print("CcInfo_list: {cc}".format(cc=ccInfo_list))
-    #     print("CcInfo merged: {cc}".format(cc=ccInfo))
-    #     print("Cc deps: {cc}".format(cc = action_inputs_ccdep_filelist))
+        paths_indirect.append(main[OcamlProvider].paths)
+
+    ## end ctx.attr.main handling
+
+    merged_manifests = depset(transitive = manifest_list)
+    archive_filter_list = merged_manifests.to_list()
+    # print("Merged manifests: %s" % archive_filter_list)
 
     ################
     paths_depset  = depset(
@@ -154,7 +164,8 @@ def impl_executable(ctx):
         transitive = direct_paths_depsets
     )
 
-    args.add_all(paths_depset.to_list(), before_each="-I")
+    # args.add_all(paths_depset.to_list(), before_each="-I")
+    includes.extend(paths_depset.to_list())
 
     linkargs_depset = depset(
         transitive = direct_linkargs_depsets
@@ -169,29 +180,45 @@ def impl_executable(ctx):
     ## on cmd line.  FIXME: how to include only those actually needed?
 
     for dep in linkargs_depset.to_list():
+        print("LINKARG: %s" % dep)
+        if dep not in archive_filter_list:
+            includes.append(dep.dirname)
+
     # for dep in direct_inputs_depset.to_list():
         # if dep.extension not in ["a", "o", "cmi", "mli", "cmti"]:
             # if dep.basename != "oUnit2.cmx":  ## FIXME: why?
-        if dep.extension in ["cmx", "cmxa"]:
-                args.add(dep)
+        if dep.extension in ["cmx", "cmxa"]: # "cma"]:
+            args.add(dep)
 
     ## all direct deps must be on cmd line:
-    # for dep in ctx.files.deps:
-    #     print("DIRECT DEP: %s" % dep)
-    #     args.add(dep)
+    for dep in ctx.files.deps:
+        ## print("DIRECT DEP: %s" % dep)
+        includes.append(dep.dirname)
+        args.add(dep)
 
     ## 'main' dep must come last on cmd line
-    # args.add(ctx.file.main)
-
-    # args.add("external/ounit2/oUnit.cmx")
-
+    if ctx.file.main:
+        args.add(ctx.file.main)
 
     args.add_all(includes, before_each="-I", uniquify=True)
 
     args.add("-o", out_exe)
 
+    data_inputs = []
+    if ctx.attr.data:
+        data_inputs = [depset(direct = ctx.files.data)]
+        for f in ctx.files.data:
+            # print("DATAFILE: %s" % f.path)
+            args.add("-I", f.dirname)
+
+    # if tc.bootstrap_std_exit:
+    #     std_exit = tc.bootstrap_std_exit.files
+    # else:
+    #     std_exit = []
+
     inputs_depset = depset(
-        transitive = [direct_inputs_depset]
+        direct = [],
+        transitive = [direct_inputs_depset] + data_inputs
         + [depset(action_inputs_ccdep_filelist)]
     )
 
@@ -206,12 +233,12 @@ def impl_executable(ctx):
 
     ################
     ctx.actions.run(
-      env = env,
-      executable = exe,
+      # env = env,
+      executable = tool,
       arguments = [args],
       inputs = inputs_depset,
       outputs = [out_exe],
-      tools = [tc.ocamlopt],
+      tools = [tool] + tool_args,  # [tc.ocamlopt],
       mnemonic = mnemonic,
       progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
           mode = mode,

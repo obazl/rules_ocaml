@@ -15,7 +15,7 @@ def _x_cppo_filegroup_impl(ctx):
   if debug:
       print("X_CPPO_FILEGROUP TARGET: %s" % ctx.label.name)
 
-  tc = ctx.toolchains["@obazl_rules_ocaml//ocaml:toolchain"]
+  tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
   env = {"PATH": get_sdkpath(ctx)}
 
   entailed_deps = None
@@ -144,5 +144,5 @@ dir (e.g. bazel-bin/src)
     # provides = [OcamlModuleMarker],
     # provides = [DefaultInfo, OutputGroupInfo, PpxInfo],
     executable = False,
-    toolchains = ["@obazl_rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@ocaml//ocaml:toolchain"],
 )
