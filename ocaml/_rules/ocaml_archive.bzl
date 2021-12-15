@@ -89,9 +89,9 @@ ocaml_archive = rule(
         _mode = attr.label(
             default = "@ocaml//mode"
         ),
-        _projroot = attr.label(
-            default = "@ocaml//:projroot"
-        ),
+        # _projroot = attr.label(
+        #     default = "@ocaml//:projroot"
+        # ),
         # _sdkpath = attr.label(
         #     default = Label("@ocaml//:sdkpath")
         # ),
