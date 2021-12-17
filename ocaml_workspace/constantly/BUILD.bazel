@@ -1,0 +1,14 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_setting")
+
+package(default_visibility = ["//visibility:public"])
+
+# use to set values to true when you need a label instead of a
+# literal, e.g.
+
+# foo = select({
+#     "//some/condition": "@ocaml//constantly:true",
+#     "//conditions:default": "@ocaml//constantly:false",
+# }),
+
+bool_setting( name = "true", build_setting_default = True)
+bool_setting( name = "false", build_setting_default = False)
