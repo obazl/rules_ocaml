@@ -138,31 +138,84 @@ def _ocaml_signature_impl(ctx):
     # add prefix if namespaced. from_name == normalized module name
     # derived from sig_src; module_name == prefixed if ns else same as
     # from_name.
-    (from_name, module_name) = get_module_name(ctx, sig_src)
+
+    modname = None
+    # if ctx.label.name[:1] == "@":
+    if ctx.attr.forcename:
+        print("Forcing module name from %s" % ctx.label.name)
+        modname = ctx.label.name[1:]
+        #FIXME: add ns prefix if needed
+    else:
+        (from_name, modname) = get_module_name(ctx, ctx.file.src)
+
+    # (from_name, module_name) = get_module_name(ctx, sig_src)
 
     if ctx.attr.ppx:
-        ## mlifile output is generated output of ppx processing
-        mlifile = impl_ppx_transform("ocaml_signature", ctx,
-                                     sig_src,
-                                     module_name + ".mli")
+        ## work_mli output is generated output of ppx processing
+        work_mli = impl_ppx_transform("ocaml_signature", ctx,
+                                      ctx.file.src, ## sig_src,
+                                      modname + ".mli")
+                                      # module_name + ".mli")
     else:
-        if from_name == module_name:
-            ## no ns
-            mlifile = sig_src
-        else:
-            # namespaced w/o ppx: symlink sig_src to prefixed name, so
-            # that output dir will contain both renamed input mli and
-            # output cmi.
-            ns_sig_src = module_name + ".mli"
-            if debug:
-                print("ns_sig_src: %s" % ns_sig_src)
-            mlifile = ctx.actions.declare_file(scope + ns_sig_src)
-            ctx.actions.symlink(output = mlifile,
-                                target_file = sig_src)
-            if debug:
-                print("mlifile %s" % mlifile)
+        ## for now, symlink everything to workdir
+        ## later we can optimize, avoiding symlinks if src in pkg dir
+        ## and no renaming
+        if debug: print("no ppx")
+        # sp = ctx.file.src.short_path
+        # spdir = paths.dirname(sp)
+        # if paths.basename(spdir) + "/" == workdir:
+        #     pkgdir = paths.dirname(spdir)
+        # else:
+        #     pkgdir = spdir
+        # print("target spec pkg: %s" % ctx.label.package)
+        # print("sigfiles pkgdir: %s" % pkgdir)
 
-    out_cmi = ctx.actions.declare_file(scope + module_name + ".cmi")
+        # if ctx.label.package == pkgdir:
+        #     print("PKGDIR == sigfile dir")
+        #     sigsrc_modname = normalize_module_name(ctx.file.src.basename)
+        #     print("sigsrc modname %s" % sigsrc_modname)
+        #     if modname == sigsrc_modname:
+        #         work_mli = ctx.file.src
+        #         work_cmi = ctx.actions.declare_file(modname + ".cmi")
+        #     else:
+        #         work_mli = ctx.actions.declare_file(
+        #             workdir + modname + ".mli")
+        #         ctx.actions.symlink(output = work_mli,
+        #                             target_file = ctx.file.src)
+        #         work_cmi = ctx.actions.declare_file(
+        #             workdir + modname + ".cmi")
+
+        #     # work_cmi = sigProvider.cmi
+        # else:  ## mli src in different pkg dir
+        # if from_name == module_name:
+        #     if debug: print("no namespace renaming")
+        #     # work_mli = sig_src
+        work_mli = ctx.actions.declare_file(
+            workdir + modname + ".mli")
+            # workdir + ctx.file.mli.basename)
+        ctx.actions.symlink(output = work_mli,
+                            target_file = ctx.file.src)
+        # out_cmi = ctx.actions.declare_file(modname + ".cmi")
+        work_cmi = ctx.actions.declare_file(
+            workdir + modname + ".cmi")
+
+        # else:
+        #     if debug: print("namespace renaming")
+        #     # namespaced w/o ppx: symlink sig_src to prefixed name, so
+        #     # that output dir will contain both renamed input mli and
+        #     # output cmi.
+        #     ns_sig_src = module_name + ".mli"
+        #     if debug:
+        #         print("ns_sig_src: %s" % ns_sig_src)
+        #     work_mli = ctx.actions.declare_file(workdir + ns_sig_src)
+        #     ctx.actions.symlink(output = work_mli,
+        #                         target_file = sig_src)
+        #     if debug:
+        #         print("work_mli %s" % work_mli)
+
+    # out_cmi = ctx.actions.declare_file(workdir + modname + ".cmi")
+    out_cmi = work_cmi
+    # out_cmi = ctx.actions.declare_file(workdir + module_name + ".cmi")
     if debug:
         print("out_cmi %s" % out_cmi)
 
@@ -308,7 +361,7 @@ def _ocaml_signature_impl(ctx):
     )
 
     sigProvider = OcamlSignatureProvider(
-        mli = mlifile,
+        mli = work_mli,
         cmi = out_cmi
     )
 
@@ -509,7 +562,7 @@ def _ocaml_ns_signature_impl(ctx):
     )
 
     sigProvider = OcamlSignatureProvider(
-        # mli = mlifile,
+        # mli = work_mli,
         cmi = out_cmi
     )
 
@@ -608,7 +661,7 @@ def _ocaml_ns_subsignature_impl(ctx):
     )
 
     sigProvider = OcamlSignatureProvider(
-        # mli = mlifile,
+        # mli = work_mli,
         cmi = out_cmi
     )
 
