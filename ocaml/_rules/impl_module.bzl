@@ -89,16 +89,25 @@ def _make_work_symlinks(ctx, modname, mode):
             )
             ctx.actions.symlink(output = work_cmi, target_file = sigProvider.cmi)
 
-        work_ml = ctx.actions.declare_file(
-            # scope + ctx.file.struct.basename
-            scope + modname + ".ml"
-        )
-        ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
+        if ctx.attr.ppx:
+            if debug: print("ppx xforming:")
+            work_ml = impl_ppx_transform(
+                ctx.attr._rule, ctx,
+                ctx.file.struct, modname + ".ml"
+            )
+
+        else:
+            if debug: print("no ppx")
+            work_ml = ctx.actions.declare_file(
+                # scope + ctx.file.struct.basename
+                scope + modname + ".ml"
+            )
+            ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
 
         work_cmox = ctx.actions.declare_file(
             scope + modname + ext
         )
-        ## no symlink, cmox output by compile action
+            ## no symlink, cmox output by compile action
 
         if mode == "native":
             work_o = ctx.actions.declare_file(
