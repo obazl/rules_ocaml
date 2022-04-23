@@ -16,7 +16,7 @@ load(":impl_module.bzl", "impl_module")
 ###############################
 def _ocaml_module(ctx):
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -38,49 +38,64 @@ rule_options.update(options_ppx)
 ####################
 ocaml_module = rule(
     implementation = _ocaml_module,
-    doc = """Compiles an OCaml module. Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
+ # Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
+    doc = """Compiles an OCaml module.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_module`
 
-In addition to the [OCaml configurable defaults](#configdefs) that apply to all
+In addition to the <<Configurable defaults>> that apply to all
 `ocaml_*` rules, the following apply to this rule:
 
 **Options**
 
-| Label | Default | Notes |
-| ----- | ------- | ------- |
-| @ocaml//module:deps | `@ocaml//:null` | list of OCaml deps to add to all `ocaml_module` instances |
-| @ocaml//module:cc_deps<sup>1</sup> | `@ocaml//:null` | list of cc_deps to add to all `ocaml_module` instances |
-| @ocaml//module:cc_linkstatic<sup>1</sup> | `@ocaml//:null` | list of cc_deps to link statically (DEPRECATED) |
-| @ocaml//module:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| sets `-w` option for all `ocaml_module` instances |
+[.rule_attrs]
+[cols="1,1,1"]
+|===
+| Label | Default | `opts` attrib
 
-<sup>1</sup> See [CC Dependencies](../ug/cc_deps.md) for more information on CC deps.
+| @rules_ocaml//cfg/module:deps | `@rules_ocaml//cfg:null` | list of OCaml deps to add to all `ocaml_module` instances
+
+| @rules_ocaml//cfg/module:cc_deps^1^ | `@rules_ocaml//cfg:null` | list of cc_deps to add to all `ocaml_module` instances
+
+| @rules_ocaml//cfg/module:cc_linkstatic^1^ | `@rules_ocaml//cfg:null` | list of cc_deps to link statically (DEPRECATED)
+
+| @rules_ocaml//cfg/module:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| sets `-w` option for all `ocaml_module` instances
+
+|===
+
+^1^ See [CC Dependencies](../ug/cc_deps.md) for more information on CC deps.
 
 **Boolean Flags**
 
-| Label | Default | `opts` attrib |
-| ----- | ------- | ------- |
-| @ocaml//module:linkall | True | `-linkall`, `-no-linkall`|
-| @ocaml//module:thread  | True | `-thread`, `-no-thread`|
-| @ocaml//module:verbose | True | `-verbose`, `-no-verbose`|
+NOTE: These do not support `:enable`, `:disable` syntax.
 
-**NOTE** These do not support `:enable`, `:disable` syntax.
+[.rule_attrs]
+[cols="1,1,1"]
+|===
+| Label | Default | `opts` attrib
 
- See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
+| @rules_ocaml//cfg/module:linkall | True | `-linkall`, `-no-linkall`
+
+| @rules_ocaml//cfg/module:verbose | True | `-verbose`, `-no-verbose`
+
+|===
+
     """,
     attrs = dict(
 
         rule_options,
 
+        forcename = attr.bool( doc = """Derive module name from target name. May differ            from what would be derived from sig/struct filenames.""" ),
+
         _ns_resolver = attr.label(
             doc = "NS resolver module",
             # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
-            ## @ocaml//ns is a 'label_setting' whose value is an
+            ## @rules_ocaml//cfg/ns is a 'label_setting' whose value is an
             ## `ocaml_ns_resolver` rule. so this institutes a
             ## dependency on a resolver whose build params will be set
             ## dynamically using transition functions.
-            default = "@ocaml//ns", ## FIXME rename: @ocaml//ns:resolver
+            default = "@rules_ocaml//cfg/ns", ## FIXME rename: @rules_ocaml//cfg/ns:resolver
 
             ## TRICKY BIT: if our struct is generated (e.g. by
             ## ocaml_lex), this transition will prevent ns renaming:
@@ -88,14 +103,17 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         ),
 
         _warnings = attr.label(
-            default = "@ocaml//module:warnings"
+            default = "@rules_ocaml//cfg/module:warnings"
         ),
 
         _rule = attr.string( default = "ocaml_module" ),
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
+
     ),
+    fragments = ["platform"],
+    host_fragments = ["platform"],
     incompatible_use_toolchain_transition = True,
     # exec_groups = {
     #     "compile": exec_group(
@@ -104,13 +122,13 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     #             "@platforms//os:macos"
     #         ],
     #         toolchains = [
-    #             "@ocaml//ocaml:toolchain",
-    #             # "@ocaml//coq:toolchain_type",
+    #             "@rules_ocaml//ocaml:toolchain",
+    #             # "@rules_ocaml//cfg/coq:toolchain_type",
     #         ],
     #     ),
     # },
     cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

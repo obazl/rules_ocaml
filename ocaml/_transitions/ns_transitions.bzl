@@ -12,9 +12,9 @@ load("//ocaml/_functions:module_naming.bzl",
 def print_config_state(settings, attr):
     print("CONFIG State:")
     print("  rule name: %s" % attr.name)
-    # print("  ns: %s" % settings["@ocaml//ns"])
-    print("  ns:prefixes: %s" % settings["@ocaml//ns:prefixes"])
-    print("  ns:submodules: %s" % settings["@ocaml//ns:submodules"])
+    # print("  ns: %s" % settings["@rules_ocaml//cfg/ns"])
+    print("  ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+    print("  ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
     print("/CONFIG State")
 
 ##############################################
@@ -26,7 +26,7 @@ def _nsarchive_in_transition_impl(settings, attr):
     if debug:
         print("")
         print(">>> nsarchive_in_transition")
-        # if not settings["@ocaml//ns:prefixes"]:
+        # if not settings["@rules_ocaml//cfg/ns:prefixes"]:
         print_config_state(settings, attr)
         if hasattr(attr, "submodules"):
             print("  attr.submodules: %s" % attr.submodules)
@@ -41,17 +41,17 @@ def _nsarchive_in_transition_impl(settings, attr):
     # pfx = ""
     # prefixes = []
 
-    # if settings["@ocaml//ns:transitivity"]:
-    #     prefixes.extend(settings["@ocaml//ns:prefixes"])
-    #     for submod_lbl in settings["@ocaml//ns:submodules"]:
+    # if settings["@rules_ocaml//cfg/ns:transitivity"]:
+    #     prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
+    #     for submod_lbl in settings["@rules_ocaml//cfg/ns:submodules"]:
     #         if attr.name == Label(submod_lbl).name:
     #             prefixes.append(normalize_module_name(attr.name))
     #             break
 
     return {
-        # "@ocaml//ns:prefixes"  : [],
-        "@ocaml//ns:prefixes"  : [],
-        "@ocaml//ns:submodules": [],
+        # "@rules_ocaml//cfg/ns:prefixes"  : [],
+        "@rules_ocaml//cfg/ns:prefixes"  : [],
+        "@rules_ocaml//cfg/ns:submodules": [],
     }
 
 ###################
@@ -60,13 +60,13 @@ nsarchive_in_transition = transition(
     ## """Reset ConfigState for ocaml_ns_archive, ocaml_archive.""",
     implementation = _nsarchive_in_transition_impl,
     inputs = [
-        # "@ocaml//ns",  ##FIXME not available for executable
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        # "@rules_ocaml//cfg/ns",  ##FIXME not available for executable
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -92,8 +92,8 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         if attr.ns:
             nslib_name = normalize_module_name(attr.ns)
     ns_prefixes = []
-    ns_prefixes.extend(settings["@ocaml//ns:prefixes"])
-    ns_submodules = settings["@ocaml//ns:submodules"]
+    ns_prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
+    ns_submodules = settings["@rules_ocaml//cfg/ns:submodules"]
 
     ## convert submodules label list to module name list
     attr_submodules = []
@@ -125,12 +125,12 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     if debug:
         print(" setting ConfigState:")
-        print("  @ocaml//ns:prefixes: %s" % ns_prefixes)
-        print("  @ocaml//ns:submodules: %s" % attr_submodule_labels)
+        print("  @rules_ocaml//cfg/ns:prefixes: %s" % ns_prefixes)
+        print("  @rules_ocaml//cfg/ns:submodules: %s" % attr_submodule_labels)
 
     return {
-        "@ocaml//ns:prefixes": ns_prefixes,
-        "@ocaml//ns:submodules": attr_submodule_labels,
+        "@rules_ocaml//cfg/ns:prefixes": ns_prefixes,
+        "@rules_ocaml//cfg/ns:submodules": attr_submodule_labels,
     }
 
 ################################################################
@@ -144,12 +144,12 @@ def _ocaml_nslib_main_out_transition_impl(settings, attr):
 ocaml_nslib_main_out_transition = transition(
     implementation = _ocaml_nslib_main_out_transition_impl,
     inputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -161,12 +161,12 @@ def _ocaml_nslib_submodules_out_transition_impl(settings, attr):
 ocaml_nslib_submodules_out_transition = transition(
     implementation = _ocaml_nslib_submodules_out_transition_impl,
     inputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -194,8 +194,8 @@ def _bootstrap_nslib_submodules_out_transition_impl(settings, attr):
     if attr.ns:
         nslib_name = normalize_module_name(attr.ns)
     ns_prefixes = []
-    ns_prefixes.extend(settings["@ocaml//ns:prefixes"])
-    ns_submodules = settings["@ocaml//ns:submodules"]
+    ns_prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
+    ns_submodules = settings["@rules_ocaml//cfg/ns:submodules"]
 
     # print("nslib_name: %s" % nslib_name)
 
@@ -229,32 +229,32 @@ def _bootstrap_nslib_submodules_out_transition_impl(settings, attr):
 
     if debug:
         print(" setting ConfigState:")
-        print("  @ocaml//ns:prefixes: %s" % ns_prefixes)
-        print("  @ocaml//ns:submodules: %s" % attr_submodule_labels)
+        print("  @rules_ocaml//cfg/ns:prefixes: %s" % ns_prefixes)
+        print("  @rules_ocaml//cfg/ns:submodules: %s" % attr_submodule_labels)
 
     if attr.resolver:
         resolver = attr.resolver
     else:
-        resolver = settings["@ocaml//bootstrap/ns:resolver"]
+        resolver = settings["@rules_ocaml//cfg/bootstrap/ns:resolver"]
 
     return {
-        "@ocaml//bootstrap/ns:resolver": resolver,
-        "@ocaml//ns:prefixes": ns_prefixes,
-        "@ocaml//ns:submodules": attr_submodule_labels,
+        "@rules_ocaml//cfg/bootstrap/ns:resolver": resolver,
+        "@rules_ocaml//cfg/ns:prefixes": ns_prefixes,
+        "@rules_ocaml//cfg/ns:submodules": attr_submodule_labels,
     }
 
 #########################################
 bootstrap_nslib_submodules_out_transition = transition(
     implementation = _bootstrap_nslib_submodules_out_transition_impl,
     inputs = [
-        "@ocaml//bootstrap/ns:resolver",
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/bootstrap/ns:resolver",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@ocaml//bootstrap/ns:resolver",
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/bootstrap/ns:resolver",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -266,12 +266,12 @@ def _ocaml_nslib_ns_out_transition_impl(settings, attr):
 ocaml_nslib_ns_out_transition = transition(
     implementation = _ocaml_nslib_ns_out_transition_impl,
     inputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -285,19 +285,19 @@ def _ocaml_module_cc_deps_out_transition_impl(settings, attr):
         print_config_state(settings, attr)
 
     return {
-        "@ocaml//ns:prefixes"    : [],
-        "@ocaml//ns:submodules": []
+        "@rules_ocaml//cfg/ns:prefixes"    : [],
+        "@rules_ocaml//cfg/ns:submodules": []
     }
 
 ################
 ocaml_module_cc_deps_out_transition = transition(
     implementation = _ocaml_module_cc_deps_out_transition_impl,
     inputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@ocaml//ns:prefixes",
-        "@ocaml//ns:submodules",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )

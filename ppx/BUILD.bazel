@@ -1,0 +1,21 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+bzl_library(
+    name = "stardoc",
+    visibility = ["//visibility:public"],
+    srcs = [
+        ":providers.bzl",
+    ],
+    # deps = [
+    #     "//ocaml/_debug",
+    #     "//ocaml/_bootstrap:bootstrap",
+    #     "//ocaml/_providers:bzl_lib",
+    #     # "//ocaml/_providers:providers",
+    #     "//ocaml/_rules:ocaml_rules",
+    #     # "//ocaml/_rules:ppx_rules",
+    #     "//ocaml/_rules/utils",
+    #     # "//ocaml/_toolchains:stardoc",
+    #     "//ocaml/_transitions:stardoc",
+    #     # "//ppx/_bootstrap:bootstrap",
+    # ]
+)

@@ -22,7 +22,7 @@ load(":options.bzl",
 ###############################
 def _ocaml_ns_library(ctx):
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -58,7 +58,8 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
             doc = "User-provided resolver module",
             allow_single_file = True,
             providers = [OcamlModuleMarker],
-            # default = "@ocaml//bootstrap/ns:resolver",
+            ## user-provided resolver is not itself namespaced,
+            ## do not use transition
             # cfg = ocaml_nslib_submodules_out_transition
         ),
 
@@ -67,7 +68,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
             doc = "Experimental",
             # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
-            default = "@ocaml//ns",
+            default = "@rules_ocaml//cfg/ns",
             cfg = ocaml_nslib_submodules_out_transition
         ),
 
@@ -76,5 +77,5 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     cfg     = nslib_in_transition,
     provides = [OcamlNsMarker, OcamlLibraryMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

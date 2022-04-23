@@ -11,7 +11,7 @@ load("//ocaml/_transitions:transitions.bzl", "reset_in_transition")
 ###############################
 def _ocaml_library(ctx):
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -60,5 +60,5 @@ Packages](../ug/collections.md).
     cfg     = reset_in_transition,
     provides = [OcamlLibraryMarker],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

@@ -4,13 +4,14 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlProvider",
-     "PpxAdjunctsProvider",
-
      "OcamlExecutableMarker",
-     "PpxExecutableMarker",
-
      "OcamlModuleMarker",
      "OcamlTestMarker",
+)
+
+load("//ppx:providers.bzl",
+     "PpxCodepsProvider",
+     "PpxExecutableMarker",
 )
 
 load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
@@ -23,7 +24,33 @@ load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 load(":options.bzl", "options")
 
-load(":impl_common.bzl", "dsorder", "opam_lib_prefix")
+load(":impl_common.bzl", "dsorder", "opam_lib_prefix",
+     "tmpdir"
+     )
+
+workdir = tmpdir
+
+#########################
+def _import_ppx_executable(ctx):
+
+    binout = ctx.actions.declare_file(
+        workdir + ctx.file.bin.basename
+    )
+    ctx.actions.symlink(output = binout,
+                        target_file = ctx.file.bin)
+
+    defaultInfo = DefaultInfo(
+        executable=binout
+    )
+
+    exe_provider = PpxExecutableMarker(
+        args = ctx.attr.args
+    )
+    providers = [
+        defaultInfo,
+        exe_provider
+    ]
+    return providers
 
 #########################
 def impl_executable(ctx, mode, linkmode, tool, tool_args):
@@ -40,13 +67,17 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
             tgt  = ctx.label.name
         ))
 
+    if hasattr(ctx.attr, "bin"):
+        if ctx.attr.bin:
+            return _import_ppx_executable(ctx)
+
     # env = {
     #     "PATH": get_sdkpath(ctx),
     # }
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     # if mode == "native":
     #     exe = tc.ocamlopt.basename
@@ -59,7 +90,8 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     indirect_cc_deps  = {}
 
     ################
-    includes  = []
+    includes   = []
+    dllpaths   = []
     cmxa_args  = []
 
     out_exe = ctx.actions.declare_file(ctx.label.name)
@@ -69,13 +101,27 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
 
     args.add_all(tool_args)
 
-    # if mode == "bytecode":
-        ## FIXME: -custom only needed if linking with CC code?
-        ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
-        # args.add("-custom")
+    if "ppx" in ctx.attr.tags:
+        print("PPX XXXXXXXXXXXXXXXX");
+
+    if mode == "bytecode":
+        if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
+            ## FIXME: get stublibs from toolchain?
+            if hasattr(ctx.attr, "_stublibs"):
+                for x in ctx.files._stublibs:
+                    includes.append(x.dirname)
+                    ## FIXME: get correct path, or set CAML_LD_LIBRARY_PATH
+                    dllpaths.append(x.dirname)
+                    # dllpaths.append("/private/var/tmp/_bazel_gar/2452f4a294f2c90cde5ca0e06629a4e9/" + x.dirname)
+
+            # if ctx.attr._rule == "ppx_executable":
+            ## FIXME: OR: ctx.attr.cc_linkstatic ???
+            ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
+            ## and https://ocaml.org/manual/runtime.html
+                args.add("-custom")
 
     _options = get_options(rule, ctx)
-    print("OPTIONS: %s" % _options)
+    # print("OPTIONS: %s" % _options)
     # do not uniquify options, it collapses all -I
     args.add_all(_options)
 
@@ -91,6 +137,7 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     direct_ppx_codep_depsets_paths = []
     indirect_ppx_codep_depsets      = []
     indirect_ppx_codep_depsets_paths = []
+    ppx_codep_linksets = []
 
     direct_inputs_depsets = []
     direct_linkargs_depsets = []
@@ -99,7 +146,6 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     ccInfo_list = []
 
     for dep in ctx.attr.deps:
-        # print("DEP: %s" % dep[OcamlProvider])
         if CcInfo in dep:
             # print("CcInfo dep: %s" % dep)
             ccInfo_list.append(dep[CcInfo])
@@ -110,9 +156,10 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
 
         direct_linkargs_depsets.append(dep[DefaultInfo].files)
 
-        ################ PpxAdjunctsProvider ################
-        if PpxAdjunctsProvider in dep:
-            ppxadep = dep[PpxAdjunctsProvider]
+        ################ PpxCodepsProvider ################
+        ## only for ocaml_imports listed in deps, not ppx_codeps
+        if PpxCodepsProvider in dep:
+            ppxadep = dep[PpxCodepsProvider]
             if hasattr(ppxadep, "ppx_codeps"):
                 if ppxadep.ppx_codeps:
                     indirect_ppx_codep_depsets.append(ppxadep.ppx_codeps)
@@ -122,6 +169,16 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
 
     action_inputs_ccdep_filelist = []
     manifest_list = []
+
+    if ctx.attr._rule == "ppx_executable":
+        if ctx.attr.ppx_codeps:
+            for codep in ctx.attr.ppx_codeps:
+                # NB: codep[OcamlProvider]linkargs insufficient, it only
+                # contains archive files, for linking executables.
+                # We will need to list all modules as inputs
+                ppx_codep_linksets.append(codep[OcamlProvider].linkargs)
+                indirect_ppx_codep_depsets.append(codep[OcamlProvider].inputs)
+                indirect_ppx_codep_depsets_paths.append(codep[OcamlProvider].paths)
 
     ################################################################
     #### MAIN ####
@@ -180,27 +237,33 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     ## on cmd line.  FIXME: how to include only those actually needed?
 
     for dep in linkargs_depset.to_list():
-        print("LINKARG: %s" % dep)
+        # print("LINKARG: %s" % dep)
         if dep not in archive_filter_list:
             includes.append(dep.dirname)
+        if mode == "native":
+            if dep.extension in ["cmx", "cmxa"]:
+                args.add(dep)
+        elif mode == "bytecode":
+            if dep.extension in ["cmo", "cma"]:
+                args.add(dep)
 
-    # for dep in direct_inputs_depset.to_list():
-        # if dep.extension not in ["a", "o", "cmi", "mli", "cmti"]:
-            # if dep.basename != "oUnit2.cmx":  ## FIXME: why?
-        if dep.extension in ["cmx", "cmxa"]: # "cma"]:
-            args.add(dep)
-
+    ### ctx.files.deps added above;
+    ### FIXME: verify logic
     ## all direct deps must be on cmd line:
-    for dep in ctx.files.deps:
-        ## print("DIRECT DEP: %s" % dep)
-        includes.append(dep.dirname)
-        args.add(dep)
+    # for dep in ctx.files.deps:
+    #     ## print("DIRECT DEP: %s" % dep)
+    #     includes.append(dep.dirname)
+    #     args.add(dep)
 
     ## 'main' dep must come last on cmd line
     if ctx.file.main:
         args.add(ctx.file.main)
 
     args.add_all(includes, before_each="-I", uniquify=True)
+
+    if "ppx" in ctx.attr.tags:
+        if hasattr(ctx.attr, "_stublibs"):
+            args.add_all(dllpaths, before_each="-dllpath", uniquify=True)
 
     args.add("-o", out_exe)
 
@@ -216,15 +279,21 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     # else:
     #     std_exit = []
 
+    if hasattr(ctx.attr, "_stublibs"):
+        stublibs = [depset(ctx.files._stublibs)]
+    else:
+        stublibs = []
     inputs_depset = depset(
         direct = [],
         transitive = [direct_inputs_depset] + data_inputs
         + [depset(action_inputs_ccdep_filelist)]
+        + stublibs
     )
 
     if ctx.attr._rule == "ocaml_executable":
         mnemonic = "CompileOcamlExecutable"
-    elif ctx.attr._rule == "ppx_executable":
+    elif "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
+    # elif ctx.attr._rule == "ppx_executable":
         mnemonic = "CompilePpxExecutable"
     elif ctx.attr._rule == "ocaml_test":
         mnemonic = "CompileOcamlTest"
@@ -261,6 +330,9 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
             files = ctx.files.data,
         )
 
+    # print("ARGS: %s" % ctx.attr.args)
+    # print("RUNFILES: %s" % ctx.attr.data)
+
     ##########################
     defaultInfo = DefaultInfo(
         executable=out_exe,
@@ -268,7 +340,7 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     )
 
     exe_provider = None
-    if ctx.attr._rule == "ppx_executable":
+    if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
         exe_provider = PpxExecutableMarker(
             args = ctx.attr.args
         )
@@ -308,19 +380,25 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
             transitive = indirect_ppx_codep_depsets
         )
 
-        ppxAdjunctsProvider = PpxAdjunctsProvider(
-            ppx_codeps = ppx_codeps_depset,
-            paths = ppx_codeps_paths_depset
+        ppx_codeps_linkset = depset(
+            transitive = ppx_codep_linksets
         )
-        providers.append(ppxAdjunctsProvider)
 
-        # outputGroupInfo = OutputGroupInfo(
-        #     ppx_codeps = ppx_codeps_depset,
-        #     inputs = inputs_depset,
-        #     all = depset(transitive=[
-        #         ppx_codeps_depset,
-        #     ])
-        # )
-        # providers.append(outputGroupInfo)
+        ppxCodepsProvider = PpxCodepsProvider(
+            ppx_codeps = ppx_codeps_depset,
+            paths = ppx_codeps_paths_depset,
+            linkset = ppx_codeps_linkset
+        )
+        providers.append(ppxCodepsProvider)
+
+        outputGroupInfo = OutputGroupInfo(
+            ppx_codeps = ppx_codeps_depset,
+            linkset = ppx_codeps_linkset,
+            inputs = inputs_depset,
+            all = depset(transitive=[
+                ppx_codeps_depset,
+            ])
+        )
+        providers.append(outputGroupInfo)
 
     return providers

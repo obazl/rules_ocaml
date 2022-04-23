@@ -3,11 +3,16 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlProvider",
-     "PpxAdjunctsProvider",
 
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
+     "OcamlNsSubmoduleMarker",
      "OcamlSignatureProvider")
+
+load("//ppx:providers.bzl",
+     "PpxCodepsProvider",
+
+)
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -163,7 +168,7 @@ def _sig_make_work_symlinks(ctx, modname, mode):
 
 ########################
 def _resolve_modname(ctx):
-    # print("resolve_modname")
+    # print("_resolve_modname")
 
     # if ctx.label.name[:1] == "@":
     if ctx.attr.forcename:
@@ -171,7 +176,9 @@ def _resolve_modname(ctx):
             if OcamlSignatureProvider in ctx.attr.sig:
                 fail("Cannot force module name if sig attr is cmi file")
         print("Forcing module name from %s" % ctx.label.name)
-        return ctx.label.name[1:]
+        basename = ctx.label.name
+        return basename[:1].capitalize() + basename[1:]
+        # return ctx.label.name[1:]
 
     if ctx.attr.sig:
         # name of cmi always determines modname
@@ -210,8 +217,8 @@ def impl_module(ctx, mode, tool, tool_args):
 # ]
 
     debug = True
-    if ctx.label.name in ["Ppx_runner"]:
-        debug = True
+    # if ctx.label.name in ["Ppx_runner"]:
+    #     debug = True
 
     if debug:
         print("===============================")
@@ -232,7 +239,7 @@ def impl_module(ctx, mode, tool, tool_args):
     #     else:
     #         ext = ".cmo"
     # else:
-    #     tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    #     tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
     #     if mode == "native":
     #         exe = tc.ocamlopt.basename
     #     else:
@@ -285,7 +292,7 @@ def impl_module(ctx, mode, tool, tool_args):
     work_o    = None
     work_mli  = None
     work_cmi  = None
-    cmi_isbound = False
+    cmi_isbound = False ## cmi already produced by sig dep
 
     modname = _resolve_modname(ctx)
     if debug: print("resolved module name: %s" % modname)
@@ -300,6 +307,7 @@ def impl_module(ctx, mode, tool, tool_args):
         ##FIXME: make this a fn
         if debug: print("proper module, with sig: %s" % ctx.attr.sig)
 
+        ## NB: should handle ppx:
         (work_ml, work_cmox, work_o,
          work_mli, work_cmi,
          cmi_isbound) = _sig_make_work_symlinks(
@@ -313,8 +321,6 @@ def impl_module(ctx, mode, tool, tool_args):
             sig_linkargs = sig_attr[OcamlProvider].linkargs
             sig_paths = sig_attr[OcamlProvider].paths
 
-    # if ctx.attr.sig:
-    #     if sig_inputs:
             indirect_inputs_depsets.append(sig_inputs)
             indirect_linkargs_depsets.append(sig_linkargs)
             indirect_paths_depsets.append(sig_paths)
@@ -331,18 +337,37 @@ def impl_module(ctx, mode, tool, tool_args):
             print("cmi_isbound: %s" % cmi_isbound)
     else:
         if debug: print("improper module: no sigfile")
-        work_ml   = ctx.file.struct
-        work_cmi = ctx.actions.declare_file(
-            scope + modname + ".cmi"
-        )
-        work_cmox = ctx.actions.declare_file(
-            scope + modname + ext
-        )
-        if mode == "native":
-            work_o = ctx.actions.declare_file(
-                scope + modname + ".o"
+        if ctx.attr.ppx: ## no sig, plus ppx
+            if debug: print("ppx xforming:")
+            work_ml = impl_ppx_transform(
+                ctx.attr._rule, ctx,
+                ctx.file.struct, modname + ".ml"
             )
-        else: work_o = None
+            work_cmi = ctx.actions.declare_file(
+                scope + modname + ".cmi"
+            )
+            work_cmox = ctx.actions.declare_file(
+                scope + modname + ext
+            )
+            if mode == "native":
+                work_o = ctx.actions.declare_file(
+                    scope + modname + ".o"
+                )
+            else: work_o = None
+
+        else: ## no sig, neg ppx
+            work_ml   = ctx.file.struct
+            work_cmi = ctx.actions.declare_file(
+                scope + modname + ".cmi"
+            )
+            work_cmox = ctx.actions.declare_file(
+                scope + modname + ext
+            )
+            if mode == "native":
+                work_o = ctx.actions.declare_file(
+                    scope + modname + ".o"
+                )
+            else: work_o = None
 
 
     # work_cmox = None
@@ -399,8 +424,16 @@ def impl_module(ctx, mode, tool, tool_args):
     indirect_ppx_codep_path_depsets = []
     indirect_cc_deps  = {}
 
+    ## topdown resolver
     ns_resolver = ctx.attr._ns_resolver
     ns_resolver_files = ctx.files._ns_resolver
+
+    ## DEBUG: dump ns resolver provider
+    if hasattr(ns_resolver, "ns_name"):
+        print("NsResolverProvider:  XXXXXXXXXXXXXXXX")
+        print("  ns_name: %s" % ns_resolver.ns_name)
+        print("ctx.attr._ns_resolver: %s" % ns_resolver)
+
 
     # if ctx.label.name in ["Stdlib", "Stdlib_cmi"]:
     #     print("lbl: %s" % ctx.label.name)
@@ -409,8 +442,8 @@ def impl_module(ctx, mode, tool, tool_args):
 
     paths_direct = [out_cm_.dirname] # d.dirname for d in direct_linkargs]
     if ns_resolver:
+        # print("RESOLVER PATH: %s" % ns_resolver_files)
         paths_direct.extend([f.dirname for f in ns_resolver_files])
-    # print("RESOLVER PATHS: %s" % paths_direct)
 
     #########################
     args = ctx.actions.args()
@@ -438,8 +471,9 @@ def impl_module(ctx, mode, tool, tool_args):
     #     action_outputs.append(out_cmt)
 
     ################ Direct Deps ################
-    the_deps = []
-    the_deps.extend(ctx.attr.deps) # + [ctx.attr._ns_resolver]
+    the_deps = ctx.attr.deps + ctx.attr.open
+    # the_deps = []
+    # the_deps.extend(ctx.attr.deps) # + [ctx.attr._ns_resolver]
 
     ccInfo_list = []
 
@@ -489,17 +523,18 @@ def impl_module(ctx, mode, tool, tool_args):
     ppx_codeps_list = []
 
     if ctx.attr.ppx:
-        ppx_codeps_info = ctx.attr.ppx[PpxAdjunctsProvider]
+        if PpxCodepsProvider in ctx.attr.ppx:
+            ppx_codeps_info = ctx.attr.ppx[PpxCodepsProvider]
 
-        ## NB: it seems to be sufficient to put the ppx_codeps in the
-        ## search path with -I; the archive itself need not be added?
-        ## omitting the path: e.g. "Unbound module Ppx_inline_test_lib"
-        ## adding the path makes the compile work.
-        ## BUT: the ppx_codeps must be propagated to
-        ## ocaml_executable, otherwise the link will fail with:
-        ## "No implementations provided for the following modules:..."
-        indirect_ppx_codep_depsets.append(ppx_codeps_info.ppx_codeps)
-        indirect_ppx_codep_path_depsets.append(ppx_codeps_info.paths)
+            ## 1. put ppx_codeps in search path with -I
+            ## 2. add ppx_codeps.linkset to linkset of module,
+            ## otherwise linking an executable will fail with: "No
+            ## implementations provided for the following modules:..."
+            indirect_linkargs_depsets.append(ppx_codeps_info.linkset)
+
+            indirect_ppx_codep_depsets.append(ppx_codeps_info.ppx_codeps)
+            indirect_ppx_codep_path_depsets.append(ppx_codeps_info.paths)
+
 
         # dlist = ppx_codeps_info.ppx_codeps.to_list()
         # args.add("-ccopt", "-DPPX_ADJUNCTS_START")
@@ -523,10 +558,10 @@ def impl_module(ctx, mode, tool, tool_args):
     # args.add("-I", "/Users/gar/.opam/4.10/lib/ounit2")
     # args.add("-I", "demos/external/ounit2")
 
-    # linkargs = depset(transitive=indirect_linkargs_depsets)
-    # for larg in linkargs.to_list():
-    #     if larg.extension in ["cmxa", "cmx"]:
-    #         args.add("-I", larg.dirname)
+    linkargs = depset(transitive=indirect_linkargs_depsets)
+    for larg in linkargs.to_list():
+        if larg.extension in ["cmxa", "cmx"]:
+            args.add("-I", larg.dirname)
 
     paths_depset  = depset(
         order = dsorder,
@@ -556,14 +591,19 @@ def impl_module(ctx, mode, tool, tool_args):
     #     args.add("-shared")
     # else:
 
-    ## if we rec'd a .cmi sigfile, we must add its SOURCE file to the dep graph!
-    ## otherwise the ocaml compiler will not use the cmx file, it will generate
-    ## one from the module source.
+    ## if we rec'd a .cmi sigfile, we must add its SOURCE file to the
+    ## inputs dep graph! otherwise the ocaml compiler will not use the cmx
+    ## file, it will generate one from the module source.
+
     # sig_in = [sig_src] if sig_src else []
     # mli_out = [mlifile] if mlifile else []
-    mli_out = [work_mli] if work_mli else []
-    # cmi_out = [cmifile] if cmifile else [] # new_cmi]
-    cmi_out = [work_cmi] if work_cmi else [] # new_cmi]
+    if cmi_isbound:
+        mli_out = [work_mli] if work_mli else []
+        # cmi_out = [cmifile] if cmifile else [] # new_cmi]
+        cmi_out = [work_cmi] if work_cmi else [] # new_cmi]
+    else:
+        mli_out = []
+        cmi_out = []
 
     ## runtime deps must be added to the depgraph (so they get built),
     ## but not the command line (they are not build-time deps).
@@ -578,23 +618,24 @@ def impl_module(ctx, mode, tool, tool_args):
         ns_deps = []
 
     ## bottomup ns:
-    # if hasattr(ctx.attr, "ns"):
-    if ctx.attr.ns:
-        # print("NS lbl: %s" % ctx.label)
-        # print("ns: %s" % ctx.file.ns)
-        bottomup_ns_resolver = ctx.attr.ns
+    # if hasattr(ctx.attr, "ns_resolver"):
+    if ctx.attr.ns_resolver:
+        print("NS lbl: %s" % ctx.label)
+        print("ns: %s" % ctx.file.ns_resolver)
+        bottomup_ns_resolver = ctx.attr.ns_resolver
+        resolver = bottomup_ns_resolver[OcamlNsResolverProvider]
+        print("resolver: %s" % resolver)
         bottomup_ns_files   = [bottomup_ns_resolver[DefaultInfo].files]
         bottomup_ns_inputs  = [bottomup_ns_resolver[OcamlProvider].inputs]
         bottomup_ns_fileset = [bottomup_ns_resolver[OcamlProvider].fileset]
         bottomup_ns_cmi     = [bottomup_ns_resolver[OcamlProvider].cmi]
+        bottomup_ns_name    = resolver.ns_name
     else:
         bottomup_ns_resolver = []
         bottomup_ns_files    = []
         bottomup_ns_fileset  = []
         bottomup_ns_inputs   = []
         bottomup_ns_cmi      = []
-
-    # print("bottomup_ns_inputs: %s" % bottomup_ns_inputs)
 
     # if debug:
     #     print("SRC_INPUTS: %s" % src_inputs)
@@ -624,6 +665,13 @@ def impl_module(ctx, mode, tool, tool_args):
     )
     # if ctx.label.name == "Misc":
     #     print("inputs_depset: %s" % inputs_depset)
+
+    if ctx.attr.open:
+        for dep in ctx.files.open:
+            args.add("-open", normalize_module_name(dep.basename))
+
+    if ctx.attr.ns_resolver:
+        args.add("-open", bottomup_ns_name)
 
     args.add("-c")
 
@@ -732,12 +780,21 @@ def impl_module(ctx, mode, tool, tool_args):
     # else:
     #     print("NO MODULE NS_RESOLVER: %s" % ns_resolver)
 
-    nsResolverProvider = OcamlNsResolverProvider(
-        files = ctx.attr._ns_resolver.files,
-        paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
-    )
+    if ctx.attr.ns_resolver:  ## bottomup
+        resolver = ctx.attr.ns_resolver
+        print("attr.ns_resolver: %s" % resolver)
+        print("resolver: %s" % resolver[OcamlNsResolverProvider])
+        nsSubmoduleMarker = OcamlNsSubmoduleMarker(
+            ns_name = resolver[OcamlNsResolverProvider].ns_name
+        )
+        providers.append(nsSubmoduleMarker)
+
+    #     nsResolverProvider = OcamlNsResolverProvider(
+    #         files = ctx.attr._ns_resolver.files,
+    #         paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
+    #     )
+
     # print("RESOLVER PROVIDER: %s" % nsResolverProvider)
-    providers.append(nsResolverProvider)
 
     ## if this is a ppx module, its ppx_codeps (direct or indirect)
     ## must be passed to any ppx_executable that depends on it.
@@ -748,7 +805,7 @@ def impl_module(ctx, mode, tool, tool_args):
         direct = ppx_codeps_list,
         transitive = indirect_ppx_codep_depsets
     )
-    ppxCodepsProvider = PpxAdjunctsProvider(
+    ppxCodepsProvider = PpxCodepsProvider(
         ppx_codeps = ppx_codeps_depset,
         paths = depset(order = dsorder,
                        transitive = indirect_ppx_codep_path_depsets)
@@ -769,6 +826,7 @@ def impl_module(ctx, mode, tool, tool_args):
         ),
         fileset    = fileset_depset,
         linkset    = linkset,
+        # thedeps    = ctx.files.deps,
         ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         closure = new_inputs_depset,

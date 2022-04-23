@@ -8,10 +8,11 @@ load("//ocaml:providers.bzl",
      "OcamlArchiveMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
+)
 
-     "PpxAdjunctsProvider")
-
-# load("//ocaml/_functions:utils.bzl", "get_sdkpath")
+load("//ppx:providers.bzl",
+     "PpxCodepsProvider",
+)
 
 load(":impl_library.bzl", "impl_library")
 
@@ -31,8 +32,6 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     # env = {"PATH": get_sdkpath(ctx)}
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
 
     # if mode == "native":
     #     tool = tc.ocamlopt # .basename

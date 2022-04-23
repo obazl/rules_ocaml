@@ -17,7 +17,7 @@ load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 ## At the end we'll have one CcInfo whose entire depset will go
 ## on cmd line. This includes indirect deps like the .a files
-## in @//ocaml/csdk and @ocaml//lib/ctypes.
+## in @//ocaml/csdk and @rules_ocaml//cfg/lib/ctypes.
 
 #########################
 def dump_library_to_link(ctx, idx, lib):
@@ -147,7 +147,7 @@ def x(ctx,
     # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
 
     # default linkmode for toolchain is determined by platform
-    # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
+    # see @rules_ocaml//cfg/toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
     # dynamic linking does not currently work on the mac - ocamlrun
     # wants a file named 'dllfoo.so', which rust cannot produce. to
     # support this we would need to rename the file using install_name_tool
@@ -210,9 +210,9 @@ def x(ctx,
                 if (depfile.extension == "a"):
                     cclib_deps.append(depfile)
                     includes.append(depfile.dirname)
-                    if ctx.toolchains["@ocaml//ocaml:toolchain"].cc_toolchain == "clang":
+                    if ctx.toolchains["@rules_ocaml//ocaml:toolchain"].cc_toolchain == "clang":
                         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = depfile.path))
-                    elif ctx.toolchains["@ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
+                    elif ctx.toolchains["@rules_ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
                         libname = file_to_lib_name(depfile)
                         args.add("-ccopt", "-L{dir}".format(dir=depfile.dirname))
                         args.add("-ccopt", "-Wl,--push-state,-whole-archive")
@@ -342,7 +342,7 @@ def x(ctx,
 #     # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
 
 #     # default linkmode for toolchain is determined by platform
-#     # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
+#     # see @rules_ocaml//cfg/toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
 #     # dynamic linking does not currently work on the mac - ocamlrun
 #     # wants a file named 'dllfoo.so', which rust cannot produce. to
 #     # support this we would need to rename the file using install_name_tool
@@ -410,9 +410,9 @@ def x(ctx,
 #                 if (depfile.extension == "a"):
 #                     # cclib_deps.append(depfile)
 #                     # includes.append(depfile.dirname)
-#                     if ctx.toolchains["@ocaml//ocaml:toolchain"].cc_toolchain == "clang":
+#                     if ctx.toolchains["@rules_ocaml//ocaml:toolchain"].cc_toolchain == "clang":
 #                         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = depfile.path))
-#                     elif ctx.toolchains["@ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
+#                     elif ctx.toolchains["@rules_ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
 #                         libname = file_to_lib_name(depfile)
 #                         args.add("-ccopt", "-L{dir}".format(dir=depfile.dirname))
 #                         args.add("-ccopt", "-Wl,--push-state,-whole-archive")

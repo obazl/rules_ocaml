@@ -9,9 +9,11 @@ load("//ocaml:providers.bzl",
 
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
-     "OcamlNsMarker",
+     "OcamlNsMarker")
 
-     "PpxAdjunctsProvider")
+load("//ppx:providers.bzl",
+     "PpxCodepsProvider",
+)
 
 load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
@@ -19,7 +21,8 @@ load(":impl_ccdeps.bzl", "dump_CcInfo")
 
 # load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
-## Library targets do not produce anything, they just pass on their deps.
+## Plain Library targets do not produce anything, they just pass on
+## their deps.
 
 ## NS Lib targets also do not directly produce anything, they just
 ## pass on their deps. The real work is done in the transition
@@ -34,7 +37,7 @@ def impl_library(ctx, mode, tool, tool_args):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
-    # tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -48,22 +51,22 @@ def impl_library(ctx, mode, tool, tool_args):
     # must be indexed by [0]
 
     if ctx.attr._rule.startswith("ocaml_ns"):
-        print("tgt: %s" % ctx.label)
-        print("rule: %s" % ctx.attr._rule)
+        # print("tgt: %s" % ctx.label)
+        # print("rule: %s" % ctx.attr._rule)
 
-        if hasattr(ctx.attr, "resolver"):
-            if ctx.attr.resolver:
-                # user-provided
-                ns_resolver = ctx.attr.resolver
-                ns_resolver_module = ctx.file.resolver
-                ns_name = ctx.attr.ns
+        if ctx.attr.resolver:
+            # print("user-provided resolver")
+            ns_resolver = ctx.attr.resolver
+            ns_resolver_module = ctx.file.resolver
+            ns_name = ctx.attr.ns
         else:
-            if len(ctx.files._ns_resolver) > 0:
-                ns_resolver = ctx.attr._ns_resolver[0] # index by int
-                ns_resolver_module = ctx.files._ns_resolver[0]
+            # print("generated resolver")
+            # print("NS RESOLVER FILECT: %s" % len(ctx.files._ns_resolver))
+            ns_resolver = ctx.attr._ns_resolver[0] # index by int
+            ns_resolver_module = ctx.files._ns_resolver[0]
 
-        print("ns_resolver: %s" % ns_resolver)
-        print("ns_resolver_module: %s" % ns_resolver_module)
+        # print("ns_resolver: %s" % ns_resolver)
+        # print("ns_resolver_module: %s" % ns_resolver_module)
 
         if OcamlNsResolverProvider in ns_resolver:
             # print("LBL: %s" % ctx.label)
@@ -85,9 +88,9 @@ def impl_library(ctx, mode, tool, tool_args):
         ## resolver. in that case we have no aliases so no resolver.
         ## there would be no point in such an ns but its possible.
         if ns_resolver_module:
-            print("LBL: %s" % ctx.label)
+            # print("LBL: %s" % ctx.label)
             (ns_resolver_mname, ext) = paths.split_extension(ns_resolver_module.basename)
-            print("ns_resolver_mname: %s" % ns_resolver_mname)
+            # print("ns_resolver_mname: %s" % ns_resolver_mname)
             if ns_resolver_mname == ns_name + resolver_suffix:
                 print("Resolver is user-provided")
                 user_provided_resolver = True
@@ -207,9 +210,9 @@ def impl_library(ctx, mode, tool, tool_args):
             #     dump_CcInfo(ctx, dep)
             ccInfo_list.append(dep[CcInfo])
 
-        if PpxAdjunctsProvider in dep:
-            indirect_adjunct_path_depsets.append(dep[PpxAdjunctsProvider].paths)
-            indirect_adjunct_depsets.append(dep[PpxAdjunctsProvider].ppx_codeps)
+        if PpxCodepsProvider in dep:
+            indirect_adjunct_path_depsets.append(dep[PpxCodepsProvider].paths)
+            indirect_adjunct_depsets.append(dep[PpxCodepsProvider].ppx_codeps)
 
     # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
 
@@ -237,6 +240,7 @@ def impl_library(ctx, mode, tool, tool_args):
     if ctx.attr._rule.startswith("ocaml_ns"):
         if ns_resolver:
             for f in ns_resolver[DefaultInfo].files.to_list():
+            # for f in ns_resolver[0].files.to_list():
                 paths_direct.append(f.dirname)
                 new_linkargs.append(f)
 
@@ -281,7 +285,7 @@ def impl_library(ctx, mode, tool, tool_args):
         order = dsorder,
         transitive = indirect_adjunct_depsets
     )
-    ppxAdjunctsProvider = PpxAdjunctsProvider(
+    ppxAdjunctsProvider = PpxCodepsProvider(
         ppx_codeps = ppx_codeps_depset,
         paths        = depset(
             order = dsorder,

@@ -1,7 +1,7 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:types.bzl", "types")
 
-load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
+# load("//ppx/_bootstrap:ppx.bzl", "ppx_repo")
 
 # load("//coq/_toolchains:coq_toolchains.bzl", "coq_register_toolchains")
 
@@ -354,12 +354,12 @@ def _install_ocaml_templates(repo_ctx, projroot, opam_switch_prefix):
     # )
     # repo_ctx.template(
     #     "aspects/depsets.bzl",
-    #     Label("@ocaml//aspects:depsets.bzl"),
+    #     Label("@rules_ocaml//cfg/aspects:depsets.bzl"),
     #     executable = False,
     # )
     # repo_ctx.template(
     #     "aspects/providers.bzl",
-    #     Label("@ocaml//aspects:providers.bzl"),
+    #     Label("@rules_ocaml//cfg/aspects:providers.bzl"),
     #     executable = False,
     # )
 
@@ -989,7 +989,7 @@ def ocaml_configure(
 
     install_new_local_pkg_repos()
 
-    ppx_repo(name="ppx")
+    # ppx_repo(name="ppx")
 
     # obazl_repo(name="obazl")
 

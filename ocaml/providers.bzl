@@ -1,10 +1,10 @@
-"""Public Providers for obaz_rules_ocaml LSP."""
+"""Public Providers for rules_ocaml."""
 
 load("//ocaml/_providers:ocaml.bzl",
      _OcamlProvider           = "OcamlProvider",
      # FIXME: choose one:
      _OcamlArchiveMarker     = "OcamlArchiveMarker",
-     _OcamlArchiveProvider   = "OcamlArchiveProvider",
+     # _OcamlArchiveProvider   = "OcamlArchiveProvider",
      _OcamlNsResolverProvider = "OcamlNsResolverProvider",
 
      ## markers
@@ -13,33 +13,35 @@ load("//ocaml/_providers:ocaml.bzl",
      _OcamlLibraryMarker    = "OcamlLibraryMarker",
      _OcamlModuleMarker     = "OcamlModuleMarker",
      _OcamlNsMarker         = "OcamlNsMarker",
+     _OcamlNsSubmoduleMarker = "OcamlNsSubmoduleMarker",
      ## FIXME: choose one:
      _OcamlSignatureMarker  = "OcamlSignatureMarker",
      _OcamlSignatureProvider  = "OcamlSignatureProvider",
      _OcamlTestMarker    = "OcamlTestMarker",
      )
 
-load("//ocaml/_providers:ppx.bzl", # FIXME: //ppx/_providers.bzl?
-     _PpxAdjunctsProvider     = "PpxAdjunctsProvider",
-     _PpxExecutableMarker = "PpxExecutableMarker"
-     )
+# load("//ocaml/_providers:ppx.bzl", # FIXME: //ppx/_providers.bzl?
+#      _PpxCodepsProvider     = "PpxCodepsProvider",
+#      _PpxExecutableMarker = "PpxExecutableMarker"
+#      )
 
 OcamlProvider                      = _OcamlProvider
 OcamlArchiveMarker                 = _OcamlArchiveMarker
-OcamlArchiveProvider               = _OcamlArchiveProvider
+# OcamlArchiveProvider               = _OcamlArchiveProvider
 OcamlNsResolverProvider            = _OcamlNsResolverProvider
-PpxAdjunctsProvider                = _PpxAdjunctsProvider
+# PpxCodepsProvider                = _PpxCodepsProvider
 
 OcamlExecutableMarker                 = _OcamlExecutableMarker
 OcamlImportMarker                  = _OcamlImportMarker
 OcamlLibraryMarker                 = _OcamlLibraryMarker
 OcamlModuleMarker                  = _OcamlModuleMarker
 OcamlNsMarker                      = _OcamlNsMarker
+OcamlNsSubmoduleMarker             = _OcamlNsSubmoduleMarker
 OcamlSignatureMarker               = _OcamlSignatureMarker
 OcamlSignatureProvider             = _OcamlSignatureProvider
 OcamlTestMarker                    = _OcamlTestMarker
 
-PpxExecutableMarker = _PpxExecutableMarker
+# PpxExecutableMarker = _PpxExecutableMarker
 
 ################ Config Settings ################
 CompilationModeSettingProvider = provider(

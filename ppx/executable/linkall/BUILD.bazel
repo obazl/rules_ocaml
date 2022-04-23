@@ -1,0 +1,14 @@
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag", "bool_setting")
+
+package(default_visibility = ["//visibility:public"])
+
+# bool_flag( name = "linkall", build_setting_default = False)
+
+# bool_setting( name = "enable", build_setting_default = True)
+config_setting(
+    name = "linkall",
+    flag_values = {"@rules_ocaml//ppx/executable:linkall": str(True)})
+
+# bool_setting( name = "disable", build_setting_default = False)
+# config_setting(name = "disabled", flag_values = {":linkall": str(True)})

@@ -14,7 +14,7 @@ def _ocaml_yacc_impl(ctx):
   if debug:
       print("OCAML YACC TARGET: %s" % ctx.label.name)
 
-  tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+  tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
   # env = {"PATH": get_sdkpath(ctx)}
 
   yaccer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
@@ -53,7 +53,7 @@ ocaml_yacc = rule(
     """,
     attrs = dict(
         # _sdkpath = attr.label(
-        #     default = Label("@ocaml//:sdkpath")
+        #     default = Label("@rules_ocaml//cfg:sdkpath")
         # ),
         src = attr.label(
             doc = "A single .mly ocamlyacc source file label",
@@ -70,5 +70,5 @@ ocaml_yacc = rule(
     ),
     # provides = [],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

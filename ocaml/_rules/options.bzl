@@ -1,14 +1,18 @@
 load("//ocaml:providers.bzl",
      "OcamlArchiveMarker",
+     "OcamlExecutableMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OcamlNsResolverProvider",
      "OcamlModuleMarker",
      "OcamlNsMarker",
+     "OcamlNsSubmoduleMarker",
      "OcamlProvider",
      "OcamlSignatureProvider",
-
-     "PpxExecutableMarker")
+)
+load("//ppx:providers.bzl",
+     "PpxExecutableMarker",
+)
 
 load("//ocaml/_transitions:transitions.bzl",
      "ocaml_module_sig_out_transition",
@@ -23,59 +27,57 @@ load("//ocaml/_transitions:ns_transitions.bzl",
      "ocaml_nslib_ns_out_transition",
      )
 
-## Naming conventions:
-#
-#  * hidden prefix:           '_'   (e.g. _rule)
-#  * ns config state prefix:  '__'  (i.e. label atts)
-
 ################
 def options(ws):
 
-    ws = "@" + ws
+    # ws = "@" + ws
+    ws = "@rules_ocaml"
 
     return dict(
         opts             = attr.string_list(
-            doc          = "List of OCaml options. Will override configurable default options."
+            doc          = "List of compile options; overrides configurable default options. Supports `+-no-+` prefix for each option; for example, `-no-linkall`."
         ),
         ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
-        _debug           = attr.label(default = ws + "//debug"),
-        _cmt             = attr.label(default = ws + "//cmt"),
-        _keep_locs       = attr.label(default = ws + "//keep-locs"),
-        _noassert        = attr.label(default = ws + "//noassert"),
-        _opaque          = attr.label(default = ws + "//opaque"),
-        _short_paths     = attr.label(default = ws + "//short-paths"),
-        _strict_formats  = attr.label(default = ws + "//strict-formats"),
-        _strict_sequence = attr.label(default = ws + "//strict-sequence"),
-        _verbose         = attr.label(default = ws + "//verbose"),
+        ## these should never be directly set.
+        _debug           = attr.label(default = ws + "//cfg/debug"),
+        _cmt             = attr.label(default = ws + "//cfg/cmt"),
+        _keep_locs       = attr.label(default = ws + "//cfg/keep-locs"),
+        _noassert        = attr.label(default = ws + "//cfg/noassert"),
+        _opaque          = attr.label(default = ws + "//cfg/opaque"),
+        _short_paths     = attr.label(default = ws + "//cfg/short-paths"),
+        _strict_formats  = attr.label(default = ws + "//cfg/strict-formats"),
+        _strict_sequence = attr.label(default = ws + "//cfg/strict-sequence"),
+        _verbose         = attr.label(default = ws + "//cfg/verbose"),
 
         _mode       = attr.label(
-            default = ws + "//mode",
+            default = ws + "//build/mode",
         ),
         mode       = attr.string(
-            doc     = "Overrides mode build setting.",
+            doc     = "Overrides default build mode setting, 'native' or 'bytecode'.",
             # default = ""
         ),
 
         # _sdkpath = attr.label(
-        #     default = Label("@ocaml//:sdkpath") # ppx also uses this
+        #     default = Label("@rules_ocaml//cfg:sdkpath") # ppx also uses this
         # ),
     )
 
 #######################
 def options_executable(ws):
 
-    ws = "@" + ws
+    # ws = "@" + ws
+    ws = "@rules_ocaml"
 
     attrs = dict(
-        _linkall     = attr.label(default = ws + "//executable/linkall"),
-        _threads     = attr.label(default = ws + "//executable/threads"),
-        _warnings  = attr.label(default   = ws + "//executable:warnings"),
+        _linkall     = attr.label(default = ws + "//cfg/executable/linkall"),
+        # _threads     = attr.label(default = ws + "//cfg/executable/threads"),
+        _warnings  = attr.label(default   = ws + "//cfg/executable:warnings"),
         _opts = attr.label(
             doc = "Hidden options.",
-            default = "@ocaml//executable:opts"
+            default = "@rules_ocaml//cfg/executable:opts"
         ),
         # _sdkpath = attr.label(
-        #     default = Label("@ocaml//:sdkpath")
+        #     default = Label("@rules_ocaml//cfg:sdkpath")
         # ),
         exe  = attr.string(
             doc = "By default, executable name is derived from 'name' attribute; use this to override."
@@ -107,7 +109,12 @@ def options_executable(ws):
         ),
         _deps = attr.label(
             doc = "Dependency to be added last.",
-            default = "@ocaml//executable:deps"
+            default = "@rules_ocaml//cfg/executable:deps"
+        ),
+
+
+        _stublibs = attr.label_list(
+            default = ["@stublibs//:stublibs"]
         ),
 
         ## FIXME: add cc_linkopts?
@@ -121,7 +128,7 @@ def options_executable(ws):
             doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_executable.",
             ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
             # providers = [[CcInfo]]
-            default = "@ocaml//executable:cc_deps"
+            default = "@rules_ocaml//cfg/executable:cc_deps"
         ),
         cc_linkall = attr.label_list(
             ## equivalent to cc_library's "alwayslink"
@@ -133,7 +140,7 @@ def options_executable(ws):
 
         ),
         mode = attr.label(
-            default = ws + "//mode"
+            default = ws + "//build/mode"
         ),
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -168,41 +175,37 @@ def options_module(ws):
                   [OcamlImportMarker],
                   [OcamlLibraryMarker],
                   [OcamlModuleMarker],
-                  [OcamlNsMarker],
+                  # [OcamlNsMarker],
+                  [OcamlNsResolverProvider],
                   [OcamlSignatureProvider],
                   [CcInfo]]
 
-    ws = "@" + ws
+    # ws = "@" + ws
+    ws = "@rules_ocaml"
 
     return dict(
-        _opts     = attr.label(default = ws + "//module:opts"),     # string list
-        _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
-        _threads   = attr.label(default = ws + "//module/threads"),   # bool
-
-        ns = attr.label(
-            doc = "Bottom-up namespacing",
-            allow_single_file = True,
-            mandatory = False
-        ),
+        _opts     = attr.label(default = ws + "//cfg/module:opts"),     # string list
+        _linkall  = attr.label(default = ws + "//cfg/module/linkall"),  # bool
+        # _threads   = attr.label(default = ws + "//cfg/module/threads"),   # bool
 
         struct = attr.label(
             doc = "A single module (struct) source file label.",
-            mandatory = False, # pack libs may not need a src file
+            mandatory = True,
             allow_single_file = True # no constraints on extension
         ),
-        pack = attr.string(
-            doc = "Experimental.  Name of pack lib module for which this module is to be compiled using -for-pack"
-        ),
+        # pack = attr.string(
+        #     doc = "Experimental.  Name of pack lib module for which this module is to be compiled using -for-pack"
+        # ),
         sig = attr.label(
-            doc = "Single label of a target producing OcamlSignatureProvider (i.e. rule 'ocaml_signature'). Optional.",
-            allow_single_file = True, # [".cmi"],
+            doc = "Single label of a target producing `OcamlSignatureProvider` (i.e. rule `ocaml_signature`) OR a sig source file. Optional.",
+            allow_single_file = True,
             ## FIXME: how to specify OcamlSignatureProvider OR FileProvider?
             #providers = [[OcamlSignatureProvider]],
             # cfg = ocaml_module_sig_out_transition
         ),
         ################
         deps = attr.label_list(
-            doc = "List of OCaml dependencies.",
+            doc = "List of dependencies.",
             providers = _providers,
             # transition undoes changes that may have been made by ns_lib
             # cfg = ocaml_module_deps_out_transition
@@ -213,16 +216,29 @@ def options_module(ws):
         _deps = attr.label(
             doc = "Global deps, apply to all instances of rule. Added last.",
             ## NB: this is a label_flag:
-            default = ws + "//module:deps"
+            default = ws + "//cfg/module:deps"
+        ),
+
+        open = attr.label_list(
+            doc = "List of OCaml dependencies to be passed with `-open`.",
+            providers = [
+                [OcamlProvider],
+                [OcamlArchiveMarker],
+                [OcamlImportMarker],
+                [OcamlLibraryMarker],
+                [OcamlModuleMarker],
+                [OcamlNsMarker],
+            ],
+            # cfg = ocaml_signature_deps_out_transition
         ),
 
         ## OBSOLETE: we don't need deps_deferred?
-        deps_deferred = attr.label_list(
-            doc = "Deps needed at link-time (when building an executable). (I.e. for 'virtual' modules."
-        ),
+        # deps_deferred = attr.label_list(
+        #     doc = "Deps needed at link-time (when building an executable). (I.e. for 'virtual' modules."
+        # ),
 
         deps_runtime = attr.label_list(
-            doc = "Runtime module deps, e.g. .cmxs plugins."
+            doc = "Runtime module dependencies, e.g. .cmxs plugins."
         ),
         data = attr.label_list(
             allow_files = True,
@@ -239,16 +255,23 @@ def options_module(ws):
 
         _cc_deps = attr.label(
             doc = "Global cc-deps, apply to all instances of rule. Added last.",
-            default = ws + "//module:deps"
+            default = ws + "//cfg/module:deps"
         ),
 
         ################
+        ns_resolver = attr.label(
+            doc = "Resolver for bottom-up namespacing",
+            allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            mandatory = False
+        ),
+
         # ns = attr.label(
         #     doc = "Label of ocaml_ns target"
         # ),
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = "@ocaml//ns:submodules",  # => string_list_setting
+            default = "@rules_ocaml//cfg/ns:submodules",  # => string_list_setting
             # allow_files = True,
             # mandatory = True
         ),
@@ -258,7 +281,7 @@ def options_module(ws):
 
         # _ns_strategy = attr.label(
         #     doc = "Experimental",
-        #     default = "@ocaml//ns:strategy"
+        #     default = "@rules_ocaml//cfg/ns:strategy"
         # ),
     )
 
@@ -274,10 +297,10 @@ def options_module(ws):
 #     ws = "@" + ws
 
 #     return dict(
-#         _opts     = attr.label(default = ws + "//module:opts"),     # string list
-#         _linkall  = attr.label(default = ws + "//module/linkall"),  # bool
-#         _threads   = attr.label(default = ws + "//module/threads"),   # bool
-#         _warnings = attr.label(default = ws + "//module:warnings"), # string list
+#         _opts     = attr.label(default = ws + "//cfg/module:opts"),     # string list
+#         _linkall  = attr.label(default = ws + "//cfg/module/linkall"),  # bool
+#         _threads   = attr.label(default = ws + "//cfg/module/threads"),   # bool
+#         _warnings = attr.label(default = ws + "//cfg/module:warnings"), # string list
 
 #         ################
 #         deps = attr.label_list(
@@ -291,7 +314,7 @@ def options_module(ws):
 #         # ),
 #         _deps = attr.label(
 #             doc = "Global deps, apply to all instances of rule. Added last.",
-#             default = ws + "//module:deps"
+#             default = ws + "//cfg/module:deps"
 #         ),
 #         # data = attr.label_list(
 #         #     allow_files = True,
@@ -306,7 +329,7 @@ def options_module(ws):
 #         ),
 #         _cc_deps = attr.label(
 #             doc = "Global cc-deps, apply to all instances of rule. Added last.",
-#             default = ws + "//module:deps"
+#             default = ws + "//cfg/module:deps"
 #         ),
 
 #         ################
@@ -316,17 +339,17 @@ def options_module(ws):
 #         # _ns_resolver = attr.label(
 #         #     doc = "Experimental",
 #         #     providers = [OcamlNsResolverProvider],
-#         #     default = "@ocaml//ns",
+#         #     default = "@rules_ocaml//cfg/ns",
 #         # ),
 #         # _ns_submodules = attr.label(
 #         #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-#         #     default = "@ocaml//ns:submodules",  # => string_list_setting
+#         #     default = "@rules_ocaml//cfg/ns:submodules",  # => string_list_setting
 #         #     # allow_files = True,
 #         #     # mandatory = True
 #         # ),
 #         # _ns_strategy = attr.label(
 #         #     doc = "Experimental",
-#         #     default = "@ocaml//ns:strategy"
+#         #     default = "@rules_ocaml//cfg/ns:strategy"
 #         # ),
 #     )
 
@@ -339,12 +362,13 @@ def options_ns_archive(ws):
         [OcamlSignatureProvider]
     ]
 
-    ws = "@" + ws
+    # ws = "@" + ws
+    ws = "@rules_ocaml" + ws
 
     return dict(
-        _linkall     = attr.label(default = ws +  "//archive/linkall"),
-        # _threads     = attr.label(default = ws + "//ns/threads"),
-        _warnings    = attr.label(default = ws + "//archive:warnings"),
+        _linkall     = attr.label(default = ws + "//cfg/archive/linkall"),
+        # _threads     = attr.label(default = ws + "//cfg/cfg/ns/threads"),
+        _warnings    = attr.label(default = ws + "//cfg/archive:warnings"),
 
         shared = attr.bool(
             doc = "True: build a shared lib (.cmxs)",
@@ -374,11 +398,11 @@ def options_ns_archive(ws):
         ## so we can dump ConfigState
         _ns_prefixes   = attr.label(
             doc = "Experimental",
-            default = "@ocaml//ns:prefixes"
+            default = "@rules_ocaml//cfg/ns:prefixes"
         ),
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = "@ocaml//ns:submodules",  # => string_list_setting
+            default = "@rules_ocaml//cfg/ns:submodules",  # => string_list_setting
             # allow_files = True,
             # mandatory = True
         ),
@@ -387,7 +411,7 @@ def options_ns_archive(ws):
             doc = "Experimental",
             # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
-            default = "@ocaml//ns",
+            default = "@rules_ocaml//cfg/ns",
             cfg = ocaml_nslib_submodules_out_transition
         ),
 
@@ -396,23 +420,23 @@ def options_ns_archive(ws):
         ),
 
         _mode = attr.label(
-            default = ws + "//mode"
+            default = ws + "//build/mode"
         ),
-        _projroot = attr.label(
-            default = "@ocaml//:projroot"
-        )
+        # _projroot = attr.label(
+        #     default = "@rules_ocaml//cfg:projroot"
+        # )
     )
 
 #######################
 def options_ns_library(ws):
 
-    ws_prefix = "@ocaml" ## + ws
+    ws_prefix = "@rules_ocaml" ## + ws
 
     return dict(
-        _opts     = attr.label(default = ws_prefix + "//module:opts"),     # string list
-        _linkall  = attr.label(default = ws_prefix + "//module/linkall"),  # bool
-        _threads   = attr.label(default = ws_prefix + "//module/threads"),   # bool
-        _warnings = attr.label(default = ws_prefix + "//module:warnings"), # string list
+        _opts     = attr.label(default = ws_prefix + "//cfg/module:opts"),     # string list
+        _linkall  = attr.label(default = ws_prefix + "//cfg/module/linkall"),  # bool
+        # _threads   = attr.label(default = ws_prefix + "//module/threads"),   # bool
+        _warnings = attr.label(default = ws_prefix + "//cfg/module:warnings"), # string list
 
         ns = attr.string(
             doc = "Namespace name is derived from 'name' attribute by default; use this to override."
@@ -436,11 +460,11 @@ def options_ns_library(ws):
         ## so we can dump ConfigState
         _ns_prefixes   = attr.label(
             doc = "Experimental",
-            default = "@ocaml//ns:prefixes"
+            default = "@rules_ocaml//cfg/ns:prefixes"
         ),
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = "@ocaml//ns:submodules",  # => string_list_setting
+            default = "@rules_ocaml//cfg/ns:submodules",  # => string_list_setting
             # allow_files = True,
             # mandatory = True
         ),
@@ -448,9 +472,9 @@ def options_ns_library(ws):
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
-        _projroot = attr.label(
-            default = "@ocaml//:projroot" # used by ppx too
-        ),
+        # _projroot = attr.label(
+        #     default = "@rules_ocaml//cfg:projroot" # used by ppx too
+        # ),
 
     )
 
@@ -465,57 +489,109 @@ def options_ns_opts(ws):
 
         _ns_prefixes   = attr.label(
             doc = "Experimental",
-            default = "@ocaml//ns:prefixes"
+            default = "@rules_ocaml//cfg/ns:prefixes"
         ),
     )
 
 ###################
 def options_ns_resolver(ws):
 
-    ws = "@ocaml" #  + ws
+    ws = "@rules_ocaml" #  + ws
 
     return dict(
 
         ns = attr.string(),
 
         submodules = attr.string_list(
-            # default = "@ocaml//ns:submodules", # => string_list_setting
-            doc = "List of filenames (not files!) from which submodule names are to be derived for aliasing. The names will be formed by truncating the extension and capitalizing the initial character. Module source code generated by ocamllex and ocamlyacc can be accomodated by using the module name for the source file and generating a .ml source file of the same name, e.g. lexer.mll -> lexer.ml.",
+            # default = "@rules_ocaml//cfg/ns:submodules", # => string_list_setting
+            doc = """
+List of strings from which submodule names are to be derived for aliasing. Bazel labels may be used; the submodule name will be derived from the target part. For example, '//a/b:c' normalizes to C. But they are just strings, and will not be checked against any files.
+
+The normalized submodule names must match the names of the modules electing membership via the 'ns_resolver' attribute.
+
+ Module source code generated by ocamllex and ocamlyacc can be accomodated by using the module name for the source file and generating a .ml source file of the same name, e.g. lexer.mll -> lexer.ml.
+            """,
             # allow_files = True,
             # mandatory = True
         ),
 
+        # fusions = attr.label_keyed_string_dict(
+        include = attr.label_keyed_string_dict(
+            doc = """
+Exogenous (sub)modules, namespaced or non-namespaced.  Aliased names will not be prefixed with ns name of this ns_resolver.
+
+Keys: labels of modules;
+Values: alias name to be used in this resolver.
+
+e.g. '//mwe/rgb:R': 'Red' will generate
+
+module R = Red
+            """,
+            providers = [
+                [OcamlModuleMarker],     ## exogenous non-namespaced
+                [OcamlNsSubmoduleMarker] ## exogenous namespaced
+            ]
+        ),
+
+        embed = attr.label_keyed_string_dict(
+            doc = """
+Exogenous namespaces (resolver modules).
+            """,
+            providers = [
+                [OcamlNsResolverProvider], ## subnamespace resolver
+            ]
+        ),
+
+        merge = attr.label_list(
+            doc = """
+Includes all submodules of an exogenous namespace.
+            """,
+            providers = [
+                [OcamlNsResolverProvider], ## subnamespace resolver
+            ]
+        ),
+
+        # exclusions = attr.label_list(
+        #     # enhancement: allow user to fuse entire ns except
+        #     # submodules listed here for exclusion.
+        # )
+
         _ns_prefixes   = attr.label(
             doc = "Experimental",
-            default = ws + "//ns:prefixes"
+            default = ws + "//cfg/ns:prefixes"
         ),
         # _ns_strategy = attr.label(
         #     doc = "Experimental",
-        #     default = "@ocaml//ns:strategy"
+        #     default = "@rules_ocaml//cfg/ns:strategy"
         # ),
+
+        ## OBSOLETE???
         _ns_submodules = attr.label( # _list(
-            default = ws + "//ns:submodules", # => string_list_setting
+            default = ws + "//cfg/ns:submodules", # => string_list_setting
             doc = "List of files from which submodule names are to be derived for aliasing. The names will be formed by truncating the extension and capitalizing the initial character. Module source code generated by ocamllex and ocamlyacc can be accomodated by using the module name for the source file and generating a .ml source file of the same name, e.g. lexer.mll -> lexer.ml.",
             allow_files = True,
             # mandatory = True
         ),
+        ## OBSOLETE???
         _ns_sublibs = attr.label(
-            default = ws + "//ns:sublibs",  # => string_list_setting
+            default = ws + "//cfg/ns:sublibs",  # => string_list_setting
             doc = "List of *_ns_library submodules",
             allow_files = True,
             # mandatory = True
         ),
 
         # _mode = attr.label(
-        #     default = ws + "//mode"
+        #     default = ws + "//build/mode"
         # ),
-        # _warnings  = attr.label(default = ws + "//ns:warnings"),
+        # _warnings  = attr.label(default = ws + "//cfg/ns:warnings"),
     )
 
 ###################
 options_ppx = dict(
         ppx  = attr.label(
-            doc = "Label of `ppx_executable` target to be used to transform source before compilation.",
+            doc = """
+Label of `ppx_executable` target to be used to transform source before compilation.
+            """,
             executable = True,
             cfg = "exec",
             allow_single_file = True,
@@ -525,12 +601,13 @@ options_ppx = dict(
             doc = "Options to pass to PPX executable passed by the `ppx` attribute.",
         ),
         ppx_data  = attr.label_list(
-            doc = "PPX runtime dependencies. List of labels of files needed by the PPX executable passed via the `ppx` attribute when it is executed to transform the source file. For example, a source file using [ppx_optcomp](https://github.com/janestreet/ppx_optcomp) may import a file using extension `[%%import ]`; this file should be listed in this attribute.",
+            doc = "PPX runtime data dependencies. List of labels of files needed by the PPX executable passed via the `ppx` attribute when it is executed to transform the source file. For example, a source file using link:https://github.com/janestreet/ppx_optcomp[ppx_optcomp] may import a file using extension `[%%import ]`; this file should be listed in this attribute.",
             allow_files = True,
         ),
+        ppx_verbose = attr.bool(default = False),
         ppx_print = attr.label(
-            doc = "Format of output of PPX transform. Value must be one of '@ppx//print:binary', '@ppx//print:text'.  See [PPX Support](../ug/ppx.md#ppx_print) for more information",
-            default = "@ocaml//ppx/print"
+            doc = "Format of output of PPX transform. Value must be one of `@rules_ocaml//ppx/print:binary`, `@rules_ocaml//ppx/print:text`.  See link:../ug/ppx.md#ppx_print[PPX Support] for more information",
+            default = "@rules_ocaml//ppx/print"
         ),
         # ppx_tags  = attr.string_list(
         #     doc = "DEPRECATED. List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
@@ -572,6 +649,19 @@ options_signature = dict(
             # cfg = ocaml_signature_deps_out_transition
         ),
 
+        open = attr.label_list(
+            doc = "List of OCaml dependencies to be passed with -open.",
+            providers = [
+                [OcamlProvider],
+                [OcamlArchiveMarker],
+                [OcamlImportMarker],
+                [OcamlLibraryMarker],
+                [OcamlModuleMarker],
+                [OcamlNsMarker],
+            ],
+            # cfg = ocaml_signature_deps_out_transition
+        ),
+
         data = attr.label_list(
             allow_files = True
         ),
@@ -580,12 +670,13 @@ options_signature = dict(
         _ns_resolver = attr.label(
             doc = "Experimental",
             providers = [OcamlNsResolverProvider],
-            # default = "@ocaml//ns:bootstrap",
-            default = "@ocaml//bootstrap/ns:resolver",
+            default = "@rules_ocaml//cfg/ns",
+            # default = "@rules_ocaml//cfg/ns:bootstrap",
+            # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
         ),
 
         _ns_submodules = attr.label( # _list(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = "@ocaml//ns:submodules", ## NB: ppx modules use ocaml_signature
+            default = "@rules_ocaml//cfg/ns:submodules", ## NB: ppx modules use ocaml_signature
         ),
     )

@@ -14,13 +14,15 @@ load("//ocaml/_functions:module_naming.bzl", "submodule_from_label_string")
 load("//ocaml/_rules:impl_common.bzl", "tmpdir", "module_sep")
 
 ######################################################
-def _this_module_in_submod_list(ctx, src, submodules):
+def _src_module_in_submod_list(ctx, src, submodules):
     # src: File
     # submodules: list of strings (bottomup) or labels (topdown)
-    print("_this_module_in_submod_list submodules: %s" % submodules)
-    (this_module, ext) = paths.split_extension(src.basename)
-    this_module = capitalize_initial_char(this_module)
-    this_owner  = src.owner
+    # print("_src_module_in_submod_list src: %s" % src)
+    # print("_src_module_in_submod_list submodules: %s" % submodules)
+    (src_module, ext) = paths.split_extension(src.basename)
+    src_module = capitalize_initial_char(src_module)
+    # print("src module: %s" % src_module)
+    # print("src owner: %s" % src.owner)
 
     # if type(ctx.attr._ns_resolver) == "list":
     #     ns_resolver = ctx.attr._ns_resolver[0][OcamlNsResolverProvider]
@@ -28,14 +30,19 @@ def _this_module_in_submod_list(ctx, src, submodules):
     #     ns_resolver = ctx.attr._ns_resolver[OcamlNsResolverProvider]
 
     result = False
-
     submods = []
     for lbl_string in submodules:
+        # print("submod str: %s" % lbl_string)
         submod = Label(lbl_string + ".ml")
+        # print("submod label pkg: %s" % submod.package)
+
         (submod_path, submod_name) = submodule_from_label_string(lbl_string)
-        if this_module == submod_name:
-            if this_owner.package == submod.package:
-                result = True
+        # print("submod_name: %s" % submod_name)
+        if src_module == submod_name:
+            result = True
+            ## WARNING: rule and src may be in different packages!
+            # if src.owner.package == submod.package:
+            #     result = True
 
     return result
 
@@ -50,7 +57,7 @@ def get_module_name (ctx, src):
     debug = False
 
     # we get prefix list from ns_resolver module. they're also in the
-    # config state (@ocaml//ns:prefixes), which is how ns_resolver
+    # config state (@rules_ocaml//cfg/ns:prefixes), which is how ns_resolver
     # gets them. they are also available in hidden _ns_prefixes for
     # all *_ns_* rules, but those could be changed by transitions.
     # only the ones in the ns_resolver module are reliable.(?)
@@ -60,14 +67,22 @@ def get_module_name (ctx, src):
 
     ns_resolver = False
     bottomup = False
-    if hasattr(ctx.attr, "ns"):
-        # print("HAS ctx.attr.ns")
-        if ctx.attr.ns:
-            # print("BOTTOMUP")
+    if hasattr(ctx.attr, "ns_resolver"):
+        # print("HAS ctx.attr.ns_resolver")
+        if ctx.attr.ns_resolver:
+            # print("BOTTOMUP: ctx.attr.ns_resolver %s" % ctx.attr.ns_resolver)
             bottomup = True
-            ns_resolver = ctx.attr.ns
-            prefix = ns_resolver.label.name
+            ns_resolver = ctx.attr.ns_resolver
+            # resolver either ocaml_ns_resolver or ocaml_module
+            if hasattr(ctx.attr.ns_resolver[OcamlNsResolverProvider],
+                       "ns_name"):
+                prefix = ctx.attr.ns_resolver[OcamlNsResolverProvider].ns_name
+            else:
+                (prefix, extension) = paths.split_extension(
+                    ctx.file.ns_resolver.basename)
+                # print("prefix xxxx %s" % prefix)
         else:
+            # print("TOPDOWN: ctx.attr.ns_resolver NIL")
             if type(ctx.attr._ns_resolver) == "list":
                 ns_resolver = ctx.attr._ns_resolver[0]
                 # print("NSR: %s" % ns_resolver)
@@ -81,7 +96,6 @@ def get_module_name (ctx, src):
             ns_resolver = ctx.attr._ns_resolver
 
     if ns_resolver:
-        # print("RENAME ns_resolver: %s" % ns_resolver)
         if OcamlNsResolverProvider in ns_resolver:
             ns_resolver = ns_resolver[OcamlNsResolverProvider]
         else:
@@ -93,19 +107,26 @@ def get_module_name (ctx, src):
     ns     = None
     # module_sep = "__"
 
+    ##WARN: this_module == src_module (src may be in difference dir/pkg);
     (this_module, extension) = paths.split_extension(src.basename)
     this_module = capitalize_initial_char(this_module)
     # if ctx.label.name == "Char_cmi":
     #     print("this_module: %s" % this_module)
 
+    # if bottomup:
+    #     print("BOTTOMUP")
+    # else:
+    #     print("TOPDOWN")
+
     if bottomup:
         out_module = prefix + module_sep + this_module
     elif hasattr(ns_resolver, "prefixes"): # "prefix"):
+        # print("hasattr prefixes: %s" % ns_resolver.prefixes)
         ns_prefixes = ns_resolver.prefixes # .prefix
         if len(ns_prefixes) == 0:
             out_module = this_module
         elif this_module == ns_prefixes[-1]:
-            # this is a main ns module
+            # print("this is a main ns module: %s" % this_module)
             out_module = this_module
         else:
             if len(ns_resolver.submodules) > 0:
@@ -117,9 +138,11 @@ def get_module_name (ctx, src):
                         out_module = fs_prefix + this_module
                     # else:
                 else:
-                    if _this_module_in_submod_list(ctx,
-                                                   src,
-                                                   ns_resolver.submodules):
+                    # print("topdown this: %s" % this_module)
+                    if _src_module_in_submod_list(ctx,
+                                                  src,
+                                                  ns_resolver.submodules):
+                        # print("%s in submod list" % this_module)
                         # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
                         #     fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
                         # else:
@@ -137,6 +160,8 @@ def get_module_name (ctx, src):
     if ctx.label.name == "Stdlib":
         out_module = "stdlib"
 
+    # print("THIS: %s" % this_module)
+    # print("OUT: %s" % out_module)
     return this_module, out_module
 
 ################################################################

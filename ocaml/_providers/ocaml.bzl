@@ -34,16 +34,16 @@ OcamlProvider = provider(
     }
 )
 
-OcamlArchiveProvider = provider(
-    doc = """OCaml archive provider.
+# OcamlArchiveProvider = provider(
+#     doc = """OCaml archive provider.
 
-Produced only by ocaml_archive, ocaml_ns_archive, ocaml_import.  Archive files are delivered in DefaultInfo; this provider holds deps of the archive, to serve as action inputs.
-""",
-    fields = {
-        "files": "file depset of archive's deps",
-        "paths": "string depset"
-    }
-)
+# Produced only by ocaml_archive, ocaml_ns_archive, ocaml_import.  Archive files are delivered in DefaultInfo; this provider holds deps of the archive, to serve as action inputs.
+# """,
+#     fields = {
+#         "files": "file depset of archive's deps",
+#         "paths": "string depset"
+#     }
+# )
 
 # OcamlNsResolverMarker = provider(doc = "OCaml NsResolver Marker provider.")
 OcamlNsResolverProvider = provider(
@@ -55,6 +55,13 @@ OcamlNsResolverProvider = provider(
         "resolver_file": "file",
         "resolver": "Name of resolver module",
         "prefixes": "List of alias prefix segs",
+        "ns_name": "ns name (joined prefixes)"
+    }
+)
+
+OcamlNsSubmoduleMarker = provider(
+    doc = "OCaml NS Submodule Marker.",
+    fields = {
         "ns_name": "ns name (joined prefixes)"
     }
 )
@@ -86,7 +93,7 @@ OcamlSignatureProvider = provider(
 
 OcamlArchiveMarker    = provider(doc = "OCaml Archive Marker provider.")
 OcamlExecutableMarker = provider(doc = "OCaml Executable Marker provider.")
-OcamlImportMarker    = provider(doc = "OCaml Library Marker provider.")
+OcamlImportMarker    = provider(doc = "OCaml Import Marker provider.")
 OcamlLibraryMarker   = provider(doc = "OCaml Library Marker provider.")
 OcamlModuleMarker    = provider(doc = "OCaml Module Marker provider.")
 OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")

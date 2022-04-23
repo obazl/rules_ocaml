@@ -21,7 +21,7 @@ def _ocaml_lex_impl(ctx):
 
   mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-  tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+  tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
   # env = {"PATH": get_sdkpath(ctx)}
 
   # lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
@@ -65,9 +65,9 @@ ocaml_lex = rule(
     doc = """Generates an OCaml source file from an ocamllex source file.
     """,
     attrs = dict(
-        _sdkpath = attr.label(
-            default = Label("@ocaml//:sdkpath")
-        ),
+        # _sdkpath = attr.label(
+        #     default = Label("@rules_ocaml//cfg:sdkpath")
+        # ),
         src = attr.label(
             doc = "A single .mll source file label",
             allow_single_file = [".mll"]
@@ -80,11 +80,11 @@ ocaml_lex = rule(
             doc = "Options"
         ),
         _mode       = attr.label(
-            default = "@ocaml//mode",
+            default = "@rules_ocaml//build/mode",
         ),
         _rule = attr.string( default = "ocaml_lex" )
     ),
     # provides = [],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

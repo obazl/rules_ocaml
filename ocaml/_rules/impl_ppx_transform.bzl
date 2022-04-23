@@ -1,7 +1,10 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//ocaml:providers.bzl", "OcamlVerboseFlagProvider")
-load("//ocaml:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
+load("//ocaml:providers.bzl",
+     "OcamlExecutableMarker",
+     "OcamlVerboseFlagProvider"
+     )
+# load("//ocaml:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
 # load("//ocaml/_functions:utils.bzl",
 #      "get_sdkpath")
 
@@ -32,7 +35,7 @@ def impl_ppx_transform(rule, ctx, src, to):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
-    verbose = True
+    verbose = False
     if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
         if not "-no-verbose" in ctx.attr.opts:
             verbose = True
@@ -43,7 +46,8 @@ def impl_ppx_transform(rule, ctx, src, to):
     args = ctx.actions.args()
 
     if ctx.attr.ppx: # isn't this always true here?
-      args.add_all(ctx.attr.ppx[PpxExecutableMarker].args)
+      # args.add_all(ctx.attr.ppx[PpxExecutableMarker].args)
+      # args.add_all(ctx.attr.ppx[OcamlExecutableMarker].args)
       args.add_all(ctx.attr.ppx_args)
       if hasattr(ctx.attr, "ppx_print"):
           if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
@@ -121,13 +125,13 @@ def impl_ppx_transform(rule, ctx, src, to):
     else:
         command = "\n".join([
             "#!/bin/sh",
-            "set {set}".format(set = "-x" if verbose else "+x"),
+            "set {set}".format(set = "-x" if ctx.attr.ppx_verbose else "+x"),
             "{mkdir}".format(mkdir = MKDIR if (tmpdir != "") else ""),
             RUNTIME_FILES,
             ## copy source to tmp dir for processing. a softlink won't work here.
             "{copy}".format(copy = COPY if (tmpdir != "") else ""),
             "{chdir}".format(chdir= CHDIR if (tmpdir != "") else ""),
-            "ls src/lib_stdlib",
+            # "ls src/lib_stdlib",
             "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
             "cd .."
         ])

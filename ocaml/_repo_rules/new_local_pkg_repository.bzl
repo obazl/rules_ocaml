@@ -6,12 +6,14 @@ load("@bazel_tools//tools/build_defs/repo:utils.bzl",
 #######################################
 def impl_new_local_pkg_repository(repo_ctx):
 
-    # print("impl_new_local_pkg_repository")
+    print("impl_new_local_pkg_repository")
 
     if "OPAM_SWITCH_PREFIX" in repo_ctx.os.environ:
         opam_switch_prefix = repo_ctx.os.environ["OPAM_SWITCH_PREFIX"] + "/lib"
     else:
         fail("env var OPAM_SWITH_PREFIX must be passed  in attr 'environ'")
+
+    print("opam_switch_prefix: %s" % opam_switch_prefix)
 
     ## symlinks before build files
 
@@ -20,6 +22,7 @@ def impl_new_local_pkg_repository(repo_ctx):
     ## top-level subdir and bldfile
     linkpath = opam_switch_prefix + "/" + repo_ctx.attr.path
     linkpath = repo_ctx.path(linkpath).realpath
+    print("LINKPATH: %s" % linkpath)
     # if repo_ctx.name == "ocaml.ffi":
     #     print("OCAML.FFI linkpath: %s" % linkpath)
 
@@ -58,6 +61,8 @@ def impl_new_local_pkg_repository(repo_ctx):
             ]):
                 # if repo_ctx.name == "cmdliner":
                 #     print("cmdliner F: %s" % fpath.basename)
+                print("symlinking {src} => {dst}".format(
+                    src=fpath, dst=fpath.basename))
 
                 repo_ctx.symlink(fpath, fpath.basename)
 

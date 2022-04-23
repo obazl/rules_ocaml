@@ -8,40 +8,6 @@ toolchain_type(
 )
 
 # bzl_library( # for stardoc
-#     name = "bootstrap",
-#     srcs = ["bootstrap.bzl"],
-#     visibility = ["//visibility:public"],
-# )
-
-# bzl_library( # for stardoc
-#     name = "macros",
-#     srcs = ["macros.bzl"],
-#     visibility = ["//visibility:public"],
-# )
-
-bzl_library( # for stardoc
-    name = "stardoc",
-    visibility = ["//visibility:public"],
-    srcs = [
-        ":bootstrap.bzl",
-        # ":macros.bzl",
-        ":providers.bzl",
-        ":rules.bzl",
-    ],
-    deps = [
-        "//ocaml/_debug",
-        "//ocaml/_bootstrap:bootstrap",
-        "//ocaml/_providers:providers",
-        "//ocaml/_rules:ocaml_rules",
-        "//ocaml/_rules:ppx_rules",
-        "//ocaml/_rules/utils",
-        "//ocaml/_toolchains:toolchains",
-        "//ocaml/_transitions:transitions",
-        "//ppx/_bootstrap:bootstrap",
-    ]
-)
-
-# bzl_library( # for stardoc
 #     name = "rules",
 #     srcs = ["rules.bzl"],
 #     visibility = ["//visibility:public"],

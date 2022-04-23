@@ -3,14 +3,18 @@ load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "PpxAdjunctsProvider",
      "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlSignatureMarker",
      "OcamlSDK",
-     "PpxModuleMarker")
+)
+
+load("//ppx:providers.bzl",
+     "PpxCodepsProvider",
+     "PpxExecutableMarker",
+)
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -50,7 +54,7 @@ def _handle_cc_deps(ctx,
     # see https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#ss%3Adynlink-c-code
 
     # default linkmode for toolchain is determined by platform
-    # see @ocaml//toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
+    # see @rules_ocaml//cfg/toolchain:BUILD.bazel, ocaml/_toolchains/*.bzl
     # dynamic linking does not currently work on the mac - ocamlrun
     # wants a file named 'dllfoo.so', which rust cannot produce. to
     # support this we would need to rename the file using install_name_tool
@@ -117,9 +121,9 @@ def _handle_cc_deps(ctx,
                 if (depfile.extension == "a"):
                     cclib_deps.append(depfile)
                     includes.append(depfile.dirname)
-                    if ctx.toolchains["@ocaml//ocaml:toolchain"].cc_toolchain == "clang":
+                    if ctx.toolchains["@rules_ocaml//ocaml:toolchain"].cc_toolchain == "clang":
                         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = depfile.path))
-                    elif ctx.toolchains["@ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
+                    elif ctx.toolchains["@rules_ocaml//ocaml:toolchain"].cc_toolchain == "gcc":
                         libname = file_to_lib_name(depfile)
                         args.add("-ccopt", "-L{dir}".format(dir=depfile.dirname))
                         args.add("-ccopt", "-Wl,--push-state,-whole-archive")
@@ -189,7 +193,7 @@ def impl_pack_library(ctx):
 
     env = {"PATH": get_sdkpath(ctx)}
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -374,33 +378,33 @@ def impl_pack_library(ctx):
                 transitive = merged_archived_modules_depsets
             ),
         )
-    elif ctx.attr._rule == "ppx_module" or ctx.attr._rule == "ppx_submodule":
-        moduleMarker = PpxModuleMarker(
-            module_links     = depset(
-                order = dsorder,
-                direct = [out_cm_],
-                transitive = merged_module_links_depsets
-            ),
-            archive_links = depset(
-                order = dsorder,
-                transitive = merged_archive_links_depsets
-            ),
-            paths    = depset(
-                direct = includes + [out_cm_.dirname], ## depset will uniquify includes
-                transitive = merged_paths_depsets
-            ),
-            depgraph = depset(
-                order = dsorder,
-                direct = outputs,
-                transitive = merged_depgraph_depsets
-            ),
-            archived_modules = depset(
-                order = dsorder,
-                transitive = merged_archived_modules_depsets
-            ),
-        )
+    # elif ctx.attr._rule == "ppx_module" or ctx.attr._rule == "ppx_submodule":
+    #     moduleMarker = PpxModuleMarker(
+    #         module_links     = depset(
+    #             order = dsorder,
+    #             direct = [out_cm_],
+    #             transitive = merged_module_links_depsets
+    #         ),
+    #         archive_links = depset(
+    #             order = dsorder,
+    #             transitive = merged_archive_links_depsets
+    #         ),
+    #         paths    = depset(
+    #             direct = includes + [out_cm_.dirname], ## depset will uniquify includes
+    #             transitive = merged_paths_depsets
+    #         ),
+    #         depgraph = depset(
+    #             order = dsorder,
+    #             direct = outputs,
+    #             transitive = merged_depgraph_depsets
+    #         ),
+    #         archived_modules = depset(
+    #             order = dsorder,
+    #             transitive = merged_archived_modules_depsets
+    #         ),
+    #     )
 
-    adjunctsMarker = PpxAdjunctsProvider(
+    adjunctsMarker = PpxCodepsProvider(
         ppx_codeps = depset(transitive = indirect_adjunct_depsets),
         paths = depset(transitive = indirect_adjunct_path_depsets)
     )

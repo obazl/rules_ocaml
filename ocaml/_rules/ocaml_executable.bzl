@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
 ###############################
 def _ocaml_executable(ctx):
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -35,22 +35,37 @@ ocaml_executable = rule(
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_executable`
 
-In addition to the [OCaml configurable defaults](#configdefs) that apply to all
-`ocaml_*` rules, the following apply to this rule:
+In addition to the <<Configurable defaults>> that
+apply to all `ocaml_*` rules, the following apply to this rule. (Note
+the difference between '/' and ':' in such labels):
 
-| Label | Default | `opts` attrib |
-| ----- | ------- | ------- |
-| @ocaml//executable:linkall | True | `-linkall`, `-no-linkall`|
-| @ocaml//executable:thread | True | `-thread`, `-no-thread`|
-| @ocaml//executable:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
+[.rule_attrs]
+[cols="1,1,1"]
+|===
+| Label | Default | `opts` attrib
+
+| @rules_ocaml//cfg/executable/linkall | True | `-linkall`, `-no-linkall`
+
+| @rules_ocaml//cfg/executable:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value
+
+|===
+
+// | @rules_ocaml//cfg/executable/threads | True | `-thread`, `-no-thread`
+
 
 **NOTE** These do not support `:enable`, `:disable` syntax.
 
- See [Configurable Defaults](../ug/configdefs_doc.md) for more information.
     """,
     attrs = dict(
         rule_options,
+
+        ## FIXME: get stublibs from toolchain?
+        _stublibs = attr.label_list( ## for ppx only
+            # default = ["@stublibs//:stublibs"]
+        ),
+
         _rule = attr.string( default  = "ocaml_executable" ),
+
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
@@ -61,5 +76,5 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     # cfg     = nsarchive_in_transition,
     # cfg     = executable_in_transition,
     executable = True,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

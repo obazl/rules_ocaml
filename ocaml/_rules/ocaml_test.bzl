@@ -9,7 +9,7 @@ load(":options.bzl", "options", "options_executable")
 ###############################
 def _ocaml_test(ctx):
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -38,9 +38,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
 
 | Label | Default | `opts` attrib |
 | ----- | ------- | ------- |
-| @ocaml//executable:linkall | True | `-linkall`, `-no-linkall`|
-| @ocaml//executable:threads | False | true: `-I +thread`|
-| @ocaml//executable:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
+| @rules_ocaml//cfg/executable:linkall | True | `-linkall`, `-no-linkall`|
+| @rules_ocaml//cfg/executable:threads | False | true: `-I +thread`|
+| @rules_ocaml//cfg/executable:warnings | `@1..3@5..28@30..39@43@46..47@49..57@61..62-40`| `-w` plus option value |
 
 **NOTE** These do not support `:enable`, `:disable` syntax.
 
@@ -52,5 +52,5 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     ),
     # cfg = executable_in_transition,
     test = True,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

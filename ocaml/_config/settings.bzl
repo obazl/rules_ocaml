@@ -46,7 +46,7 @@ deps_setting = rule(
 ################################################################
 def _compilation_mode_impl(ctx):
     if ctx.build_setting_value not in ["bytecode", "native"]:
-        fail("Bad value for @ocaml//mode. Allowed values: bytecode | native")
+        fail("Bad value for @rules_ocaml//cfg/mode. Allowed values: bytecode | native")
     return CompilationModeSettingProvider(value = ctx.build_setting_value)
 
 compilation_mode_flag = rule(

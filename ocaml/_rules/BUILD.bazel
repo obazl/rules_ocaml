@@ -6,17 +6,22 @@ exports_files(glob(["*.bzl"]))
 
 bzl_library(
     name = "ocaml_rules",
-    srcs = glob(["ocam*.bzl", "ppx*.bzl", "impl*.bzl", "options.bzl"]), # "x*bzl"]),
+    srcs = glob([
+        "ocam*.bzl", "ppx*.bzl", "impl*.bzl", "options.bzl"
+    ]), # "x*bzl"]),
     visibility = ["//visibility:public"],
     deps = [
         "@bazel_skylib//lib:collections",
         "@bazel_skylib//rules:common_settings",
         "@bazel_skylib//lib:paths",
         "@bazel_skylib//lib:structs",
+
         "//ocaml/_actions:actions",
         "//ocaml/_config:config",
-        "//ocaml/_functions:functions",
-        "//ocaml:providers.bzl",
+        "//ocaml/_functions:bzl_lib",
+        "//ocaml/_providers:bzl_lib",
+
+        # "//ocaml:providers.bzl",
         # "//ppx/_config:config",
         # "//ppx:providers",
         # "@obazl_rules_opam//opam/_providers:providers",

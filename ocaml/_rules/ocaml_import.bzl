@@ -1,9 +1,14 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
+     "CompilationModeSettingProvider",
      "OcamlProvider",
-     "PpxAdjunctsProvider",
      "OcamlImportMarker")
+
+load("//ppx:providers.bzl",
+     "PpxCodepsProvider",
+     "PpxExecutableMarker",
+)
 
 load(":impl_common.bzl", "dsorder", "opam_lib_prefix")
 
@@ -19,6 +24,18 @@ def _ocaml_import_impl(ctx):
     """Import OCaml resources."""
 
     debug = False
+
+    # tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+
+    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+
+    # if mode == "native":
+    #     tool = tc.ocamlopt # .basename
+    # else:
+    #     tool = tc.ocamlc  #.basename
+
+    # tool_args = []
+
     direct_files = []
 
     dep_depsets = []
@@ -70,8 +87,8 @@ def _ocaml_import_impl(ctx):
         #         if opdep.ppx_codep_paths:
         #             ppx_codep_paths_list.append(opdep.ppx_codep_paths)
 
-        if PpxAdjunctsProvider in dep:
-            codep = dep[PpxAdjunctsProvider]
+        if PpxCodepsProvider in dep:
+            codep = dep[PpxCodepsProvider]
             if hasattr(codep, "ppx_codeps"):
                 if codep.ppx_codeps:
                     has_ppx_codeps = True
@@ -102,8 +119,12 @@ def _ocaml_import_impl(ctx):
 
         direct_archive.extend(ctx.files.archive)
         for f in ctx.files.archive:
-            if f.extension == "cmxa":
-                direct_default_files.append(f)
+            if mode == "native":
+                if f.extension == "cmxa":
+                    direct_default_files.append(f)
+            if mode == "bytecode":
+                if f.extension == "cma":
+                    direct_default_files.append(f)
             # if (f.path.startswith(opam_lib_prefix)):
             #     dir = paths.relativize(f.dirname, opam_lib_prefix)
             #     direct_paths_list.append( "+../" + dir )
@@ -157,6 +178,10 @@ def _ocaml_import_impl(ctx):
         direct_files.extend(ctx.files.modules)
 
     ################################
+    # if ctx.attr.ppx:
+    #     direct_default_files.extend(ctx.files.ppx)
+
+    ################################
     ## direct ppx_codeps on imports will be depsets, not files
     for dep in ctx.attr.ppx_codeps:
         has_ppx_codeps = True
@@ -174,10 +199,10 @@ def _ocaml_import_impl(ctx):
             #     if opdep.ppx_codep_paths:
             #         ppx_codep_paths_list.append(opdep.paths)
 
-        if PpxAdjunctsProvider in dep:
+        if PpxCodepsProvider in dep:
             # print("{t}: PpxCodepsProvider in ppx_codep: {d}".format(
             #     t = ctx.label.name, d = dep))
-            codep = dep[PpxAdjunctsProvider]
+            codep = dep[PpxCodepsProvider]
             if hasattr(codep, "ppx_codeps"):
                 has_ppx_codeps = True
                 if codep.ppx_codeps:
@@ -210,7 +235,7 @@ def _ocaml_import_impl(ctx):
             transitive = direct_ppx_codep_paths_list +
             direct_ppx_codep_path_depsets + indirect_ppx_codep_path_depsets
         )
-        ppxAdjunctsProvider = PpxAdjunctsProvider(
+        ppxAdjunctsProvider = PpxCodepsProvider(
             paths      = ppx_codep_paths_depset,
             ppx_codeps = ppx_codeps_depset,
         )
@@ -253,11 +278,16 @@ def _ocaml_import_impl(ctx):
 
     providers.append(_ocamlProvider)
 
+    # if ctx.attr.ppx:
+    #     providers.append(PpxExecutableMarker())
+
     providers.append(OcamlImportMarker(marker = "OcamlImport"))
 
     # if executable:
     #     providers.append(OcamlExecutableMarker(marker = "OcamlExecutable"))
 
+    ## FIXME: --output_groups only prints generated stuff? it won't
+    ## print fixed files that just pass through
     outputGroupInfo = OutputGroupInfo(
         # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
         files = direct_default_depset,
@@ -288,6 +318,9 @@ ocaml_import = rule(
 
     """,
     attrs = dict(
+        _mode       = attr.label(
+            default = "@rules_ocaml//build/mode",
+        ),
         archive = attr.label_list(
             default = [],
             allow_files = True
@@ -304,6 +337,10 @@ ocaml_import = rule(
         ),
         signature = attr.label_list(
             allow_files = True
+        ),
+        ppx = attr.label(
+            doc = "precompiled ppx executable",
+            allow_single_file = True
         ),
         plugin = attr.label_list(
             allow_files = True
@@ -323,5 +360,5 @@ ocaml_import = rule(
     ),
     provides = [OcamlImportMarker],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

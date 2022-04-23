@@ -6,7 +6,8 @@ load("//ocaml:providers.bzl",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
-     "OcamlSignatureMarker")
+     "OcamlSignatureMarker"
+     )
 
 load(":options.bzl", "options")
 
@@ -17,7 +18,7 @@ load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 ###############################
 def _ocaml_archive(ctx):
 
-    tc = ctx.toolchains["@ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -37,12 +38,12 @@ ocaml_archive = rule(
     attrs = dict(
         options("ocaml"),
         archive_name = attr.string(
-            doc = "Name of generated archive file, without extension. Overrides `name` attribute."
+            doc = "Name of generated archive file, without extension. If not provided, name will be derived from target 'name' attribute."
         ),
         ## CONFIGURABLE DEFAULTS
-        _linkall     = attr.label(default = "@ocaml//archive/linkall"),
-        # _threads     = attr.label(default = "@ocaml//archive/threads"),
-        _warnings  = attr.label(default = "@ocaml//archive:warnings"),
+        _linkall     = attr.label(default = "@rules_ocaml//cfg/archive/linkall"),
+        # _threads     = attr.label(default = "@rules_ocaml//cfg/archive/threads"),
+        _warnings  = attr.label(default = "@rules_ocaml//cfg/archive:warnings"),
         #### end options ####
 
         shared = attr.bool(
@@ -51,7 +52,7 @@ ocaml_archive = rule(
         ),
 
         standalone = attr.bool(
-            doc = "True: link total depgraph. False: link only direct deps.  Default False.",
+            doc = "True: link total depgraph. False: link only direct deps.",
             default = False
         ),
 
@@ -76,7 +77,7 @@ ocaml_archive = rule(
             providers = [[CcInfo]]
         ),
         cc_linkopts = attr.string_list(
-            doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
+            doc = "List of C/C++ link options, to be passed to compiler using `-ccopt`. For example, `[\"-lstd++\"]`.",
         ),
         # cc_linkall = attr.label_list( ## FIXME: not needed
         #     doc     = "True: use `-whole-archive` (GCC toolchain) or `-force_load` (Clang toolchain). Deps in this attribute must also be listed in cc_deps.",
@@ -87,13 +88,13 @@ ocaml_archive = rule(
             # default is os-dependent, but settable to static or dynamic
         ),
         _mode = attr.label(
-            default = "@ocaml//mode"
+            default = "@rules_ocaml//build/mode"
         ),
         # _projroot = attr.label(
-        #     default = "@ocaml//:projroot"
+        #     default = "@rules_ocaml//cfg:projroot"
         # ),
         # _sdkpath = attr.label(
-        #     default = Label("@ocaml//:sdkpath")
+        #     default = Label("@rules_ocaml//cfg:sdkpath")
         # ),
         _rule = attr.string( default = "ocaml_archive" ),
         _allowlist_function_transition = attr.label(
@@ -107,5 +108,5 @@ ocaml_archive = rule(
     cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )

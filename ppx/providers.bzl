@@ -1,9 +1,10 @@
 ###############################
-PpxAdjunctsProvider = provider(
-    doc = "PPX Adjunct Deps provider.",
+PpxCodepsProvider = provider(
+    doc = "PPX Codeps provider.",
     fields = {
         "ppx_codeps": "file depset",
-        "paths": "string depset"
+        "paths": "string depset",
+        "linkset" : "file depset"
     }
 )
 

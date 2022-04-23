@@ -1,7 +1,7 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
-load("//ocaml/_repo_rules:ocaml_repository.bzl", "ocaml_repository")
+# load("//ocaml/_repo_rules:ocaml_repository.bzl", "ocaml_repository")
 
 def ocaml_configure():
 
@@ -16,4 +16,4 @@ def ocaml_configure():
     )
 
     ## configure @ocaml workspace:
-    ocaml_repository()
+    # ocaml_repository()

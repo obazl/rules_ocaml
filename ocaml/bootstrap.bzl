@@ -1,3 +1,5 @@
+## mv to //:WORKSPACE.bzl ocaml_configure
+
 load("//ocaml/_bootstrap:ocaml.bzl", _ocaml_configure = "ocaml_configure")
 
 # load("//ocaml/_bootstrap:obazl.bzl", _obazl_configure = "obazl_configure")

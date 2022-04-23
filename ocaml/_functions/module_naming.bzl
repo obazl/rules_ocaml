@@ -5,8 +5,8 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 #      # "OcamlSDK",
 #      # "OcamlArchiveProvider",
 #      # "OcamlSignatureProvider",
-#      # "OcamlLibraryProvider",
-#      # "OcamlModuleProvider",
+#      # "OcamlLibraryMarker",
+#      # "OcamlModuleMarker",
 #      # "PpxArchiveProvider",
 #      "PpxExecutableProvider",
 #      "PpxModuleProvider")
@@ -44,6 +44,29 @@ def normalize_module_name(s):
 
     result = basename[:1].capitalize() + basename[1:]
 
+    return result
+
+################################
+def module_name_from_label(lbl):
+    """Remove leading _, validate and normalize label.name"""
+# module name grammar:
+# module-name ::= capitalized-ident  
+# capitalized-ident ::= (A … Z) { letter ∣  0 … 9 ∣  _ ∣  ' }  
+
+    basename = lbl.name.lstrip("_") # remove leading _
+    verify = basename.replace("'", "")
+    verify = verify.replace("_", "")
+
+    if not verify.isalnum():
+        fail("name part of label %s not a valid module name (must be alphanumeric, \"'\", or \"_\")" % lbl)
+
+    if not basename[:1].isalpha():
+        fail("name part {n} of label {l} not a valid module name (must start with alpha char)".format(
+            n = basename, l = lbl
+        ))
+
+    result = basename[:1].capitalize() + basename[1:]
+    # print("Normalized: %s" % result)
     return result
 
 ###########################
