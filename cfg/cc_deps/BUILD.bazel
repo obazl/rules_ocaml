@@ -1,0 +1,4 @@
+package(default_visibility = ["//visibility:public"])
+
+label_flag( name = "cc_deps", build_setting_default = "@rules_ocaml//cfg:null")
+

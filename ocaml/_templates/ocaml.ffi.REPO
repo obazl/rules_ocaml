@@ -1,8 +1,0 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
-
-cc_library(
-    name = "ffi",
-    hdrs = glob(["*.h", "*.tbl"]),
-    include_prefix = "caml",
-    visibility = ["//visibility:public"],
-)
