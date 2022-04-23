@@ -38,13 +38,14 @@ load(":impl_common.bzl",
 scope = tmpdir
 
 ########################
-def _make_work_symlinks(ctx, modname, mode):
+def _sig_make_work_symlinks(ctx, modname, mode):
     # we always link ml/mli/cmi under modname to workdir
     # so we return (work_ml, work_mli, work_cmi)
     # all are symlinked, to be listed as compile action inputs,
     # none as compile action outputs
 
-    debug = True
+    debug = False
+    if debug: print("_sig_make_work_symlinks")
 
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
@@ -62,24 +63,31 @@ def _make_work_symlinks(ctx, modname, mode):
             print("cmifile: %s" % sigProvider.cmi)
             print("mlifile: %s" % sigProvider.mli)
 
-        ## namespacing?
-        ## for cmi deps,
-        ## only symlink sigfiles if sig dir different than pkg dir
-        sp = sigProvider.mli.short_path
-        spdir = paths.dirname(sp)
-
-        if paths.basename(spdir) + "/" == scope:
-            pkgdir = paths.dirname(spdir)
+        ## for cmi deps, only symlink sigfiles if sigfile dir
+        ## different than structfile dir
+        sig_short_path = sigProvider.mli.short_path
+        sig_short_path_dir = paths.dirname(sig_short_path)
+        if paths.basename(sig_short_path_dir) + "/" == scope:
+            sig_pkgdir = paths.dirname(sig_short_path_dir)
         else:
-            pkgdir = spdir
-        print("target spec pkg: %s" % ctx.label.package)
+            sig_pkgdir = sig_short_path_dir
 
-        print("sigfiles pkgdir: %s" % pkgdir)
+        struct_short_path = ctx.file.struct.short_path
+        struct_short_path_dir = paths.dirname(struct_short_path)
+        if paths.basename(struct_short_path_dir) + "/" == scope:
+            struct_pkgdir = paths.dirname(struct_short_path_dir)
+        else:
+            struct_pkgdir = struct_short_path_dir
 
-        if ctx.label.package == pkgdir:
+        print("struct_pkgdir: %s" % struct_pkgdir)
+        print("sig_pkgdir: %s" % sig_pkgdir)
+
+        if struct_pkgdir == sig_pkgdir:
+            print("NOT SYMLINKING mli/cmi")
             work_mli = sigProvider.mli
             work_cmi = sigProvider.cmi
         else:
+            print("SYMLINKING mli/cmi")
             work_mli = ctx.actions.declare_file(
                 scope + sigProvider.mli.basename
             )
@@ -294,7 +302,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
         (work_ml, work_cmox, work_o,
          work_mli, work_cmi,
-         cmi_isbound) = _make_work_symlinks(
+         cmi_isbound) = _sig_make_work_symlinks(
             ctx, modname, mode
         )
 
