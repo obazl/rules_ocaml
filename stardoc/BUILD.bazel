@@ -1,0 +1,39 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+# exports_files(["linkmode.md"])
+
+# bzl_library( # for stardoc
+#     name = "bootstrap",
+#     srcs = ["bootstrap.bzl"],
+#     visibility = ["//visibility:public"],
+# )
+
+# bzl_library( # for stardoc
+#     name = "macros",
+#     srcs = ["macros.bzl"],
+#     visibility = ["//visibility:public"],
+# )
+
+bzl_library( # for stardoc
+    name = "stardoc",
+    visibility = ["//visibility:public"],
+    srcs = [
+        "//ocaml:bootstrap.bzl",
+        # ":macros.bzl",
+        # "//ocaml/_providers",
+        "//ocaml:providers.bzl",
+        # "//build:rules.bzl",
+    ],
+    deps = [
+        "//ocaml/_debug",
+        "//ocaml/_bootstrap:bootstrap",
+        "//ocaml/_providers:bzl_lib",
+        # "//ocaml/_providers:providers",
+        "//ocaml/_rules:ocaml_rules",
+        # "//ocaml/_rules:ppx_rules",
+        "//ocaml/_rules/utils",
+        # "//ocaml/_toolchains:stardoc",
+        "//ocaml/_transitions:stardoc",
+        # "//ppx/_bootstrap:bootstrap",
+    ]
+)
