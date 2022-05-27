@@ -57,7 +57,7 @@ workdir = tmpdir
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
 
-    debug = True
+    debug = False
     # if ctx.label.name in ["_Impl.cmi"]:
     #     debug = True
 
@@ -97,9 +97,10 @@ def _ocaml_signature_impl(ctx):
 
     modname = None
     # if ctx.label.name[:1] == "@":
-    if ctx.attr.forcename:
-        print("Forcing module name from %s" % ctx.label.name)
-        basename = ctx.label.name
+    # if ctx.attr.forcename:
+    if ctx.attr.module:
+        if debug: print("Setting module name to %s" % ctx.attr.module)
+        basename = ctx.attr.module
         modname = basename[:1].capitalize() + basename[1:]
         #FIXME: add ns prefix if needed
     else:
@@ -107,7 +108,7 @@ def _ocaml_signature_impl(ctx):
 
     # (from_name, module_name) = get_module_name(ctx, sig_src)
 
-    print("ctx.attr.ppx: %s" % ctx.attr.ppx)
+    if debug: print("ctx.attr.ppx: %s" % ctx.attr.ppx)
 
     if ctx.attr.ppx:
         if debug: print("ppx")
@@ -179,8 +180,7 @@ def _ocaml_signature_impl(ctx):
     # out_cmi = ctx.actions.declare_file(workdir + modname + ".cmi")
     out_cmi = work_cmi
     # out_cmi = ctx.actions.declare_file(workdir + module_name + ".cmi")
-    if debug:
-        print("out_cmi %s" % out_cmi)
+    if debug: print("out_cmi %s" % out_cmi)
 
     #########################
     args = ctx.actions.args()
@@ -362,6 +362,13 @@ def _ocaml_signature_impl(ctx):
             cc_common.merge_cc_infos(cc_infos = ccInfo_list)
         )
 
+
+    outputGroupInfo = OutputGroupInfo(
+        cmi        = default_depset,
+    )
+
+    providers.append(outputGroupInfo)
+
     return providers
 
 
@@ -465,7 +472,9 @@ the difference between '/' and ':' in such labels):
         #     default = "@rules_ocaml//build/mode",
         # ),
 
-        forcename = attr.bool( doc = """Derive module name from target name. May differ            from what would be derived from sig/struct filenames.""" ),
+        module = attr.string(
+            doc = "Set module (sig) name to this string"
+        ),
 
         _rule = attr.string( default = "ocaml_signature" ),
 
@@ -541,7 +550,11 @@ def _ocaml_ns_signature_impl(ctx):
         cmi = out_cmi
     )
 
-    return [defaultInfo, sigProvider]
+    outputGroupInfo = OutputGroupInfo(
+        cmi        = default_depset,
+    )
+
+    return [defaultInfo, sigProvider, outputGroupInfo]
 
 #######################
 ocaml_ns_signature = rule(

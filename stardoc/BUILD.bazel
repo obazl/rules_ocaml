@@ -20,14 +20,13 @@ bzl_library( # for stardoc
     srcs = [
         "//ocaml:bootstrap.bzl",
         # ":macros.bzl",
-        # "//ocaml/_providers",
         "//ocaml:providers.bzl",
         # "//build:rules.bzl",
     ],
     deps = [
         "//ocaml/_debug",
         "//ocaml/_bootstrap:bootstrap",
-        "//ocaml/_providers:bzl_lib",
+        "//ocaml/_providers:stardoc",
         # "//ocaml/_providers:providers",
         "//ocaml/_rules:ocaml_rules",
         # "//ocaml/_rules:ppx_rules",

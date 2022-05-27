@@ -55,7 +55,9 @@ def _sig_make_work_symlinks(ctx, modname, mode):
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
     if OcamlSignatureProvider in ctx.attr.sig:
-        if debug: print("sigattr is compiled .cmi")
+        if debug:
+            print("sigattr is compiled .cmi")
+            print("ctx.attr.sig: %s" % ctx.attr.sig)
 
         sigProvider = ctx.attr.sig[OcamlSignatureProvider]
         # cmifile = sigProvider.cmi
@@ -68,8 +70,22 @@ def _sig_make_work_symlinks(ctx, modname, mode):
             print("cmifile: %s" % sigProvider.cmi)
             print("mlifile: %s" % sigProvider.mli)
 
+        ## we have three Bazel packages, which may be different:
+        ## target pkg: the pkg containing this ocaml_module target
+        ## sig pkg:    pkg containing the `sig` dep target
+        ## struct pkg: pkg containing the `struct` dep target
+
+        ## we need ensure all compile inputs are in <target>/__obazl
+
         ## for cmi deps, only symlink sigfiles if sigfile dir
-        ## different than structfile dir
+        ## different than the target dir
+
+        tgt_short_path_dir = ctx.label.package
+        if paths.basename(tgt_short_path_dir) + "/" == scope:
+            tgt_pkgdir = paths.dirname(tgt_short_path_dir)
+        else:
+            tgt_pkgdir = tgt_short_path_dir
+
         sig_short_path = sigProvider.mli.short_path
         sig_short_path_dir = paths.dirname(sig_short_path)
         if paths.basename(sig_short_path_dir) + "/" == scope:
@@ -84,15 +100,17 @@ def _sig_make_work_symlinks(ctx, modname, mode):
         else:
             struct_pkgdir = struct_short_path_dir
 
-        print("struct_pkgdir: %s" % struct_pkgdir)
-        print("sig_pkgdir: %s" % sig_pkgdir)
+        if debug:
+            print("tgt_pkgdir: %s" % tgt_pkgdir)
+            print("struct_pkgdir: %s" % struct_pkgdir)
+            print("sig_pkgdir: %s" % sig_pkgdir)
 
-        if struct_pkgdir == sig_pkgdir:
-            print("NOT SYMLINKING mli/cmi")
+        if tgt_pkgdir == sig_pkgdir:
+            if debug: print("NOT SYMLINKING mli/cmi")
             work_mli = sigProvider.mli
             work_cmi = sigProvider.cmi
         else:
-            print("SYMLINKING mli/cmi")
+            if debug: print("SYMLINKING mli/cmi")
             work_mli = ctx.actions.declare_file(
                 scope + sigProvider.mli.basename
             )
@@ -170,13 +188,16 @@ def _sig_make_work_symlinks(ctx, modname, mode):
 def _resolve_modname(ctx):
     # print("_resolve_modname")
 
+    debug = False
+
     # if ctx.label.name[:1] == "@":
-    if ctx.attr.forcename:
+    # if ctx.attr.forcename: ## FIXME: ctx.attr.module, name string
+    if ctx.attr.module:
         if ctx.attr.sig:
             if OcamlSignatureProvider in ctx.attr.sig:
                 fail("Cannot force module name if sig attr is cmi file")
-        print("Forcing module name from %s" % ctx.label.name)
-        basename = ctx.label.name
+        if debug: print("Forcing module name to %s" % ctx.attr.module)
+        basename = ctx.attr.module
         return basename[:1].capitalize() + basename[1:]
         # return ctx.label.name[1:]
 
@@ -216,9 +237,22 @@ def impl_module(ctx, mode, tool, tool_args):
 #   '@platforms//os:osx',
 # ]
 
-    debug = True
-    # if ctx.label.name in ["Ppx_runner"]:
-    #     debug = True
+
+    ## OUTPUTS: in addition to the std .cmo/.cmx, .o outputs, some
+    ## options entail additional outputs:
+    ##  -bin-annot:  <src>.cmt, <src.cmti>
+    ##  -annot:  <src>.annot (deprecated in favor or -bin-annot)
+    ##  -dtype: same as -annot
+    ##  -save-ir-after {scheduling}:  .cmir-linear files
+    ##  -inlining-report: `.<round>.inlining` files
+    ##  -S: keep intermediate assembly file <src>.s
+    ##  -dump-into-file: "dump output like -dlambda into <target>.dump"
+    ##  -args:  file containing cmd line args (newline-terminated)
+    ##  -args0: file containing cmd line args (null-terminated)
+
+    ## bytecode mode: -make-runtime: build runtime system (output?)
+
+    debug = False
 
     if debug:
         print("===============================")
@@ -305,7 +339,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
     if ctx.attr.sig:
         ##FIXME: make this a fn
-        if debug: print("proper module, with sig: %s" % ctx.attr.sig)
+        if debug: print("dyadic module, with sig: %s" % ctx.attr.sig)
 
         ## NB: should handle ppx:
         (work_ml, work_cmox, work_o,
@@ -316,6 +350,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
         ## now sig deps:
         if OcamlSignatureProvider in ctx.attr.sig:
+            if debug: print("sigdep: compiled")
             sig_attr = ctx.attr.sig
             sig_inputs = sig_attr[OcamlProvider].inputs
             sig_linkargs = sig_attr[OcamlProvider].linkargs
@@ -327,6 +362,8 @@ def impl_module(ctx, mode, tool, tool_args):
             indirect_paths_depsets.append(
                 depset(direct = [work_cmox.dirname, work_cmi.dirname])
             )
+        else:
+            if debug: print("sigdep: source")
 
         if debug:
             print("WORK ml: %s" % work_ml)
@@ -336,7 +373,7 @@ def impl_module(ctx, mode, tool, tool_args):
             print("WORK cmi: %s" % work_cmi)
             print("cmi_isbound: %s" % cmi_isbound)
     else:
-        if debug: print("improper module: no sigfile")
+        if debug: print("orphaned module: no sigfile")
         if ctx.attr.ppx: ## no sig, plus ppx
             if debug: print("ppx xforming:")
             work_ml = impl_ppx_transform(
@@ -620,11 +657,12 @@ def impl_module(ctx, mode, tool, tool_args):
     ## bottomup ns:
     # if hasattr(ctx.attr, "ns_resolver"):
     if ctx.attr.ns_resolver:
-        print("NS lbl: %s" % ctx.label)
-        print("ns: %s" % ctx.file.ns_resolver)
+        if debug:
+            print("NS lbl: %s" % ctx.label)
+            print("ns: %s" % ctx.file.ns_resolver)
         bottomup_ns_resolver = ctx.attr.ns_resolver
         resolver = bottomup_ns_resolver[OcamlNsResolverProvider]
-        print("resolver: %s" % resolver)
+        if debug: print("resolver: %s" % resolver)
         bottomup_ns_files   = [bottomup_ns_resolver[DefaultInfo].files]
         bottomup_ns_inputs  = [bottomup_ns_resolver[OcamlProvider].inputs]
         bottomup_ns_fileset = [bottomup_ns_resolver[OcamlProvider].fileset]
@@ -782,8 +820,9 @@ def impl_module(ctx, mode, tool, tool_args):
 
     if ctx.attr.ns_resolver:  ## bottomup
         resolver = ctx.attr.ns_resolver
-        print("attr.ns_resolver: %s" % resolver)
-        print("resolver: %s" % resolver[OcamlNsResolverProvider])
+        if debug:
+            print("attr.ns_resolver: %s" % resolver)
+            print("resolver: %s" % resolver[OcamlNsResolverProvider])
         nsSubmoduleMarker = OcamlNsSubmoduleMarker(
             ns_name = resolver[OcamlNsResolverProvider].ns_name
         )
@@ -817,13 +856,21 @@ def impl_module(ctx, mode, tool, tool_args):
         ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
         providers.append(ccInfo )
 
+    if work_cmi and not cmi_isbound:
+        cmi_depset = depset(
+            direct = [work_cmi],
+            transitive = bottomup_ns_cmi
+        )
+    else:
+        cmi_depset = depset(
+            direct=cmi_out,
+            transitive = bottomup_ns_cmi
+        )
+
     ################
     outputGroupInfo = OutputGroupInfo(
         # cc         = ccInfo.linking_context.linker_inputs.libraries,
-        cmi        = depset(
-            direct=cmi_out,
-            transitive = bottomup_ns_cmi
-        ),
+        cmi        = cmi_depset,
         fileset    = fileset_depset,
         linkset    = linkset,
         # thedeps    = ctx.files.deps,

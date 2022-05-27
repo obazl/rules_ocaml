@@ -85,7 +85,11 @@ NOTE: These do not support `:enable`, `:disable` syntax.
 
         rule_options,
 
-        forcename = attr.bool( doc = """Derive module name from target name. May differ            from what would be derived from sig/struct filenames.""" ),
+        #FIXME: use 'module = attr.string'
+        # forcename = attr.bool( doc = """Derive module name from target name. May differ            from what would be derived from sig/struct filenames.""" ),
+        module = attr.string(
+            doc = "Use this string as module name, instead of deriving it from sig or struct"
+        ),
 
         _ns_resolver = attr.label(
             doc = "NS resolver module",

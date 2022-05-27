@@ -32,7 +32,7 @@ workdir = tmpdir
 #################
 def impl_ns_resolver(ctx, mode, tool, tool_args):
 
-    debug = True
+    debug = False
     # if ctx.label.name == "":
     #     debug = True
 
@@ -101,7 +101,7 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     user_ns_resolver = None
 
     for submod_label in subnames:  # e.g. [Color, Red, Green, Blue], where main = Color
-        print("submod_label: %s" % submod_label)
+        if debug: print("submod_label: %s" % submod_label)
         # NB: //a/b:c will be normalized to C
         submodule = normalize_module_label(submod_label)
         # print("submodule normed: %s" % submodule)
@@ -123,17 +123,21 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
         if len(ns_prefixes) > 0:
             if len(ns_prefixes) == 1:
-                print("lbl: %s" % ctx.label)
-                print("one ns_prefixes: %s" % ns_prefixes)
-                print("submodule: %s" % submodule)
+                if debug:
+                    print("lbl: %s" % ctx.label)
+                    print("one ns_prefixes: %s" % ns_prefixes)
+                    print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
-                    print("submodule == ns_prefixes[0]: %s" % submodule)
+                    if debug:
+                        print("submodule == ns_prefixes[0]: %s" % submodule)
                     user_ns_resolver = submod_label
-                    print("user_ns_resolver: %s" % user_ns_resolver)
+                    if debug:
+                        print("user_ns_resolver: %s" % user_ns_resolver)
                     continue ## no alias for main module
                 else:
-                    print("submodule != ns_prefixes[0]: %s" % submodule)
+                    if debug:
+                        print("submodule != ns_prefixes[0]: %s" % submodule)
             elif submodule == ns_prefixes[-1]:
                 # this is main nslib module
                 user_ns_resolver = submod_label
@@ -153,7 +157,8 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         ## WARNING: check for namespacing first
         if OcamlNsSubmoduleMarker in k:
             resolver = k[OcamlNsSubmoduleMarker]
-            print("FUSE namespaced module, ns: %s" % resolver.ns_name)
+            if debug:
+                print("FUSE namespaced module, ns: %s" % resolver.ns_name)
             alias = "module {alias} = {ns}{sep}{mod}".format(
                 alias = v,
                 sep = "__", # if nslib_submod else module_sep,
@@ -162,7 +167,8 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
             )
             aliases.append(alias)
         elif OcamlModuleMarker in k:
-            print("FUSE non-namespaced module: {} -> {}".format(v, k))
+            if debug:
+                print("FUSE non-namespaced module: {} -> {}".format(v, k))
             alias = "module {alias} = {mod}".format(
                 alias = v,
                 mod = normalize_module_name(k.label.name)
@@ -171,10 +177,12 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     # embed exogenous namespace (not its submodules)
     for k,v in ctx.attr.embed.items():
-        print("EMBED: {} -> {}".format(v, k))
+        if debug:
+            print("EMBED: {} -> {}".format(v, k))
         if  OcamlNsResolverProvider in k:
             resolver = k[OcamlNsResolverProvider]
-            print("EMBED NS: %s" % resolver.ns_name)
+            if debug:
+                print("EMBED NS: %s" % resolver.ns_name)
             alias = "module {alias} = {mod}".format(
                 alias = v,
                 ## FIXME: derive module name from label name
@@ -184,10 +192,10 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     # import ALL submodules from exogenous namespaces
     for f in ctx.attr.merge:
-        print("IMPORT: {}".format(f))
+        if debug: print("IMPORT: {}".format(f))
         if  OcamlNsResolverProvider in f:
             resolver = f[OcamlNsResolverProvider]
-            print("IMPORT ns: %s" % resolver.ns_name)
+            if debug: print("IMPORT ns: %s" % resolver.ns_name)
             for submod in resolver.submodules:
                 alias = "module {alias} = {ns}{sep}{mod}".format(
                     alias = submod,
@@ -197,7 +205,7 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
                 )
                 aliases.append(alias)
 
-    print("aliases: %s" % aliases)
+    if debug: print("aliases: %s" % aliases)
 
     ns_name = module_sep.join(ns_prefixes)
 
@@ -294,14 +302,14 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     action_inputs = []
     merge_depsets = []
     for tgt in ctx.attr.merge:
-        print("MERGE: %s" % tgt)
+        if debug: print("MERGE: %s" % tgt)
         merge_depsets.append(tgt.files)
     for tgt in ctx.attr.include:
-        print("INCLUDE: %s" % tgt)
+        if debug: print("INCLUDE: %s" % tgt)
         merge_depsets.append(tgt.files)
 
     action_inputs.append(resolver_src_file)
-    print("action_inputs: %s" % action_inputs)
+    if debug: print("action_inputs: %s" % action_inputs)
 
     ## -no-alias-deps is REQUIRED for ns modules;
     ## see https://caml.inria.fr/pub/docs/manual-ocaml/modulealias.html

@@ -57,6 +57,16 @@ def options(ws):
             # default = ""
         ),
 
+        argsfile       = attr.label(
+            doc = "Name of file containing newline-terminated arg lines, to be passed with -args",
+            allow_single_file = True,
+        ),
+
+        args0file       = attr.label(
+            doc = "Name of file containing null-terminated arg lines, to be passed with -args0",
+            allow_single_file = True,
+        ),
+
         # _sdkpath = attr.label(
         #     default = Label("@rules_ocaml//cfg:sdkpath") # ppx also uses this
         # ),
