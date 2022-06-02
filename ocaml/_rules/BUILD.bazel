@@ -16,10 +16,10 @@ bzl_library(
         "@bazel_skylib//lib:paths",
         "@bazel_skylib//lib:structs",
 
-        "//ocaml/_actions:actions",
-        "//ocaml/_config:config",
-        "//ocaml/_functions:bzl_lib",
-        "//ocaml/_providers:bzl_lib",
+        "//ocaml/_actions:stardoc",
+        "//ocaml/_config:stardoc",
+        "//ocaml/_functions:stardoc",
+        "//ocaml/_providers:stardoc",
 
         # "//ocaml:providers.bzl",
         # "//ppx/_config:config",
