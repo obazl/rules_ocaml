@@ -1,19 +1,19 @@
-# obazl_rules_ocaml
+# OBazl: rules_ocaml
 Bazel rules for developing OCaml software
 
-Documentation: [docs_ocaml](https://obazl.github.io/docs_ocaml/)
+Documentation: [docs_ocaml](https://obazl.github.io/docs_obazl/)
 
-Demos:  [dev_obazl](https://github.com/obazl/dev_obazl)
+Demos:  [demos_obazl](https://github.com/obazl/demos_obazl)
 
 See also:
 
-* [obazl_rules_opam](https://github.com/obazl/rules_opam)
+* [tools_opam](https://github.com/obazl/tools_opam)
 
-* [obazl_tools_bazel](https://github.com/obazl/tools_bazel)
+* [tools_obazl](https://github.com/obazl/tools_obazl)
 
 ### Branches
 
-* `main` - going forward, HEAD will always be a tagged release.
+* `main` - going forward, HEAD will always be a tagged release. In theory.
 
 * `beta` - for each major version, we have a beta branch, e.g.
   `beta/v1`. The HEAD will always be a tagged beta version, e.g.
