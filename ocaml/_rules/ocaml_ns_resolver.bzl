@@ -34,8 +34,6 @@ ocaml_ns_resolver = rule(
 
 This rule initializes a 'namespace evaluation environment' consisting of a pseudo-namespace prefix string and optionally an ns resolver module.  A pseudo-namespace prefix string is a string that is used to form (by prefixation) a (presumably) globally unique name for a module. An ns resolver module is a module that contains nothing but alias equations mapping module names to pseudo-namespaced module names.
 
-You may use the [ppx_ns](macros.md#ppx_ns) macro instead of instantiating this rule directly.
-
 This rule is designed to work in conjujnction with rules
 [ocaml_module](rules_ocaml.md#ocaml_module) and
 [ocaml_ns_module](rules_ocaml.md#ocaml_ns_module). An `ocaml_module`

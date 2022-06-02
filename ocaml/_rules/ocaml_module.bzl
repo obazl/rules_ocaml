@@ -39,9 +39,34 @@ rule_options.update(options_ppx)
 ocaml_module = rule(
     implementation = _ocaml_module,
  # Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
-    doc = """Compiles an OCaml module.
+    doc = """
+Compiles an OCaml module. The **module name** is determined by rule,
+based on the `struct`, `sig`, `name`, and `module` attributes:
 
-**CONFIGURABLE DEFAULTS** for rule `ocaml_module`
+* If the `sig` attribute is the label of an `ocaml_signature` target,
+  then the module name is derived from the name of the compiled
+  sigfile, since compiled interface files cannot be renamed. The
+  structfile will be renamed if it does not match the sigfile name.
+
+* If the `sig` attribute is a filename, then:
+
+** if its principal name is equal to the principal name of the file
+   named in the `struct` attribute, then the module name is derived
+   from it.
+
+** if the principal names of the sigfile and structfile do not match,
+   then the module name is derived from from the `name` attribute.
+   Both the sigfile and the structfile will be renamed accordingly.
+
+** The `module` attribute may be used to force the module name. Both
+   the sigfile and the structfile will be renamed accordingly.
+
+* If the `sig` attribute is not specified (i.e. the structfile is
+  "orphaned"), then the module name will be derived from the
+  structfile name, unless the `module` attribute is specified, in
+  which case it overrides.
+
+**CONFIGURABLE DEFAULTS** for rule `ocaml_module`:
 
 In addition to the <<Configurable defaults>> that apply to all
 `ocaml_*` rules, the following apply to this rule:
@@ -51,7 +76,7 @@ In addition to the <<Configurable defaults>> that apply to all
 [.rule_attrs]
 [cols="1,1,1"]
 |===
-| Label | Default | `opts` attrib
+| Label | Default | Comments
 
 | @rules_ocaml//cfg/module:deps | `@rules_ocaml//cfg:null` | list of OCaml deps to add to all `ocaml_module` instances
 
@@ -63,7 +88,7 @@ In addition to the <<Configurable defaults>> that apply to all
 
 |===
 
-^1^ See [CC Dependencies](../ug/cc_deps.md) for more information on CC deps.
+^1^ See link:../user-guide/dependencies-cc[CC Dependencies] for more information on CC deps.
 
 **Boolean Flags**
 
@@ -72,11 +97,11 @@ NOTE: These do not support `:enable`, `:disable` syntax.
 [.rule_attrs]
 [cols="1,1,1"]
 |===
-| Label | Default | `opts` attrib
+| Label | Default | `opts` attrib equivalent
 
-| @rules_ocaml//cfg/module:linkall | True | `-linkall`, `-no-linkall`
+| @rules_ocaml//cfg/module/linkall | False | `-linkall`, `-no-linkall`
 
-| @rules_ocaml//cfg/module:verbose | True | `-verbose`, `-no-verbose`
+| @rules_ocaml//cfg/module:verbose | False | `-verbose`, `-no-verbose`
 
 |===
 
@@ -89,21 +114,6 @@ NOTE: These do not support `:enable`, `:disable` syntax.
         # forcename = attr.bool( doc = """Derive module name from target name. May differ            from what would be derived from sig/struct filenames.""" ),
         module = attr.string(
             doc = "Use this string as module name, instead of deriving it from sig or struct"
-        ),
-
-        _ns_resolver = attr.label(
-            doc = "NS resolver module",
-            # allow_single_file = True,
-            providers = [OcamlNsResolverProvider],
-            ## @rules_ocaml//cfg/ns is a 'label_setting' whose value is an
-            ## `ocaml_ns_resolver` rule. so this institutes a
-            ## dependency on a resolver whose build params will be set
-            ## dynamically using transition functions.
-            default = "@rules_ocaml//cfg/ns", ## FIXME rename: @rules_ocaml//cfg/ns:resolver
-
-            ## TRICKY BIT: if our struct is generated (e.g. by
-            ## ocaml_lex), this transition will prevent ns renaming:
-            # cfg = ocaml_module_deps_out_transition
         ),
 
         _warnings = attr.label(
@@ -136,3 +146,4 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     executable = False,
     toolchains = ["@rules_ocaml//ocaml:toolchain"],
 )
+

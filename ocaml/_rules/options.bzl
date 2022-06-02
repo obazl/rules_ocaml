@@ -53,17 +53,24 @@ def options(ws):
             default = ws + "//build/mode",
         ),
         mode       = attr.string(
-            doc     = "Overrides default build mode setting, 'native' or 'bytecode'.",
-            # default = ""
+            doc     = """
+Overrides default build mode setting, `native` or `bytecode`. The default is set by `@rules_ocaml//build/mode`, which defaults to `native`.
+            """,
         ),
 
         argsfile       = attr.label(
-            doc = "Name of file containing newline-terminated arg lines, to be passed with -args",
+            doc = """
+Name of file containing newline-terminated arg lines, to be passed with `-args`.
+            NOT YET SUPPORTED
+            """,
             allow_single_file = True,
         ),
 
         args0file       = attr.label(
-            doc = "Name of file containing null-terminated arg lines, to be passed with -args0",
+            doc = """
+Name of file containing null-terminated arg lines, to be passed with `-args0`.
+            NOT YET SUPPORTED
+            """,
             allow_single_file = True,
         ),
 
@@ -248,15 +255,19 @@ def options_module(ws):
         # ),
 
         deps_runtime = attr.label_list(
-            doc = "Runtime module dependencies, e.g. .cmxs plugins."
+            doc = """
+Runtime module dependencies, e.g. .cmxs plugins. Use the `data` attribute for runtime data dependencies.
+            """
         ),
         data = attr.label_list(
             allow_files = True,
-            doc = "Runtime data dependencies: list of labels of data files needed by this module at runtime."
+            doc = """
+Runtime data dependencies: list of labels of data files needed by this module at runtime. This is a standard Bazel attribute; see link:https://bazel.build/reference/be/common-definitions#typical-attributes[Typical attributes,window="_blank"].
+            """
         ),
         ################
         cc_deps = attr.label_keyed_string_dict(
-            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
+            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
             """,
             # providers = since this is a dictionary depset, no providers
             ## but the keys must have CcInfo providers, check at build time
@@ -269,8 +280,12 @@ def options_module(ws):
         ),
 
         ################
+        ## we have both a public and a hidden ns resolver attribute.
+        ## the latter is for top-down namespacing, for former for bottom-up
         ns_resolver = attr.label(
-            doc = "Resolver for bottom-up namespacing",
+            doc = """
+NS resolver module for bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
+            """,
             allow_single_file = True,
             providers = [OcamlNsResolverProvider],
             mandatory = False
@@ -279,6 +294,21 @@ def options_module(ws):
         # ns = attr.label(
         #     doc = "Label of ocaml_ns target"
         # ),
+        _ns_resolver = attr.label(
+            doc = "NS resolver module for bottom-up namespacing",
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            ## @rules_ocaml//cfg/ns is a 'label_setting' whose value is an
+            ## `ocaml_ns_resolver` rule. so this institutes a
+            ## dependency on a resolver whose build params will be set
+            ## dynamically using transition functions.
+            default = "@rules_ocaml//cfg/ns", ## FIXME rename: @rules_ocaml//cfg/ns:resolver
+
+            ## TRICKY BIT: if our struct is generated (e.g. by
+            ## ocaml_lex), this transition will prevent ns renaming:
+            # cfg = ocaml_module_deps_out_transition
+        ),
+
         _ns_submodules = attr.label(
             doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
             default = "@rules_ocaml//cfg/ns:submodules",  # => string_list_setting
