@@ -105,7 +105,7 @@ def _sig_make_work_symlinks(ctx, modname, mode):
             print("struct_pkgdir: %s" % struct_pkgdir)
             print("sig_pkgdir: %s" % sig_pkgdir)
 
-        if tgt_pkgdir == sig_pkgdir:
+        if struct_pkgdir == sig_pkgdir:
             if debug: print("NOT SYMLINKING mli/cmi")
             work_mli = sigProvider.mli
             work_cmi = sigProvider.cmi
