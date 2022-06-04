@@ -63,7 +63,7 @@ ppx_executable = rule(
             doc = "A module to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
             # mandatory = True,
             allow_single_file = True,
-            providers = [[OcamlModuleMarker]],
+            providers = [[OcamlModuleMarker], [PpxExecutableMarker]],
             default = None,
             # cfg = ocaml_executable_deps_out_transition
         ),
