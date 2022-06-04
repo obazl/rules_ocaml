@@ -112,8 +112,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             #         dllpaths.append(x.dirname)
             #         # dllpaths.append("/private/var/tmp/_bazel_gar/2452f4a294f2c90cde5ca0e06629a4e9/" + x.dirname)
 
-            for stublib in tc.stublibs:
-                print("STUBLIB: %s" % stublib)
+            # for stublib in tc.stublibs:
+            #     print("STUBLIB: %s" % stublib)
 
             # if ctx.attr._rule == "ppx_executable":
             ## FIXME: OR: ctx.attr.cc_linkstatic ???
@@ -264,7 +264,6 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         stublibs = tc.stublibs
     elif mode == "native":
         stublibs = []
-    print("STUBLIBS: %s" % stublibs)
 
     for stublib in stublibs:
         includes.append(stublib.dirname)
