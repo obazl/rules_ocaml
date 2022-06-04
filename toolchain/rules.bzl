@@ -41,34 +41,35 @@ _ocaml_tools_attrs = {
     ),
 
     "ocamlc_opt": attr.label(
-        # default = Label("@rules_ocaml//cfg/bin:ocamlc.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "ocamlopt": attr.label(
-        # default = Label("@rules_ocaml//cfg/bin:ocamlopt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "ocamlopt_opt": attr.label(
-        # default = Label("@rules_ocaml//cfg/bin:ocamlopt.opt"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "ocamllex": attr.label(
-        # default = Label("@rules_ocaml//cfg/bin:ocamllex"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
     ),
     "ocamlyacc": attr.label(
-        # default = Label("@rules_ocaml//cfg/bin:ocamlyacc"),
         executable = True,
         allow_single_file = True,
         cfg = "exec",
+    ),
+
+    "stublibs": attr.label(
+        allow_files = True,
+        # executable = True,
+        # cfg = "exec",
     ),
 
     ## stdlib?
@@ -153,6 +154,8 @@ def _ocaml_toolchain_impl(ctx):
         ocamlopt_opt = ctx.file.ocamlopt_opt,
         ocamllex   = ctx.file.ocamllex,
         ocamlyacc  = ctx.file.ocamlyacc,
+
+        stublibs  = ctx.files.stublibs,
 
         # stdlib?
         # dllpath    = ctx.path(Label("@opam//pkg:stublibs"))

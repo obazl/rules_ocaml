@@ -53,13 +53,11 @@ def _import_ppx_executable(ctx):
     return providers
 
 #########################
-def impl_executable(ctx, mode, linkmode, tool, tool_args):
+def impl_executable(ctx, mode, tc, tool, tool_args):
 
     debug = False
     # if ctx.label.name == "test":
         # debug = True
-
-    # print("++ EXECUTABLE {}".format(ctx.label))
 
     if debug:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -107,12 +105,15 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     if mode == "bytecode":
         if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
             ## FIXME: get stublibs from toolchain?
-            if hasattr(ctx.attr, "_stublibs"):
-                for x in ctx.files._stublibs:
-                    includes.append(x.dirname)
-                    ## FIXME: get correct path, or set CAML_LD_LIBRARY_PATH
-                    dllpaths.append(x.dirname)
-                    # dllpaths.append("/private/var/tmp/_bazel_gar/2452f4a294f2c90cde5ca0e06629a4e9/" + x.dirname)
+            # if hasattr(ctx.attr, "_stublibs"):
+            #     for x in ctx.files._stublibs:
+            #         includes.append(x.dirname)
+            #         ## FIXME: get correct path, or set CAML_LD_LIBRARY_PATH
+            #         dllpaths.append(x.dirname)
+            #         # dllpaths.append("/private/var/tmp/_bazel_gar/2452f4a294f2c90cde5ca0e06629a4e9/" + x.dirname)
+
+            for stublib in tc.stublibs:
+                print("STUBLIB: %s" % stublib)
 
             # if ctx.attr._rule == "ppx_executable":
             ## FIXME: OR: ctx.attr.cc_linkstatic ???
@@ -193,7 +194,7 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
             action_inputs_ccdep_filelist,
             cc_runfiles
         ] = link_ccdeps(ctx,
-                        linkmode,
+                        tc.linkmode,
                         args,
                         ccInfo)
 
@@ -259,6 +260,18 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     if ctx.file.main:
         args.add(ctx.file.main)
 
+    if mode == "bytecode":
+        stublibs = tc.stublibs
+    elif mode == "native":
+        stublibs = []
+    print("STUBLIBS: %s" % stublibs)
+
+    for stublib in stublibs:
+        includes.append(stublib.dirname)
+        dllpaths.append(stublib.dirname)
+
+    args.add_all(dllpaths, before_each="-dllpath", uniquify=True)
+
     args.add_all(includes, before_each="-I", uniquify=True)
 
     if "ppx" in ctx.attr.tags:
@@ -279,15 +292,16 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     # else:
     #     std_exit = []
 
-    if hasattr(ctx.attr, "_stublibs"):
-        stublibs = [depset(ctx.files._stublibs)]
-    else:
-        stublibs = []
+    # if hasattr(ctx.attr, "_stublibs"):
+    #     stublibs = [depset(ctx.files._stublibs)]
+    # else:
+    #     stublibs = []
+
     inputs_depset = depset(
-        direct = [],
+        direct = stublibs, # [],
         transitive = [direct_inputs_depset] + data_inputs
         + [depset(action_inputs_ccdep_filelist)]
-        + stublibs
+        # + stublibs
     )
 
     if ctx.attr._rule == "ocaml_executable":
@@ -322,12 +336,12 @@ def impl_executable(ctx, mode, linkmode, tool, tool_args):
     #### RUNFILE DEPS ####
     if ctx.attr.strip_data_prefixes:
       myrunfiles = ctx.runfiles(
-        files = ctx.files.data,
+        files = ctx.files.data + tc.stublibs,
         symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
       )
     else:
         myrunfiles = ctx.runfiles(
-            files = ctx.files.data,
+            files = ctx.files.data + tc.stublibs,
         )
 
     # print("ARGS: %s" % ctx.attr.args)

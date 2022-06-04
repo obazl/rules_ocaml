@@ -21,7 +21,7 @@ def _ocaml_executable(ctx):
 
     tool_args = []
 
-    return impl_executable(ctx, mode, tc.linkmode, tool, tool_args)
+    return impl_executable(ctx, mode, tc, tool, tool_args)
 
 ################################
 rule_options = options("ocaml")

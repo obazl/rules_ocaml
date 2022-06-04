@@ -28,7 +28,7 @@ def _ppx_executable(ctx):
 
     tool_args = []
 
-    return impl_executable(ctx, mode, tc.linkmode, tool, tool_args)
+    return impl_executable(ctx, mode, tc, tool, tool_args)
 
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(
