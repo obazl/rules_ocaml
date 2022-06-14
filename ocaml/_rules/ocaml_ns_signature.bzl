@@ -121,6 +121,12 @@ def _ocaml_ns_signature_impl(ctx):
 
     return [defaultInfo, sigProvider, outputGroupInfo]
 
+################################
+rule_options = options("ocaml")
+rule_options.update(options_signature)
+rule_options.update(options_ns_opts("ocaml"))
+rule_options.update(options_ppx)
+
 #######################
 ocaml_ns_signature = rule(
     implementation = _ocaml_ns_signature_impl,

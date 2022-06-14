@@ -30,9 +30,10 @@ load("//ocaml/_rules:ocaml_ns_resolver.bzl"      , _ocaml_ns_resolver = "ocaml_n
 
 load("//ocaml/_rules:ocaml_signature.bzl",
      _ocaml_signature = "ocaml_signature",
+     )
+load("//ocaml/_rules:ocaml_ns_signature.bzl",
      _ocaml_ns_signature = "ocaml_ns_signature"
      )
-     # _ocaml_ns_subsignature = "ocaml_ns_subsignature")
 
 load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
 load("//ocaml/_rules:ocaml_yacc.bzl"        , _ocaml_yacc = "ocaml_yacc")
