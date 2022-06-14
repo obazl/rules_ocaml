@@ -427,10 +427,6 @@ the difference between '/' and ':' in such labels):
         #     ]
         # ),
 
-        # as_cmi = attr.string(
-        #     doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
-        # ),
-
         # pack = attr.string(
         #     doc = "Experimental",
         # ),
@@ -476,6 +472,11 @@ the difference between '/' and ':' in such labels):
             doc = "Set module (sig) name to this string"
         ),
 
+        opaque = attr.bool(
+            doc = "Compile with -opaque if true",
+            default = False
+        )
+
         _rule = attr.string( default = "ocaml_signature" ),
 
         # _sdkpath = attr.label(
@@ -485,115 +486,6 @@ the difference between '/' and ':' in such labels):
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
     ),
-    incompatible_use_toolchain_transition = True,
-    provides = [OcamlSignatureProvider],
-    executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
-)
-
-################################################################
-## extract cmi from ns resolver
-########## RULE:  OCAML_NS_SIGNATURE  ################
-def _ocaml_ns_signature_impl(ctx):
-
-    ns = ctx.attr.ns
-    # print("Extracting resolver cmi from {ns}".format(ns = ns))
-    # print("NS marker: %s" % ns[OcamlNsMarker])
-    # print("OcamlProvider: %s" % ns[OcamlProvider])
-
-    in_cmi  = None
-    out_cmi = None
-
-    if OcamlNsMarker in ctx.attr.ns:
-        ns_name = ctx.attr.ns[OcamlNsMarker].ns_name
-
-    if ns_name == None:
-        print("LBL: %s" % ctx.label)
-        fail("ns resolver for {ns} not found".format(ns=ns))
-    else:
-        for f in ns[OcamlProvider].fileset.to_list():
-            # print("fileset f: %s" % f)
-            if f.basename.endswith(ns_name + ".cmi"):
-                in_cmi = f
-
-    if in_cmi == None:
-        print("LBL: %s" % ctx.label)
-        fail("ns resolver cmi {cmi} for {ns} not found".format(
-            cmi = ns_name + ".cmi", ns=ns))
-
-    if ctx.attr.as_cmi:
-        if ctx.attr.as_cmi.endswith(".cmi"):
-            as_cmi = ctx.attr.as_cmi
-        else:
-            as_cmi = ctx.attr.as_cmi + ".cmi"
-        out_cmi = ctx.actions.declare_file(as_cmi)
-
-        ctx.actions.symlink(
-            output = out_cmi,
-            target_file = in_cmi
-        )
-
-    else:
-        out_cmi = in_cmi
-
-    default_depset = depset(
-        order = dsorder,
-            direct = [out_cmi],
-    )
-
-    defaultInfo = DefaultInfo(
-        files = default_depset
-    )
-
-    sigProvider = OcamlSignatureProvider(
-        # mli = work_mli,
-        cmi = out_cmi
-    )
-
-    outputGroupInfo = OutputGroupInfo(
-        cmi        = default_depset,
-    )
-
-    return [defaultInfo, sigProvider, outputGroupInfo]
-
-#######################
-ocaml_ns_signature = rule(
-    implementation = _ocaml_ns_signature_impl,
-    doc = """Extract .cmi from ns lib or archive.
-    """,
-    attrs = dict(
-        rule_options,
-        ## RULE DEFAULTS
-        _linkall     = attr.label(default = "@rules_ocaml//cfg/signature/linkall"), # FIXME: call it alwayslink?
-        # _threads     = attr.label(default = "@rules_ocaml//cfg/signature/threads"),
-        _warnings  = attr.label(default = "@rules_ocaml//cfg/signature:warnings"),
-        #### end options ####
-
-        ns = attr.label(
-            doc = "An ocaml_ns_library or ocaml_ns_archive",
-            allow_single_file = True,
-            providers = [OcamlNsMarker]
-        ),
-
-        as_cmi = attr.string(
-            doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
-        ),
-
-        _mode       = attr.label(
-            default = "@rules_ocaml//build/mode",
-        ),
-        _rule = attr.string( default = "ocaml_ns_signature" ),
-        # _sdkpath = attr.label(
-        #     default = Label("@rules_ocaml//cfg:sdkpath")
-        # ),
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
-    ),
-    ## this is not an ns archive, and it does not use ns ConfigState,
-    ## but we need to reset the ConfigState anyway, so the deps are
-    ## not affected if this is a dependency of an ns aggregator.
-    # cfg     = nsarchive_in_transition,
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,

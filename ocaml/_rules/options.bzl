@@ -657,66 +657,62 @@ Label of `ppx_executable` target to be used to transform source before compilati
 ################################################################
 options_signature = dict(
 
-        src = attr.label(
-            doc = "A single .mli source file label",
-            allow_single_file = [".mli", ".ml"] #, ".cmi"]
-        ),
+    src = attr.label(
+        doc = "A single .mli source file label",
+        allow_single_file = [".mli", ".ml"] #, ".cmi"]
+    ),
 
-        ns = attr.label(
-            doc = "Bottom-up namespacing",
-            allow_single_file = True,
-            mandatory = False
-        ),
+    ns = attr.label(
+        doc = "Bottom-up namespacing",
+        allow_single_file = True,
+        mandatory = False
+    ),
 
-        as_cmi = attr.string(
-            doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
-        ),
+    pack = attr.string(
+        doc = "Experimental",
+    ),
 
-        pack = attr.string(
-            doc = "Experimental",
-        ),
+    deps = attr.label_list(
+        doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
+        providers = [
+            [OcamlProvider],
+            [OcamlArchiveMarker],
+            [OcamlImportMarker],
+            [OcamlLibraryMarker],
+            [OcamlModuleMarker],
+            [OcamlNsMarker],
+        ],
+        # cfg = ocaml_signature_deps_out_transition
+    ),
 
-        deps = attr.label_list(
-            doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
-            providers = [
-                [OcamlProvider],
-                [OcamlArchiveMarker],
-                [OcamlImportMarker],
-                [OcamlLibraryMarker],
-                [OcamlModuleMarker],
-                [OcamlNsMarker],
-            ],
-            # cfg = ocaml_signature_deps_out_transition
-        ),
+    open = attr.label_list(
+        doc = "List of OCaml dependencies to be passed with -open.",
+        providers = [
+            [OcamlProvider],
+            [OcamlArchiveMarker],
+            [OcamlImportMarker],
+            [OcamlLibraryMarker],
+            [OcamlModuleMarker],
+            [OcamlNsMarker],
+        ],
+        # cfg = ocaml_signature_deps_out_transition
+    ),
 
-        open = attr.label_list(
-            doc = "List of OCaml dependencies to be passed with -open.",
-            providers = [
-                [OcamlProvider],
-                [OcamlArchiveMarker],
-                [OcamlImportMarker],
-                [OcamlLibraryMarker],
-                [OcamlModuleMarker],
-                [OcamlNsMarker],
-            ],
-            # cfg = ocaml_signature_deps_out_transition
-        ),
+    data = attr.label_list(
+        allow_files = True
+    ),
 
-        data = attr.label_list(
-            allow_files = True
-        ),
+    ################################################################
+    _ns_resolver = attr.label(
+        doc = "Experimental",
+        providers = [OcamlNsResolverProvider],
+        default = "@rules_ocaml//cfg/ns",
+        # default = "@rules_ocaml//cfg/ns:bootstrap",
+        # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
+    ),
 
-        ################################################################
-        _ns_resolver = attr.label(
-            doc = "Experimental",
-            providers = [OcamlNsResolverProvider],
-            default = "@rules_ocaml//cfg/ns",
-            # default = "@rules_ocaml//cfg/ns:bootstrap",
-            # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
-        ),
-
-        _ns_submodules = attr.label( # _list(
-            doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-            default = "@rules_ocaml//cfg/ns:submodules", ## NB: ppx modules use ocaml_signature
-        ),
-    )
+    _ns_submodules = attr.label( # _list(
+        doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
+        default = "@rules_ocaml//cfg/ns:submodules", ## NB: ppx modules use ocaml_signature
+    ),
+)
