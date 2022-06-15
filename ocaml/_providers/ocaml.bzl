@@ -19,9 +19,13 @@ OcamlProvider = provider(
 
         "cmi" : "Cmi files provided",
 
+        "opaque": "boolean; true if either sig or struct was compiled with -opaque",
+
         "closure"             : "File depset of transitive closure of deps",
         "inputs"             : "file depset",
-        "linkargs"             : "file depset",
+        "cdeps"              : "file depset of compile deps",
+        "ldeps"              : "file depset of link deps",
+        "linkargs"           : "file depset",
         "paths"             : "string depset",
 
         "files"             : "DEPRECATED",
@@ -73,6 +77,7 @@ OcamlSignatureProvider = provider(
 
         "mli": ".mli input file",
         "cmi": ".cmi output file",
+        "opaque": "boolean flag"
         # "module_links":    "Depset of module files to be linked by executable or archive rules.",
         # "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
         # "paths":    "Depset of paths for -I params",

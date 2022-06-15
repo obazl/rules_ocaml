@@ -54,7 +54,7 @@ def _ocaml_import_impl(ctx):
 
     # for deps listed in ctx.attr.ppx_codeps
     ## files with OcamlProvider:
-    direct_ppx_codep_inputs_list = []
+    direct_ppx_codep_ldeps_list = []
     direct_ppx_codep_linkargs_list = []
     direct_ppx_codep_paths_list = []
     ## targets with PpxCodepsProvider:
@@ -63,14 +63,14 @@ def _ocaml_import_impl(ctx):
 
 
     #### INDIRECT DEPS first ####
-    indirect_inputs_list = [] # files from ctx.attr.all
-    indirect_inputs_depsets = [] # depsets from ctx.attr.deps
+    indirect_ldeps_list = [] # files from ctx.attr.all
+    indirect_ldeps_depsets = [] # depsets from ctx.attr.deps
     indirect_linkargs_depsets = []
     indirect_paths_depsets = []
 
     for dep in ctx.attr.deps:
         # print("import dep: %s" % dep[OcamlProvider])
-        indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
+        indirect_ldeps_depsets.append(dep[OcamlProvider].ldeps)
 
         indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
@@ -100,19 +100,19 @@ def _ocaml_import_impl(ctx):
     direct_paths_list   = []
 
     if ctx.attr.all:
-        indirect_inputs_list.extend(ctx.files.all)
+        indirect_ldeps_list.extend(ctx.files.all)
         for f in ctx.files.all:
             direct_paths_list.append( f.dirname )
 
     #### DIRECT DEPS: archives, plugins, sigs ####
     direct_default_files = []
-    direct_inputs_list = []
+    direct_ldeps_list = []
     direct_linkargs_list = []
 
     outputGroupDepsets = {}
     direct_archive = []
     if ctx.attr.archive:  # a label_list of file targets
-        direct_inputs_list.extend(ctx.files.archive)
+        direct_ldeps_list.extend(ctx.files.archive)
         direct_linkargs_list.extend(ctx.files.archive)
         for dep in ctx.files.archive:
             direct_paths_list.append(dep.dirname)
@@ -134,7 +134,7 @@ def _ocaml_import_impl(ctx):
     #### DIRECT PLUGINS DEPS ####
     if ctx.attr.plugin:
         direct_default_files.extend(ctx.files.plugin)
-        direct_inputs_list.extend(ctx.files.plugin)
+        direct_ldeps_list.extend(ctx.files.plugin)
         direct_linkargs_list.extend(ctx.files.plugin)
         for dep in ctx.files.plugin:
             direct_paths_list.append(dep.dirname)
@@ -160,7 +160,7 @@ def _ocaml_import_impl(ctx):
     ################################
     if ctx.attr.signature:
         direct_default_files.extend(ctx.files.signature)
-        direct_inputs_list.extend(ctx.files.signature)
+        direct_ldeps_list.extend(ctx.files.signature)
         direct_linkargs_list.extend(ctx.files.signature)
         for dep in ctx.files.plugin:
             direct_paths_list.append(dep.dirname)
@@ -178,8 +178,8 @@ def _ocaml_import_impl(ctx):
         direct_files.extend(ctx.files.modules)
 
     ################################
-    # if ctx.attr.ppx:
-    #     direct_default_files.extend(ctx.files.ppx)
+    if ctx.attr.ppx:  ## ppx executable
+        direct_default_files.append(ctx.file.ppx)
 
     ################################
     ## direct ppx_codeps on imports will be depsets, not files
@@ -189,7 +189,7 @@ def _ocaml_import_impl(ctx):
             # print("{t}: OcamlProvider in ppx_codep: {d}".format(
             #     t = ctx.label.name, d = dep))
             opdep = dep[OcamlProvider]
-            direct_ppx_codep_inputs_list.append(opdep.inputs)
+            direct_ppx_codep_ldeps_list.append(opdep.ldeps)
             direct_ppx_codep_linkargs_list.append(opdep.linkargs)
             direct_ppx_codep_paths_list.append(opdep.paths)
             # if hasattr(opdep, "ppx_codeps"):
@@ -218,16 +218,21 @@ def _ocaml_import_impl(ctx):
         direct = direct_default_files
     )
 
-    defaultInfo = DefaultInfo(
-        files = direct_default_depset,
-    )
+    if ctx.attr.ppx:
+        defaultInfo = DefaultInfo(
+            executable = ctx.file.ppx
+        )
+    else:
+        defaultInfo = DefaultInfo(
+            files = direct_default_depset,
+        )
     providers.append(defaultInfo)
 
     ################
     if has_ppx_codeps:
         ppx_codeps_depset  = depset(
             order = dsorder,
-            transitive = direct_ppx_codep_inputs_list +
+            transitive = direct_ppx_codep_ldeps_list +
             indirect_ppx_codep_depsets + direct_ppx_codep_depsets
         )
 
@@ -245,14 +250,14 @@ def _ocaml_import_impl(ctx):
         outputGroupDepsets["ppx_codeps"] = ppx_codeps_depset
 
     ################
-    new_inputs_depset = depset(
-        direct = direct_inputs_list,
-        transitive = indirect_inputs_depsets + [depset(indirect_inputs_list)]
+    new_ldeps_depset = depset(
+        direct = direct_ldeps_list,
+        transitive = indirect_ldeps_depsets + [depset(indirect_ldeps_list)]
     )
 
     ctx.actions.do_nothing(
         mnemonic = "ocaml_import",
-        inputs =new_inputs_depset
+        inputs =new_ldeps_depset
     )
 
     linkargs_depset = depset(
@@ -266,7 +271,8 @@ def _ocaml_import_impl(ctx):
 
     ################
     _ocamlProvider = OcamlProvider(
-        inputs   = new_inputs_depset,
+        ldeps   = new_ldeps_depset,
+        cdeps   = new_ldeps_depset,
         linkargs = linkargs_depset,
         paths    = paths_depset,
 
@@ -285,6 +291,8 @@ def _ocaml_import_impl(ctx):
 
     # if executable:
     #     providers.append(OcamlExecutableMarker(marker = "OcamlExecutable"))
+    if ctx.attr.ppx:  ## ppx executable
+        providers.append(PpxExecutableMarker(marker = "PpxExecutable"))
 
     ## FIXME: --output_groups only prints generated stuff? it won't
     ## print fixed files that just pass through
@@ -292,7 +300,7 @@ def _ocaml_import_impl(ctx):
         # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
         files = direct_default_depset,
 
-        inputs   = new_inputs_depset,
+        ldeps   = new_ldeps_depset,
         linkargs = linkargs_depset,
 
         # all = depset(
@@ -307,7 +315,8 @@ def _ocaml_import_impl(ctx):
 
     # if ctx.label.name == "irmin-pack":
     #     print("IRMIN PROVIDERS")
-    #     print(providers)
+
+    # print(providers)
 
     return providers
 
@@ -326,7 +335,7 @@ ocaml_import = rule(
             allow_files = True
         ),
         all = attr.label_list(
-            doc = "Glob all cm* files except for 'archive' or 'plugin' so theey can be added to action inputs (rather than cmd line). I.e. the (transitive) deps of an archive, which must be accessible to the compiler (via search path, not command line), and so must be added to the action inputs.",
+            doc = "Glob all cm* files except for 'archive' or 'plugin' so theey can be added to action ldeps (rather than cmd line). I.e. the (transitive) deps of an archive, which must be accessible to the compiler (via search path, not command line), and so must be added to the action ldeps.",
             allow_files = True
         ),
         srcs = attr.label_list(
@@ -340,7 +349,9 @@ ocaml_import = rule(
         ),
         ppx = attr.label(
             doc = "precompiled ppx executable",
-            allow_single_file = True
+            allow_single_file = True,
+            executable = True,
+            cfg        = "exec"
         ),
         plugin = attr.label_list(
             allow_files = True

@@ -4,6 +4,7 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlProvider",
 
+     "OcamlImportMarker",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlNsSubmoduleMarker",
@@ -54,6 +55,8 @@ def _sig_make_work_symlinks(ctx, modname, mode):
 
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
+    opaque = False
+
     if OcamlSignatureProvider in ctx.attr.sig:
         if debug:
             print("sigattr is compiled .cmi")
@@ -65,6 +68,8 @@ def _sig_make_work_symlinks(ctx, modname, mode):
         # old_cmi = [cmifile]
         # mlifile = sigProvider.mli
         # mli_workfile = mlifile
+
+        opaque = sigProvider.opaque
 
         if debug:
             print("cmifile: %s" % sigProvider.cmi)
@@ -107,6 +112,7 @@ def _sig_make_work_symlinks(ctx, modname, mode):
 
         # if struct_pkgdir == sig_pkgdir:
         if tgt_pkgdir == sig_pkgdir:
+            ## already in same dir
             if debug: print("NOT SYMLINKING mli/cmi")
             work_mli = sigProvider.mli
             work_cmi = sigProvider.cmi
@@ -150,7 +156,8 @@ def _sig_make_work_symlinks(ctx, modname, mode):
         ## no symlink, .o output by compile action
 
         return(work_ml, work_cmox, work_o,
-               work_mli, work_cmi, True) # cmi_isbound = True
+               work_mli, work_cmi, True, # cmi_isbound = True
+               opaque)
 
     else: ################################################
         if debug: print("sigattr is src: %s" % ctx.file.sig)
@@ -183,7 +190,8 @@ def _sig_make_work_symlinks(ctx, modname, mode):
         ## no symlink, .o output by compile action
 
         return(work_ml, work_cmox, work_o,
-               work_mli, work_cmi, False) # cmi_isbound = False
+               work_mli, work_cmi, False, # cmi_isbound = False
+               False) # opaque determined by opt
 
 ########################
 def _resolve_modname(ctx):
@@ -255,9 +263,9 @@ def impl_module(ctx, mode, tool, tool_args):
 
     debug = False
 
-    if debug:
-        print("===============================")
-        print("MODULE %s" % ctx.label)
+    # if debug:
+    print("===============================")
+    print("MODULE %s" % ctx.label)
 
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 1:
@@ -286,6 +294,7 @@ def impl_module(ctx, mode, tool, tool_args):
     includes   = []
     default_outputs    = [] # just the cmx/cmo files, for efaultInfo
     action_outputs   = [] # .cmx, .cmi, .o
+    # target outputs excludes .cmx if sig was compiled with -opaque
     # direct_linkargs = []
     old_cmi = None
 
@@ -327,16 +336,19 @@ def impl_module(ctx, mode, tool, tool_args):
     work_o    = None
     work_mli  = None
     work_cmi  = None
-    cmi_isbound = False ## cmi already produced by sig dep
+    cmi_isbound = False ## is cmi already produced by sig dep?
 
     modname = _resolve_modname(ctx)
     if debug: print("resolved module name: %s" % modname)
 
     #### INDIRECT DEPS first ####
     # these are "indirect" from the perspective of the consumer
-    indirect_inputs_depsets = []
+    cdeps_depsets = []
+    ldeps_depsets = []
     indirect_linkargs_depsets = []
     indirect_paths_depsets = []
+
+    sig_is_opaque = False
 
     if ctx.attr.sig:
         ##FIXME: make this a fn
@@ -345,7 +357,7 @@ def impl_module(ctx, mode, tool, tool_args):
         ## NB: should handle ppx:
         (work_ml, work_cmox, work_o,
          work_mli, work_cmi,
-         cmi_isbound) = _sig_make_work_symlinks(
+         cmi_isbound, sig_is_opaque) = _sig_make_work_symlinks(
             ctx, modname, mode
         )
 
@@ -357,7 +369,8 @@ def impl_module(ctx, mode, tool, tool_args):
             sig_linkargs = sig_attr[OcamlProvider].linkargs
             sig_paths = sig_attr[OcamlProvider].paths
 
-            indirect_inputs_depsets.append(sig_inputs)
+            cdeps_depsets.append(sig_inputs)
+            ldeps_depsets.append(sig_inputs)
             indirect_linkargs_depsets.append(sig_linkargs)
             indirect_paths_depsets.append(sig_paths)
             indirect_paths_depsets.append(
@@ -407,6 +420,30 @@ def impl_module(ctx, mode, tool, tool_args):
                 )
             else: work_o = None
 
+    #########################
+    args = ctx.actions.args()
+
+    args.add_all(tool_args)
+
+    _options = get_options(ctx.attr._rule, ctx)
+    # if "-for-pack" in _options:
+    #     for_pack = True
+    #     _options.remove("-for-pack")
+    # else:
+    #     for_pack = False
+
+    # if ctx.attr.pack:
+    #     args.add("-for-pack", ctx.attr.pack)
+
+    args.add_all(_options)
+
+    print("SIG_IS_OPAQUE? %s" % sig_is_opaque)
+
+    if sig_is_opaque or "-opaque" in _options:
+        module_opaque = True
+    else:
+        module_opaque = False
+    print("MODULE OPAQUE? %s" % module_opaque)
 
     # work_cmox = None
     # work_o    = None
@@ -414,11 +451,13 @@ def impl_module(ctx, mode, tool, tool_args):
     # # work_cmi  = None
     # cmi_isbound = False
 
-
+    ## src_inputs: struct file plus cmi if we got it plus mli
 
     src_inputs = [work_ml]
     if work_mli: src_inputs.append(work_mli)
-    if cmi_isbound: src_inputs.append(work_cmi)
+    if cmi_isbound:
+        ## we got cmi from sig dependency
+        src_inputs.append(work_cmi)
 
     ################################################################
     if debug:
@@ -483,25 +522,8 @@ def impl_module(ctx, mode, tool, tool_args):
         # print("RESOLVER PATH: %s" % ns_resolver_files)
         paths_direct.extend([f.dirname for f in ns_resolver_files])
 
-    #########################
-    args = ctx.actions.args()
-
-    args.add_all(tool_args)
-
     # if ctx.attr._rule.startswith("bootstrap"):
     #         args.add(tc.ocamlc)
-
-    _options = get_options(ctx.attr._rule, ctx)
-    # if "-for-pack" in _options:
-    #     for_pack = True
-    #     _options.remove("-for-pack")
-    # else:
-    #     for_pack = False
-
-    # if ctx.attr.pack:
-    #     args.add("-for-pack", ctx.attr.pack)
-
-    args.add_all(_options)
 
     ## FIXME: support -bin-annot
     # if "-bin-annot" in _options: ## Issue #17
@@ -515,6 +537,9 @@ def impl_module(ctx, mode, tool, tool_args):
 
     ccInfo_list = []
 
+    dep_is_opaque = False
+
+    print("iterating deps")
     for dep in the_deps:
         if CcInfo in dep:
             # if ctx.label.name == "Main":
@@ -526,23 +551,40 @@ def impl_module(ctx, mode, tool, tool_args):
 
         if OcamlProvider in dep:
 
-            # if ctx.label.name == "Mempool":
-            #     print("DEP: %s" % dep[DefaultInfo].files)
-            #     for ds in dep[OcamlProvider].linkargs.to_list():
-            #         print("DS: %s" % ds)
+            if hasattr(dep[OcamlProvider], "opaque"):
+                print("THIS: %s" % ctx.label)
+                # print("DEP CMI_OPAQUE: %s" % dep[OcamlProvider].cmi_opaque)
+                # print("DEP.cmi: %s" % dep[OcamlProvider].cmi)
+                # print("DEP: %s" % dep[OcamlProvider])
+                print("")
 
-            indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
+                # depending on opaque means...
+                if dep[OcamlProvider].opaque:
+                    print("DEP is opaque: %s" % dep[OcamlProvider].cmi)
+                    dep_is_opaque = True
+                    cdeps_depsets.append(dep[OcamlProvider].cmi)
+                    ldeps_depsets.append(dep[OcamlProvider].ldeps)
+                else:
+                    cdeps_depsets.append(dep[OcamlProvider].cdeps)
+                    ldeps_depsets.append(dep[OcamlProvider].ldeps)
+            else:
+                if not dep[OcamlImportMarker]:
+                    print("dep[OcamlProvider] %s" % dep[OcamlProvider])
+                cdeps_depsets.append(dep[OcamlProvider].cdeps)
+                ldeps_depsets.append(dep[OcamlProvider].ldeps)
+
             indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
+    print("finished deps iteration")
 
     ################ Signature Dep ################
     ## FIXME: this logic does not work if we needed to
     ## symlink split sigfiles into working dir
     # if ctx.attr.sig:
     #     if sig_inputs:
-    #         indirect_inputs_depsets.append(sig_inputs)
+    #         cdeps_depsets.append(sig_inputs)
     #         indirect_linkargs_depsets.append(sig_linkargs)
     #         indirect_paths_depsets.append(sig_paths)
 
@@ -651,7 +693,7 @@ def impl_module(ctx, mode, tool, tool_args):
         # print("NS RESOLVER: %s" % ns_resolver)
         # print("NS RESOLVER DefaultInfo: %s" % ns_resolver[DefaultInfo])
         # print("NS RESOLVER OcamlProvider: %s" % ns_resolver[OcamlProvider])
-        ns_deps = [ns_resolver[OcamlProvider].inputs]
+        ns_deps = [ns_resolver[OcamlProvider].ldeps] # inputs]
     else:
         ns_deps = []
 
@@ -681,7 +723,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
     # print("SRC_INPUTS: %s" % src_inputs)
     # print("mli_out: %s" % mli_out)
-    # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
+    # print("cdeps_depsets: %s" % cdeps_depsets)
     inputs_depset = depset(
         order = dsorder,
         direct = src_inputs
@@ -697,7 +739,7 @@ def impl_module(ctx, mode, tool, tool_args):
         # + (old_cmi if old_cmi else [])
         + ctx.files.deps_runtime,
 
-        transitive = indirect_inputs_depsets
+        transitive = cdeps_depsets
         + indirect_ppx_codep_depsets
         + ns_deps
         + bottomup_ns_inputs
@@ -773,21 +815,35 @@ def impl_module(ctx, mode, tool, tool_args):
 
     # new_inputs_depset = depset(
     #     direct = action_outputs,
-    #     transitive = [inputs_depset] ## indirect_inputs_depsets
+    #     transitive = [inputs_depset] ## cdeps_depsets
     # )
     ## same as inputs_depset except structfile omitted
-    new_inputs_depset = depset(
+    new_ldeps_depset = depset(
         order = dsorder,
-        direct = src_inputs + action_outputs + ns_resolver_files
+        direct = src_inputs
+        + action_outputs
+        + ns_resolver_files
         + ctx.files.deps_runtime,
-        transitive = indirect_inputs_depsets
+        transitive = ldeps_depsets ## cdeps_depsets
+        + indirect_ppx_codep_depsets
+        + ns_deps
+        + bottomup_ns_inputs
+    )
+
+    new_cdeps_depset = depset(
+        order = dsorder,
+        direct = src_inputs
+        + action_outputs
+        + ns_resolver_files
+        + ctx.files.deps_runtime,
+        transitive = cdeps_depsets
         + indirect_ppx_codep_depsets
         + ns_deps
         + bottomup_ns_inputs
     )
 
     # if debug:
-    #     print("CLOSURE: %s" % new_inputs_depset)
+    #     print("CLOSURE: %s" % new_ldeps_depset)
 
     linkset    = depset(transitive = indirect_linkargs_depsets)
 
@@ -799,8 +855,11 @@ def impl_module(ctx, mode, tool, tool_args):
     ocamlProvider = OcamlProvider(
         # files = ocamlProvider_files_depset,
         cmi      = depset(direct = [work_cmi]), # [cmifile]),
+        opaque   = module_opaque,
         fileset  = fileset_depset,
-        inputs   = new_inputs_depset,
+        inputs   = new_ldeps_depset,
+        cdeps    = new_cdeps_depset,
+        ldeps    = new_ldeps_depset,
         linkargs = linkset,
         paths    = paths_depset,
     )
@@ -877,7 +936,7 @@ def impl_module(ctx, mode, tool, tool_args):
         # thedeps    = ctx.files.deps,
         ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
-        closure = new_inputs_depset,
+        closure = new_ldeps_depset,
         all = depset(
             order = dsorder,
             transitive=[

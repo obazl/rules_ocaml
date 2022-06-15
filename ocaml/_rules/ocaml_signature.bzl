@@ -185,7 +185,12 @@ def _ocaml_signature_impl(ctx):
     #########################
     args = ctx.actions.args()
 
+    opaque = False
+
     _options = get_options(rule, ctx)
+    if "-opaque" in _options:
+        opaque = True
+
     args.add_all(_options)
 
     # if "-for-pack" in _options:
@@ -329,7 +334,8 @@ def _ocaml_signature_impl(ctx):
 
     sigProvider = OcamlSignatureProvider(
         mli = work_mli,
-        cmi = out_cmi
+        cmi = out_cmi,
+        opaque = True if opaque else False
     )
 
     new_inputs_depset = depset(
@@ -475,7 +481,7 @@ the difference between '/' and ':' in such labels):
         opaque = attr.bool(
             doc = "Compile with -opaque if true",
             default = False
-        )
+        ),
 
         _rule = attr.string( default = "ocaml_signature" ),
 
