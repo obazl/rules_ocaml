@@ -53,25 +53,6 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     """,
     attrs = dict(
         rule_options,
-
-        resolver = attr.label(
-            doc = "User-provided resolver module",
-            allow_single_file = True,
-            providers = [OcamlModuleMarker],
-            ## user-provided resolver is not itself namespaced,
-            ## do not use transition
-            # cfg = ocaml_nslib_submodules_out_transition
-        ),
-
-        ## we need this when we have sublibs but no direct submodules
-        _ns_resolver = attr.label(
-            doc = "Experimental",
-            # allow_single_file = True,
-            providers = [OcamlNsResolverProvider],
-            default = "@rules_ocaml//cfg/ns",
-            cfg = ocaml_nslib_submodules_out_transition
-        ),
-
         _rule = attr.string(default = "ocaml_ns_library")
     ),
     cfg     = nslib_in_transition,

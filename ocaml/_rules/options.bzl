@@ -497,6 +497,24 @@ def options_ns_library(ws):
             # cfg = ocaml_nslib_submodules_out_transition
         ),
 
+        resolver = attr.label(
+            doc = "User-provided resolver module",
+            allow_single_file = True,
+            providers = [OcamlModuleMarker],
+            ## user-provided resolver is not itself namespaced,
+            ## do not use transition
+            # cfg = ocaml_nslib_submodules_out_transition
+        ),
+
+        ## we need this when we have sublibs but no direct submodules
+        _ns_resolver = attr.label(
+            doc = "Experimental",
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            default = "@rules_ocaml//cfg/ns:resolver",
+            cfg = ocaml_nslib_submodules_out_transition
+        ),
+
         ## so we can dump ConfigState
         _ns_prefixes   = attr.label(
             doc = "Experimental",
