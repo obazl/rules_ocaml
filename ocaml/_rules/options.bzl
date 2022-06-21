@@ -302,7 +302,7 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
             ## `ocaml_ns_resolver` rule. so this institutes a
             ## dependency on a resolver whose build params will be set
             ## dynamically using transition functions.
-            default = "@rules_ocaml//cfg/ns", ## FIXME rename: @rules_ocaml//cfg/ns:resolver
+            default = "@rules_ocaml//cfg/ns:resolver",
 
             ## TRICKY BIT: if our struct is generated (e.g. by
             ## ocaml_lex), this transition will prevent ns renaming:
@@ -451,7 +451,7 @@ def options_ns_archive(ws):
             doc = "Experimental",
             # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
-            default = "@rules_ocaml//cfg/ns",
+            default = "@rules_ocaml//cfg/ns:resolver",
             cfg = ocaml_nslib_submodules_out_transition
         ),
 
@@ -705,7 +705,7 @@ options_signature = dict(
     _ns_resolver = attr.label(
         doc = "Experimental",
         providers = [OcamlNsResolverProvider],
-        default = "@rules_ocaml//cfg/ns",
+        default = "@rules_ocaml//cfg/ns:resolver",
         # default = "@rules_ocaml//cfg/ns:bootstrap",
         # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
     ),

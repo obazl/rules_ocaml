@@ -12,7 +12,7 @@ load("//ocaml/_functions:module_naming.bzl",
 def print_config_state(settings, attr):
     print("CONFIG State:")
     print("  rule name: %s" % attr.name)
-    # print("  ns: %s" % settings["@rules_ocaml//cfg/ns"])
+    # print("  ns: %s" % settings["@rules_ocaml//cfg/ns:resolver"])
     print("  ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
     print("  ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
     print("/CONFIG State")
@@ -60,7 +60,7 @@ nsarchive_in_transition = transition(
     ## """Reset ConfigState for ocaml_ns_archive, ocaml_archive.""",
     implementation = _nsarchive_in_transition_impl,
     inputs = [
-        # "@rules_ocaml//cfg/ns",  ##FIXME not available for executable
+        # "@rules_ocaml//cfg/ns:resolver",  ##FIXME not available for executable
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ],

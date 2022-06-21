@@ -15,27 +15,8 @@ string_list_flag( name = "warnings",
                   ]
 )
 
-## FIXME: should be string_list_setting, non-public
-string_list_flag( name = "prefixes", build_setting_default = [])
+string_list_setting(name = "prefixes", build_setting_default = [])
+string_list_setting(name = "submodules", build_setting_default = [])
+label_setting(name="resolver", build_setting_default = ":_resolver")
+ocaml_ns_resolver(name    = "_resolver")
 
-# bool_flag( name = "transitivity", build_setting_default = False)
-
-# string_flag( name = "strategy", build_setting_default = "ns",
-#              values = [
-#                  "fs",  ## derive ns prefix from filesystem path
-#                  "ns"    ## derive ns prefix from ns names
-#              ])
-
-## FIXME: should be string_list_setting, non-public
-string_list_flag( name = "submodules", build_setting_default = [])
-
-ocaml_ns_resolver(
-    name    = "ns_default",  ## RENAME: _resolver
-    # sep     = "_",
-)
-
-# ocaml_module.ns defaults to this; ns_lib transitions change it
-label_setting( ## built-in rule
-    name="ns", ## RENAME: "resolver"
-    build_setting_default = ":ns_default"
-)

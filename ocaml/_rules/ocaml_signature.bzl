@@ -458,7 +458,7 @@ the difference between '/' and ':' in such labels):
         # _ns_resolver = attr.label(
         #     doc = "Experimental",
         #     providers = [OcamlNsResolverProvider],
-        #     default = "@rules_ocaml//cfg/ns",
+        #     default = "@rules_ocaml//cfg/ns:resolver",
         #     # cfg = ocaml_signature_deps_out_transition
         # ),
 
