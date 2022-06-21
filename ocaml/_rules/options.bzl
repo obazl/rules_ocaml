@@ -528,7 +528,6 @@ def options_ns_opts(ws):
         # ),
 
         _ns_prefixes   = attr.label(
-            doc = "Experimental",
             default = "@rules_ocaml//cfg/ns:prefixes"
         ),
     )

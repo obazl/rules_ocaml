@@ -117,10 +117,19 @@ def impl_ppx_transform(rule, ctx, src, to):
         # renamed = "/" + to
     )
     CHDIR = "cd {tmp}".format(tmp = tmpdir)
+
+    # ppx attrib may be: 1) built by ppx_executable; or 2) imported exe file
+    if ctx.executable.ppx:
+        ppx_exe = ctx.executable.ppx
+    else:
+        ppx_exe = ctx.file.ppx
+
+    # print("PPX_EXE: %s" % ppx_exe)
+
     if (tmpdir == ""):
         command = "\n".join([
             RUNTIME_FILES,
-            "{exe} $@".format(exe = ctx.executable.ppx.path)
+            "{exe} $@".format(exe = ppx_exe.path) #ctx.executable.ppx.path)
         ])
     else:
         command = "\n".join([
@@ -132,7 +141,7 @@ def impl_ppx_transform(rule, ctx, src, to):
             "{copy}".format(copy = COPY if (tmpdir != "") else ""),
             "{chdir}".format(chdir= CHDIR if (tmpdir != "") else ""),
             # "ls src/lib_stdlib",
-            "{exe} $@".format(exe = "../" + ctx.executable.ppx.path),
+            "{exe} $@".format(exe = "../" + ppx_exe.path), # ctx.executable.ppx.path),
             "cd .."
         ])
 
@@ -154,7 +163,7 @@ def impl_ppx_transform(rule, ctx, src, to):
         arguments = [args],
         inputs = dep_graph,
         outputs = [outfile],
-        tools = [ctx.executable.ppx],
+        tools = [ppx_exe], # [ctx.executable.ppx],
         mnemonic = "PpxTransformAction",
         progress_message = "ppx_transform {rule}: {ws}//{pkg}:{tgt}".format(
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,

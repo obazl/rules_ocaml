@@ -55,10 +55,13 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     # print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
 
     libOcamlProvider = lib_providers[1]
-    # print("libOcamlProvider.inputs type: %s" % type(libOcamlProvider.inputs))
-    # print("libOcamlProvider.linkargs: %s" % libOcamlProvider.linkargs)
-    # print("libOcamlProvider.paths type: %s" % type(libOcamlProvider.paths))
-    # print("libOcamlProvider.ns_resolver: %s" % libOcamlProvider.ns_resolver)
+    if debug:
+        # print("libOcamlProvider.inputs type: %s" % type(libOcamlProvider.inputs))
+        # print("libOcamlProvider.linkargs: %s" % libOcamlProvider.linkargs)
+        print("libOcamlProvider.cdeps: %s" % libOcamlProvider.cdeps)
+        print("libOcamlProvider.ldeps: %s" % libOcamlProvider.ldeps)
+        # print("libOcamlProvider.paths type: %s" % type(libOcamlProvider.paths))
+        # print("libOcamlProvider.ns_resolver: %s" % libOcamlProvider.ns_resolver)
 
     ppxAdjunctsProvider = lib_providers[2] ## FIXME: only as needed
 
@@ -202,6 +205,7 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
         # print("inputs dep: %s" % dep)
         # print("ns_resolver: %s" % ns_resolver)
         if dep in submod_arglist:
+            # print("adding to args: %s" % dep)
             args.add(dep)
         elif dep == ns_resolver:
             args.add(dep)
@@ -308,8 +312,9 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
         files   = libOcamlProvider.files,
         fileset = libOcamlProvider.fileset,
         inputs   = new_inputs_depset,
-        # linkargs = depset(transitive = [libOcamlProvider.linkargs]),
         linkargs = linkargs_depset,
+        cdeps    = libOcamlProvider.cdeps,
+        ldeps    = libOcamlProvider.ldeps,
         paths    = paths_depset,
     )
 
@@ -328,6 +333,8 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
         # resolver = ns_resolver,
         ppx_codeps = ppx_codeps_depset,
         linkargs = linkargs_depset,
+        cdeps    = libOcamlProvider.cdeps,
+        ldeps    = libOcamlProvider.ldeps,
         all = depset(transitive=[
             new_inputs_depset,
             ppx_codeps_depset,

@@ -20,10 +20,10 @@ load("//ocaml/_providers:ocaml.bzl",
      _OcamlTestMarker    = "OcamlTestMarker",
      )
 
-# load("//ocaml/_providers:ppx.bzl", # FIXME: //ppx/_providers.bzl?
-#      _PpxCodepsProvider     = "PpxCodepsProvider",
-#      _PpxExecutableMarker = "PpxExecutableMarker"
-#      )
+load("//ppx:providers.bzl", # FIXME: //ppx/_providers.bzl?
+     # _PpxCodepsProvider     = "PpxCodepsProvider",
+     _PpxExecutableMarker = "PpxExecutableMarker"
+     )
 
 OcamlProvider                      = _OcamlProvider
 OcamlArchiveMarker                 = _OcamlArchiveMarker
@@ -41,7 +41,7 @@ OcamlSignatureMarker               = _OcamlSignatureMarker
 OcamlSignatureProvider             = _OcamlSignatureProvider
 OcamlTestMarker                    = _OcamlTestMarker
 
-# PpxExecutableMarker = _PpxExecutableMarker
+PpxExecutableMarker = _PpxExecutableMarker
 
 ################ Config Settings ################
 CompilationModeSettingProvider = provider(

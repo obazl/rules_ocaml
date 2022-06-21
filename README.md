@@ -1,7 +1,7 @@
 # OBazl: rules_ocaml
 Bazel rules for developing OCaml software
 
-Documentation: [docs_ocaml](https://obazl.github.io/docs_obazl/)
+Documentation: [docs_obazl](https://obazl.github.io/docs_obazl/)
 
 Demos:  [demos_obazl](https://github.com/obazl/demos_obazl)
 

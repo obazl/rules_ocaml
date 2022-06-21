@@ -301,6 +301,8 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     args.add("-I", resolver_src_file.dirname)
     action_inputs = []
     merge_depsets = []
+
+    ## FIXME: handle cdeps v. ldeps
     for tgt in ctx.attr.merge:
         if debug: print("MERGE: %s" % tgt)
         merge_depsets.append(tgt.files)
@@ -361,6 +363,30 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         ns_name    = ns_name
     )
 
+    new_cdeps_depset = depset(
+        order = dsorder,
+        direct = # [inputs_depset]
+        action_outputs
+        # + ns_resolver_files
+        # + ctx.files.deps_runtime,
+        # transitive = # cdeps_depsets
+        # indirect_ppx_codep_depsets
+        # + ns_deps
+        # + bottomup_ns_inputs
+    )
+
+    new_ldeps_depset = depset(
+        order = dsorder,
+        direct = #[inputs_depset]
+        action_outputs
+        # + ns_resolver_files
+        # + ctx.files.deps_runtime,
+        # transitive = # ldeps_depsets ## cdeps_depsets
+        # indirect_ppx_codep_depsets
+        # + ns_deps
+        # + bottomup_ns_inputs
+    )
+
     linkset    = depset(direct = [out_cm_])
 
     fileset_depset = depset(direct=action_outputs)
@@ -373,6 +399,8 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         cmi      = depset(direct = [out_cmi]),
         fileset  = fileset_depset,
         linkargs = linkset,
+        cdeps    = new_cdeps_depset,
+        ldeps    = new_ldeps_depset,
         inputs   = closure_depset, ## inputs_depset,
         paths    = depset(direct = [out_cmi.dirname]),
     )

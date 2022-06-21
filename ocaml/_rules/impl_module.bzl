@@ -4,8 +4,11 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlProvider",
 
+     "OcamlArchiveMarker",
      "OcamlImportMarker",
+     "OcamlLibraryMarker",
      "OcamlModuleMarker",
+     "OcamlNsMarker",
      "OcamlNsResolverProvider",
      "OcamlNsSubmoduleMarker",
      "OcamlSignatureProvider")
@@ -262,10 +265,11 @@ def impl_module(ctx, mode, tool, tool_args):
     ## bytecode mode: -make-runtime: build runtime system (output?)
 
     debug = False
+    debug_ppx= False
 
-    # if debug:
-    print("===============================")
-    print("MODULE %s" % ctx.label)
+    if debug:
+        print("===============================")
+        print("MODULE %s" % ctx.label)
 
     if hasattr(ctx.attr, "ppx_tags"):
         if len(ctx.attr.ppx_tags) > 1:
@@ -437,13 +441,16 @@ def impl_module(ctx, mode, tool, tool_args):
 
     args.add_all(_options)
 
-    print("SIG_IS_OPAQUE? %s" % sig_is_opaque)
+    if debug:
+        print("SIG_IS_OPAQUE? %s" % sig_is_opaque)
 
     if sig_is_opaque or "-opaque" in _options:
         module_opaque = True
     else:
         module_opaque = False
-    print("MODULE OPAQUE? %s" % module_opaque)
+
+    if debug:
+        print("MODULE OPAQUE? %s" % module_opaque)
 
     # work_cmox = None
     # work_o    = None
@@ -497,6 +504,8 @@ def impl_module(ctx, mode, tool, tool_args):
             print("OUT_O: %s" % out_o.path)
 
     ################
+    ppx_codep_cdeps      = []
+    ppx_codep_ldeps      = []
     indirect_ppx_codep_depsets      = []
     indirect_ppx_codep_path_depsets = []
     indirect_cc_deps  = {}
@@ -539,7 +548,9 @@ def impl_module(ctx, mode, tool, tool_args):
 
     dep_is_opaque = False
 
-    print("iterating deps")
+    if debug:
+        print("iterating deps")
+
     for dep in the_deps:
         if CcInfo in dep:
             # if ctx.label.name == "Main":
@@ -549,27 +560,49 @@ def impl_module(ctx, mode, tool, tool_args):
         ## dep's DefaultInfo.files depend on OcamlProvider.linkargs,
         ## so add the latter before the former
 
+        ## module deps have opaque flag
+        ## aggregates do not
+        ## so when we find an aggregate we must iterate over it
+
         if OcamlProvider in dep:
 
             if hasattr(dep[OcamlProvider], "opaque"):
-                print("THIS: %s" % ctx.label)
-                # print("DEP CMI_OPAQUE: %s" % dep[OcamlProvider].cmi_opaque)
-                # print("DEP.cmi: %s" % dep[OcamlProvider].cmi)
-                # print("DEP: %s" % dep[OcamlProvider])
-                print("")
+                if debug:
+                    print("THIS: %s" % ctx.label)
+                    # print("DEP CMI_OPAQUE: %s" % dep[OcamlProvider].cmi_opaque)
+                    # print("DEP.cmi: %s" % dep[OcamlProvider].cmi)
+                    # print("DEP: %s" % dep[OcamlProvider])
+                    print("")
 
                 # depending on opaque means...
                 if dep[OcamlProvider].opaque:
-                    print("DEP is opaque: %s" % dep[OcamlProvider].cmi)
+                    if debug:
+                        print("DEP is opaque: %s" % dep[OcamlProvider].cdeps)
                     dep_is_opaque = True
                     cdeps_depsets.append(dep[OcamlProvider].cmi)
+                    cdeps_depsets.append(dep[OcamlProvider].cdeps)
                     ldeps_depsets.append(dep[OcamlProvider].ldeps)
                 else:
                     cdeps_depsets.append(dep[OcamlProvider].cdeps)
                     ldeps_depsets.append(dep[OcamlProvider].ldeps)
             else:
-                if not dep[OcamlImportMarker]:
-                    print("dep[OcamlProvider] %s" % dep[OcamlProvider])
+                if debug:
+                    if OcamlImportMarker in dep:
+                        print("dep[OcamlImportMarker] %s" % dep)
+                    if OcamlNsResolverProvider in dep:
+                        print("dep[OcamlNsResolverProvider] %s" % dep)
+                    if OcamlNsMarker in dep:
+                        print("dep[OcamlNsMarker]")
+                    print("dep[OcamlProvider] %s" % dep)
+                    if OcamlArchiveMarker in dep:
+                        print("dep[OcamlArchiveMarker] %s" % dep)
+                        print("  dep: %s" % dep[OcamlProvider])
+                    if OcamlLibraryMarker in dep:
+                        print("dep[OcamlLibraryMarker] %s" % dep)
+                        print("  dep: %s" % dep[OcamlProvider])
+                    # if not OcamlLibraryMarker in dep:
+                    ##FIXME: also check for OcamlArchiveMarker?
+
                 cdeps_depsets.append(dep[OcamlProvider].cdeps)
                 ldeps_depsets.append(dep[OcamlProvider].ldeps)
 
@@ -577,7 +610,10 @@ def impl_module(ctx, mode, tool, tool_args):
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
-    print("finished deps iteration")
+
+    if debug:
+        print("finished deps iteration")
+        print("indirect_linkargs_depsets: %s" % indirect_linkargs_depsets)
 
     ################ Signature Dep ################
     ## FIXME: this logic does not work if we needed to
@@ -589,21 +625,32 @@ def impl_module(ctx, mode, tool, tool_args):
     #         indirect_paths_depsets.append(sig_paths)
 
     ################ PPX Co-Deps ################
-    ## ppx_codeps of the ppx executable are structural deps of this
+    ## ppx_codeps of the ppx executable are material deps of this
     ## module. They thus become elements in the depgraph of anything
     ## that depends on this module, so they are passed on just like
     ## regular deps.
 
     ## Modules that do ppx processing may have a ppx_codeps attribute,
     ## for the deps they inject into the files they preprocess. They
-    ## are _NOT_ structural deps of the module itself. It follow that
+    ## are _NOT_ material deps of the module itself. It follows that
     ## they are passed on in a PpxCodepsProvider, not in
     ## OcamlProvider.
 
     ppx_codeps_list = []
 
     if ctx.attr.ppx:
+        if debug_ppx:
+            print("attr.ppx: %s" % ctx.attr.ppx)
+
         if PpxCodepsProvider in ctx.attr.ppx:
+            if debug_ppx:
+                # print("ctx.attr.ppx[PpxCodepsProvider] %s"
+                #       % ctx.attr.ppx[PpxCodepsProvider])
+                print("ctx.attr.ppx[PpxCodepsProvider].linkset: %s"
+                      % ctx.attr.ppx[PpxCodepsProvider].linkset)
+                print("ctx.attr.ppx[PpxCodepsProvider].ppx_codeps: %s"
+                      % ctx.attr.ppx[PpxCodepsProvider].ppx_codeps)
+
             ppx_codeps_info = ctx.attr.ppx[PpxCodepsProvider]
 
             ## 1. put ppx_codeps in search path with -I
@@ -611,10 +658,10 @@ def impl_module(ctx, mode, tool, tool_args):
             ## otherwise linking an executable will fail with: "No
             ## implementations provided for the following modules:..."
             indirect_linkargs_depsets.append(ppx_codeps_info.linkset)
-
             indirect_ppx_codep_depsets.append(ppx_codeps_info.ppx_codeps)
             indirect_ppx_codep_path_depsets.append(ppx_codeps_info.paths)
-
+            ppx_codep_cdeps.extend(ppx_codeps_info.cdeps)
+            ppx_codep_ldeps.extend(ppx_codeps_info.ldeps)
 
         # dlist = ppx_codeps_info.ppx_codeps.to_list()
         # args.add("-ccopt", "-DPPX_ADJUNCTS_START")
@@ -638,10 +685,21 @@ def impl_module(ctx, mode, tool, tool_args):
     # args.add("-I", "/Users/gar/.opam/4.10/lib/ounit2")
     # args.add("-I", "demos/external/ounit2")
 
+    ppx_codep_ldepset = depset(transitive=ppx_codep_ldeps)
+    # print("ppx_codep_ldepset: %s" % ppx_codep_ldepset)
+
+    archives = []
     linkargs = depset(transitive=indirect_linkargs_depsets)
+    if debug: print("LINKARGS: %s" % linkargs)
     for larg in linkargs.to_list():
         if larg.extension in ["cmxa", "cmx"]:
-            args.add("-I", larg.dirname)
+            archives.append(larg)
+            args.add(larg.path)
+            includes.append(larg.dirname)
+
+    # for cdep in cdeps_depsets:
+    #     for cd in cdep.to_list():
+    #         args.add("-I", cd.dirname)
 
     paths_depset  = depset(
         order = dsorder,
@@ -649,7 +707,7 @@ def impl_module(ctx, mode, tool, tool_args):
         transitive = indirect_paths_depsets + indirect_ppx_codep_path_depsets
     )
 
-    args.add_all(paths_depset.to_list(), before_each="-I")
+    includes.extend(paths_depset.to_list()) # , before_each="-I")
     # args.add("-absname")
     args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -724,6 +782,14 @@ def impl_module(ctx, mode, tool, tool_args):
     # print("SRC_INPUTS: %s" % src_inputs)
     # print("mli_out: %s" % mli_out)
     # print("cdeps_depsets: %s" % cdeps_depsets)
+
+    # if debug_ppx:
+    #     # for dep in inputs_depset.to_list():
+    #     # for dset in indirect_ppx_codep_depsets:
+    #     for dset in ppx_codep_ldeps:
+    #         for d in dset.to_list():
+    #             print("PPX IDEP: %s" % d)
+
     inputs_depset = depset(
         order = dsorder,
         direct = src_inputs
@@ -741,9 +807,15 @@ def impl_module(ctx, mode, tool, tool_args):
 
         transitive = cdeps_depsets
         + indirect_ppx_codep_depsets
+        + [ppx_codep_ldepset]
+        + [depset(direct=archives)]
         + ns_deps
         + bottomup_ns_inputs
     )
+    # if debug_ppx:
+    #     for dep in inputs_depset.to_list():
+    #         print("IDEP: %s" % dep.path)
+
     # if ctx.label.name == "Misc":
     #     print("inputs_depset: %s" % inputs_depset)
 
@@ -813,30 +885,37 @@ def impl_module(ctx, mode, tool, tool_args):
         direct = action_outputs + cmi_out + mli_out,
     )
 
-    # new_inputs_depset = depset(
-    #     direct = action_outputs,
-    #     transitive = [inputs_depset] ## cdeps_depsets
-    # )
-    ## same as inputs_depset except structfile omitted
-    new_ldeps_depset = depset(
+    if work_cmi and not cmi_isbound:
+        cmi_depset = depset(
+            direct = [work_cmi],
+            transitive = bottomup_ns_cmi
+        )
+    else:
+        cmi_depset = depset(
+            direct=cmi_out,
+            transitive = bottomup_ns_cmi
+        )
+
+    new_cdeps_depset = depset(
         order = dsorder,
-        direct = src_inputs
-        + action_outputs
-        + ns_resolver_files
+        direct = ## src_inputs
+        ns_resolver_files
         + ctx.files.deps_runtime,
-        transitive = ldeps_depsets ## cdeps_depsets
+        transitive = cdeps_depsets
+        + [cmi_depset] ## action_outputs
         + indirect_ppx_codep_depsets
         + ns_deps
         + bottomup_ns_inputs
     )
 
-    new_cdeps_depset = depset(
+    ## same as inputs_depset except structfile omitted
+    new_ldeps_depset = depset(
         order = dsorder,
         direct = src_inputs
-        + action_outputs
+        + action_outputs #FIXME: omit cmx?
         + ns_resolver_files
         + ctx.files.deps_runtime,
-        transitive = cdeps_depsets
+        transitive = ldeps_depsets ## cdeps_depsets
         + indirect_ppx_codep_depsets
         + ns_deps
         + bottomup_ns_inputs
@@ -907,7 +986,8 @@ def impl_module(ctx, mode, tool, tool_args):
     ppxCodepsProvider = PpxCodepsProvider(
         ppx_codeps = ppx_codeps_depset,
         paths = depset(order = dsorder,
-                       transitive = indirect_ppx_codep_path_depsets)
+                       transitive = indirect_ppx_codep_path_depsets),
+        ldeps = ppx_codep_ldepset
     )
     providers.append(ppxCodepsProvider)
 
@@ -916,24 +996,14 @@ def impl_module(ctx, mode, tool, tool_args):
         ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
         providers.append(ccInfo )
 
-    if work_cmi and not cmi_isbound:
-        cmi_depset = depset(
-            direct = [work_cmi],
-            transitive = bottomup_ns_cmi
-        )
-    else:
-        cmi_depset = depset(
-            direct=cmi_out,
-            transitive = bottomup_ns_cmi
-        )
-
     ################
     outputGroupInfo = OutputGroupInfo(
         # cc         = ccInfo.linking_context.linker_inputs.libraries,
         cmi        = cmi_depset,
         fileset    = fileset_depset,
         linkset    = linkset,
-        # thedeps    = ctx.files.deps,
+        cdeps      = new_cdeps_depset,
+        ldeps      = new_ldeps_depset,
         ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         closure = new_ldeps_depset,
@@ -947,6 +1017,7 @@ def impl_module(ctx, mode, tool, tool_args):
             ]
         )
     )
+
     providers.append(outputGroupInfo)
 
     return providers

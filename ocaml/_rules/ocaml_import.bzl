@@ -296,22 +296,22 @@ def _ocaml_import_impl(ctx):
 
     ## FIXME: --output_groups only prints generated stuff? it won't
     ## print fixed files that just pass through
-    outputGroupInfo = OutputGroupInfo(
-        # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
-        files = direct_default_depset,
+    # outputGroupInfo = OutputGroupInfo(
+    #     # ppx_codeps = outputGroupDepsets["ppx_codeps"] if outputGroupDepsets["ppx_codeps"] else depset(),
+    #     files = direct_default_depset,
 
-        ldeps   = new_ldeps_depset,
-        linkargs = linkargs_depset,
+    #     ldeps   = new_ldeps_depset,
+    #     linkargs = linkargs_depset,
 
-        # all = depset(
-        #     order = dsorder,
-        #     transitive=[
-        #         ppx_codeps_depset,
-        #     ]
-        # )
-    )
+    #     # all = depset(
+    #     #     order = dsorder,
+    #     #     transitive=[
+    #     #         ppx_codeps_depset,
+    #     #     ]
+    #     # )
+    # )
 
-    providers.append(outputGroupInfo)
+    # providers.append(outputGroupInfo)
 
     # if ctx.label.name == "irmin-pack":
     #     print("IRMIN PROVIDERS")

@@ -9,6 +9,10 @@ NEGATION_OPTS = [
     "-no-thread", "-no-verbose"
 ]
 
+# Hidden options (e.g. _debug, _opaque, etc.) are set by config
+# setting rules, e.g. //cfg/debug, //cfg/opaque.
+# We also check 'opts' to avoid duplicates.
+# Special case: 'opaque' attr.
 def get_options(rule, ctx):
     options = []
 

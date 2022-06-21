@@ -4,7 +4,12 @@ PpxCodepsProvider = provider(
     fields = {
         "ppx_codeps": "file depset",
         "paths": "string depset",
-        "linkset" : "file depset"
+        ##FIXME: linkset only contains archive files
+        ## rename it or eliminate since archives alone insufficient?
+        "linkset" : "file depset",
+
+        "cdeps": "compile deps",
+        "ldeps": "link deps"
     }
 )
 

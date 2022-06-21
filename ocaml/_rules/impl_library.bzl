@@ -32,7 +32,7 @@ load(":impl_ccdeps.bzl", "dump_CcInfo")
 #################
 def impl_library(ctx, mode, tool, tool_args):
 
-    debug = False
+    debug = True
     # print("**** NS_LIB {} ****************".format(ctx.label))
 
     # env = {"PATH": get_sdkpath(ctx)}
@@ -50,6 +50,7 @@ def impl_library(ctx, mode, tool, tool_args):
     # WARNING: due to transition processing, ns_resolver providers
     # must be indexed by [0]
 
+    ##FIXME: put this in a subroutine
     if ctx.attr._rule.startswith("ocaml_ns"):
         # print("tgt: %s" % ctx.label)
         # print("rule: %s" % ctx.attr._rule)
@@ -118,8 +119,10 @@ def impl_library(ctx, mode, tool, tool_args):
     # print("ns_name: %s" % ns_name)
 
     ################
-    ## FIXME: does lib need to handle adjunct deps? they're carried by
+    ## FIXME: does lib need to handle ppx_codeps? they're carried by
     ## modules
+    cdeps_depsets = []
+    ldeps_depsets = []
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
 
@@ -158,6 +161,8 @@ def impl_library(ctx, mode, tool, tool_args):
 
     #### INDIRECT DEPS first ####
     # these are "indirect" from the perspective of the consumer
+    cdeps_depsets = []
+    ldeps_depsets = []
     indirect_fileset_depsets = []
     indirect_inputs_depsets = []
     indirect_linkargs_depsets = []
@@ -165,6 +170,7 @@ def impl_library(ctx, mode, tool, tool_args):
 
     ccInfo_list = []
 
+    ##FIXME: this dups what's above with direct_dep_files ,direct_deps_attr
     direct_module_deps_files = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
 
     direct_module_deps = ctx.attr.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.attr.manifest
@@ -200,6 +206,9 @@ def impl_library(ctx, mode, tool, tool_args):
             indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
 
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
+
+            cdeps_depsets.append(dep[OcamlProvider].cdeps)
+            ldeps_depsets.append(dep[OcamlProvider].ldeps)
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
@@ -306,21 +315,38 @@ def impl_library(ctx, mode, tool, tool_args):
         transitive = indirect_paths_depsets
     )
 
+    fileset_depset = depset(
+            transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
+    )
+
+    cdeps_depset = depset(
+        order = dsorder,
+        transitive = cdeps_depsets
+    )
+
+    ldeps_depset = depset(
+        order = dsorder,
+        transitive = ldeps_depsets
+    )
+
     # print("new_linkargs: %s" % new_linkargs)
     ocamlProvider = OcamlProvider(
         files   = depset(direct=new_linkargs),
-        fileset = depset(
-            transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
-        ),
+        fileset = fileset_depset,
         inputs   = new_inputs_depset,
         linkargs = linkargs_depset,
+        cdeps    = cdeps_depset,
+        ldeps    = ldeps_depset,
         paths    = paths_depset,
         ns_resolver = ns_resolver,
     )
     # print("ocamlProvider: %s" % ocamlProvider)
 
     outputGroupInfo = OutputGroupInfo(
-        resolver = ns_resolver_files,
+        resolver   = ns_resolver_files,
+        fileset    = fileset_depset,
+        cdeps      = cdeps_depset,
+        ldeps      = ldeps_depset,
         ppx_codeps = ppx_codeps_depset,
         # cc = ... extract from CcInfo?
         all = depset(

@@ -5,6 +5,7 @@ load("//ocaml:providers.bzl",
      "CompilationModeSettingProvider",
      "OcamlProvider",
      "OcamlExecutableMarker",
+     "OcamlImportMarker",
      "OcamlModuleMarker",
      "OcamlTestMarker",
 )
@@ -56,6 +57,7 @@ def _import_ppx_executable(ctx):
 def impl_executable(ctx, mode, tc, tool, tool_args):
 
     debug = False
+    debug_ppx = False
     # if ctx.label.name == "test":
         # debug = True
 
@@ -139,6 +141,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     indirect_ppx_codep_depsets      = []
     indirect_ppx_codep_depsets_paths = []
     ppx_codep_linksets = []
+    ppx_codep_cdeps = []
+    ppx_codep_ldeps = []
 
     direct_inputs_depsets = []
     direct_linkargs_depsets = []
@@ -147,11 +151,18 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     ccInfo_list = []
 
     for dep in ctx.attr.deps:
+        if debug:
+            print("DEP: %s" % dep)
+            if OcamlProvider in dep:
+                print("dep[OcamlProvider] %s" % dep[OcamlProvider])
+            if OcamlImportMarker in dep:
+                print("dep[OcamlImportMarker] %s" % dep[OcamlImportMarker])
+
         if CcInfo in dep:
             # print("CcInfo dep: %s" % dep)
             ccInfo_list.append(dep[CcInfo])
 
-        direct_inputs_depsets.append(dep[OcamlProvider].inputs)
+        direct_inputs_depsets.append(dep[OcamlProvider].ldeps) # inputs)
         direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
         direct_paths_depsets.append(dep[OcamlProvider].paths)
 
@@ -160,13 +171,21 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         ################ PpxCodepsProvider ################
         ## only for ocaml_imports listed in deps, not ppx_codeps
         if PpxCodepsProvider in dep:
-            ppxadep = dep[PpxCodepsProvider]
-            if hasattr(ppxadep, "ppx_codeps"):
-                if ppxadep.ppx_codeps:
-                    indirect_ppx_codep_depsets.append(ppxadep.ppx_codeps)
-            if hasattr(ppxadep, "paths"):
-                if ppxadep.paths:
-                    indirect_ppx_codep_depsets_paths.append(ppxadep.paths)
+            if debug_ppx:
+                print("dep[PpxCodepsProvider]: %s" % dep[PpxCodepsProvider])
+            ppxcdp = dep[PpxCodepsProvider]
+            if hasattr(ppxcdp, "ppx_codeps"):
+                if ppxcdp.ppx_codeps:
+                    indirect_ppx_codep_depsets.append(ppxcdp.ppx_codeps)
+            if hasattr(ppxcdp, "paths"):
+                if ppxcdp.paths:
+                    indirect_ppx_codep_depsets_paths.append(ppxcdp.paths)
+            if hasattr(ppxcdp, "cdeps"):
+                if ppxcdp.cdeps:
+                    ppx_codep_cdeps.append(ppxcdp.cdeps)
+            if hasattr(ppxcdp, "ldeps"):
+                if ppxcdp.ldeps:
+                    ppx_codep_ldeps.append(ppxcdp.ldeps)
 
     action_inputs_ccdep_filelist = []
     manifest_list = []
@@ -174,12 +193,22 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     if ctx.attr._rule == "ppx_executable":
         if ctx.attr.ppx_codeps:
             for codep in ctx.attr.ppx_codeps:
+                if debug_ppx:
+                    print("attr.ppx_codep: %s" % codep)
+                    print("codep[OcamlImportMarker: %s" %
+                          codep[OcamlImportMarker])
+                    print("codep[OcamlProvider]: %s" % codep[OcamlProvider])
                 # NB: codep[OcamlProvider]linkargs insufficient, it only
                 # contains archive files, for linking executables.
                 # We will need to list all modules as inputs
                 ppx_codep_linksets.append(codep[OcamlProvider].linkargs)
-                indirect_ppx_codep_depsets.append(codep[OcamlProvider].inputs)
+                # indirect_ppx_codep_depsets.append(codep[OcamlProvider].inputs)
                 indirect_ppx_codep_depsets_paths.append(codep[OcamlProvider].paths)
+
+                ppx_codep_cdeps.append(codep[OcamlProvider].cdeps)
+                ppx_codep_ldeps.append(codep[OcamlProvider].ldeps)
+
+    # print("LDEPS: %s" % ppx_codep_ldeps)
 
     ################################################################
     #### MAIN ####
@@ -202,7 +231,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             if hasattr(main[OcamlProvider], "archive_manifests"):
                 manifest_list.append(main[OcamlProvider].archive_manifests)
 
-        direct_inputs_depsets.append(main[OcamlProvider].inputs)
+        direct_inputs_depsets.append(main[OcamlProvider].ldeps) # inputs)
         direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
         direct_paths_depsets.append(main[OcamlProvider].paths)
 
@@ -300,8 +329,12 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         direct = stublibs, # [],
         transitive = [direct_inputs_depset] + data_inputs
         + [depset(action_inputs_ccdep_filelist)]
+        + [depset(transitive=ppx_codep_ldeps)]
         # + stublibs
     )
+    if debug_ppx:
+        for dep in inputs_depset.to_list():
+            print("IDEP: %s" % dep.path)
 
     if ctx.attr._rule == "ocaml_executable":
         mnemonic = "CompileOcamlExecutable"
@@ -400,7 +433,9 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         ppxCodepsProvider = PpxCodepsProvider(
             ppx_codeps = ppx_codeps_depset,
             paths = ppx_codeps_paths_depset,
-            linkset = ppx_codeps_linkset
+            linkset = ppx_codeps_linkset,
+            cdeps   = ppx_codep_cdeps,
+            ldeps   = ppx_codep_ldeps,
         )
         providers.append(ppxCodepsProvider)
 
