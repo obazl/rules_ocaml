@@ -22,7 +22,7 @@ load(":options.bzl",
 ###############################
 def _ocaml_ns_library(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -58,5 +58,5 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     cfg     = nslib_in_transition,
     provides = [OcamlNsMarker, OcamlLibraryMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

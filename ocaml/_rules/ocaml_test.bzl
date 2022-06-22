@@ -9,7 +9,7 @@ load(":options.bzl", "options", "options_executable")
 ###############################
 def _ocaml_test(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -52,5 +52,5 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     ),
     # cfg = executable_in_transition,
     test = True,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

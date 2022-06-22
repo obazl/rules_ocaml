@@ -21,7 +21,7 @@ def _ocaml_lex_impl(ctx):
 
   mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-  tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+  tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
   # env = {"PATH": get_sdkpath(ctx)}
 
   # lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
@@ -86,5 +86,5 @@ ocaml_lex = rule(
     ),
     # provides = [],
     executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

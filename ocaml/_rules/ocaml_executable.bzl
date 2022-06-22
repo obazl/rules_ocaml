@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
 ###############################
 def _ocaml_executable(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -76,5 +76,5 @@ the difference between '/' and ':' in such labels):
     # cfg     = nsarchive_in_transition,
     # cfg     = executable_in_transition,
     executable = True,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

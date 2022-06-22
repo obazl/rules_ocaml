@@ -18,7 +18,7 @@ load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 ###############################
 def _ocaml_archive(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -108,5 +108,5 @@ ocaml_archive = rule(
     cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

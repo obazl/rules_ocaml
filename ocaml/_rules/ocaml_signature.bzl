@@ -72,7 +72,7 @@ def _ocaml_signature_impl(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     if mode == "native":
         exe = tc.ocamlopt # .basename
@@ -495,5 +495,5 @@ the difference between '/' and ':' in such labels):
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

@@ -1,21 +1,11 @@
 load("@bazel_skylib//rules:common_settings.bzl", "string_setting")
 
-# load("@rules_ocaml//ocaml/_toolchains:ocaml_toolchains.bzl",
-#      ## FIXME: make a public toolchain ns
-#      # "ocaml_sdkpath", ## FIXME: use string_setting
-#      "ocaml_toolchain")
-
 load("@rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
 
 package(default_visibility = ["//visibility:public"])
 
 # exports_files(glob(["bin/**"]))
 # exports_files(glob(["**"]))
-
-# toolchain_type(
-#     name = "toolchain_type",
-#     visibility = ["//visibility:public"]
-# )
 
 ocaml_null_module(name="null")
 

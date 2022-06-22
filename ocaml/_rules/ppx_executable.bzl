@@ -17,7 +17,7 @@ load(":impl_executable.bzl", "impl_executable")
 ###########################
 def _ppx_executable(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -144,5 +144,5 @@ ppx_executable = rule(
     # provides = [DefaultInfo, PpxExecutableMarker],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

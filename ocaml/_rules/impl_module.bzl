@@ -286,7 +286,7 @@ def impl_module(ctx, mode, tool, tool_args):
     #     else:
     #         ext = ".cmo"
     # else:
-    #     tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
     #     if mode == "native":
     #         exe = tc.ocamlopt.basename
     #     else:

@@ -16,7 +16,7 @@ load(":impl_module.bzl", "impl_module")
 ###############################
 def _ocaml_module(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -136,7 +136,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     #             "@platforms//os:macos"
     #         ],
     #         toolchains = [
-    #             "@rules_ocaml//ocaml:toolchain",
+    #             "@rules_ocaml//toolchain:type",
     #             # "@rules_ocaml//cfg/coq:toolchain_type",
     #         ],
     #     ),
@@ -144,6 +144,6 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )
 

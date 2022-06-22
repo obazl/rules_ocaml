@@ -77,7 +77,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    # tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     # if mode == "native":
     #     exe = tc.ocamlopt.basename

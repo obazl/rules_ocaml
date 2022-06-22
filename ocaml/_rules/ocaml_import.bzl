@@ -25,7 +25,7 @@ def _ocaml_import_impl(ctx):
 
     debug = False
 
-    # tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -371,5 +371,5 @@ ocaml_import = rule(
     ),
     provides = [OcamlImportMarker],
     executable = False,
-    toolchains = ["@rules_ocaml//ocaml:toolchain"],
+    toolchains = ["@rules_ocaml//toolchain:type"],
 )

@@ -37,7 +37,7 @@ def impl_library(ctx, mode, tool, tool_args):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
-    # tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 

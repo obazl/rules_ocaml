@@ -10,7 +10,7 @@ load("//ocaml/_rules:impl_ns_resolver.bzl", "impl_ns_resolver")
 ###############################
 def _ocaml_ns_resolver(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//ocaml:toolchain"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
@@ -153,6 +153,6 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
     provides = [OcamlNsResolverProvider],
     executable = False,
     toolchains = [
-        "@rules_ocaml//ocaml:toolchain",
+        "@rules_ocaml//toolchain:type",
     ],
 )

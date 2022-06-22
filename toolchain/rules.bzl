@@ -180,6 +180,10 @@ def _ocaml_toolchain_impl(ctx):
         # archext    = ".cmxa" if mode == "native" else ".cma",
     )]
 
+## toolchain models bind tc interface to tc implementation
+## implementation details are passed via attributes
+# ocaml_toolchain_model = rule(
+# or: ocaml_toolchain_binding(
 ocaml_toolchain = rule(
     _ocaml_toolchain_impl,
     attrs = _ocaml_tools_attrs,
