@@ -86,7 +86,7 @@ _ocaml_tools_attrs = {
     # ),
 }
 
-def _ocaml_toolchain_impl(ctx):
+def _ocaml_toolchain_model_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")
 
     # print("platform frag: %s" % ctx.host_fragments.platform)
@@ -182,10 +182,10 @@ def _ocaml_toolchain_impl(ctx):
 
 ## toolchain models bind tc interface to tc implementation
 ## implementation details are passed via attributes
-# ocaml_toolchain_model = rule(
 # or: ocaml_toolchain_binding(
-ocaml_toolchain = rule(
-    _ocaml_toolchain_impl,
+# ocaml_toolchain = rule(
+ocaml_toolchain_model = rule(
+    _ocaml_toolchain_model_impl,
     attrs = _ocaml_tools_attrs,
     doc = "Defines a Ocaml toolchain.",
     provides = [platform_common.ToolchainInfo],
@@ -194,5 +194,7 @@ ocaml_toolchain = rule(
     ## see https://docs.bazel.build/versions/main/skylark/lib/cpp.html
     fragments = ["cpp", "apple", "platform"],
     host_fragments = ["apple", "platform"],
+
+    ## ocaml toolchain model depends on cc toolchain
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]
 )

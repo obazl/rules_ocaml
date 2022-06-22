@@ -1,4 +1,1 @@
-toolchain_type(
-    name = "type",
-    visibility = ["//visibility:public"],
-)
+toolchain_type(name = "type", visibility = ["//visibility:public"])
