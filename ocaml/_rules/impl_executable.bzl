@@ -71,6 +71,11 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         if ctx.attr.bin:
             return _import_ppx_executable(ctx)
 
+    if mode == "native":
+        struct_extensions = ["cmxa", "cmx"]
+    else:
+        struct_extensions = ["cma", "cmo"]
+
     # env = {
     #     "PATH": get_sdkpath(ctx),
     # }
@@ -267,15 +272,20 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     ## on cmd line.  FIXME: how to include only those actually needed?
 
     for dep in linkargs_depset.to_list():
-        # print("LINKARG: %s" % dep)
+        print("LINKARG: %s" % dep)
         if dep not in archive_filter_list:
             includes.append(dep.dirname)
-        if mode == "native":
-            if dep.extension in ["cmx", "cmxa"]:
-                args.add(dep)
-        elif mode == "bytecode":
-            if dep.extension in ["cmo", "cma"]:
-                args.add(dep)
+        # if mode == "native":
+        #     if dep.extension in ["cmx", "cmxa"]:
+        #         args.add(dep)
+        # elif mode == "bytecode":
+        #     if dep.extension in ["cmo", "cma"]:
+        #         args.add(dep)
+        print("STRUCTEXT: %s" % struct_extensions);
+        print("DEP.EXT: %s" % dep.extension)
+        if dep.extension in struct_extensions:
+            print("ADDING: %s" % dep)
+            args.add(dep)
 
     ### ctx.files.deps added above;
     ### FIXME: verify logic

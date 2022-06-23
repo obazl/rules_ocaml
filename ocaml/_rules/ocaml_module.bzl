@@ -18,12 +18,22 @@ def _ocaml_module(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
+    print("TC: %s" % tc.name)
+    print("COMPILER: %s" % tc.compiler)
+
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    if mode == "native":
-        tool = tc.ocamlopt # .basename
+    # if mode == "native":
+    #     tool = tc.ocamlopt # .basename
+    # else:
+    #     tool = tc.ocamlc  #.basename
+
+    tool = tc.compiler
+
+    if tc.native_mode:
+        mode = "native"
     else:
-        tool = tc.ocamlc  #.basename
+        mode = "bytecode"
 
     tool_args = []
 
@@ -144,6 +154,8 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = ["@rules_ocaml//toolchain:type",
+                  "@bazel_tools//tools/cpp:toolchain_type"
+                  ],
 )
 

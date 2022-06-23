@@ -13,10 +13,17 @@ def _ocaml_test(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    if mode == "native":
-        tool = tc.ocamlopt # .basename
+    # if mode == "native":
+    #     tool = tc.ocamlopt # .basename
+    # else:
+    #     tool = tc.ocamlc  #.basename
+
+    tool = tc.compiler
+
+    if tc.native_mode:
+        mode = "native"
     else:
-        tool = tc.ocamlc  #.basename
+        mode = "bytecode"
 
     tool_args = []
 

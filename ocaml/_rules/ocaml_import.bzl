@@ -29,6 +29,11 @@ def _ocaml_import_impl(ctx):
 
     mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
+    if mode == "native":
+        struct_extensions = ["cmxa", "cmx"]
+    else:
+        struct_extensions = ["cma", "cmo"]
+
     # if mode == "native":
     #     tool = tc.ocamlopt # .basename
     # else:
@@ -119,12 +124,15 @@ def _ocaml_import_impl(ctx):
 
         direct_archive.extend(ctx.files.archive)
         for f in ctx.files.archive:
-            if mode == "native":
-                if f.extension == "cmxa":
-                    direct_default_files.append(f)
-            if mode == "bytecode":
-                if f.extension == "cma":
-                    direct_default_files.append(f)
+            # if mode == "native":
+            #     if f.extension == "cmxa":
+            #         direct_default_files.append(f)
+            # if mode == "bytecode":
+            #     if f.extension == "cma":
+            #         direct_default_files.append(f)
+            if f.extension in struct_extensions:
+                direct_default_files.append(f)
+
             # if (f.path.startswith(opam_lib_prefix)):
             #     dir = paths.relativize(f.dirname, opam_lib_prefix)
             #     direct_paths_list.append( "+../" + dir )
@@ -330,17 +338,21 @@ ocaml_import = rule(
         _mode       = attr.label(
             default = "@rules_ocaml//build/mode",
         ),
-        archive = attr.label_list(
-            default = [],
-            allow_files = True
-        ),
+        archive = attr.label_list(allow_files = True),
+        cmi  = attr.label_list(allow_files = True),
+        cmti = attr.label_list(allow_files = True),
+        cmo  = attr.label_list(allow_files = True),
+        cmx  = attr.label_list(allow_files = True),
+        cmxa = attr.label_list(allow_files = True),
+        cma  = attr.label_list(allow_files = True),
+        cmxs = attr.label_list(allow_files = True),
+        srcs = attr.label_list(allow_files = True),
+
         all = attr.label_list(
             doc = "Glob all cm* files except for 'archive' or 'plugin' so theey can be added to action ldeps (rather than cmd line). I.e. the (transitive) deps of an archive, which must be accessible to the compiler (via search path, not command line), and so must be added to the action ldeps.",
             allow_files = True
         ),
-        srcs = attr.label_list(
-            allow_files = True
-        ),
+
         modules = attr.label_list(
             allow_files = True
         ),

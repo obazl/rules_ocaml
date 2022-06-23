@@ -294,6 +294,11 @@ def impl_module(ctx, mode, tool, tool_args):
 
     ext  = ".cmx" if  mode == "native" else ".cmo"
 
+    if mode == "native":
+        struct_extensions = ["cmxa", "cmx"]
+    else:
+        struct_extensions = ["cma", "cmo"]
+
     ################
     includes   = []
     default_outputs    = [] # just the cmx/cmo files, for efaultInfo
@@ -692,7 +697,7 @@ def impl_module(ctx, mode, tool, tool_args):
     linkargs = depset(transitive=indirect_linkargs_depsets)
     if debug: print("LINKARGS: %s" % linkargs)
     for larg in linkargs.to_list():
-        if larg.extension in ["cmxa", "cmx"]:
+        if larg.extension in struct_extensions:
             archives.append(larg)
             args.add(larg.path)
             includes.append(larg.dirname)
@@ -812,9 +817,9 @@ def impl_module(ctx, mode, tool, tool_args):
         + ns_deps
         + bottomup_ns_inputs
     )
-    # if debug_ppx:
-    #     for dep in inputs_depset.to_list():
-    #         print("IDEP: %s" % dep.path)
+    if debug:
+        for dep in inputs_depset.to_list():
+            print("IDEP: %s" % dep.path)
 
     # if ctx.label.name == "Misc":
     #     print("inputs_depset: %s" % inputs_depset)

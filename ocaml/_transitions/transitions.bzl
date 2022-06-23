@@ -65,13 +65,15 @@ ocaml_executable_deps_out_transition = transition(
     implementation = _ocaml_executable_deps_out_transition_impl,
     inputs = [
         # "@rules_ocaml//cfg/mode:mode",
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules"
+        # "@rules_ocaml//cfg/ns:prefixes",
+        # "@rules_ocaml//cfg/ns:submodules"
+        "@rules_ocaml//build:action"
     ],
     outputs = [
         # "@ppx//mode",
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules"
+        # "@rules_ocaml//cfg/ns:prefixes",
+        # "@rules_ocaml//cfg/ns:submodules"
+        "@rules_ocaml//build:action"
     ]
 )
 
