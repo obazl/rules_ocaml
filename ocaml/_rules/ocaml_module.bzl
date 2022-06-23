@@ -30,14 +30,9 @@ def _ocaml_module(ctx):
 
     tool = tc.compiler
 
-    if tc.native_mode:
-        mode = "native"
-    else:
-        mode = "bytecode"
-
     tool_args = []
 
-    return impl_module(ctx, mode, tool, tool_args)
+    return impl_module(ctx, tc.emitting, tool, tool_args)
 
 ################################
 rule_options = options("ocaml")

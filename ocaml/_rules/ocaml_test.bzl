@@ -11,7 +11,7 @@ def _ocaml_test(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     # if mode == "native":
     #     tool = tc.ocamlopt # .basename
@@ -20,14 +20,14 @@ def _ocaml_test(ctx):
 
     tool = tc.compiler
 
-    if tc.native_mode:
-        mode = "native"
-    else:
-        mode = "bytecode"
+    # if tc.native_mode:
+    #     mode = "native"
+    # else:
+    #     mode = "bytecode"
 
     tool_args = []
 
-    return impl_executable(ctx, mode, tc, tool, tool_args)
+    return impl_executable(ctx, tc.emitting, tc, tool, tool_args)
 
 ################################
 rule_options = options("ocaml")

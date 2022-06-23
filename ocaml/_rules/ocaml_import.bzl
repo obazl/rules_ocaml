@@ -25,21 +25,16 @@ def _ocaml_import_impl(ctx):
 
     debug = False
 
-    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
-    if mode == "native":
+    if tc.emitting == "native":
         struct_extensions = ["cmxa", "cmx"]
     else:
         struct_extensions = ["cma", "cmo"]
 
-    # if mode == "native":
-    #     tool = tc.ocamlopt # .basename
-    # else:
-    #     tool = tc.ocamlc  #.basename
-
-    # tool_args = []
+    # _handle_new_deps(ctx)
 
     direct_files = []
 
@@ -335,9 +330,9 @@ ocaml_import = rule(
 
     """,
     attrs = dict(
-        _mode       = attr.label(
-            default = "@rules_ocaml//build/mode",
-        ),
+        # _mode       = attr.label(
+        #     default = "@rules_ocaml//build/mode",
+        # ),
         archive = attr.label_list(allow_files = True),
         cmi  = attr.label_list(allow_files = True),
         cmti = attr.label_list(allow_files = True),
