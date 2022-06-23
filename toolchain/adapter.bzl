@@ -224,5 +224,5 @@ ocaml_toolchain_adapter = rule(
     host_fragments = ["apple", "platform"],
 
     ## ocaml toolchain adapter depends on cc toolchain?
-    # toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]
 )
