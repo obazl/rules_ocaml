@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlProvider",
      "OcamlExecutableMarker",
      "OcamlImportMarker",
@@ -56,7 +55,7 @@ def _import_ppx_executable(ctx):
 #########################
 def impl_executable(ctx, mode, tc, tool, tool_args):
 
-    debug = False
+    debug = True
     debug_ppx = False
     # if ctx.label.name == "test":
         # debug = True
@@ -79,15 +78,6 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     # env = {
     #     "PATH": get_sdkpath(ctx),
     # }
-
-    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-
-    # if mode == "native":
-    #     exe = tc.ocamlopt.basename
-    # else:
-    #     exe = tc.ocamlc.basename
 
     ################
     direct_cc_deps    = {}
@@ -137,7 +127,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
 
     ################################################################
-    main_deps_list = []
+    # main_deps_list = []
     paths_direct   = []
     paths_indirect = []
 
@@ -149,11 +139,14 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     ppx_codep_cdeps = []
     ppx_codep_ldeps = []
 
-    direct_inputs_depsets = []
+    # direct_inputs_depsets = []
     direct_linkargs_depsets = []
     direct_paths_depsets = []
 
     ccInfo_list = []
+
+    sigs_depsets = []
+    structs_depsets = []
 
     for dep in ctx.attr.deps:
         if debug:
@@ -167,11 +160,16 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             # print("CcInfo dep: %s" % dep)
             ccInfo_list.append(dep[CcInfo])
 
-        direct_inputs_depsets.append(dep[OcamlProvider].ldeps) # inputs)
-        direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
-        direct_paths_depsets.append(dep[OcamlProvider].paths)
+        if OcamlProvider in dep:
+            sigs_depsets.append(dep[OcamlProvider].sigs)
+            structs_depsets.append(dep[OcamlProvider].structs)
+            structs_depsets.append(dep[DefaultInfo].files)
 
-        direct_linkargs_depsets.append(dep[DefaultInfo].files)
+            # direct_inputs_depsets.append(dep[OcamlProvider].ldeps) # inputs)
+            direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+            direct_paths_depsets.append(dep[OcamlProvider].paths)
+
+            direct_linkargs_depsets.append(dep[DefaultInfo].files)
 
         ################ PpxCodepsProvider ################
         ## only for ocaml_imports listed in deps, not ppx_codeps
@@ -219,6 +217,15 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #### MAIN ####
     if ctx.attr.main:
         main = ctx.attr.main
+
+        if debug:
+            print("MAIN: %s" % main)
+            print("MAIN default files: %s" % main[DefaultInfo].files)
+            print("MAIN sigs: %s" % main[OcamlProvider].sigs)
+            print("MAIN structs: %s" % main[OcamlProvider].structs)
+            print("MAIN archives: %s" % main[OcamlProvider].archives)
+            print("MAIN xmos: %s" % main[OcamlProvider].xmos)
+
         if CcInfo in main: # [0]:
             # print("CcInfo main: %s" % main[0][CcInfo])
             ccInfo_list.append(main[CcInfo]) # [0][CcInfo])
@@ -236,7 +243,11 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             if hasattr(main[OcamlProvider], "archive_manifests"):
                 manifest_list.append(main[OcamlProvider].archive_manifests)
 
-        direct_inputs_depsets.append(main[OcamlProvider].ldeps) # inputs)
+        sigs_depsets.append(main[OcamlProvider].sigs)
+        structs_depsets.append(main[OcamlProvider].structs)
+        structs_depsets.append(main[DefaultInfo].files)
+
+        # direct_inputs_depsets.append(main[OcamlProvider].ldeps) # inputs)
         direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
         direct_paths_depsets.append(main[OcamlProvider].paths)
 
@@ -259,33 +270,42 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     # args.add_all(paths_depset.to_list(), before_each="-I")
     includes.extend(paths_depset.to_list())
 
-    linkargs_depset = depset(
-        transitive = direct_linkargs_depsets
-    )
-    direct_inputs_depset = depset(
-        transitive = direct_inputs_depsets
-    )
+    # linkargs_depset = depset(
+    #     transitive = direct_linkargs_depsets
+    # )
+    # direct_inputs_depset = depset(
+    #     transitive = direct_inputs_depsets
+    # )
 
     # args.add("external/ounit2/oUnit2.cmx")
 
     ## Archives containing deps needed by direct deps or main must be
     ## on cmd line.  FIXME: how to include only those actually needed?
 
-    for dep in linkargs_depset.to_list():
-        print("LINKARG: %s" % dep)
-        if dep not in archive_filter_list:
-            includes.append(dep.dirname)
-        # if mode == "native":
-        #     if dep.extension in ["cmx", "cmxa"]:
-        #         args.add(dep)
-        # elif mode == "bytecode":
-        #     if dep.extension in ["cmo", "cma"]:
-        #         args.add(dep)
-        print("STRUCTEXT: %s" % struct_extensions);
-        print("DEP.EXT: %s" % dep.extension)
-        if dep.extension in struct_extensions:
-            print("ADDING: %s" % dep)
-            args.add(dep)
+    # for dep in linkargs_depset.to_list():
+    #     print("LINKARG: %s" % dep)
+    #     if dep not in archive_filter_list:
+    #         includes.append(dep.dirname)
+    #     # if mode == "native":
+    #     #     if dep.extension in ["cmx", "cmxa"]:
+    #     #         args.add(dep)
+    #     # elif mode == "bytecode":
+    #     #     if dep.extension in ["cmo", "cma"]:
+    #     #         args.add(dep)
+    #     print("STRUCTEXT: %s" % struct_extensions);
+    #     print("DEP.EXT: %s" % dep.extension)
+    #     if dep.extension in struct_extensions:
+    #         print("ADDING: %s" % dep)
+    #         args.add(dep)
+
+    structs_depset = depset(order="postorder", transitive = structs_depsets)
+    print("structs_depset: %s" % structs_depset)
+    for larg in structs_depset.to_list():
+        if larg.extension in struct_extensions:
+            # archives.append(larg)
+            print("ADDING LDEP: %s" % larg)
+            args.add(larg.path)
+            includes.append(larg.dirname)
 
     ### ctx.files.deps added above;
     ### FIXME: verify logic
@@ -296,8 +316,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #     args.add(dep)
 
     ## 'main' dep must come last on cmd line
-    if ctx.file.main:
-        args.add(ctx.file.main)
+    # if ctx.file.main:
+    #     args.add(ctx.file.main)
 
     if mode == "bytecode":
         stublibs = tc.stublibs
@@ -336,10 +356,11 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #     stublibs = []
 
     inputs_depset = depset(
-        direct = stublibs, # [],
-        transitive = [direct_inputs_depset] + data_inputs
+        direct = stublibs + [ctx.file.main], # [],
+        transitive = data_inputs
         + [depset(action_inputs_ccdep_filelist)]
         + [depset(transitive=ppx_codep_ldeps)]
+        + [structs_depset]
         # + stublibs
     )
     if debug_ppx:
@@ -444,8 +465,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             ppx_codeps = ppx_codeps_depset,
             paths = ppx_codeps_paths_depset,
             linkset = ppx_codeps_linkset,
-            cdeps   = ppx_codep_cdeps,
-            ldeps   = ppx_codep_ldeps,
+            sigs   = ppx_codep_cdeps,
+            structs   = ppx_codep_ldeps,
         )
         providers.append(ppxCodepsProvider)
 

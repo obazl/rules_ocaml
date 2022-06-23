@@ -1,5 +1,4 @@
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider")
 
@@ -21,18 +20,7 @@ def _ocaml_module(ctx):
     print("TC: %s" % tc.name)
     print("COMPILER: %s" % tc.compiler)
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # if mode == "native":
-    #     tool = tc.ocamlopt # .basename
-    # else:
-    #     tool = tc.ocamlc  #.basename
-
-    tool = tc.compiler
-
-    tool_args = []
-
-    return impl_module(ctx, tc.emitting, tool, tool_args)
+    return impl_module(ctx, tc.emitting, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")

@@ -7,7 +7,6 @@ load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 load("//ocaml:providers.bzl",
      "OcamlProvider",
 
-     "CompilationModeSettingProvider",
      "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
@@ -156,9 +155,9 @@ ocaml_ns_signature = rule(
             doc = "For use with ns_module only. Creates a symlink from the extracted cmi file."
         ),
 
-        _mode       = attr.label(
-            default = "@rules_ocaml//build/mode",
-        ),
+        # _mode       = attr.label(
+        #     default = "@rules_ocaml//build/mode",
+        # ),
         _rule = attr.string( default = "ocaml_ns_signature" ),
         # _sdkpath = attr.label(
         #     default = Label("@rules_ocaml//cfg:sdkpath")

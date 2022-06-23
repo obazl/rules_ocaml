@@ -1,9 +1,5 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
-
-# load("//ocaml/_functions:utils.bzl", "get_sdkpath")
-
 ########## RULE:  OCAML_INTERFACE  ################
 def _ocaml_yacc_impl(ctx):
 

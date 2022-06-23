@@ -1,7 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlProvider",
      "OcamlNsResolverProvider",
 
@@ -30,14 +29,6 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     #     debug = True #False
 
     # env = {"PATH": get_sdkpath(ctx)}
-
-    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # if mode == "native":
-    #     tool = tc.ocamlopt # .basename
-    # else:
-    #     tool = tc.ocamlc # .basename
-    # tool_args = []
 
     # ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
 

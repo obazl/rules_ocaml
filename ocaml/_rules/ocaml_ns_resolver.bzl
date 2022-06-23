@@ -1,7 +1,6 @@
 load(":options.bzl", "options", "options_ns_resolver")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlNsResolverProvider",
      "OcamlProvider")
 
@@ -12,16 +11,7 @@ def _ocaml_ns_resolver(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    if mode == "native":
-        tool = tc.ocamlopt # .basename
-    else:
-        tool = tc.ocamlc  # .basename
-
-    tool_args = []
-
-    return impl_ns_resolver(ctx, mode, tool, tool_args)
+    return impl_ns_resolver(ctx, tc.emitting, tc.compiler, [])
 
 ###############################
 rule_options = options("ocaml")

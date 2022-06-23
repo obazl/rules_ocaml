@@ -1,5 +1,4 @@
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlProvider",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
@@ -24,16 +23,7 @@ def _ocaml_ns_library(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    if mode == "native":
-        tool = tc.ocamlopt # .basename
-    else:
-        tool = tc.ocamlc  #.basename
-
-    tool_args = []
-
-    return impl_library(ctx, mode, tool, tool_args)
+    return impl_library(ctx, tc.emitting, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")

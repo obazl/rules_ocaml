@@ -7,7 +7,6 @@ load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 load("//ocaml:providers.bzl",
      "OcamlProvider",
 
-     "CompilationModeSettingProvider",
      "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
@@ -65,19 +64,7 @@ def _ocaml_signature_impl(ctx):
         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
         print("SIG %s" % ctx.label)
 
-    # env = {"PATH": get_sdkpath(ctx)}
-
-    # if ctx.attr.ns_submodule:
-    #     return _extract_cmi(ctx)
-
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-
-    if mode == "native":
-        exe = tc.ocamlopt # .basename
-    else:
-        exe = tc.ocamlc # .basename
 
     ################
     indirect_adjunct_depsets      = []
@@ -308,14 +295,14 @@ def _ocaml_signature_impl(ctx):
     ################
     ctx.actions.run(
         # env = env,
-        executable = exe,
+        executable = tc.compiler,
         arguments = [args],
         inputs = inputs_depset,
         outputs = [out_cmi],
         tools = [tc.ocamlopt],
         mnemonic = "CompileOcamlSignature",
         progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}".format(
-            mode = mode,
+            mode = tc.emitting,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name
@@ -351,6 +338,7 @@ def _ocaml_signature_impl(ctx):
         inputs   = new_inputs_depset,
         linkargs = linkargs_depset,
         paths    = paths_depset,
+
     )
 
     providers = [

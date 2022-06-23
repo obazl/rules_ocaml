@@ -1,8 +1,5 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",)
-
 # load("//ocaml/_functions:utils.bzl",
 #      "get_sdkpath",
 # )
@@ -19,8 +16,6 @@ def _ocaml_lex_impl(ctx):
   if debug:
       print("OCAML LEX TARGET: %s" % ctx.label.name)
 
-  mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
   tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
   # env = {"PATH": get_sdkpath(ctx)}
 
@@ -32,7 +27,7 @@ def _ocaml_lex_impl(ctx):
   #########################
   args = ctx.actions.args()
 
-  if mode == "native":
+  if tc.emitting == "native":
       args.add("-ml")
 
   args.add_all(ctx.attr.opts)
@@ -50,7 +45,7 @@ def _ocaml_lex_impl(ctx):
       tools = [tc.ocamllex],
       mnemonic = "OcamlLex",
       progress_message = "{mode} ocaml_lex: @{ws}//{pkg}:{tgt}".format(
-          mode = mode,
+          mode = tc.emitting,
           ws  = ctx.label.workspace_name,
           pkg = ctx.label.package,
           tgt=ctx.label.name
@@ -79,9 +74,9 @@ ocaml_lex = rule(
         opts = attr.string_list(
             doc = "Options"
         ),
-        _mode       = attr.label(
-            default = "@rules_ocaml//build/mode",
-        ),
+        # _mode       = attr.label(
+        #     default = "@rules_ocaml//build/mode",
+        # ),
         _rule = attr.string( default = "ocaml_lex" )
     ),
     # provides = [],

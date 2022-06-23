@@ -8,8 +8,13 @@ PpxCodepsProvider = provider(
         ## rename it or eliminate since archives alone insufficient?
         "linkset" : "file depset",
 
-        "cdeps": "compile deps",
-        "ldeps": "link deps"
+        "sigs":     "depset of .cmi files",
+        "structs":  "depset of .cmo or .cmx/.o files depending onn mode",
+        "archives": "depset of .cmxa or .cma files",
+        "xmos":     "depset of xmo-compile .cmx files contained in archives",
+
+        "cdeps": "compile deps",  # DEPRECATED
+        "ldeps": "link deps"      # DEPRECATED
     }
 )
 
@@ -18,14 +23,4 @@ PpxExecutableMarker = provider(doc = "Ppx Executable Marker provider.")
 # ################################################################
 
 # PpxInfo = provider(fields=["ppx", "cmo", "o", "cmx", "a", "cmxa"])
-
-################ Config Settings ################
-PpxCompilationModeSettingProvider = provider(
-    doc = "Raw value of ppx_mode_flag or setting",
-    fields = {
-        "value": "The value of the build setting in the current configuration. " +
-                 "This value may come from the command line or an upstream transition, " +
-                 "or else it will be the build setting's default.",
-    },
-)
 

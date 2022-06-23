@@ -5,30 +5,12 @@ load(":impl_executable.bzl", "impl_executable")
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 ## load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 
-load("//ocaml:providers.bzl", "CompilationModeSettingProvider")
-
 ###############################
 def _ocaml_executable(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # if mode == "native":
-    #     tool = tc.ocamlopt # .basename
-    # else:
-    #     tool = tc.ocamlc  #.basename
-
-    tool = tc.compiler
-
-    # if tc.native_mode:
-    #     mode = "native"
-    # else:
-    #     mode = "bytecode"
-
-    tool_args = []
-
-    return impl_executable(ctx, tc.emitting, tc, tool, tool_args)
+    return impl_executable(ctx, tc.emitting, tc, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")

@@ -49,14 +49,14 @@ def options(ws):
         _strict_sequence = attr.label(default = ws + "//cfg/strict-sequence"),
         _verbose         = attr.label(default = ws + "//cfg/verbose"),
 
-        _mode       = attr.label(
-            default = ws + "//build/mode",
-        ),
-        mode       = attr.string(
-            doc     = """
-Overrides default build mode setting, `native` or `bytecode`. The default is set by `@rules_ocaml//build/mode`, which defaults to `native`.
-            """,
-        ),
+#         _mode       = attr.label(
+#             default = ws + "//build/mode",
+#         ),
+#         mode       = attr.string(
+#             doc     = """
+# Overrides default build mode setting, `native` or `bytecode`. The default is set by `@rules_ocaml//build/mode`, which defaults to `native`.
+#             """,
+#         ),
 
         argsfile       = attr.label(
             doc = """
@@ -156,9 +156,9 @@ def options_executable(ws):
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
-        mode = attr.label(
-            default = ws + "//build/mode"
-        ),
+        # mode = attr.label(
+        #     default = ws + "//build/mode"
+        # ),
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
@@ -459,9 +459,9 @@ def options_ns_archive(ws):
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
 
-        _mode = attr.label(
-            default = ws + "//build/mode"
-        ),
+        # _mode = attr.label(
+        #     default = ws + "//build/mode"
+        # ),
         # _projroot = attr.label(
         #     default = "@rules_ocaml//cfg:projroot"
         # )

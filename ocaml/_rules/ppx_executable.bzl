@@ -1,5 +1,4 @@
 load("//ocaml:providers.bzl",
-	"CompilationModeSettingProvider",
      "OcamlModuleMarker")
 
 load("//ppx:providers.bzl",
@@ -18,18 +17,8 @@ load(":impl_executable.bzl", "impl_executable")
 def _ppx_executable(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-    tool = tc.compiler
 
-    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # if mode == "native":
-    #     tool = tc.ocamlopt # .basename
-    # else:
-    #     tool = tc.ocamlc  #.basename
-
-    tool_args = []
-
-    return impl_executable(ctx, tc.emitting, tc, tool, tool_args)
+    return impl_executable(ctx, tc.emitting, tc, tc.compiler, [])
 
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(

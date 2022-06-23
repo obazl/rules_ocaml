@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
 
      "OcamlProvider",
      "OcamlNsResolverProvider",
@@ -36,10 +35,6 @@ def impl_library(ctx, mode, tool, tool_args):
     # print("**** NS_LIB {} ****************".format(ctx.label))
 
     # env = {"PATH": get_sdkpath(ctx)}
-
-    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-
-    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
 
     ns_resolver_depset = None
     ns_resolver_module = None
@@ -207,8 +202,8 @@ def impl_library(ctx, mode, tool, tool_args):
 
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
-            cdeps_depsets.append(dep[OcamlProvider].cdeps)
-            ldeps_depsets.append(dep[OcamlProvider].ldeps)
+            cdeps_depsets.append(dep[OcamlProvider].sigs)
+            ldeps_depsets.append(dep[OcamlProvider].structs)
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 

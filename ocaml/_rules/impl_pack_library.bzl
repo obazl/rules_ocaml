@@ -3,7 +3,6 @@ load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
@@ -195,9 +194,9 @@ def impl_pack_library(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
+    mode = tc.emitting
 
-    ext  = ".cmx" if  mode == "native" else ".cmo"
+    ext  = ".cmx" if  tc.emitting == "native" else ".cmo"
 
     ################
     merged_module_links_depsets = []

@@ -1,7 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlModuleMarker",
      "OcamlProvider",
      "OcamlNsResolverProvider",
@@ -67,15 +66,6 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
                                 OcamlNsResolverProvider()]
 
     # env = {"PATH": get_sdkpath(ctx)}
-
-    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-
-    # mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    # if mode == "native":
-    #     exe = tc.ocamlopt.basename
-    # else:
-    #     exe = tc.ocamlc.basename
 
     ################
     default_outputs = [] ## .cmx only

@@ -15,6 +15,14 @@
 OcamlProvider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
     fields = {
+
+        "sigs":     "depset of .cmi files",
+        "structs":  "depset of .cmo or .cmx/.o files depending onn mode",
+        "archives": "depset of .cmxa or .cma files",
+        "xmos":     "depset of xmo-compile .cmx files contained in archives",
+
+        ## everything below is DEPRECATED
+
         "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
 
         "cmi" : "Cmi files provided",
@@ -25,11 +33,13 @@ OcamlProvider = provider(
         "inputs"             : "file depset",
         "cdeps"              : "file depset of compile deps",
         "ldeps"              : "file depset of link deps",
+        "ldeps_n"            : "file depset of native link deps",
+        "ldeps_bc"           : "file depset of bytecode link deps",
         "linkargs"           : "file depset",
         "paths"             : "string depset",
 
         "files"             : "DEPRECATED",
-        "archives"          : "file depset",
+        # "archives"          : "file depset",
         "archive_deps"       : "file depset of archive deps",
         "ppx_codeps"      : "file depset",
         "ppx_codep_paths" : "string depset",

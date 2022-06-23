@@ -1,5 +1,4 @@
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlProvider",
      "OcamlArchiveMarker",
      "OcamlImportMarker",
@@ -20,16 +19,9 @@ def _ocaml_archive(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = ctx.attr._mode[CompilationModeSettingProvider].value
-
-    if mode == "native":
-        tool = tc.ocamlopt # .basename
-    else:
-        tool = tc.ocamlc  #.basename
-
     tool_args = []
 
-    return impl_archive(ctx, mode, tc.linkmode, tool, tool_args)
+    return impl_archive(ctx, tc.emitting, tc.linkmode, tc.compiler, tool_args)
 
 #####################
 ocaml_archive = rule(
@@ -87,9 +79,9 @@ ocaml_archive = rule(
             doc     = "Override platform-dependent link mode (static or dynamic). Configurable default is platform-dependent: static on Linux, dynamic on MacOS.",
             # default is os-dependent, but settable to static or dynamic
         ),
-        _mode = attr.label(
-            default = "@rules_ocaml//build/mode"
-        ),
+        # _mode = attr.label(
+        #     default = "@rules_ocaml//build/mode"
+        # ),
         # _projroot = attr.label(
         #     default = "@rules_ocaml//cfg:projroot"
         # ),

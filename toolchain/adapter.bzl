@@ -3,7 +3,6 @@ load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAM
 
 
 load("//ocaml:providers.bzl",
-     "CompilationModeSettingProvider",
      "OcamlArchiveMarker",
      "OcamlExecutableMarker",
      "OcamlImportMarker")
@@ -69,7 +68,6 @@ def _ocaml_toolchain_adapter_impl(ctx):
     #         actual = ctx.attr.mode
     #     )
     #          )
-    # mode = ctx.attr.mode[CompilationModeSettingProvider].value
 
     return [platform_common.ToolchainInfo(
         # testingn
