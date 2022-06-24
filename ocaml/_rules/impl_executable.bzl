@@ -127,6 +127,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
 
     ################################################################
+                   ####    DEPENDENCIES    ####
+    ################################################################
     # main_deps_list = []
     paths_direct   = []
     paths_indirect = []
@@ -145,9 +147,26 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
     ccInfo_list = []
 
-    sigs_depsets = []
-    structs_depsets = []
+    # sigs_depsets = []
+    # structs_depsets = []
+    # direct file deps of this target
+    sigs_direct             = []
+    structs_direct          = []
+    ofiles_direct           = []
+    archives_direct         = []
+    arfiles_direct           = []
+    arstructs_direct        = []
 
+    # depsets from 'deps' attribute:
+    sigs_indirect           = []
+    structs_indirect        = []
+    ofiles_indirect         = []
+    archives_indirect       = []
+    arfiles_indirect        = []
+    arstructs_indirect      = []
+
+    ################ INDIRECT DEPENDENCIES ################
+    if debug: print("iterating deps")
     for dep in ctx.attr.deps:
         if debug:
             print("DEP: %s" % dep)
@@ -161,9 +180,13 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             ccInfo_list.append(dep[CcInfo])
 
         if OcamlProvider in dep:
-            sigs_depsets.append(dep[OcamlProvider].sigs)
-            structs_depsets.append(dep[OcamlProvider].structs)
-            structs_depsets.append(dep[DefaultInfo].files)
+            sigs_indirect.append(dep[OcamlProvider].sigs)
+            structs_indirect.append(dep[OcamlProvider].structs)
+            ofiles_indirect.append(dep[OcamlProvider].ofiles)
+            archives_indirect.append(dep[OcamlProvider].archives)
+            arfiles_indirect.append(dep[OcamlProvider].arfiles)
+            arstructs_indirect.append(dep[OcamlProvider].arstructs)
+            # structs_depsets.append(dep[DefaultInfo].files)
 
             # direct_inputs_depsets.append(dep[OcamlProvider].ldeps) # inputs)
             direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
@@ -190,6 +213,22 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
                 if ppxcdp.ldeps:
                     ppx_codep_ldeps.append(ppxcdp.ldeps)
 
+    if debug:
+        print("finished deps iteration")
+        print("sigs_direct: %s" % sigs_direct)
+        print("sigs_indirect: %s" % sigs_indirect)
+        print("structs_direct: %s" % structs_direct)
+        print("structs_indirect: %s" % structs_indirect)
+        print("ofiles_direct: %s" % ofiles_direct)
+        print("ofiles_indirect: %s" % ofiles_indirect)
+        ## archives cannot be direct deps
+        print("archives_direct: %s" % archives_direct)
+        print("archives_indirect: %s" % archives_indirect)
+        print("arfiles_direct: %s" % arfiles_direct)
+        print("arfiles_indirect: %s" % arfiles_indirect)
+        print("arstructs_direct: %s" % arstructs_direct)
+        print("arstructs_indirect: %s" % arstructs_indirect)
+
     action_inputs_ccdep_filelist = []
     manifest_list = []
 
@@ -215,16 +254,9 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
     ################################################################
     #### MAIN ####
+    if debug: print("processinng 'main' attribute")
     if ctx.attr.main:
         main = ctx.attr.main
-
-        if debug:
-            print("MAIN: %s" % main)
-            print("MAIN default files: %s" % main[DefaultInfo].files)
-            print("MAIN sigs: %s" % main[OcamlProvider].sigs)
-            print("MAIN structs: %s" % main[OcamlProvider].structs)
-            print("MAIN archives: %s" % main[OcamlProvider].archives)
-            print("MAIN xmos: %s" % main[OcamlProvider].xmos)
 
         if CcInfo in main: # [0]:
             # print("CcInfo main: %s" % main[0][CcInfo])
@@ -243,12 +275,16 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             if hasattr(main[OcamlProvider], "archive_manifests"):
                 manifest_list.append(main[OcamlProvider].archive_manifests)
 
-        sigs_depsets.append(main[OcamlProvider].sigs)
-        structs_depsets.append(main[OcamlProvider].structs)
-        structs_depsets.append(main[DefaultInfo].files)
+        sigs_indirect.append(main[OcamlProvider].sigs)
+        structs_indirect.append(main[OcamlProvider].structs)
+        ofiles_indirect.append(main[OcamlProvider].ofiles)
+        archives_indirect.append(main[OcamlProvider].archives)
+        arfiles_indirect.append(main[OcamlProvider].arfiles)
+        arstructs_indirect.append(main[OcamlProvider].arstructs)
+        # structs_depsets.append(main[DefaultInfo].files)
 
         # direct_inputs_depsets.append(main[OcamlProvider].ldeps) # inputs)
-        direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
+        # direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
         direct_paths_depsets.append(main[OcamlProvider].paths)
 
         # direct_linkargs_depsets.append(main[DefaultInfo].files)
@@ -256,6 +292,22 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         paths_indirect.append(main[OcamlProvider].paths)
 
     ## end ctx.attr.main handling
+    if debug:
+        print("finished 'main' handling")
+        print("sigs_direct: %s" % sigs_direct)
+        print("sigs_indirect: %s" % sigs_indirect)
+        print("structs_direct: %s" % structs_direct)
+        print("structs_indirect: %s" % structs_indirect)
+        print("ofiles_direct: %s" % ofiles_direct)
+        print("ofiles_indirect: %s" % ofiles_indirect)
+        ## archives cannot be direct deps
+        print("archives_direct: %s" % archives_direct)
+        print("archives_indirect: %s" % archives_indirect)
+        print("arfiles_direct: %s" % arfiles_direct)
+        print("arfiles_indirect: %s" % arfiles_indirect)
+        print("arstructs_direct: %s" % arstructs_direct)
+        print("arstructs_indirect: %s" % arstructs_indirect)
+
 
     merged_manifests = depset(transitive = manifest_list)
     archive_filter_list = merged_manifests.to_list()
@@ -298,14 +350,41 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #         print("ADDING: %s" % dep)
     #         args.add(dep)
 
-    structs_depset = depset(order="postorder", transitive = structs_depsets)
-    print("structs_depset: %s" % structs_depset)
-    for larg in structs_depset.to_list():
-        if larg.extension in struct_extensions:
-            # archives.append(larg)
-            print("ADDING LDEP: %s" % larg)
-            args.add(larg.path)
-            includes.append(larg.dirname)
+    print("ARCHIVES_DIRECT: %s" % archives_direct)
+    print("ARCHIVES_INDIRECT: %s" % archives_indirect)
+
+    arstructs_depset = depset(order=dsorder,
+                            direct=arstructs_direct,
+                            transitive=arstructs_indirect)
+
+    # for struct in arstructs_depset.to_list():
+    #     print("ADDING ARSTRUCT %s" % struct)
+    #     args.add(struct)
+
+    archives_depset = depset(order=dsorder,
+                             direct=archives_direct,
+                             transitive=archives_indirect)
+
+    for archive in archives_depset.to_list():
+        print("ADDING ARCHIVE %s" % archive)
+        args.add(archive)
+
+    structs_depset = depset(order=dsorder,
+                            direct=structs_direct,
+                            transitive=structs_indirect)
+
+    for struct in structs_depset.to_list():
+        print("ADDING STRUCT %s" % struct)
+        args.add(struct)
+
+    # structs_depset = depset(order="postorder", transitive = structs_depsets)
+    # print("structs_depset: %s" % structs_depset)
+    # for larg in structs_depset.to_list():
+    #     if larg.extension in struct_extensions:
+    #         # archives.append(larg)
+    #         print("ADDING LDEP: %s" % larg)
+    #         args.add(larg.path)
+    #         includes.append(larg.dirname)
 
     ### ctx.files.deps added above;
     ### FIXME: verify logic
@@ -355,17 +434,36 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     # else:
     #     stublibs = []
 
-    inputs_depset = depset(
-        direct = stublibs + [ctx.file.main], # [],
-        transitive = data_inputs
-        + [depset(action_inputs_ccdep_filelist)]
-        + [depset(transitive=ppx_codep_ldeps)]
-        + [structs_depset]
+    print("MAINMAIN: %s" % ctx.attr.main)
+    print("arstructs_direct: %s" % arstructs_direct)
+    action_inputs_depset = depset(
+        order=dsorder,
+        direct = stublibs
+        + arfiles_direct
+        + arstructs_direct
+        + archives_direct
+        + structs_direct
+        + ofiles_direct
+        + sigs_direct
+        ,
+        transitive =
+        [depset(direct = [ctx.file.main])]
+        # data_inputs
+        + arfiles_indirect
+        + arstructs_indirect
+        + archives_indirect
+        + structs_indirect
+        + ofiles_indirect
+        + sigs_indirect
+
+        # + [depset(action_inputs_ccdep_filelist)]
+        # + [depset(transitive=ppx_codep_ldeps)]
+        # + [structs_depset]
         # + stublibs
     )
-    if debug_ppx:
-        for dep in inputs_depset.to_list():
-            print("IDEP: %s" % dep.path)
+    # if debug:
+    #     for dep in action_inputs_depset.to_list():
+    #         print("IDEP: %s" % dep)
 
     if ctx.attr._rule == "ocaml_executable":
         mnemonic = "CompileOcamlExecutable"
@@ -382,7 +480,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
       # env = env,
       executable = tool,
       arguments = [args],
-      inputs = inputs_depset,
+      inputs = action_inputs_depset,
       outputs = [out_exe],
       tools = [tool] + tool_args,  # [tc.ocamlopt],
       mnemonic = mnemonic,
@@ -473,7 +571,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         outputGroupInfo = OutputGroupInfo(
             ppx_codeps = ppx_codeps_depset,
             linkset = ppx_codeps_linkset,
-            inputs = inputs_depset,
+            inputs = action_inputs_depset,
             all = depset(transitive=[
                 ppx_codeps_depset,
             ])

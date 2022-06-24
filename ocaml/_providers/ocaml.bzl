@@ -16,10 +16,12 @@ OcamlProvider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
     fields = {
 
-        "sigs":     "depset of .cmi files",
-        "structs":  "depset of .cmo or .cmx/.o files depending onn mode",
-        "archives": "depset of .cmxa or .cma files",
-        "xmos":     "depset of xmo-compile .cmx files contained in archives",
+        "sigs":      "depset of .cmi files",
+        "structs":   "depset of .cmo or .cmx/.o files depending onn mode",
+        "ofiles":    "depset of the .o files that go with .cmx files",
+        "archives":  "depset of .cmxa or .cma files",
+        "arfiles":   "depset of the .a files that go with .cmxa files",
+        "arstructs": "depset of archived structs, added to link depgraph but not command line",
 
         ## everything below is DEPRECATED
 

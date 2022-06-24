@@ -116,10 +116,25 @@ def impl_library(ctx, mode, tool, tool_args):
     ################
     ## FIXME: does lib need to handle ppx_codeps? they're carried by
     ## modules
-    cdeps_depsets = []
-    ldeps_depsets = []
+    # cdeps_depsets = []
+    # ldeps_depsets = []
     indirect_adjunct_depsets      = []
     indirect_adjunct_path_depsets = []
+
+    #### INDIRECT DEPS first ####
+    # these are "indirect" from the perspective of the consumer
+    sigs_direct   = []
+    sigs_indirect = []
+    structs_direct   = []
+    structs_indirect = []
+    ofiles_direct   = [] # never? ofiles only come from deps
+    ofiles_indirect = []
+    arstructs_direct = []
+    arstructs_indirect = []
+    arfiles_direct   = []
+    arfiles_indirect = []
+    archives_direct = []
+    archives_indirect = []
 
     ################
     paths_direct   = []
@@ -156,8 +171,8 @@ def impl_library(ctx, mode, tool, tool_args):
 
     #### INDIRECT DEPS first ####
     # these are "indirect" from the perspective of the consumer
-    cdeps_depsets = []
-    ldeps_depsets = []
+    # cdeps_depsets = []
+    # ldeps_depsets = []
     indirect_fileset_depsets = []
     indirect_inputs_depsets = []
     indirect_linkargs_depsets = []
@@ -191,7 +206,7 @@ def impl_library(ctx, mode, tool, tool_args):
             # (sub)modules from linkargs.
 
             # if linkarg not in direct_module_deps_files:
-            indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+            # indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
 
             # if ctx.label.name == "tezos-base":
             #     print("LIBDEP LINKARGS: %s" % dep[OcamlProvider].linkargs)
@@ -199,11 +214,18 @@ def impl_library(ctx, mode, tool, tool_args):
 
             ## inputs == all deps
             indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
-
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
-            cdeps_depsets.append(dep[OcamlProvider].sigs)
-            ldeps_depsets.append(dep[OcamlProvider].structs)
+            # cdeps_depsets.append(dep[OcamlProvider].sigs)
+            # ldeps_depsets.append(dep[OcamlProvider].structs)
+
+            sigs_indirect.append(dep[OcamlProvider].sigs)
+            structs_indirect.append(dep[OcamlProvider].structs)
+            ofiles_indirect.append(dep[OcamlProvider].ofiles)
+            archives_indirect.append(dep[OcamlProvider].archives)
+            arfiles_indirect.append(dep[OcamlProvider].arfiles)
+            arstructs_indirect.append(dep[OcamlProvider].arstructs)
+
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
@@ -314,15 +336,30 @@ def impl_library(ctx, mode, tool, tool_args):
             transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
     )
 
-    cdeps_depset = depset(
-        order = dsorder,
-        transitive = cdeps_depsets
-    )
+    # cdeps_depset = depset(
+    #     order = dsorder,
+    #     transitive = cdeps_depsets
+    # )
 
-    ldeps_depset = depset(
-        order = dsorder,
-        transitive = ldeps_depsets
-    )
+    # ldeps_depset = depset(
+    #     order = dsorder,
+    #     transitive = ldeps_depsets
+    # )
+
+    sigs_depset = depset(order=dsorder,
+                         direct=sigs_direct,
+                         transitive=sigs_indirect)
+    structs_depset = depset(order=dsorder,
+                            direct=structs_direct,
+                            transitive=structs_indirect)
+
+    archives_depset = depset(order="postorder",
+                             direct = archives_direct,
+                             transitive = archives_indirect)
+
+    arstructs_depset = depset(order="postorder",
+                         direct = arstructs_direct,
+                         transitive = arstructs_indirect)
 
     # print("new_linkargs: %s" % new_linkargs)
     ocamlProvider = OcamlProvider(
@@ -330,8 +367,19 @@ def impl_library(ctx, mode, tool, tool_args):
         fileset = fileset_depset,
         inputs   = new_inputs_depset,
         linkargs = linkargs_depset,
-        cdeps    = cdeps_depset,
-        ldeps    = ldeps_depset,
+        # cdeps    = cdeps_depset,
+        # ldeps    = ldeps_depset,
+        sigs     = sigs_depset,
+        structs  = structs_depset,
+        ofiles   = depset(order=dsorder,
+                          direct=ofiles_direct,
+                          transitive=ofiles_indirect),
+        archives = archives_depset,
+        arfiles   = depset(order=dsorder,
+                           direct=arfiles_direct,
+                           transitive=arfiles_indirect),
+        arstructs= arstructs_depset,
+
         paths    = paths_depset,
         ns_resolver = ns_resolver,
     )
@@ -340,8 +388,20 @@ def impl_library(ctx, mode, tool, tool_args):
     outputGroupInfo = OutputGroupInfo(
         resolver   = ns_resolver_files,
         fileset    = fileset_depset,
-        cdeps      = cdeps_depset,
-        ldeps      = ldeps_depset,
+        # cdeps      = cdeps_depset,
+        # ldeps      = ldeps_depset,
+        sigs     = sigs_depset,
+        structs  = depset(order=dsorder,
+                          direct=structs_direct,
+                          transitive=structs_indirect),
+        ofiles   = depset(order=dsorder,
+                          direct=ofiles_direct,
+                          transitive=ofiles_indirect),
+        archives = archives_depset,
+        arfiles   = depset(order=dsorder,
+                           direct=arfiles_direct,
+                           transitive=arfiles_indirect),
+        arstructs= arstructs_depset,
         ppx_codeps = ppx_codeps_depset,
         # cc = ... extract from CcInfo?
         all = depset(

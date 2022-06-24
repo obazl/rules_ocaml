@@ -99,6 +99,7 @@ ppx_executable = rule(
         # ),
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
+            mandatory = False
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
         cc_deps = attr.label_keyed_string_dict(

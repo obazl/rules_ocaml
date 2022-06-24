@@ -16,24 +16,36 @@ def _handle_deps_new(ctx, tc):
     print("_handle_deps_new, mode: %s" % tc.emitting)
 
     sig_list     = [] # .cmi
-    struct_list  = [] # .cma or .cmx, .o
-    archive_list = [] # .cma or .cmxa, .a
-    xmo_list     = [] # cmxa files usually accompanied by cmx files
+    struct_list  = [] # .cmo or .cmx
+    ofiles_list  = [] # .o
+    archive_list = [] # .cma or .cmxa
+    arfiles_list = [] # .a
+    arstruct_list= [] # structs included in archive
     cmt_list     = [] # .cmt and .cmti
 
     sig_list.extend(ctx.files.cmi)
 
     if tc.emitting == "native":
-        struct_list.extend(ctx.files.cmx)   # includes .o
-        archive_list.extend(ctx.files.cmxa) # includes .a
+        archive_list.extend(ctx.files.cmxa)
+        if (len(ctx.files.cmxa) > 0):
+            arstruct_list.extend(ctx.files.cmx)
+        else:
+            struct_list.extend(ctx.files.cmx)
+        ofiles_list.extend(ctx.files.ofiles)
+        arfiles_list.extend(ctx.files.arfiles)
     else:
-        struct_list.extend(ctx.files.cmo)
         archive_list.extend(ctx.files.cma)
+        if (len(ctx.files.cmxa) > 0):
+            arstruct_list.extend(ctx.files.cmo)
+        else:
+            struct_list.extend(ctx.files.cmo)
 
     cmt_list.extend(ctx.files.cmti)
     cmt_list.extend(ctx.files.cmt)
 
-    return (sig_list, struct_list, archive_list, xmo_list, cmt_list)
+    return (sig_list, struct_list, ofiles_list,
+            archive_list, arfiles_list, arstruct_list,
+            cmt_list)
 
 ## cases: any of the attrs (corresponding to META "variables") may
 ## occur alone. in particular 'deps', e.g. pkg camlzip. in some cases
@@ -56,10 +68,8 @@ def _ocaml_import_impl(ctx):
     else:
         struct_extensions = ["cma", "cmo"]
 
-    (sig_list,
-     struct_list,
-     archive_list,
-     xmo_list,
+    (sig_list, struct_list, ofiles_list,
+     archive_list, arfiles_list, arstruct_list,
      cmt_list) = _handle_deps_new(ctx, tc)
 
     dep_depsets = []
@@ -95,34 +105,40 @@ def _ocaml_import_impl(ctx):
     # direct file deps of this target
     sigs_direct             = []
     structs_direct          = []
+    ofiles_direct           = []  # .o files
     archives_direct         = []
-    xmos_direct             = []
+    arfiles_direct          = []  # .a files
+    arstructs_direct        = []
 
     # depsets from 'deps' attribute:
     sigs_indirect           = []
     structs_indirect        = []
+    ofiles_indirect           = []  # .o files
     archives_indirect       = []
-    xmos_indirect           = []
+    arfiles_indirect          = []  # .a files
+    arstructs_indirect      = []
 
     ## for ppx_codeps. these must be carried separately until
     ## they are used (injected) by a ppx_executable.
     codep_sigs_direct       = []
     codep_structs_direct    = []
     codep_archives_direct   = []
-    codep_xmos_direct       = []
+    codep_arstructs_direct       = []
 
     codep_sigs_indirect     = []
     codep_structs_indirect  = []
     codep_archives_indirect = []
-    codep_xmos_indirect     = []
+    codep_arstructs_indirect     = []
 
     for dep in ctx.attr.deps:
         if OcamlProvider in dep:
             odep = dep[OcamlProvider]
             sigs_indirect.append(odep.sigs)
             structs_indirect.append(odep.structs)
+            ofiles_indirect.append(odep.ofiles)
             archives_indirect.append(odep.archives)
-            xmos_indirect.append(odep.xmos)
+            arfiles_indirect.append(odep.arfiles)
+            arstructs_indirect.append(odep.arstructs)
 
             ## legacy:
 
@@ -140,7 +156,7 @@ def _ocaml_import_impl(ctx):
             codep_sigs_indirect.append(codep.sigs)
             codep_structs_indirect.append(codep.structs)
             codep_archives_indirect.append(codep.archives)
-            codep_xmos_indirect.append(codep.xmos)
+            codep_arstructs_indirect.append(codep.arstructs)
 
             if hasattr(codep, "ppx_codeps"):
                 if codep.ppx_codeps:
@@ -256,7 +272,7 @@ def _ocaml_import_impl(ctx):
             codep_sigs_direct.extend(codep.sigs)
             codep_structs_direct.extend(codep.structs)
             codep_archives_direct.extend(codep.archives)
-            codep_xmos_direct.extend(codep.xmos)
+            codep_arstructs_direct.extend(codep.arstructs)
 
             if hasattr(codep, "ppx_codeps"):
                 has_ppx_codeps = True
@@ -273,7 +289,7 @@ def _ocaml_import_impl(ctx):
             codep_sigs_direct.extend(codep.sigs)
             codep_structs_direct.extend(codep.structs)
             codep_archives_direct.extend(codep.archives)
-            codep_xmos_direct.extend(codep.xmos)
+            codep_arstructs_direct.extend(codep.arstructs)
 
 
             # print("{t}: OcamlProvider in ppx_codep: {d}".format(
@@ -330,9 +346,9 @@ def _ocaml_import_impl(ctx):
             archives   = depset(order=dsorder,
                                 direct = codep_archives_direct,
                                 transitive = codep_archives_indirect),
-            xmos       = depset(order=dsorder,
-                                   direct = codep_xmos_direct,
-                                   transitive = codep_xmos_indirect)
+            arstructs       = depset(order=dsorder,
+                                   direct = codep_arstructs_direct,
+                                   transitive = codep_arstructs_indirect)
         )
         providers.append(ppxCodepsProvider)
 
@@ -360,15 +376,25 @@ def _ocaml_import_impl(ctx):
     )
 
     ################
+    print("IMPORT ar direct: %s" % archive_list)
+    print("IMPORT ar indirect: %s" % archives_indirect)
+    archive_depset = depset(order="postorder",
+                            direct=archive_list,
+                            transitive=archives_indirect)
+    print("IMPORT ar depset: %s" % archive_depset)
+
     _ocamlProvider = OcamlProvider(
         sigs    = depset(order="postorder",
                          direct=sig_list, transitive=sigs_indirect),
         structs = depset(order="postorder",
                          direct=struct_list, transitive=structs_indirect),
-        archives = depset(order="postorder",
-                         direct=archive_list, transitive=archives_indirect),
-        xmos = depset(order="postorder",
-                         direct=xmo_list, transitive=xmos_indirect),
+        ofiles = depset(order="postorder",
+                        direct=ofiles_list, transitive=ofiles_indirect),
+        archives = archive_depset,
+        arfiles = depset(order="postorder",
+                         direct=arfiles_list, transitive=arfiles_indirect),
+        arstructs = depset(order="postorder",
+                         direct=arstruct_list, transitive=arstructs_indirect),
         linkargs = linkargs_depset,
         paths    = paths_depset,
        # ppx_codeps = _ppx_codeps,
@@ -415,7 +441,15 @@ ocaml_import = rule(
         cmt  = attr.label_list(allow_files = True),
         cmo  = attr.label_list(allow_files = True),
         cmx  = attr.label_list(allow_files = True),
+        ofiles =  attr.label_list(
+            doc = "list of .o files that go with .cmx files",
+            allow_files = True
+        ),
         cmxa = attr.label_list(allow_files = True),
+        arfiles =  attr.label_list(
+            doc = "list of .a files that go with .cmxa files",
+            allow_files = True
+        ),
         cma  = attr.label_list(allow_files = True),
         cmxs = attr.label_list(allow_files = True),
         srcs = attr.label_list(allow_files = True),
