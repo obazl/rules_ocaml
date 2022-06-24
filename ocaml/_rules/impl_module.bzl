@@ -45,155 +45,135 @@ load(":impl_common.bzl",
 
 scope = tmpdir
 
+################
+def _handle_precompiled_sig(ctx, modname, ext):
+
+    debug = False
+
+    sigProvider = ctx.attr.sig[OcamlSignatureProvider]
+    # cmifile = sigProvider.cmi
+    # cmi_workfile = cmifile
+    # old_cmi = [cmifile]
+    # mlifile = sigProvider.mli
+    # mli_workfile = mlifile
+    opaque = sigProvider.opaque
+
+    if debug:
+        print("cmifile: %s" % sigProvider.cmi)
+        print("mlifile: %s" % sigProvider.mli)
+
+    ## we have three Bazel packages, which may be different:
+    ## target pkg: the pkg containing this ocaml_module target
+    ## sig pkg:    pkg containing the `sig` dep target
+    ## struct pkg: pkg containing the `struct` dep target
+
+    ## we need ensure all compile inputs are in <target>/__obazl
+
+    ## for cmi deps, only symlink sigfiles if sigfile dir
+    ## different than the target dir
+
+    tgt_short_path_dir = ctx.label.package
+    if paths.basename(tgt_short_path_dir) + "/" == scope:
+        tgt_pkgdir = paths.dirname(tgt_short_path_dir)
+    else:
+        tgt_pkgdir = tgt_short_path_dir
+
+    sig_short_path = sigProvider.mli.short_path
+    sig_short_path_dir = paths.dirname(sig_short_path)
+    if paths.basename(sig_short_path_dir) + "/" == scope:
+        sig_pkgdir = paths.dirname(sig_short_path_dir)
+    else:
+        sig_pkgdir = sig_short_path_dir
+
+    struct_short_path = ctx.file.struct.short_path
+    struct_short_path_dir = paths.dirname(struct_short_path)
+    if paths.basename(struct_short_path_dir) + "/" == scope:
+        struct_pkgdir = paths.dirname(struct_short_path_dir)
+    else:
+        struct_pkgdir = struct_short_path_dir
+
+    if debug:
+        print("tgt_pkgdir: %s" % tgt_pkgdir)
+        print("struct_pkgdir: %s" % struct_pkgdir)
+        print("sig_pkgdir: %s" % sig_pkgdir)
+
+    # if struct_pkgdir == sig_pkgdir:
+    if tgt_pkgdir == sig_pkgdir:
+        ## already in same dir
+        if debug: print("NOT SYMLINKING mli/cmi")
+        work_mli = sigProvider.mli
+        work_cmi = sigProvider.cmi
+    else:
+        if debug: print("SYMLINKING mli/cmi")
+        work_mli = ctx.actions.declare_file(
+            scope + sigProvider.mli.basename
+        )
+        ctx.actions.symlink(output = work_mli, target_file = sigProvider.mli)
+        work_cmi = ctx.actions.declare_file(
+            scope + sigProvider.cmi.basename
+        )
+        ctx.actions.symlink(output = work_cmi, target_file = sigProvider.cmi)
+
+    if ctx.attr.ppx:
+        if debug: print("ppx xforming:")
+        work_ml = impl_ppx_transform(
+            ctx.attr._rule, ctx,
+            ctx.file.struct, modname + ".ml"
+        )
+    else:
+        if debug: print("no ppx")
+        work_ml = ctx.actions.declare_file(
+            # scope + ctx.file.struct.basename
+            scope + modname + ".ml"
+        )
+        ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
+
+    work_struct = ctx.actions.declare_file(
+        scope + modname + ext
+    )
+    ## no symlink, cmox output by compile action
+
+    return(work_ml, work_struct,
+           work_mli, work_cmi,
+           opaque)
+
 ########################
-def _sig_make_work_symlinks(ctx, modname, mode):
+def _handle_source_sig(ctx, modname, ext):
     # we always link ml/mli/cmi under modname to workdir
     # so we return (work_ml, work_mli, work_cmi)
     # all are symlinked, to be listed as compile action inputs,
     # none as compile action outputs
 
     debug = False
-    if debug: print("_sig_make_work_symlinks")
-
-    ext  = ".cmx" if  mode == "native" else ".cmo"
+    if debug: print("_handle_source_sig")
 
     opaque = False
 
-    if OcamlSignatureProvider in ctx.attr.sig:
-        if debug:
-            print("sigattr is compiled .cmi")
-            print("ctx.attr.sig: %s" % ctx.attr.sig)
+    if debug: print("sigattr is src: %s" % ctx.file.sig)
 
-        sigProvider = ctx.attr.sig[OcamlSignatureProvider]
-        # cmifile = sigProvider.cmi
-        # cmi_workfile = cmifile
-        # old_cmi = [cmifile]
-        # mlifile = sigProvider.mli
-        # mli_workfile = mlifile
+    work_mli = ctx.actions.declare_file(
+        scope + modname + ".mli"
+    )
+    ctx.actions.symlink(output = work_mli, target_file = ctx.file.sig)
 
-        opaque = sigProvider.opaque
+    work_cmi = ctx.actions.declare_file(
+        scope + modname + ".cmi"
+    )
+    # no symlink, will be output of compile action
 
-        if debug:
-            print("cmifile: %s" % sigProvider.cmi)
-            print("mlifile: %s" % sigProvider.mli)
+    work_ml = ctx.actions.declare_file(
+        scope + modname + ".ml"
+    )
+    ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
 
-        ## we have three Bazel packages, which may be different:
-        ## target pkg: the pkg containing this ocaml_module target
-        ## sig pkg:    pkg containing the `sig` dep target
-        ## struct pkg: pkg containing the `struct` dep target
+    out_struct = ctx.actions.declare_file(
+        scope + modname + ext
+    )
+    ## no symlink, cmox output by compile action
 
-        ## we need ensure all compile inputs are in <target>/__obazl
-
-        ## for cmi deps, only symlink sigfiles if sigfile dir
-        ## different than the target dir
-
-        tgt_short_path_dir = ctx.label.package
-        if paths.basename(tgt_short_path_dir) + "/" == scope:
-            tgt_pkgdir = paths.dirname(tgt_short_path_dir)
-        else:
-            tgt_pkgdir = tgt_short_path_dir
-
-        sig_short_path = sigProvider.mli.short_path
-        sig_short_path_dir = paths.dirname(sig_short_path)
-        if paths.basename(sig_short_path_dir) + "/" == scope:
-            sig_pkgdir = paths.dirname(sig_short_path_dir)
-        else:
-            sig_pkgdir = sig_short_path_dir
-
-        struct_short_path = ctx.file.struct.short_path
-        struct_short_path_dir = paths.dirname(struct_short_path)
-        if paths.basename(struct_short_path_dir) + "/" == scope:
-            struct_pkgdir = paths.dirname(struct_short_path_dir)
-        else:
-            struct_pkgdir = struct_short_path_dir
-
-        if debug:
-            print("tgt_pkgdir: %s" % tgt_pkgdir)
-            print("struct_pkgdir: %s" % struct_pkgdir)
-            print("sig_pkgdir: %s" % sig_pkgdir)
-
-        # if struct_pkgdir == sig_pkgdir:
-        if tgt_pkgdir == sig_pkgdir:
-            ## already in same dir
-            if debug: print("NOT SYMLINKING mli/cmi")
-            work_mli = sigProvider.mli
-            work_cmi = sigProvider.cmi
-        else:
-            if debug: print("SYMLINKING mli/cmi")
-            work_mli = ctx.actions.declare_file(
-                scope + sigProvider.mli.basename
-            )
-            ctx.actions.symlink(output = work_mli, target_file = sigProvider.mli)
-            work_cmi = ctx.actions.declare_file(
-                scope + sigProvider.cmi.basename
-            )
-            ctx.actions.symlink(output = work_cmi, target_file = sigProvider.cmi)
-
-        if ctx.attr.ppx:
-            if debug: print("ppx xforming:")
-            work_ml = impl_ppx_transform(
-                ctx.attr._rule, ctx,
-                ctx.file.struct, modname + ".ml"
-            )
-
-        else:
-            if debug: print("no ppx")
-            work_ml = ctx.actions.declare_file(
-                # scope + ctx.file.struct.basename
-                scope + modname + ".ml"
-            )
-            ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
-
-        work_cmox = ctx.actions.declare_file(
-            scope + modname + ext
-        )
-            ## no symlink, cmox output by compile action
-
-        if mode == "native":
-            work_o = ctx.actions.declare_file(
-                scope + modname + ".o"
-            )
-        else:
-            work_o = None
-        ## no symlink, .o output by compile action
-
-        return(work_ml, work_cmox, work_o,
-               work_mli, work_cmi, True, # cmi_isbound = True
-               opaque)
-
-    else: ################################################
-        if debug: print("sigattr is src: %s" % ctx.file.sig)
-
-        work_mli = ctx.actions.declare_file(
-            scope + modname + ".mli"
-        )
-        ctx.actions.symlink(output = work_mli, target_file = ctx.file.sig)
-
-        work_cmi = ctx.actions.declare_file(
-            scope + modname + ".cmi"
-        )
-        # no symlink, will be output of compile action
-
-        work_ml = ctx.actions.declare_file(
-            scope + modname + ".ml"
-        )
-        ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
-
-        work_cmox = ctx.actions.declare_file(
-            scope + modname + ext
-        )
-        ## no symlink, cmox output by compile action
-
-        if mode == "native":
-            work_o = ctx.actions.declare_file(
-                scope + modname + ".o"
-            )
-        else: work_o = None
-        ## no symlink, .o output by compile action
-
-        return(work_ml, work_cmox, work_o,
-               work_mli, work_cmi, False, # cmi_isbound = False
-               False) # opaque determined by opt
+    return(work_ml, out_struct,
+           work_mli, work_cmi,
+           False) # opaque determined by opt
 
 ########################
 def _resolve_modname(ctx):
@@ -264,7 +244,7 @@ def impl_module(ctx, mode, tool, tool_args):
     ## bytecode mode: -make-runtime: build runtime system (output?)
 
     debug = True
-    debug_ppx= False
+    debug_ppx= True
 
     if debug:
         print("===============================")
@@ -298,7 +278,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
     ################
     includes   = []
-    default_outputs    = [] # just the cmx/cmo files, for efaultInfo
+    target_outputs    = [] # just the cmx/cmo files, for DefaultInfo
     action_outputs   = [] # .cmx, .cmi, .o
     # target outputs excludes .cmx if sig was compiled with -opaque
     # direct_linkargs = []
@@ -337,29 +317,35 @@ def impl_module(ctx, mode, tool, tool_args):
     ## split modules: compile workdir must contain both sig and struct
     ## files.
 
+    ## we put everything in work_* vars in case renaming is involved
+    ## e.g. a.mli could be renamed to Foo__a.mli
     work_ml   = None
-    work_cmox = None
-    work_o    = None
+    out_struct = None
+    # work_o    = None
     work_mli  = None
     work_cmi  = None
-    cmi_isbound = False ## is cmi already produced by sig dep?
+    cmi_precompiled = False ## is cmi already produced by sig dep?
 
     modname = _resolve_modname(ctx)
     if debug: print("resolved module name: %s" % modname)
 
     #### INDIRECT DEPS first ####
     # these are "indirect" from the perspective of the consumer
-    sigs_direct = []
+    sigs_direct   = []
     sigs_indirect = []
-    structs_direct = []
+    structs_direct   = []
     structs_indirect = []
-    xmos_direct = []
-    xmos_indirect = []
+    ofiles_direct   = [] # never? ofiles only come from deps
+    ofiles_indirect = []
+    arstructs_direct = []
+    arstructs_indirect = []
+    arfiles_direct   = []
+    arfiles_indirect = []
     archives_direct = []
     archives_indirect = []
 
-    indirect_linkargs_depsets = []
-    indirect_paths_depsets = []
+    # indirect_linkargs_depsets = []
+    path_depsets = []
 
     sig_is_opaque = False
 
@@ -367,14 +353,28 @@ def impl_module(ctx, mode, tool, tool_args):
         ##FIXME: make this a fn
         if debug: print("dyadic module, with sig: %s" % ctx.attr.sig)
 
-        ## NB: should handle ppx:
-        (work_ml, work_cmox, work_o,
-         work_mli, work_cmi,
-         cmi_isbound, sig_is_opaque) = _sig_make_work_symlinks(
-            ctx, modname, mode
-        )
+        ## handlers to deal with ns renaming and ppx
 
-        ## now sig deps:
+        if OcamlSignatureProvider in ctx.attr.sig:
+            if debug:
+                print("sigattr is precompiled .cmi")
+                print("ctx.attr.sig: %s" % ctx.attr.sig)
+            cmi_precompiled = True
+            (work_ml, out_struct,
+             work_mli,
+             out_cmi,   ## precompiled, possibly symlinked to __obazl
+             sig_is_opaque) = _handle_precompiled_sig(ctx, modname, ext)
+
+        else: ################################################
+
+            cmi_precompiled = False
+            (work_ml, out_struct,
+             work_mli,
+             out_cmi,  ## declared output file
+             # cmi_precompiled,
+             sig_is_opaque) = _handle_source_sig(ctx, modname, ext)
+
+        ## now handle sig deps:
         if OcamlSignatureProvider in ctx.attr.sig:
             if debug: print("sigdep: compiled")
             sig_attr = ctx.attr.sig
@@ -384,54 +384,44 @@ def impl_module(ctx, mode, tool, tool_args):
 
             sigs_indirect.append(sig_inputs)
             # structs_depsets.append(sig_inputs)
-            indirect_linkargs_depsets.append(sig_linkargs)
-            indirect_paths_depsets.append(sig_paths)
-            indirect_paths_depsets.append(
-                depset(direct = [work_cmox.dirname, work_cmi.dirname])
+            # indirect_linkargs_depsets.append(sig_linkargs)
+            path_depsets.append(sig_paths)
+            path_depsets.append(
+                depset(direct = [out_struct.dirname, out_cmi.dirname])
             )
         else:
             if debug: print("sigdep: source")
 
         if debug:
             print("WORK ml: %s" % work_ml)
-            print("WORK cmox: %s" % work_cmox)
-            print("WORK o: %s" % work_o)
+            print("WORK cmox: %s" % out_struct)
             print("WORK mli: %s" % work_mli)
-            print("WORK cmi: %s" % work_cmi)
-            print("cmi_isbound: %s" % cmi_isbound)
+            print("WORK cmi: %s" % out_cmi)
+            print("cmi_precompiled: %s" % cmi_precompiled)
     else:
-        if debug: print("orphaned module: no sigfile")
+        if debug: print("SINGLETON: no sigfile")
         if ctx.attr.ppx: ## no sig, plus ppx
             if debug: print("ppx xforming:")
             work_ml = impl_ppx_transform(
                 ctx.attr._rule, ctx,
                 ctx.file.struct, modname + ".ml"
             )
-            work_cmi = ctx.actions.declare_file(
+            out_cmi = ctx.actions.declare_file(
                 scope + modname + ".cmi"
             )
-            work_cmox = ctx.actions.declare_file(
+            out_struct = ctx.actions.declare_file(
                 scope + modname + ext
             )
-            if mode == "native":
-                work_o = ctx.actions.declare_file(
-                    scope + modname + ".o"
-                )
-            else: work_o = None
-
-        else: ## no sig, neg ppx
+        else: ## no sig, no ppx
             work_ml   = ctx.file.struct
-            work_cmi = ctx.actions.declare_file(
+            out_cmi = ctx.actions.declare_file(
                 scope + modname + ".cmi"
             )
-            work_cmox = ctx.actions.declare_file(
+            out_struct = ctx.actions.declare_file(
                 scope + modname + ext
             )
-            if mode == "native":
-                work_o = ctx.actions.declare_file(
-                    scope + modname + ".o"
-                )
-            else: work_o = None
+    print("scope: %s" % scope)
+    print("work_ml: %s" % work_ml)
 
     #########################
     args = ctx.actions.args()
@@ -461,57 +451,43 @@ def impl_module(ctx, mode, tool, tool_args):
     if debug:
         print("MODULE OPAQUE? %s" % module_opaque)
 
-    # work_cmox = None
-    # work_o    = None
-    # # work_mli  = None
-    # # work_cmi  = None
-    # cmi_isbound = False
-
-    ## src_inputs: struct file plus cmi if we got it plus mli
+    #######################################################
+    ################ ACTION INPUTS/OUTPUTS ################
 
     src_inputs = [work_ml]
+    print("SRC_INPUTS 1: %s" % src_inputs)
+
+    ## mli, if we have one, always goes in action inputs, even if it
+    ## was compiled separately. the compiler will look for it before
+    ## it looks for the cmi.
     if work_mli: src_inputs.append(work_mli)
-    if cmi_isbound:
-        ## we got cmi from sig dependency
-        src_inputs.append(work_cmi)
 
-    ################################################################
-    if debug:
-        print("%%%% finished ctx.sig handling %%%%")
-        # print("in_structfile: %s" % in_structfile)
-        # print("src_inputs: %s" % src_inputs)
+    ## action_outputs may be a subset of target_outputs - the latter
+    ## but not the former will include any precompiled .cmi file.
 
-    if debug:
-        if work_cmi:
-            print("OUT_CMI: %s" % work_cmi)
-            print("cmi_isbound? %s" % cmi_isbound)
+    ## precompiled .cmi not a compile action output, but it is a
+    ## target action output.
+    if out_cmi and not cmi_precompiled:
+        # we're compiling mli, so cmi is action output
+        action_outputs.append(out_cmi)
+        sigs_direct.append(out_cmi)
 
-    # out_cm_ = ctx.actions.declare_file(scope + module_name + ext)
-    #                                    # sibling = new_cmi) # fname)
-    # if work_ml:
-    out_cm_ = work_cmox
-    if debug:
-        print("OUT_CM_: %s" % out_cm_)
-
-    if work_cmi and not cmi_isbound:
-        action_outputs.append(work_cmi)
-
-    action_outputs.append(out_cm_)
-    # direct_linkargs.append(out_cm_)
-    default_outputs.append(out_cm_)
+    ## out_struct (.cmo or .cmx) must go in action_outputs; it will
+    ## also be delivered as a target output, but via a custom
+    ## provider, not directly in the DefaultInfo provider.
+    action_outputs.append(out_struct)
 
     if mode == "native":
-        # if not ctx.attr._rule.startswith("bootstrap"):
-        # out_o = ctx.actions.declare_file(module_name + ".o",
-        #                                  sibling = out_cm_)
-        out_o = work_o
-        action_outputs.append(out_o)
-        # direct_linkargs.append(out_o)
+        out_ofile = ctx.actions.declare_file(
+            scope + modname + ".o"
+        )
+        ofiles_direct.append(out_ofile)
+        action_outputs.append(out_ofile)
+    else: out_ofile = None
 
-        if debug:
-            print("OUT_O: %s" % out_o.path)
+    ################################################################
+                   ####    DEPENDENCIES    ####
 
-    ################
     indirect_cc_deps  = {}
 
     ################
@@ -523,12 +499,12 @@ def impl_module(ctx, mode, tool, tool_args):
     codep_sigs_direct       = []
     codep_structs_direct    = []
     codep_archives_direct   = []
-    codep_xmos_direct       = []
+    codep_arstructs_direct       = []
 
     codep_sigs_indirect     = []
     codep_structs_indirect  = []
     codep_archives_indirect = []
-    codep_xmos_indirect     = []
+    codep_arstructs_indirect     = []
 
 
     ## topdown resolver
@@ -547,10 +523,10 @@ def impl_module(ctx, mode, tool, tool_args):
     #     print(" ns_resolver: %s" % ns_resolver)
     #     print(" ns_resolver_files: %s" % ns_resolver_files)
 
-    paths_direct = [out_cm_.dirname] # d.dirname for d in direct_linkargs]
+    path_list = [out_struct.dirname] # d.dirname for d in direct_linkargs]
     if ns_resolver:
         # print("RESOLVER PATH: %s" % ns_resolver_files)
-        paths_direct.extend([f.dirname for f in ns_resolver_files])
+        path_list.extend([f.dirname for f in ns_resolver_files])
 
     # if ctx.attr._rule.startswith("bootstrap"):
     #         args.add(tc.ocamlc)
@@ -560,26 +536,19 @@ def impl_module(ctx, mode, tool, tool_args):
     #     out_cmt = ctx.actions.declare_file(scope + paths.replace_extension(module_name, ".cmt"))
     #     action_outputs.append(out_cmt)
 
-    ################ Direct Deps ################
+    ################ INDIRECT DEPENDENCIES ################
     the_deps = ctx.attr.deps + ctx.attr.open
-    # the_deps = []
-    # the_deps.extend(ctx.attr.deps) # + [ctx.attr._ns_resolver]
-
     ccInfo_list = []
 
     dep_is_opaque = False
 
-    if debug:
-        print("iterating deps")
+    if debug: print("iterating deps")
 
     for dep in the_deps:
         if CcInfo in dep:
             # if ctx.label.name == "Main":
             #     dump_CcInfo(ctx, dep)
             ccInfo_list.append(dep[CcInfo])
-
-        ## dep's DefaultInfo.files depend on OcamlProvider.linkargs,
-        ## so add the latter before the former
 
         ## module deps have opaque flag
         ## aggregates do not
@@ -606,7 +575,8 @@ def impl_module(ctx, mode, tool, tool_args):
                 # else:
                 #     sigs_depsets.append(dep[OcamlProvider].sigs)
                 #     structs_depsets.append(dep[OcamlProvider].structs)
-            else:
+
+            else: # no opaque flag on provider (xmo-enabled)
                 if debug:
                     if OcamlImportMarker in dep:
                         print("dep[OcamlImportMarker] %s" % dep)
@@ -624,28 +594,40 @@ def impl_module(ctx, mode, tool, tool_args):
                     # if not OcamlLibraryMarker in dep:
                     ##FIXME: also check for OcamlArchiveMarker?
 
+            ## xmo-independent logic
             sigs_indirect.append(dep[OcamlProvider].sigs)
             structs_indirect.append(dep[OcamlProvider].structs)
-            xmos_indirect.append(dep[OcamlProvider].xmos)
+            ofiles_indirect.append(dep[OcamlProvider].ofiles)
             archives_indirect.append(dep[OcamlProvider].archives)
+            arfiles_indirect.append(dep[OcamlProvider].arfiles)
+            arstructs_indirect.append(dep[OcamlProvider].arstructs)
 
-            indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
-            indirect_paths_depsets.append(dep[OcamlProvider].paths)
+            # indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+            path_depsets.append(dep[OcamlProvider].paths)
 
-        indirect_linkargs_depsets.append(dep[DefaultInfo].files)
+        # indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
     if debug:
         print("finished deps iteration")
-        print("indirect_linkargs_depsets: %s" % indirect_linkargs_depsets)
+        print("sigs_direct: %s" % sigs_direct)
+        print("sigs_indirect: %s" % sigs_indirect)
+        print("structs_direct: %s" % structs_direct)
+        print("structs_indirect: %s" % structs_indirect)
+        print("ofiles_direct: %s" % ofiles_direct)
+        print("ofiles_indirect: %s" % ofiles_indirect)
+        ## archives cannot be direct deps
+        print("archives_indirect: %s" % archives_indirect)
+        print("arfiles_indirect: %s" % arfiles_indirect)
+        print("arstructs_indirect: %s" % arstructs_indirect)
 
     ################ Signature Dep ################
     ## FIXME: this logic does not work if we needed to
     ## symlink split sigfiles into working dir
     # if ctx.attr.sig:
-    #     if sig_inputs:
-    #         sigs_depsets.append(sig_inputs)
+    #     if cmi_inputs:
+    #         sigs_depsets.append(cmi_inputs)
     #         indirect_linkargs_depsets.append(sig_linkargs)
-    #         indirect_paths_depsets.append(sig_paths)
+    #         path_depsets.append(sig_paths)
 
     ################ PPX Co-Deps ################
     ## ppx_codeps of the ppx executable are material deps of this
@@ -668,33 +650,38 @@ def impl_module(ctx, mode, tool, tool_args):
         if PpxCodepsProvider in ctx.attr.ppx:
             ## we have a ppx executable carrying ppx_codeps it intends
             ## to inject.
+
+            ## test for empty PpxCodepsProvider
+
             codep = ctx.attr.ppx[PpxCodepsProvider]
 
             if debug_ppx:
                 # print("codep %s"
                 #       % codep)
-                print("codep.linkset: %s" % codep.linkset)
+                # print("codep.linkset: %s" % codep.linkset)
                 print("codep.ppx_codeps: %s" % codep.ppx_codeps)
+                print("codep.paths: %s" % codep.paths)
+                print("codep.: %s" % codep.sigs)
 
             ## 1. put ppx_codeps in search path with -I
             ## 2. add ppx_codeps.linkset to linkset of module,
             ## otherwise linking an executable will fail with: "No
             ## implementations provided for the following modules:..."
-            indirect_linkargs_depsets.append(codep.linkset)
+            # indirect_linkargs_depsets.append(codep.linkset)
             # indirect_ppx_codep_depsets.append(codep.ppx_codeps)
             # indirect_ppx_codep_path_depsets.append(codep.paths)
             # ppx_codep_sigs.extend(codep.sigs)
             # ppx_codep_structs.extend(codep.structs)
             codep_sigs_indirect.extend(codep.sigs)
             codep_structs_indirect.extend(codep.structs)
-            codep_archives_indirect.extend(codep.archives)
-            codep_xmos_indirect.extend(codep.xmos)
+            # codep_archives_indirect.extend(codep.archives)
+            # codep_arstructs_indirect.extend(codep.arstructs)
 
 
     # codep_sigs_indirect_depset=depset(transitive=codep_sigs_indirect)
     # codep_structs_indirect_depset=depset(transitive=codep_structs_indirect)
     # codep_archives_indirect_depset=depset(transitive=codep_archives_indirect)
-    # codep_xmos_indirect_depset=depset(transitive=codep_xmos_indirect)
+    # codep_arstructs_indirect_depset=depset(transitive=codep_arstructs_indirect)
 
     # ppx_codep_structset = depset(transitive=ppx_codep_structs)
     # print("ppx_codep_structset: %s" % ppx_codep_structset)
@@ -711,19 +698,30 @@ def impl_module(ctx, mode, tool, tool_args):
     sigs_depset = depset(order="postorder",
                          direct = sigs_direct,
                          transitive = sigs_indirect)
+    print("SIGS_depset: %s" % sigs_depset)
     structs_depset = depset(order="postorder",
                             direct = structs_direct,
                             transitive = structs_indirect)
+    print("STRUCTS_depset: %s" % structs_depset)
+    ofiles_depset = depset(order="postorder",
+                           direct = ofiles_direct,
+                           transitive = ofiles_indirect)
+    print("OFILES_depset: %s" % ofiles_depset)
     archives_depset = depset(order="postorder",
                              direct = archives_direct,
                              transitive = archives_indirect)
-    xmos_depset = depset(order="postorder",
-                         direct = xmos_direct,
-                         transitive = xmos_indirect)
-
-    for arch in archives_depset.to_list():
-            args.add(arch.path)
-            includes.append(arch.dirname)
+    print("ARCHIVES_depset: %s" % archives_depset)
+    arfiles_depset = depset(order="postorder",
+                            direct = arfiles_direct,
+                            transitive = arfiles_indirect)
+    print("ARFILES_depset: %s" % arfiles_depset)
+    arstructs_depset = depset(order="postorder",
+                         direct = arstructs_direct,
+                         transitive = arstructs_indirect)
+    print("ARSTRUCTS_depset: %s" % arstructs_depset)
+    # for arch in archives_depset.to_list():
+    #         args.add(arch.path)
+    #         includes.append(arch.dirname)
 
     # for cdep in sigs_depsets:
     #     for cd in cdep.to_list():
@@ -731,8 +729,8 @@ def impl_module(ctx, mode, tool, tool_args):
 
     paths_depset  = depset(
         order = dsorder,
-        direct = paths_direct,
-        transitive = indirect_paths_depsets + indirect_ppx_codep_path_depsets
+        direct = path_list,
+        transitive = path_depsets + indirect_ppx_codep_path_depsets
     )
 
     includes.extend(paths_depset.to_list()) # , before_each="-I")
@@ -757,19 +755,6 @@ def impl_module(ctx, mode, tool, tool_args):
     #     args.add("-shared")
     # else:
 
-    ## if we rec'd a .cmi sigfile, we must add its SOURCE file to the
-    ## inputs dep graph! otherwise the ocaml compiler will not use the cmx
-    ## file, it will generate one from the module source.
-
-    # sig_in = [sig_src] if sig_src else []
-    # mli_out = [mlifile] if mlifile else []
-    if cmi_isbound:
-        mli_out = [work_mli] if work_mli else []
-        # cmi_out = [cmifile] if cmifile else [] # new_cmi]
-        cmi_out = [work_cmi] if work_cmi else [] # new_cmi]
-    else:
-        mli_out = []
-        cmi_out = []
 
     ## runtime deps must be added to the depgraph (so they get built),
     ## but not the command line (they are not build-time deps).
@@ -807,46 +792,52 @@ def impl_module(ctx, mode, tool, tool_args):
     # if debug:
     #     print("SRC_INPUTS: %s" % src_inputs)
 
-    # print("SRC_INPUTS: %s" % src_inputs)
     # print("mli_out: %s" % mli_out)
     # print("sigs_depsets: %s" % sigs_depsets)
 
     # if debug_ppx:
-    #     # for dep in inputs_depset.to_list():
+    #     # for dep in action_inputs_depset.to_list():
     #     # for dset in indirect_ppx_codep_depsets:
     #     for dset in ppx_codep_structs:
     #         for d in dset.to_list():
     #             print("PPX IDEP: %s" % d)
 
-    inputs_depset = depset(
+    ## WARNING: inline if else breaks something in the input depset
+    if cmi_precompiled:
+        maybe_cmi = [out_cmi]
+    else:
+        maybe_cmi = []
+
+    action_inputs_depset = depset(
         order = dsorder,
         direct = src_inputs
-        # + [in_structfile]
-        + mli_out
-        + [work_ml]
+        + maybe_cmi
+        ## omit direct deps, they're outputs of this action
+        # + sigs_direct + structs_direct + ofiles_direct
+        + archives_direct
+        + arfiles_direct
+        + arstructs_direct
         + ns_resolver_files
-        # + [work_mli]
-
-        # + [sig_src, in_structfile]
-        # + mli_out ##
-        # + cmi_out
-        # + (old_cmi if old_cmi else [])
         + ctx.files.deps_runtime,
-
         transitive = # sigs_depsets
          # indirect_ppx_codep_depsets
         # + [ppx_codep_structset]
         # + [depset(direct=archives)]
          ns_deps
-        + [sigs_depset, archives_depset, structs_depset]
+        + sigs_indirect
+        + structs_indirect
+        + ofiles_indirect
+        + archives_indirect
+        + arfiles_indirect
+        + arstructs_indirect
         + bottomup_ns_inputs
     )
-    if debug:
-        for dep in inputs_depset.to_list():
-            print("IDEP: %s" % dep.path)
+    # if debug:
+    #     for dep in action_inputs_depset.to_list():
+    #         print("IDEP: %s" % dep.path)
 
     # if ctx.label.name == "Misc":
-    #     print("inputs_depset: %s" % inputs_depset)
+    #     print("action_inputs_depset: %s" % action_inputs_depset)
 
     if ctx.attr.open:
         for dep in ctx.files.open:
@@ -857,7 +848,10 @@ def impl_module(ctx, mode, tool, tool_args):
 
     args.add("-c")
 
-    if work_mli and not cmi_isbound: # sig_src:
+    # args.add("-FOO", work_ml)
+    # args.add("-BAR", work_ml.short_path)
+
+    if work_mli and not cmi_precompiled: # sig_src:
         args.add("-I", work_mli.dirname) # sig_src.dirname)
         # args.add("-intf", sig_src)
         args.add(work_mli) # sig_src)
@@ -867,7 +861,7 @@ def impl_module(ctx, mode, tool, tool_args):
         args.add(work_ml) # structfile)
     else:
         args.add("-impl", work_ml) # in_structfile) # structfile)
-        args.add("-o", out_cm_)
+        args.add("-o", out_struct)
 
     # if ctx.attr._rule.startswith("bootstrap"):
     #     toolset = [tc.ocamlrun, tc.ocamlc]
@@ -875,7 +869,7 @@ def impl_module(ctx, mode, tool, tool_args):
     #     toolset = [tc.ocamlopt, tc.ocamlc]
 
     # if debug:
-    #     print("COMPILE INPUTS: %s" % inputs_depset)
+    #     print("COMPILE INPUTS: %s" % action_inputs_depset)
 
     if debug:
         print("COMPILE OUTPUTS: %s" % action_outputs)
@@ -885,10 +879,10 @@ def impl_module(ctx, mode, tool, tool_args):
         # env = env,
         executable = tool,
         arguments = [args],
-        inputs    = inputs_depset,
+        inputs    = action_inputs_depset,
         outputs   = action_outputs,
         tools = [tool] + tool_args,
-        mnemonic = "CompileOCamlModule" if ctx.attr._rule == "ocaml_module" else "CompilePpxModule",
+        mnemonic = "CompileOCamlModule" if ctx.attr._rule == "ocaml_module" else "CompilePparstructdule",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = mode,
             rule=ctx.attr._rule,
@@ -898,38 +892,37 @@ def impl_module(ctx, mode, tool, tool_args):
         )
     )
     ################
-    archives_depset = depset(order=dsorder,
-                             direct=codep_archives_direct,
-                             transitive=codep_archives_indirect)
-    xmos_depset    = depset(order=dsorder,
-                            direct=codep_xmos_direct,
-                            transitive=codep_xmos_indirect)
-
+    ## only the structfile is default output; that way consumers can
+    ## put default output on cmd line
     default_depset = depset(
         order = dsorder,
-        direct = default_outputs,
-        transitive = bottomup_ns_files
+        direct = [out_struct]  ## target_outputs,
+        # transitive = bottomup_ns_files
     )
 
     defaultInfo = DefaultInfo(
         files = default_depset
     )
 
-    ocamlProvider_files_depset = depset(
+    outputGroup_all_depset = depset(
         order  = dsorder,
-        direct = action_outputs + cmi_out + mli_out,
+        direct = action_outputs + [out_cmi] #cmi_out ## + mli_out,
     )
 
-    if work_cmi and not cmi_isbound:
-        cmi_depset = depset(
-            direct = [work_cmi],
-            transitive = bottomup_ns_cmi
-        )
-    else:
-        cmi_depset = depset(
-            direct=cmi_out,
-            transitive = bottomup_ns_cmi
-        )
+    # if cmi_precompiled:
+    #     cmi_depset = depset(
+    #         direct=cmi_out,
+    #         transitive = bottomup_ns_cmi
+    #     )
+    # else if out_cmi:
+    #     cmi_depset = depset(
+    #         direct = [out_cmi],
+    #         transitive = bottomup_ns_cmi
+    #     )
+    cmi_depset = depset(
+        direct = [out_cmi],
+        transitive = bottomup_ns_cmi
+    )
 
     new_sigs_depset = depset(
         order = dsorder,
@@ -943,7 +936,7 @@ def impl_module(ctx, mode, tool, tool_args):
         + bottomup_ns_inputs
     )
 
-    ## same as inputs_depset except structfile omitted
+    ## same as action_inputs_depset except structfile omitted
     # new_structs_depset = depset(
     #     order = dsorder,
     #     direct = src_inputs
@@ -957,33 +950,42 @@ def impl_module(ctx, mode, tool, tool_args):
     # )
     new_structs_depset = depset(
         order = dsorder,
-        direct = [out_cm_],
+        direct = [out_struct],
         transitive = structs_indirect
     )
 
     # if debug:
     #     print("CLOSURE: %s" % new_structs_depset)
 
-    linkset    = depset(transitive = indirect_linkargs_depsets)
+    # linkset    = depset(transitive = indirect_linkargs_depsets)
 
     fileset_depset = depset(
-        direct= action_outputs + cmi_out + mli_out,
+        direct= action_outputs + [out_cmi],
         transitive = bottomup_ns_fileset
     )
 
     ocamlProvider = OcamlProvider(
-        # files = ocamlProvider_files_depset,
-        cmi      = depset(direct = [work_cmi]), # [cmifile]),
+        # files = outputGroup_all_depset,
+        # cmi      = depset(direct = [out_cmi]),
+        cmi      = out_cmi,  ## no need for a depset for one file?
         opaque   = module_opaque,
         fileset  = fileset_depset,
         inputs   = new_structs_depset,
+
         sigs     = new_sigs_depset,
         structs  = new_structs_depset,
+        ofiles   = depset(order=dsorder,
+                          direct=[out_ofile] if out_ofile else [],
+                          transitive=ofiles_indirect),
         archives = archives_depset,
-        xmos     = xmos_depset,
-        linkargs = linkset,
+        arfiles   = depset(order=dsorder,
+                           direct=arfiles_direct,
+                           transitive=arfiles_indirect),
+        arstructs= arstructs_depset,
+        # linkargs = linkset,
         paths    = paths_depset,
     )
+    # print("MPRovider: %s" % ocamlProvider)
 
     ################################################################
     providers = [
@@ -1020,6 +1022,13 @@ def impl_module(ctx, mode, tool, tool_args):
     ## must be passed to any ppx_executable that depends on it.
     ## FIXME: make this conditional:
     ## if module has direct or indirect ppx_codeps:
+    codep_archives_depset = depset(order=dsorder,
+                             direct=codep_archives_direct,
+                             transitive=codep_archives_indirect)
+    codep_arstructs_depset    = depset(order=dsorder,
+                                 direct=codep_arstructs_direct,
+                                 transitive=codep_arstructs_indirect)
+
     ppx_codeps_depset = depset(
         order = dsorder,
         direct = ppx_codeps_list,
@@ -1037,7 +1046,7 @@ def impl_module(ctx, mode, tool, tool_args):
                          direct=codep_structs_direct,
                          transitive=codep_structs_indirect),
         archives = archives_depset,
-        xmos     = xmos_depset
+        arstructs     = arstructs_depset
     )
     providers.append(ppxCodepsProvider)
 
@@ -1049,13 +1058,14 @@ def impl_module(ctx, mode, tool, tool_args):
     ################
     outputGroupInfo = OutputGroupInfo(
         # cc         = ccInfo.linking_context.linker_inputs.libraries,
-        cmi        = cmi_depset,
-        fileset    = fileset_depset,
-        linkset    = linkset,
+        cmi       = cmi_depset,
+        fileset   = fileset_depset,
         sigs      = new_sigs_depset,
         structs   = new_structs_depset,
+        ofiles    = ofiles_depset,
         archives  = archives_depset,
-        xmos      = xmos_depset,
+        afiles    = arfiles_depset,
+        arstructs = arstructs_depset,
         ## put these in PpxCodepsProvider?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
@@ -1064,7 +1074,7 @@ def impl_module(ctx, mode, tool, tool_args):
             order = dsorder,
             transitive=[
                 default_depset,
-                ocamlProvider_files_depset,
+                outputGroup_all_depset,
                 ppx_codeps_depset,
                 # depset(action_inputs_ccdep_filelist)
             ]
