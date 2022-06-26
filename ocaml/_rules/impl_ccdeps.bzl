@@ -17,7 +17,7 @@ load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 ## At the end we'll have one CcInfo whose entire depset will go
 ## on cmd line. This includes indirect deps like the .a files
-## in @//ocaml/csdk and @rules_ocaml//cfg/lib/ctypes.
+## in @//ocaml/c/lib and @ctypes//:ctypes
 
 #########################
 def dump_library_to_link(ctx, idx, lib):

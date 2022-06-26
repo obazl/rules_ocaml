@@ -8,7 +8,7 @@ load("//ocaml:providers.bzl",
      "OcamlSignatureMarker"
      )
 
-load(":options.bzl", "options")
+load(":options.bzl", "options", "options_aggregators")
 
 load("impl_archive.bzl", "impl_archive")
 
@@ -23,12 +23,16 @@ def _ocaml_archive(ctx):
 
     return impl_archive(ctx, tc.emitting, tc.linkmode, tc.compiler, tool_args)
 
+###############################
+rule_options = options("ocaml")
+rule_options.update(options_aggregators())
+
 #####################
 ocaml_archive = rule(
     implementation = _ocaml_archive,
     doc = """Generates an OCaml archive file.""",
     attrs = dict(
-        options("ocaml"),
+        rule_options,
         archive_name = attr.string(
             doc = "Name of generated archive file, without extension. If not provided, name will be derived from target 'name' attribute."
         ),
@@ -46,16 +50,6 @@ ocaml_archive = rule(
         standalone = attr.bool(
             doc = "True: link total depgraph. False: link only direct deps.",
             default = False
-        ),
-
-        manifest = attr.label_list(
-            doc = "List of component modules.",
-            providers = [[OcamlArchiveMarker],
-                         [OcamlImportMarker],
-                         [OcamlLibraryMarker],
-                         [OcamlModuleMarker],
-                         [OcamlNsMarker],
-                         [OcamlSignatureMarker]],
         ),
 
         ## FIXME: do archive rules need to support cc_deps?

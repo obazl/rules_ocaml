@@ -47,7 +47,7 @@ executable_in_transition = transition(
 
 #####################################################
 def _ocaml_executable_deps_out_transition_impl(settings, attr):
-    # print(">>> OCAML_EXECUTABLE_DEPS_OUT_TRANSITION: %s" % attr.name)
+    print(">>> OCAML_EXECUTABLE_DEPS_OUT_TRANSITION: %s" % attr.name)
 
     # if attr.mode:
     #     mode = attr.mode
@@ -55,25 +55,17 @@ def _ocaml_executable_deps_out_transition_impl(settings, attr):
     #     mode = settings["@rules_ocaml//cfg/mode:mode"]
 
     return {
-        # "@ppx//mode": mode,
-        "@rules_ocaml//cfg/ns:prefixes": [],
-        "@rules_ocaml//cfg/ns:submodules": []
+        "@rules_ocaml//cfg/xmo": True,
     }
 
 ################
 ocaml_executable_deps_out_transition = transition(
     implementation = _ocaml_executable_deps_out_transition_impl,
     inputs = [
-        # "@rules_ocaml//cfg/mode:mode",
-        # "@rules_ocaml//cfg/ns:prefixes",
-        # "@rules_ocaml//cfg/ns:submodules"
-        "@rules_ocaml//build:action"
+        "@rules_ocaml//cfg/xmo"
     ],
     outputs = [
-        # "@ppx//mode",
-        # "@rules_ocaml//cfg/ns:prefixes",
-        # "@rules_ocaml//cfg/ns:submodules"
-        "@rules_ocaml//build:action"
+        "@rules_ocaml//cfg/xmo"
     ]
 )
 

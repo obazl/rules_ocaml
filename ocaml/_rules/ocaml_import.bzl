@@ -11,46 +11,6 @@ load("//ppx:providers.bzl",
 
 load(":impl_common.bzl", "dsorder", "opam_lib_prefix")
 
-################################################################
-def _handle_deps_new(ctx, tc):
-    print("_handle_deps_new, mode: %s" % tc.emitting)
-
-    sig_list     = [] # .cmi
-    struct_list  = [] # .cmo or .cmx
-    ofiles_list  = [] # .o
-    archive_list = [] # .cma or .cmxa
-    arfiles_list = [] # .a
-    arstruct_list= [] # structs included in archive
-    cmt_list     = [] # .cmt and .cmti
-
-    sig_list.extend(ctx.files.cmi)
-
-    if tc.emitting == "native":
-        archive_list.extend(ctx.files.cmxa)
-        if (len(ctx.files.cmxa) > 0):
-            arstruct_list.extend(ctx.files.cmx)
-        else:
-            struct_list.extend(ctx.files.cmx)
-        ofiles_list.extend(ctx.files.ofiles)
-        arfiles_list.extend(ctx.files.arfiles)
-    else:
-        archive_list.extend(ctx.files.cma)
-        if (len(ctx.files.cmxa) > 0):
-            arstruct_list.extend(ctx.files.cmo)
-        else:
-            struct_list.extend(ctx.files.cmo)
-
-    cmt_list.extend(ctx.files.cmti)
-    cmt_list.extend(ctx.files.cmt)
-
-    return (sig_list, struct_list, ofiles_list,
-            archive_list, arfiles_list, arstruct_list,
-            cmt_list)
-
-## cases: any of the attrs (corresponding to META "variables") may
-## occur alone. in particular 'deps', e.g. pkg camlzip. in some cases
-## there are no attrs, the pkg is just a placeholder
-
 ##################################################
 ######## RULE DECL:  OCAML_IMPORT  #########
 ##################################################
@@ -58,8 +18,24 @@ def _ocaml_import_impl(ctx):
 
     """Import OCaml resources."""
 
-    debug = True
-    if debug: print("import rule: %s" % ctx.label)
+    debug                = False
+    debug_deps           = False
+    debug_primary_deps   = False
+    debug_secondary_deps = False
+    debug_ppx            = False
+
+    if debug: print("ocaml_import: %s" % ctx.label)
+
+    # WARNING: some pkgs have a "dummy" target with no attribs, e.g
+    # seq, byte
+    # print("attr hasattr cmi? %s" % hasattr(ctx.attr, "cmi"))
+    # print("file hasattr cmi? %s" % hasattr(ctx.file, "cmi"))
+    # print("files hasattr cmi? %s" % hasattr(ctx.files, "cmi"))
+    if (len(ctx.files.cmi) < 1):
+        if debug: print("Skipping dummy target: %s" % ctx.label)
+        return [
+            OcamlImportMarker()
+        ]
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
@@ -68,360 +44,353 @@ def _ocaml_import_impl(ctx):
     else:
         struct_extensions = ["cma", "cmo"]
 
-    (sig_list, struct_list, ofiles_list,
-     archive_list, arfiles_list, arstruct_list,
-     cmt_list) = _handle_deps_new(ctx, tc)
+    ################################################################
+                   ####    DEPENDENCIES    ####
+    ################################################################
 
-    dep_depsets = []
+    has_ppx_codeps  = False
+    ## A note on ppx_codep dependencies - primary and secondary: ##
 
-    providers = []
+    # Ppx_codeps are resources for which a ppx module injects a
+    # dependency when run as part of a ppx executable. So if this
+    # import has a primary ppx_codep, we can infer that it must be a
+    # ppx_module that injects the dependency. On the other hand, this
+    # import may have an "ordinary" secondary dep (listed in 'deps')
+    # that in turn has a primary ppx_codep. That would count as a
+    # secondary ppx_codep. And so on, so we could have tertiary etc.
+    # ppx_codeps.
 
-    ## direct ppx adjuncts
-    # ppx_codep_deps_list = []
-    # ppx_codep_archives_list = []
-    # ppx_codep_paths_list = []
+    # Task: deliver PpxCodepsProvider merging all ppx_codeps for this
+    # import, both primary (listed in ppx_codeps) and secondary
+    # (found as a dependency listed in deps).
 
-    has_ppx_codeps = False
-    # indirect_ppx_codep_deps_list = []
-    indirect_ppx_codep_depsets      = []
-    indirect_ppx_codep_path_depsets = []
+    # For example, @ppx_log//:ppx_log has ppx_codep
+    # @ppx_sexp_conv//runtime-lib. But it also lists @ppx_log//kernel
+    # as a primary dep, and @ppx_log//kernel in turn has its own
+    # ppx_codep, @ppx_log//types. So in this case we would list both
+    # ppx_codeps in the PpxCodepsProvider for @ppx_log//:ppx_log.
 
-    # for deps listed in ctx.attr.ppx_codeps
-    ## files with OcamlProvider:
-    direct_ppx_codep_ldeps_list = []
-    direct_ppx_codep_linkargs_list = []
-    direct_ppx_codep_paths_list = []
-    ## targets with PpxCodepsProvider:
-    direct_ppx_codep_depsets      = []
-    direct_ppx_codep_path_depsets = []
+    # Only ppx modules and execs can have ppx_codeps, which will be
+    # injected when the ppx executable runs.
 
 
-    #### INDIRECT DEPS first, from ctx.attr.deps ####
-    allglob_list = [] # files from ctx.attr.all
-    indirect_ldeps_depsets = [] # depsets from ctx.attr.deps
-    indirect_linkargs_depsets = []
-    indirect_paths_depsets = []
+    ################ PRIMARY OCAML DEPENDENCIES ################
+    ## Primary deps: cm* attributes, which are label_lists.
+    sigs_primary             = []
+    structs_primary          = []
+    ofiles_primary           = []  # .o files
+    archives_primary         = []
+    afiles_primary           = []  # .a files
+    astructs_primary         = []
+    cmts_primary             = []
+    paths_primary            = []
 
-    # direct file deps of this target
-    sigs_direct             = []
-    structs_direct          = []
-    ofiles_direct           = []  # .o files
-    archives_direct         = []
-    arfiles_direct          = []  # .a files
-    arstructs_direct        = []
+    cclibs_primary           = []
 
-    # depsets from 'deps' attribute:
-    sigs_indirect           = []
-    structs_indirect        = []
-    ofiles_indirect           = []  # .o files
-    archives_indirect       = []
-    arfiles_indirect          = []  # .a files
-    arstructs_indirect      = []
+    stublibs_primary             = []  ## file list
+    stublibs_secondary           = []  ## provider list?
 
-    ## for ppx_codeps. these must be carried separately until
-    ## they are used (injected) by a ppx_executable.
-    codep_sigs_direct       = []
-    codep_structs_direct    = []
-    codep_archives_direct   = []
-    codep_arstructs_direct       = []
+    sigs_primary.extend(ctx.files.cmi)
+    if tc.emitting == "native":
+        if hasattr(ctx.attr, "cmxa"):
+            archives_primary.extend(ctx.files.cmxa)
+            if (len(ctx.files.cmxa) > 0):
+                astructs_primary.extend(ctx.files.cmx)
+            else:
+                structs_primary.extend(ctx.files.cmx)
 
-    codep_sigs_indirect     = []
-    codep_structs_indirect  = []
-    codep_archives_indirect = []
-    codep_arstructs_indirect     = []
+        ofiles_primary.extend(ctx.files.ofiles)
+        afiles_primary.extend(ctx.files.afiles)
+    else:
+        archives_primary.extend(ctx.files.cma)
+        if (len(ctx.files.cma) > 0):
+            astructs_primary.extend(ctx.files.cmo)
+        else:
+            structs_primary.extend(ctx.files.cmo)
 
-    for dep in ctx.attr.deps:
-        if OcamlProvider in dep:
-            odep = dep[OcamlProvider]
-            sigs_indirect.append(odep.sigs)
-            structs_indirect.append(odep.structs)
-            ofiles_indirect.append(odep.ofiles)
-            archives_indirect.append(odep.archives)
-            arfiles_indirect.append(odep.arfiles)
-            arstructs_indirect.append(odep.arstructs)
+    cclibs_primary.extend(ctx.files.stublibs)
+    stublibs_primary.extend(ctx.files.stublibs)
 
-            ## legacy:
+    cmts_primary.extend(ctx.files.cmti)
+    cmts_primary.extend(ctx.files.cmt)
 
-            # print("import dep: %s" % odep)
-            # indirect_ldeps_depsets.append(odep.ldeps)
-            indirect_linkargs_depsets.append(odep.linkargs)
-            indirect_linkargs_depsets.append(dep[DefaultInfo].files)
-            indirect_paths_depsets.append(odep.paths)
+    paths_primary.append(ctx.files.cmi[0].dirname)
 
-        ## a direct dep could be sth that depends on a ppx_codep
+    if debug_primary_deps:
+        print("PRIMARY DEPS for %s" % ctx.label)
+        print("sigs_primary: %s" % sigs_primary)
+        print("structs_primary: %s" % structs_primary)
+        print("archives_primary: %s" % archives_primary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("afiles_primary: %s" % afiles_primary)
+        print("astructs_primary: %s" % astructs_primary)
+        print("cclibs_primary: %s" % cclibs_primary)
+        print("cmts_primary: %s" % cmts_primary)
 
-        if PpxCodepsProvider in dep:
-            codep = dep[PpxCodepsProvider]
+        print("paths_primary: %s" % paths_primary)
 
-            codep_sigs_indirect.append(codep.sigs)
-            codep_structs_indirect.append(codep.structs)
-            codep_archives_indirect.append(codep.archives)
-            codep_arstructs_indirect.append(codep.arstructs)
+    ################ PRIMARY PPX_CODEPENDENCIES ################
+    ## IMPORTANT: both primary and secondary lists contain depsets!
+    ## A primary std dep is a file, but a primary codep is a target.
+    codep_sigs_primary       = []
+    codep_structs_primary    = []
+    codep_ofiles_primary     = []
+    codep_archives_primary   = []
+    codep_afiles_primary     = []
+    codep_astructs_primary   = []
+    codep_cmts_primary       = []
+    codep_paths_primary      = []
 
-            if hasattr(codep, "ppx_codeps"):
-                if codep.ppx_codeps:
-                    has_ppx_codeps = True
-                    indirect_ppx_codep_depsets.append(codep.ppx_codeps)
-            if hasattr(codep, "paths"):
-                if codep.paths:
-                    indirect_ppx_codep_path_depsets.append(codep.paths)
+    codep_cclibs_primary     = []
 
-    direct_paths_list   = []
+    ####################
+    codep_sigs_secondary     = []
+    codep_structs_secondary  = []
+    codep_ofiles_secondary   = []
+    codep_archives_secondary = []
+    codep_afiles_secondary   = []
+    codep_astructs_secondary = []
+    codep_cmts_secondary     = []
+    codep_paths_secondary    = []
 
-    if ctx.attr.all:
-        allglob_list.extend(ctx.files.all)
-        for f in ctx.files.all:
-            direct_paths_list.append( f.dirname )
+    codep_cclibs_secondary   = []
 
-    #### DIRECT DEPS: archives, plugins, sigs ####
-    direct_default_files = []
-    direct_ldeps_list = []
-    direct_linkargs_list = []
-    direct_archive = []
-
-    # if ctx.attr.archive:  # a label_list of file targets
-    #     direct_ldeps_list.extend(ctx.files.archive)
-    #     direct_linkargs_list.extend(ctx.files.archive)
-    #     for dep in ctx.files.archive:
-    #         direct_paths_list.append(dep.dirname)
-
-    #     direct_archive.extend(ctx.files.archive)
-    #     for f in ctx.files.archive:
-    #         # if mode == "native":
-    #         #     if f.extension == "cmxa":
-    #         #         direct_default_files.append(f)
-    #         # if mode == "bytecode":
-    #         #     if f.extension == "cma":
-    #         #         direct_default_files.append(f)
-    #         if f.extension in struct_extensions:
-    #             direct_default_files.append(f)
-
-    #         # if (f.path.startswith(opam_lib_prefix)):
-    #         #     dir = paths.relativize(f.dirname, opam_lib_prefix)
-    #         #     direct_paths_list.append( "+../" + dir )
-    #         # else:
-    #         direct_paths_list.append( f.dirname )
-
-    # #### DIRECT PLUGINS DEPS ####
-    # if ctx.attr.plugin:
-    #     direct_default_files.extend(ctx.files.plugin)
-    #     direct_ldeps_list.extend(ctx.files.plugin)
-    #     direct_linkargs_list.extend(ctx.files.plugin)
-    #     for dep in ctx.files.plugin:
-    #         direct_paths_list.append(dep.dirname)
-
-    #     # direct_files.extend(ctx.files.plugin)
-    #     for f in ctx.files.plugin:
-    #         if (f.path.startswith(opam_lib_prefix)):
-    #             dir = paths.relativize(f.dirname, opam_lib_prefix)
-    #             direct_paths_list.append( "+../" + dir )
-    #         else:
-    #             direct_paths_list.append( f.dirname )
-    #     plugins_depset = depset(
-    #         order = dsorder,
-    #         direct = ctx.files.plugin,
-    #     )
-    #     # outputGroupDepsets["plugins"] = plugins_depset
-    # else:
-    #     plugins_depset = depset(
-    #         order = dsorder,
-    #     )
-    #     # outputGroupDepsets["plugins"] = plugins_depset
-
-    # ################################
-    # if ctx.attr.signature:
-    #     direct_default_files.extend(ctx.files.signature)
-    #     direct_ldeps_list.extend(ctx.files.signature)
-    #     direct_linkargs_list.extend(ctx.files.signature)
-    #     for dep in ctx.files.plugin:
-    #         direct_paths_list.append(dep.dirname)
-
-    #     # direct_files.extend(ctx.files.signature)
-    #     for f in ctx.files.signature:
-    #         if (f.path.startswith(opam_lib_prefix)):
-    #             dir = paths.relativize(f.dirname, opam_lib_prefix)
-    #             direct_paths_list.append( "+../" + dir )
-    #         else:
-    #             direct_paths_list.append( f.dirname )
-
-    ################################
-    # if ctx.attr.modules:
-    #     direct_files.extend(ctx.files.modules)
-
-    ################################
-    if ctx.attr.ppx:  ## ppx executable - should not happen for imports?
-        direct_default_files.append(ctx.file.ppx)
-
-    ################################
-    # only ppx modules and execs can have ppx_codeps, which will be
-    # injected when the ppx xform runs.
-
-    ## direct ppx_codeps on imports will be labels, so depsets not files
-    for dep in ctx.attr.ppx_codeps:
+    if ctx.attr.ppx_codeps:
         has_ppx_codeps = True
 
-        # An "ordinary" module, as a direct ppx_codep, delivers
-        # just OcamlProvider.
-        # Any ppx module may depend on a module that carries ppx_codeps.
-        # PPX modules that inject a dependency will provide a
-        # PpxCodepsProvider.
-        if PpxCodepsProvider in dep:
-            # print("{t}: PpxCodepsProvider in ppx_codep: {d}".format(
-            #     t = ctx.label.name, d = dep))
-            codep = dep[PpxCodepsProvider]
-            codep_sigs_direct.extend(codep.sigs)
-            codep_structs_direct.extend(codep.structs)
-            codep_archives_direct.extend(codep.archives)
-            codep_arstructs_direct.extend(codep.arstructs)
+    ## Each primary ppx_code has its standard deps (OcamlProvider);
+    ## this must be merged into PpxCodepsProvider, not the
+    ## OcamlProvider delivered by this import.
 
-            if hasattr(codep, "ppx_codeps"):
-                has_ppx_codeps = True
-                if codep.ppx_codeps:
-                    direct_ppx_codep_depsets.append(codep.ppx_codeps)
-            if hasattr(codep, "paths"):
-                if codep.paths:
-                    direct_ppx_codep_path_depsets.append(codep.paths)
+    for codep in ctx.attr.ppx_codeps:
 
-        ## but a ppx_codep maybe also be a "normal" module:
+        provider = codep[OcamlProvider]
+        codep_sigs_primary.append(provider.sigs)
+        codep_structs_primary.append(provider.structs)
+        codep_ofiles_primary.append(provider.ofiles)
+        codep_archives_primary.append(provider.archives)
+        codep_afiles_primary.append(provider.afiles)
+        codep_astructs_primary.append(provider.astructs)
+        codep_cmts_primary.append(provider.cmts)
+        codep_paths_primary.append(provider.paths)
+
+        # codep_cclibs_primary.append(provider.cclibs)
+
+        ######## SECONDARY PPX_CODEPENDENCIES ########
+        # A primary ppx_codep may in turn have its own ppx_codeps.
+        # We treat these as secondary ppx_codeps:
+        if PpxCodepsProvider in codep:
+            provider = codep[PpxCodepsProvider]
+            codep_sigs_secondary.append(provider.sigs)
+            codep_structs_secondary.append(provider.structs)
+            codep_ofiles_secondary.append(provider.ofiles)
+            codep_archives_secondary.append(provider.archives)
+            codep_afiles_secondary.append(provider.afiles)
+            codep_astructs_secondary.append(provider.astructs)
+            codep_cmts_secondary.append(provider.cmts)
+            codep_paths_secondary.append(provider.paths)
+
+            # codep_cclibs_secondary.append(provider.cclibs)
+
+        ################ SECONDARY CC DEPENDENCIES ################
+        if CcInfo in codep:
+            stublibs_secondary.append(codep[CcInfo])
+
+    if debug_ppx:
+        print("PRIMARY PPX_CODEPS for %s" % ctx.label)
+        print("codep_sigs_primary: %s" % codep_sigs_primary)
+        print("codep_structs_primary: %s" % codep_structs_primary)
+        print("codep_archives_primary: %s" % codep_archives_primary)
+        print("codep_ofiles_primary: %s" % codep_ofiles_primary)
+        print("codep_afiles_primary: %s" % codep_afiles_primary)
+        print("codep_astructs_primary: %s" % codep_astructs_primary)
+        print("codep_cclibs_primary: %s" % codep_cclibs_primary)
+        print("codep_cmts_primary: %s" % codep_cmts_primary)
+        print("codep_paths_primary: %s" % codep_paths_primary)
+
+        print("SECONDARY PPX_CODEPS for %s" % ctx.label)
+        print("codep_sigs_secondary: %s" % codep_sigs_secondary)
+        print("codep_structs_secondary: %s" % codep_structs_secondary)
+        print("codep_archives_secondary: %s" % codep_archives_secondary)
+        print("codep_ofiles_secondary: %s" % codep_ofiles_secondary)
+        print("codep_afiles_secondary: %s" % codep_afiles_secondary)
+        print("codep_astructs_secondary: %s" % codep_astructs_secondary)
+        print("codep_cclibs_secondary: %s" % codep_cclibs_secondary)
+        print("codep_cmts_secondary: %s" % codep_cmts_secondary)
+        print("codep_paths_secondary: %s" % codep_paths_secondary)
+
+    ################ PRIMARY STUBLIB DEPENDENCIES ################
+    # stublibs_primary   = []
+    # stublibs_secondary = []
+    for dep in ctx.attr.stublibs:
+        # print("STUBLIB DEP: {this}  {dep}".format(
+        #     this=ctx.label, dep = dep))
+        print("STUBLIB PROVIDER: %s" % dep[CcInfo])
+        stublibs_primary.append(dep[CcInfo])
+
+    # #########################
+    # for dep in ctx.attr.deps:
+    #     if OcamlProvider in dep:
+
+    ################ SECONDARY OCAML DEPENDENCIES ################
+    ## Secondary deps: whatever is in 'deps' attribute.
+    ## Task: extract and merge the depsets from the OcamlProviders
+
+    sigs_secondary           = []
+    structs_secondary        = []
+    ofiles_secondary         = []  # .o files
+    archives_secondary       = []
+    afiles_secondary         = []  # .a files
+    astructs_secondary       = []
+    cmts_secondary           = []
+    paths_secondary          = []
+
+    cclibs_secondary         = []
+
+    #########################
+    for dep in ctx.attr.deps:
         if OcamlProvider in dep:
-            codep = dep[OcamlProvider]
+            provider = dep[OcamlProvider]
+            sigs_secondary.append(provider.sigs)
+            structs_secondary.append(provider.structs)
+            ofiles_secondary.append(provider.ofiles)
+            archives_secondary.append(provider.archives)
+            afiles_secondary.append(provider.afiles)
+            astructs_secondary.append(provider.astructs)
+            paths_secondary.append(provider.paths)
 
-            codep_sigs_direct.extend(codep.sigs)
-            codep_structs_direct.extend(codep.structs)
-            codep_archives_direct.extend(codep.archives)
-            codep_arstructs_direct.extend(codep.arstructs)
+            # cclibs_secondary.append(provider.cclibs)
 
+        ######## TERTIARY PPX_CODEPENDENCIES ########
+        # A secondary std dep may carry its own ppx_codeps;
+        # we add these the the codep secondary lists:
+        if PpxCodepsProvider in dep:
+            has_ppx_codeps = True
+            provider = dep[PpxCodepsProvider]
+            codep_sigs_secondary.append(provider.sigs)
+            codep_structs_secondary.append(provider.structs)
+            codep_ofiles_secondary.append(provider.ofiles)
+            codep_archives_secondary.append(provider.archives)
+            codep_afiles_secondary.append(provider.afiles)
+            codep_astructs_secondary.append(provider.astructs)
+            codep_cmts_secondary.append(provider.cmts)
+            codep_paths_secondary.append(provider.paths)
 
-            # print("{t}: OcamlProvider in ppx_codep: {d}".format(
-            #     t = ctx.label.name, d = dep))
-            direct_ppx_codep_ldeps_list.append(codep.ldeps)
-            direct_ppx_codep_linkargs_list.append(codep.linkargs)
-            direct_ppx_codep_paths_list.append(codep.paths)
-            # if hasattr(opdep, "ppx_codeps"):
-            #     if opdep.ppx_codeps:
-            #         ppx_codep_deps_list.append(opdep.ppx_codeps)
-            # if hasattr(opdep, "paths"):
-            #     if opdep.ppx_codep_paths:
-            #         ppx_codep_paths_list.append(opdep.paths)
+            # codep_cclibs_secondary.append(provider.cclibs)
+
+        ################ SECONDARY CC DEPENDENCIES ################
+        if CcInfo in dep:
+            stublibs_secondary.append(dep[CcInfo])
+
+    ################################################################
+    ######  IMPORT ACTION ######
+    ################################################################
+    # Null action - don't really need this but it marks the divide
+    # between merging deps and creating providers.
+    ctx.actions.do_nothing(
+        mnemonic = "Ocaml_import",
+        inputs = depset()
+    )
 
     ################################################################
     ##  PROVIDERS ##
     ################################################################
-    ## we don't produce anything by action, so empty:
-    # direct_default_depset = depset()
-    #     direct = direct_default_files
-    # )
 
-    # if ctx.attr.ppx:
-    #     defaultInfo = DefaultInfo(
-    #         executable = ctx.file.ppx
-    #     )
-    # else:
-    #     defaultInfo = DefaultInfo(
-    #         files = direct_default_depset,
-    #     )
+    providers = []
+
+    ## we don't produce anything by action, so default is empty:
     providers.append(DefaultInfo())
 
-    ################
+    ##################
     if has_ppx_codeps:
-        ppx_codeps_depset  = depset(
-            order = dsorder,
-            transitive = direct_ppx_codep_ldeps_list +
-            indirect_ppx_codep_depsets + direct_ppx_codep_depsets
-        )
-
-        ppx_codep_paths_depset = depset(
-            transitive = direct_ppx_codep_paths_list +
-            direct_ppx_codep_path_depsets + indirect_ppx_codep_path_depsets
-        )
         ppxCodepsProvider = PpxCodepsProvider(
-            paths      = ppx_codep_paths_depset,
-            ppx_codeps = ppx_codeps_depset,
             sigs       = depset(order=dsorder,
-                                direct = codep_sigs_direct,
-                                transitive = codep_sigs_indirect),
+                                # direct = codep_sigs_primary,
+                                transitive = codep_sigs_primary
+                                + codep_sigs_secondary),
             structs    = depset(order=dsorder,
-                                direct = codep_structs_direct,
-                                transitive = codep_structs_indirect),
+                                # direct = codep_structs_primary,
+                                transitive = codep_structs_primary
+                                + codep_structs_secondary),
+            ofiles     = depset(order=dsorder,
+                                # direct = codep_ofiles_primary,
+                                transitive = codep_ofiles_primary
+                                + codep_ofiles_secondary),
             archives   = depset(order=dsorder,
-                                direct = codep_archives_direct,
-                                transitive = codep_archives_indirect),
-            arstructs       = depset(order=dsorder,
-                                   direct = codep_arstructs_direct,
-                                   transitive = codep_arstructs_indirect)
+                                # direct = codep_archives_primary,
+                                transitive = codep_archives_primary
+                                + codep_archives_secondary),
+            afiles     = depset(order=dsorder,
+                                # direct = codep_afiles_primary,
+                                transitive = codep_afiles_primary
+                                + codep_afiles_secondary),
+            astructs   = depset(order=dsorder,
+                                # direct = codep_astructs_primary,
+                                transitive = codep_astructs_primary
+                                + codep_astructs_secondary),
+            cmts       = depset(order=dsorder,
+                                # direct = codep_cmts_primary,
+                                transitive = codep_cmts_primary
+                                + codep_cmts_secondary),
+            paths       = depset(order=dsorder,
+                                 # direct = codep_paths_primary,
+                                 transitive = codep_paths_primary
+                                 + codep_paths_secondary),
+            cclibs       = depset(order=dsorder,
+                                   # direct = codep_cclibs_primary,
+                                  transitive = codep_cclibs_primary
+                                  + codep_cclibs_secondary),
         )
         providers.append(ppxCodepsProvider)
+        print("PPX_CODEPS for %s" % ctx.label)
+        print(ppxCodepsProvider)
 
-        # if ctx.label.name == "ppx_sexp_conv":
-        # outputGroupDepsets["ppx_codeps"] = ppx_codeps_depset
-
-    ################
-    # new_ldeps_depset = depset(
-    #     direct = direct_ldeps_list,
-    #     transitive = indirect_ldeps_depsets + [depset(allglob_list)]
-    # )
-
-    # ctx.actions.do_nothing(
-    #     mnemonic = "ocaml_import",
-    #     inputs =new_ldeps_depset
-    # )
-
-    linkargs_depset = depset(
-        direct = direct_default_files,
-        transitive = indirect_linkargs_depsets
-    )
-    paths_depset = depset(
-        direct = direct_paths_list,
-        transitive = indirect_paths_depsets
-    )
-
-    ################
-    print("IMPORT ar direct: %s" % archive_list)
-    print("IMPORT ar indirect: %s" % archives_indirect)
-    archive_depset = depset(order="postorder",
-                            direct=archive_list,
-                            transitive=archives_indirect)
-    print("IMPORT ar depset: %s" % archive_depset)
-
+    #### Std OcamlProvider
     _ocamlProvider = OcamlProvider(
         sigs    = depset(order="postorder",
-                         direct=sig_list, transitive=sigs_indirect),
+                         direct=sigs_primary,
+                         transitive=sigs_secondary),
         structs = depset(order="postorder",
-                         direct=struct_list, transitive=structs_indirect),
-        ofiles = depset(order="postorder",
-                        direct=ofiles_list, transitive=ofiles_indirect),
-        archives = archive_depset,
-        arfiles = depset(order="postorder",
-                         direct=arfiles_list, transitive=arfiles_indirect),
-        arstructs = depset(order="postorder",
-                         direct=arstruct_list, transitive=arstructs_indirect),
-        linkargs = linkargs_depset,
-        paths    = paths_depset,
-       # ppx_codeps = _ppx_codeps,
-    )
-    # if ctx.label.name == "ppx_sexp_conv":
-    #     print("OcamlProvider.ppx_codeps from target %s" % ctx.label)
-    #     print(_ocamlProvider.ppx_codeps)
+                         direct=structs_primary,
+                         transitive=structs_secondary),
+        ofiles   = depset(order="postorder",
+                          direct=ofiles_primary,
+                          transitive=ofiles_secondary),
+        archives = depset(order="postorder",
+                            direct=archives_primary,
+                            transitive=archives_secondary),
+        afiles   = depset(order="postorder",
+                          direct=afiles_primary,
+                          transitive=afiles_secondary),
+        astructs = depset(order="postorder",
+                          direct=astructs_primary,
+                          transitive=astructs_secondary),
+        cmts     = depset(order="postorder",
+                          direct=cmts_primary,
+                          transitive=cmts_secondary),
+        paths    = depset(order="postorder",
+                          direct=paths_primary,
+                          transitive=paths_secondary),
 
+        # cclibs = depset(order="postorder",
+        #                   direct=cclibs_primary,
+        #                   transitive=cclibs_secondary),
+    )
     providers.append(_ocamlProvider)
 
-    # if ctx.attr.ppx:
-    #     providers.append(PpxExecutableMarker())
+    ## CcInfo
+    if stublibs_primary or stublibs_secondary:
+        ccoutputs = []
+        ccInfo = cc_common.merge_cc_infos(
+            cc_infos = stublibs_primary + stublibs_secondary
+        )
+        providers.append(ccInfo)
+
 
     providers.append(OcamlImportMarker(marker = "OcamlImport"))
 
-    # if executable:
-    #     providers.append(OcamlExecutableMarker(marker = "OcamlExecutable"))
-    if ctx.attr.ppx:  ## ppx executable
-        providers.append(PpxExecutableMarker(marker = "PpxExecutable"))
-
     ## --output_groups only prints generated stuff, so there's no
     ## --point in providing OutputGroupInfo for ocaml_import
-
-    # if ctx.label.name == "irmin-pack":
-    #     print("IRMIN PROVIDERS")
-
-    # print(providers)
 
     return providers
 
@@ -435,23 +404,32 @@ ocaml_import = rule(
         # _mode       = attr.label(
         #     default = "@rules_ocaml//build/mode",
         # ),
-        archive = attr.label_list(allow_files = True),
+
+        cma  = attr.label_list(allow_files = True),
+        cmxa = attr.label_list(allow_files = True),
+        cmxs = attr.label_list(allow_files = True),
         cmi  = attr.label_list(allow_files = True),
-        cmti = attr.label_list(allow_files = True),
-        cmt  = attr.label_list(allow_files = True),
         cmo  = attr.label_list(allow_files = True),
         cmx  = attr.label_list(allow_files = True),
         ofiles =  attr.label_list(
             doc = "list of .o files that go with .cmx files",
             allow_files = True
         ),
-        cmxa = attr.label_list(allow_files = True),
-        arfiles =  attr.label_list(
+        afiles =  attr.label_list(
             doc = "list of .a files that go with .cmxa files",
             allow_files = True
         ),
-        cma  = attr.label_list(allow_files = True),
-        cmxs = attr.label_list(allow_files = True),
+        stublibs = attr.label_list(
+            doc = "C archive files (.a) for integrating OCaml and C libs",
+            allow_files = True,
+            providers = [CcInfo],
+        ),
+        vmlibs   = attr.label_list(
+            doc = "Dynamically-loadable, for ocamlrun. Standard naming is 'dll<name>_stubs.so' or 'dll<name>.so'.",
+            allow_files = [".so"]
+        ),
+        cmt  = attr.label_list(allow_files = True),
+        cmti = attr.label_list(allow_files = True),
         srcs = attr.label_list(allow_files = True),
 
         all = attr.label_list(

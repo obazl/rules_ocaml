@@ -17,15 +17,12 @@ def _ocaml_module(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    print("TC: %s" % tc.name)
-    print("COMPILER: %s" % tc.compiler)
-
     return impl_module(ctx, tc.emitting, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")
 rule_options.update(options_module("ocaml"))
-rule_options.update(options_ns_opts("ocaml"))
+# rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
 ####################

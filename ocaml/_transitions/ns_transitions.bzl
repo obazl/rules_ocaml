@@ -12,7 +12,9 @@ load("//ocaml/_functions:module_naming.bzl",
 def print_config_state(settings, attr):
     print("CONFIG State:")
     print("  rule name: %s" % attr.name)
-    # print("  ns: %s" % settings["@rules_ocaml//cfg/ns:resolver"])
+    # print("  rule x: %s" % attr.transitive_configsx)
+    print("  attr.resolver: %s" % attr.resolver)
+    # print("  ns: %s" % settings["@"])
     print("  ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
     print("  ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
     print("/CONFIG State")
@@ -80,20 +82,19 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     if debug:
         print("")
         print(">>> " + transition)
-        print_config_state(settings, attr)
-
-    # if attr.name.startswith("#"):
-    #     nslib_submod = True
-    # else:
-    #     nslib_submod = False
+        # print_config_state(settings, attr)
 
     nslib_name = normalize_module_name(attr.name)
+    # ns attribute overrides default derived from rule name
     if hasattr(attr, "ns"):
         if attr.ns:
             nslib_name = normalize_module_name(attr.ns)
+
     ns_prefixes = []
     ns_prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
+    # print("X ns_prefixes: %s" % ns_prefixes)
     ns_submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+    # print("X ns_submodules: %s" % ns_submodules)
 
     ## convert submodules label list to module name list
     attr_submodules = []
@@ -122,6 +123,12 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     # else:
         ## this is an ns lib submodule of a parent nslib
         ## no changes to ConfigState
+
+    # user-defined resolver in attr.resolver overrides ns name
+    if attr.resolver:
+        ns_name = capitalize_initial_char(attr.resolver.name)
+        print("RESOLVER name: %s" % ns_name)
+        ns_prefixes = [ns_name]
 
     if debug:
         print(" setting ConfigState:")
@@ -156,6 +163,8 @@ ocaml_nslib_main_out_transition = transition(
 ################
 def _ocaml_nslib_submodules_out_transition_impl(settings, attr):
     # print("_ocaml_nslib_submodules_out_transition_impl %s" % attr.name)
+
+    ## NB: not affected by user-defined resolver in attr.resolver
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_submodules_out_transition", settings, attr)
 
 ocaml_nslib_submodules_out_transition = transition(
@@ -170,7 +179,30 @@ ocaml_nslib_submodules_out_transition = transition(
     ]
 )
 
-################################################################
+################
+## called on HIDDEN nslib._ns_resolver
+def _ocaml_nslib_resolver_out_transition_impl(settings, attr):
+    # print("_ocaml_nslib_resolver_out_transition_impl %s" % attr.name)
+
+    ## if user explicitly provides 'resolver' attrib then cancel this;
+    ## renaming of submodules not affected.
+    # if attr.resolver:
+    #     return {}
+    # else:
+    return _ocaml_nslib_out_transition_impl("ocaml_nslib_resolver_out_transition", settings, attr)
+
+ocaml_nslib_resolver_out_transition = transition(
+    implementation = _ocaml_nslib_resolver_out_transition_impl,
+    inputs = [
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
+    ],
+    outputs = [
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
+    ]
+)
+
 ################################################################
 
 ################

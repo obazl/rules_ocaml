@@ -36,6 +36,19 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     #     for f in ns_resolver:
     #         print("_ns_resolver f: %s" % f.path)
 
+    sigs_direct   = []
+    sigs_indirect = []
+    structs_direct   = []
+    structs_indirect = []
+    ofiles_direct   = [] # never? ofiles only come from deps
+    ofiles_indirect = []
+    astructs_direct = []
+    astructs_indirect = []
+    afiles_direct   = []
+    afiles_indirect = []
+    archives_direct = []
+    archives_indirect = []
+
     ################################
     ####  call impl_ns_library  ####
     # FIXME: improve the return vals handling
@@ -46,11 +59,11 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     # print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
 
     libOcamlProvider = lib_providers[1]
-    if debug:
+    # if debug:
         # print("libOcamlProvider.inputs type: %s" % type(libOcamlProvider.inputs))
         # print("libOcamlProvider.linkargs: %s" % libOcamlProvider.linkargs)
-        print("libOcamlProvider.cdeps: %s" % libOcamlProvider.cdeps)
-        print("libOcamlProvider.ldeps: %s" % libOcamlProvider.ldeps)
+        # print("libOcamlProvider.cdeps: %s" % libOcamlProvider.cdeps)
+        # print("libOcamlProvider.ldeps: %s" % libOcamlProvider.ldeps)
         # print("libOcamlProvider.paths type: %s" % type(libOcamlProvider.paths))
         # print("libOcamlProvider.ns_resolver: %s" % libOcamlProvider.ns_resolver)
 
@@ -304,8 +317,28 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
         fileset = libOcamlProvider.fileset,
         inputs   = new_inputs_depset,
         linkargs = linkargs_depset,
-        cdeps    = libOcamlProvider.cdeps,
-        ldeps    = libOcamlProvider.ldeps,
+        # cdeps    = libOcamlProvider.cdeps,
+        # ldeps    = libOcamlProvider.ldeps,
+
+        sigs   = depset(order=dsorder,
+                          direct=sigs_direct,
+                          transitive=sigs_indirect),
+        structs   = depset(order=dsorder,
+                          direct=structs_direct,
+                          transitive=structs_indirect),
+        ofiles   = depset(order=dsorder,
+                          direct=ofiles_direct,
+                          transitive=ofiles_indirect),
+        archives   = depset(order=dsorder,
+                          direct=archives_direct,
+                          transitive=archives_indirect),
+        afiles   = depset(order=dsorder,
+                           direct=afiles_direct,
+                           transitive=afiles_indirect),
+        astructs   = depset(order=dsorder,
+                           direct=astructs_direct,
+                           transitive=astructs_indirect),
+
         paths    = paths_depset,
     )
 
@@ -324,8 +357,8 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
         # resolver = ns_resolver,
         ppx_codeps = ppx_codeps_depset,
         linkargs = linkargs_depset,
-        cdeps    = libOcamlProvider.cdeps,
-        ldeps    = libOcamlProvider.ldeps,
+        # cdeps    = libOcamlProvider.cdeps,
+        # ldeps    = libOcamlProvider.ldeps,
         all = depset(transitive=[
             new_inputs_depset,
             ppx_codeps_depset,

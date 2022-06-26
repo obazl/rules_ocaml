@@ -508,7 +508,7 @@ def _install_opam_symlinks(repo_ctx, opam_root, opam_switch_prefix):
     # repo_ctx.symlink(opam_switch_prefix + "/lib/ctypes", "lib/ctypes/api")
     # repo_ctx.symlink(opam_switch_prefix + "/lib/integers", "csdk/integers/api")
 
-    repo_ctx.symlink(opam_switch_prefix + "/lib/stublibs", "runtime")
+    repo_ctx.symlink(opam_switch_prefix + "/lib/cclibs", "runtime")
 
 ###############################
 def _is_pkg_installed(repo_ctx, pkg, opam_switch):

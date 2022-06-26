@@ -16,7 +16,7 @@ load(":impl_library.bzl", "impl_library")
 load(":options.bzl",
      "options",
      "options_ns_opts",
-     "options_ns_library")
+     "options_ns_aggregators")
 
 ###############################
 def _ocaml_ns_library(ctx):
@@ -27,9 +27,8 @@ def _ocaml_ns_library(ctx):
 
 ################################
 rule_options = options("ocaml")
-rule_options.update(options_ns_opts("ocaml"))
-rule_options.update(options_ns_library("ocaml"))
-# rule_options.update(options_ppx)
+rule_options.update(options_ns_aggregators())
+# rule_options.update(options_ns_opts("ocaml"))
 
 ################
 ocaml_ns_library = rule(

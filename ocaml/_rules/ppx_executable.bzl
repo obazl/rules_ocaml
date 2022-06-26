@@ -43,7 +43,7 @@ ppx_executable = rule(
             doc = "Name for output executable file.  Overrides 'name' attribute."
         ),
 
-        bin = attr.label(
+        bin = attr.label( # 'import' would be better but it's a keyword
             doc = "Precompiled ppx executable",
             allow_single_file = True,
         ),
@@ -58,10 +58,6 @@ ppx_executable = rule(
             # cfg = ocaml_executable_deps_out_transition
         ),
         # finalizer = attr.label(),
-
-        _stublibs = attr.label_list(
-            default = ["@stublibs//:stublibs"]
-        ),
 
         # FIXME: no need for ppx attrib on ppx_executable?
         # (since no source files)
@@ -132,7 +128,7 @@ ppx_executable = rule(
 
     ),
     # cfg     = executable_in_transition,
-    # provides = [DefaultInfo, PpxExecutableMarker],
+    provides = [DefaultInfo, PpxExecutableMarker],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = ["@rules_ocaml//toolchain:type"],

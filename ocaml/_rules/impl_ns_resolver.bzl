@@ -32,13 +32,14 @@ workdir = tmpdir
 def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     debug = False
-    # if ctx.label.name == "":
-    #     debug = True
+
+    ## if resolver is user-provided, then this should immediately
+    ## return a null result
 
     if debug:
         print("")
-        print("Start: IMPL_NS %s" % ctx.label.name)
-        print("LABEL: %s" % ctx.label)
+        print("ocaml_ns_resolver")
+        print("  %s" % ctx.label)
         print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
@@ -72,7 +73,7 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     action_outputs = []  ## .cmx, .cmi, .o
     rule_outputs = [] # excludes .cmi
 
-    out_cm_ = None
+    out_struct = None
     out_cmi = None
 
     aliases = []
@@ -83,13 +84,29 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         # ns_prefixes = [ctx.label.name]
         ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
-    # print("label: %s" % ctx.label)
-    # print("ctx.attr.ns: %s" % ctx.attr.ns)
-    # print("ctx.attr._ns_prefixes: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
-    # print("NS_PREFIXES: %s" % ns_prefixes)
+    if debug:
+        print("ctx.attr.ns: %s" % ctx.attr.ns)
+        print("ctx.attr._ns_prefixes: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
+        print("NS_PREFIXES: %s" % ns_prefixes)
+
+    sigs_primary   = []
+    sigs_secondary = []
+    structs_primary   = []
+    structs_secondary = []
+    ofiles_primary   = [] # never? ofiles only come from deps
+    ofiles_secondary = []
+    astructs_primary = []
+    astructs_secondary = []
+    afiles_primary   = []
+    afiles_secondary = []
+    archives_primary = []
+    archives_secondary = []
+    cclibs_primary = []
+    cclibs_secondary = []
 
     user_ns_resolver = None
 
+    if debug: print("iterating submodules")
     for submod_label in subnames:  # e.g. [Color, Red, Green, Blue], where main = Color
         if debug: print("submod_label: %s" % submod_label)
         # NB: //a/b:c will be normalized to C
@@ -142,6 +159,9 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         )
         aliases.append(alias)
 
+    if debug: print("finished iterating submodules")
+
+    if debug: print("iterating includes")
     ## include specific exogenous (sub)modules, namespaced or not
     for k,v in ctx.attr.include.items():
         ## WARNING: check for namespacing first
@@ -164,7 +184,9 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
                 mod = normalize_module_name(k.label.name)
             )
             aliases.append(alias)
+    if debug: print("finished iterating includes")
 
+    if debug: print("iterating embeds")
     # embed exogenous namespace (not its submodules)
     for k,v in ctx.attr.embed.items():
         if debug:
@@ -179,7 +201,9 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
                 mod = resolver.ns_name
             )
             aliases.append(alias)
+    if debug: print("finished iterating embeds")
 
+    if debug: print("iterating merges")
     # import ALL submodules from exogenous namespaces
     for f in ctx.attr.merge:
         if debug: print("IMPORT: {}".format(f))
@@ -194,10 +218,12 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
                     mod = submod
                 )
                 aliases.append(alias)
-
-    if debug: print("aliases: %s" % aliases)
+    if debug: print("finished iterating merges")
 
     ns_name = module_sep.join(ns_prefixes)
+    if debug: print("ns_name: %s" % ns_name)
+    if debug: print("aliases: %s" % aliases)
+
 
     ################################################################
     ## user-provided resolver
@@ -241,8 +267,9 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     # do not generate a resolver module unless we have at least one alias
     if len(aliases) < 1:
-        # print("NO ALIASES: %s" % ctx.label)
+        if debug: print("NO ALIASES: %s" % ctx.label)
         return [DefaultInfo(),
+                OcamlProvider(),
                 OcamlNsResolverProvider(ns_name = ns_name)]
 
     resolver_src_filename = resolver_module_name + ".ml"
@@ -263,19 +290,20 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     out_cmi = ctx.actions.declare_file(workdir + out_cmi_fname)
     action_outputs.append(out_cmi)
 
+    out_ofile = None
     if mode == "native":
-        obj_o_fname = resolver_module_name + ".o"
-        obj_o = ctx.actions.declare_file(workdir + obj_o_fname)
-        action_outputs.append(obj_o)
-        # rule_outputs.append(obj_o)
-        out_cm__fname = resolver_module_name + ".cmx"
+        out_ofile_fname = resolver_module_name + ".o"
+        out_ofile = ctx.actions.declare_file(workdir + out_ofile_fname)
+        action_outputs.append(out_ofile)
+        # rule_outputs.append(out_ofile)
+        out_struct_fname = resolver_module_name + ".cmx"
     else:
-        out_cm__fname = resolver_module_name + ".cmo"
+        out_struct_fname = resolver_module_name + ".cmo"
 
-    out_cm_ = ctx.actions.declare_file(workdir + out_cm__fname)
-    action_outputs.append(out_cm_)
-    default_outputs.append(out_cm_)
-    # rule_outputs.append(out_cm_)
+    out_struct = ctx.actions.declare_file(workdir + out_struct_fname)
+    action_outputs.append(out_struct)
+    default_outputs.append(out_struct)
+    # rule_outputs.append(out_struct)
 
     ################################
     args = ctx.actions.args()
@@ -309,12 +337,12 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     args.add("-c")
 
-    args.add("-o", out_cm_)
+    args.add("-o", out_struct)
 
     args.add("-impl")
     args.add(resolver_src_file.path)
 
-    inputs_depset = depset(
+    action_inputs_depset = depset(
         direct = action_inputs,
         transitive = merge_depsets
     )
@@ -324,7 +352,7 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         # env = env,
         executable = tool,
         arguments = [args],
-        inputs = inputs_depset,
+        inputs = action_inputs_depset,
         outputs = action_outputs,
         tools = [tool] + tool_args,
         mnemonic = "OcamlNsResolverAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsResolverAction",
@@ -346,38 +374,41 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     nsResolverProvider = OcamlNsResolverProvider(
         # provide src for output group, for easy reference
-        resolver_file = resolver_src_file,
-        submodules = subnames,
-        resolver = resolver_module_name,
-        prefixes   = ns_prefixes,
-        ns_name    = ns_name
+        resolver_src = resolver_src_file,
+        submodules   = subnames,
+        module_name  = resolver_module_name,
+        prefixes     = ns_prefixes,
+        ns_name      = ns_name,
+        cmi          = out_cmi,
+        struct       = out_struct,
+        ofile        = out_ofile if out_ofile else None
     )
 
-    new_cdeps_depset = depset(
-        order = dsorder,
-        direct = # [inputs_depset]
-        action_outputs
-        # + ns_resolver_files
-        # + ctx.files.deps_runtime,
-        # transitive = # cdeps_depsets
-        # indirect_ppx_codep_depsets
-        # + ns_deps
-        # + bottomup_ns_inputs
-    )
+    # new_cdeps_depset = depset(
+    #     order = dsorder,
+    #     direct = # [action_inputs_depset]
+    #     action_outputs
+    #     # + ns_resolver_files
+    #     # + ctx.files.deps_runtime,
+    #     # transitive = # cdeps_depsets
+    #     # indirect_ppx_codep_depsets
+    #     # + ns_deps
+    #     # + bottomup_ns_inputs
+    # )
 
-    new_ldeps_depset = depset(
-        order = dsorder,
-        direct = #[inputs_depset]
-        action_outputs
-        # + ns_resolver_files
-        # + ctx.files.deps_runtime,
-        # transitive = # ldeps_depsets ## cdeps_depsets
-        # indirect_ppx_codep_depsets
-        # + ns_deps
-        # + bottomup_ns_inputs
-    )
+    # new_ldeps_depset = depset(
+    #     order = dsorder,
+    #     direct = #[action_inputs_depset]
+    #     action_outputs
+    #     # + ns_resolver_files
+    #     # + ctx.files.deps_runtime,
+    #     # transitive = # ldeps_depsets ## cdeps_depsets
+    #     # indirect_ppx_codep_depsets
+    #     # + ns_deps
+    #     # + bottomup_ns_inputs
+    # )
 
-    linkset    = depset(direct = [out_cm_])
+    linkset    = depset(direct = [out_struct])
 
     fileset_depset = depset(direct=action_outputs)
 
@@ -385,21 +416,49 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         direct = action_outputs
     )
 
+    sigs_depset    = depset(order=dsorder,
+                             direct=[out_cmi], # sigs_primary,
+                             transitive=sigs_secondary)
+    structs_depset = depset(order=dsorder,
+                            direct=[out_struct],  ## structs_primary,
+                            transitive=structs_secondary)
+    ofiles_depset  = depset(order=dsorder,
+                            direct=[out_ofile] if out_ofile else [],
+                            transitive=ofiles_secondary)
+
     ocamlProvider = OcamlProvider(
-        cmi      = depset(direct = [out_cmi]),
-        fileset  = fileset_depset,
-        linkargs = linkset,
-        cdeps    = new_cdeps_depset,
-        ldeps    = new_ldeps_depset,
-        inputs   = closure_depset, ## inputs_depset,
+        # cmi      = depset(direct = [out_cmi]),
+        cmi      = out_cmi,
+        # fileset  = fileset_depset,
+        # linkargs = linkset,
+        # cdeps    = new_cdeps_depset,
+        # ldeps    = new_ldeps_depset,
+        # inputs   = closure_depset, ## action_inputs_depset,
+
+        sigs     = sigs_depset,
+        structs  = structs_depset,
+        ofiles   = ofiles_depset,
+        archives   = depset(order=dsorder,
+                          direct=archives_primary,
+                          transitive=archives_secondary),
+        afiles   = depset(order=dsorder,
+                           direct=afiles_primary,
+                           transitive=afiles_secondary),
+        astructs   = depset(order=dsorder,
+                           direct=astructs_primary,
+                           transitive=astructs_secondary),
+        cclibs   = depset(order=dsorder,
+                           direct=cclibs_primary,
+                           transitive=cclibs_secondary),
+
         paths    = depset(direct = [out_cmi.dirname]),
     )
 
     outputGroupInfo = OutputGroupInfo(
         cmi        = depset(direct=[out_cmi]),
-        fileset    = fileset_depset,
+        # fileset    = fileset_depset,
         # linkset    = linkset,
-        inputs = inputs_depset,
+        inputs = action_inputs_depset,
         # all = depset(
         #     order = dsorder,
         #     transitive=[
@@ -411,11 +470,12 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         # )
     )
 
-    # print("resolver provider: %s" % ocamlProvider)
+    if debug: print("resolver provider: %s" % ocamlProvider)
 
     return [
         defaultInfo,
         nsResolverProvider,
+        OcamlModuleMarker(marker="OcamlModule"),
         ocamlProvider,
         outputGroupInfo
     ]

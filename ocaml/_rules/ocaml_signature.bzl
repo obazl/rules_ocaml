@@ -53,10 +53,101 @@ load(":impl_common.bzl",
 
 workdir = tmpdir
 
+################
+def _handle_ns_deps(ctx):
+    debug    = True
+    debug_ns = True
+
+    if debug: print("_handle_ns_deps ****************")
+
+    path_list = []
+
+    ## renaming and ppx already handled we need: ns name for '-open
+    ## <nsname>', deps for action inputs and target outputs.
+
+    ## the resolver will be in one of two places:
+    ##   ctx.attr._ns_resolver (topdown) default "@rules_ocaml//cfg/ns:resolver",
+    ##   ctx.attr.ns_resolver  (bottomup) - defaults to None
+
+    ## _ns_resolver is always present since it has a default value
+
+    ns_enabled = False
+    nsrp       = None  # OcamlNsResolverProvider
+    nsop       = None  # ns resolver OcamlProvider
+    ns_name    = None
+    path_list  = []
+
+    if ctx.attr.ns_resolver:
+        if debug_ns: print("BOTTOMUP NS")
+        ns_enabled = True
+        ## topdown (hidden) resolver
+        nsrp = ctx.attr.ns_resolver[OcamlNsResolverProvider]
+        nsop = ctx.attr.ns_resolver[OcamlProvider]
+        print("_NS_RESOLVER: %s" % nsrp)
+        if hasattr(nsrp, "ns_name"):
+            ns_name = nsrp.ns_name
+            if debug_ns:
+                print("TOP DOWN ns name: %s" % ns_name)
+
+    elif ctx.attr._ns_resolver:
+        nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+        nsop = ctx.attr._ns_resolver[OcamlProvider]
+        if nsrp.ns_name:
+            ns_name = nsrp.ns_name
+            if debug_ns: print("TOPDOWN, ns name: %s" % ns_name)
+            ns_enabled = True
+        else:
+            if debug_ns: print("NOT NAMEPACED - exiting _handle_ns_deps")
+            return None
+
+    ## DEPS
+    ## ns resolvers have no deps
+    ## however a user-defined resolver may have deps. sigh.
+    ## so we need all six dep classes: sig, struct, ofile, archive, etc.
+    ns_cmi             = None
+    ns_struct          = None
+    ns_ofile           = None
+
+    sigs_secondary     = []
+    structs_secondary  = []
+    ofiles_secondary   = []
+    astructs_secondary = []
+    afiles_secondary   = []
+    archives_secondary = []
+    cclibs_secondary = []
+
+    if debug_ns: print("collecting ns deps")
+
+    ns_cmi    = nsrp.cmi
+    ns_struct = nsrp.struct
+    ns_ofile  = nsrp.ofile
+    sigs_secondary.append(nsop.sigs)
+    structs_secondary.append(nsop.structs)
+    ofiles_secondary.append(nsop.ofiles)
+    archives_secondary.append(nsop.archives)
+    afiles_secondary.append(nsop.afiles)
+    astructs_secondary.append(nsop.astructs)
+    cclibs_secondary.append(nsop.cclibs)
+    path_list.append(nsop.paths)
+
+    if debug_ns: print("**************** exiting _handle_ns_deps")
+
+    return (ns_enabled, ns_name, ns_cmi, ns_struct, ns_ofile,
+            sigs_secondary, structs_secondary, ofiles_secondary,
+            archives_secondary, afiles_secondary, astructs_secondary,
+            cclibs_secondary, path_list)
+
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
 
-    debug = False
+    debug      = False
+    debug_deps = False
+    debug_ns   = False
+    debug_ppx  = True
+    debug_sig  = False
+    debug_xmo  = False
+
+
     # if ctx.label.name in ["_Impl.cmi"]:
     #     debug = True
 
@@ -95,10 +186,8 @@ def _ocaml_signature_impl(ctx):
 
     # (from_name, module_name) = get_module_name(ctx, sig_src)
 
-    if debug: print("ctx.attr.ppx: %s" % ctx.attr.ppx)
-
     if ctx.attr.ppx:
-        if debug: print("ppx")
+        if debug_ppx: print("ppxing sig")
         ## work_mli output is generated output of ppx processing
         work_mli = impl_ppx_transform("ocaml_signature", ctx,
                                       ctx.file.src, ## sig_src,
@@ -172,11 +261,13 @@ def _ocaml_signature_impl(ctx):
     #########################
     args = ctx.actions.args()
 
-    opaque = False
-
     _options = get_options(rule, ctx)
     if "-opaque" in _options:
-        opaque = True
+        xmo = False
+    elif "-no-opaque" in _options:
+        xmo = True
+    else:
+        xmo = ctx.attr._xmo
 
     args.add_all(_options)
 
@@ -195,10 +286,10 @@ def _ocaml_signature_impl(ctx):
 
     includes.append(out_cmi.dirname)
 
-    args.add_all(includes, before_each="-I", uniquify = True)
+    # args.add_all(includes, before_each="-I", uniquify = True)
 
-    # paths_direct   = []
-    # paths_indirect = []
+    # paths_primary   = []
+    # paths_secondary = []
     # all_deps_list = []
     # direct_deps_list = []
     # archive_deps_list = []
@@ -208,23 +299,81 @@ def _ocaml_signature_impl(ctx):
 
     #### INDIRECT DEPS first ####
     # these direct deps are "indirect" from the perspective of the consumer
-    indirect_inputs_depsets = []
-    indirect_linkargs_depsets = []
+    # indirect_inputs_depsets = []
+    # indirect_linkargs_depsets = []
     indirect_paths_depsets = []
 
-    ccInfo_list = []
+    ccInfo_list            = []
+
+    sigs_primary           = []
+    sigs_secondary         = []
+    structs_primary        = []
+    structs_secondary      = []
+    ofiles_primary         = [] # never? ofiles only come from deps
+    ofiles_secondary       = []
+    astructs_primary       = []
+    astructs_secondary     = []
+    afiles_primary         = []
+    afiles_secondary       = []
+    archives_primary       = []
+    archives_secondary     = []
+    cclibs_primary       = []
+    cclibs_secondary     = []
+    path_depsets           = []
 
     the_deps = ctx.attr.deps + ctx.attr.open
     for dep in the_deps:
 
         if OcamlProvider in dep:
-            indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
-            indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
+            # indirect_inputs_depsets.append(dep[OcamlProvider].inputs)
+            # indirect_linkargs_depsets.append(dep[OcamlProvider].linkargs)
             indirect_paths_depsets.append(dep[OcamlProvider].paths)
 
+            ## xmo-independent logic
+            sigs_secondary.append(dep[OcamlProvider].sigs)
+            structs_secondary.append(dep[OcamlProvider].structs)
+            ofiles_secondary.append(dep[OcamlProvider].ofiles)
+            archives_secondary.append(dep[OcamlProvider].archives)
+            afiles_secondary.append(dep[OcamlProvider].afiles)
+            astructs_secondary.append(dep[OcamlProvider].astructs)
+            cclibs_secondary.append(dep[OcamlProvider].cclibs)
+            path_depsets.append(dep[OcamlProvider].paths)
 
         if CcInfo in dep:
             ccInfo_list.append(dep[CcInfo])
+
+    ns_enabled = False
+    ns_name    = None
+    ns_cmi    = None
+    ns_struct = None
+    ns_ofile  = None
+
+    if ctx.attr.ns_resolver:
+        ns_enabled = True
+    elif ctx.attr._ns_resolver:
+        nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+        if nsrp.ns_name:
+            ns_enabled = True
+
+    ns_path_depsets = []
+    if ns_enabled:
+        (ns_enabled, ns_name,
+         ns_cmi, ns_struct, ns_ofile,
+         nssigs_secondary, nsstructs_secondary, nsofiles_secondary,
+         nsarchives_secondary, nsafiles_secondary, nsastructs_secondary,
+         nscclibs_secondary,
+         ns_path_depsets) = _handle_ns_deps(ctx)
+
+        sigs_secondary.extend(nssigs_secondary)
+        structs_secondary.extend(nsstructs_secondary)
+        ofiles_secondary.extend(nsofiles_secondary)
+        astructs_secondary.extend(nsastructs_secondary)
+        afiles_secondary.extend(afiles_secondary)
+        archives_secondary.extend(archives_secondary)
+        cclibs_secondary.extend(nscclibs_secondary)
+        path_depsets.extend(ns_path_depsets)
+
+
 
     # print("SIGARCHDL: %s" % archive_deps_list)
     ################ PPX Adjunct Deps ################
@@ -251,31 +400,25 @@ def _ocaml_signature_impl(ctx):
     paths_depset  = depset(
         order = dsorder,
         direct = [out_cmi.dirname],
-        transitive = indirect_paths_depsets
+        transitive = path_depsets + indirect_paths_depsets
     )
 
     args.add_all(paths_depset.to_list(), before_each="-I")
 
-    ## FIXME: do we need the resolver for sigfiles?
     # for f in ctx.files._ns_resolver:
     #     if f.extension == "cmx":
     #         args.add("-I", f.dirname) ## REQUIRED, even if cmx has full path
     #         args.add(f.path)
 
-    if OcamlProvider in ctx.attr._ns_resolver:
-        ns_resolver_depset = [ctx.attr._ns_resolver[OcamlProvider].inputs]
-    else:
-        ns_resolver_depset = []
+    # if OcamlProvider in ctx.attr._ns_resolver:
+    #     ns_resolver_depset = [ctx.attr._ns_resolver[OcamlProvider].inputs]
+    # else:
+    #     ns_resolver_depset = []
 
-    if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
-        ## this will only be the case if this is a submodule of an nslib
-        # if OcamlProvider in ctx.attr._ns_resolver:
-        for f in ctx.attr._ns_resolver[DefaultInfo].files.to_list():
-            args.add("-I", f.dirname)
-            args.add(f)
-
+    if ns_enabled:
         args.add("-no-alias-deps")
-        args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
+        args.add("-open", ns_name)
+ # ctx.attr._ns_resolver[OcamlNsResolverProvider].ns_name)
 
     if ctx.attr.open:
         for dep in ctx.files.open:
@@ -286,18 +429,46 @@ def _ocaml_signature_impl(ctx):
 
     args.add("-intf", work_mli)
 
-    inputs_depset = depset(
+    # inputs_depset = depset(
+    #     order = dsorder,
+    #     direct = [work_mli], # + ctx.files._ns_resolver,
+    #     transitive = indirect_inputs_depsets + ns_resolver_depset
+    # )
+    action_inputs_depset = depset(
         order = dsorder,
-        direct = [work_mli], # + ctx.files._ns_resolver,
-        transitive = indirect_inputs_depsets + ns_resolver_depset
+        direct = [work_mli]
+        + archives_primary
+        + afiles_primary
+        + astructs_primary,
+        # + ns_resolver_files
+        # + ctx.files.deps_runtime,
+        transitive = # sigs_depsets
+         # indirect_ppx_codep_depsets
+        # + [ppx_codep_structset]
+        # + [depset(direct=archives)]
+         # ns_deps
+        structs_secondary
+        + ofiles_secondary
+        + archives_secondary
+        + afiles_secondary
+        + astructs_secondary
+        + sigs_secondary
+        + cclibs_secondary
+        # + bottomup_ns_inputs
     )
+    # if ctx.label.name in ["Red_cmi"]:
+    #     print("SIGACTION INPUTS: %s" % ctx.label)
+    #     for dep in action_inputs_depset.to_list():
+    #         print("IDEP: %s" % dep.path)
+    # #         # args.add("-I", dep.short_path)
+    #         args.add("-I", dep.dirname)
 
     ################
     ctx.actions.run(
         # env = env,
         executable = tc.compiler,
         arguments = [args],
-        inputs = inputs_depset,
+        inputs = action_inputs_depset,
         outputs = [out_cmi],
         tools = [tc.ocamlopt],
         mnemonic = "CompileOcamlSignature",
@@ -322,23 +493,49 @@ def _ocaml_signature_impl(ctx):
     sigProvider = OcamlSignatureProvider(
         mli = work_mli,
         cmi = out_cmi,
-        opaque = True if opaque else False
+        xmo = True if xmo else False
     )
 
-    new_inputs_depset = depset(
+    # new_inputs_depset = depset(
+    #     direct = [out_cmi],
+    #     transitive = indirect_inputs_depsets
+    # )
+    # linkargs_depset = depset(
+    #     # cmi file does not go in linkargs
+    #     transitive = indirect_linkargs_depsets
+    # )
+
+    sigs_depset = depset(
+        order = dsorder,
         direct = [out_cmi],
-        transitive = indirect_inputs_depsets
+        transitive = sigs_secondary
     )
-    linkargs_depset = depset(
-        # cmi file does not go in linkargs
-        transitive = indirect_linkargs_depsets
+    structs_depset = depset(
+        order = dsorder,
+        transitive = structs_secondary
     )
+    ofiles_depset   = depset(order=dsorder,
+                           transitive=ofiles_secondary)
+    archives_depset = depset(order=dsorder,
+                             transitive=archives_secondary)
+    afiles_depset   = depset(order=dsorder,
+                            transitive=afiles_secondary)
+    astructs_depset = depset(order=dsorder,
+                              transitive=astructs_secondary)
+    cclibs_depset = depset(order=dsorder,
+                             transitive=cclibs_secondary)
 
-    ocamlProvider = OcamlProvider(
-        inputs   = new_inputs_depset,
-        linkargs = linkargs_depset,
-        paths    = paths_depset,
-
+    ocamlProvider  = OcamlProvider(
+        # inputs   = new_inputs_depset,
+        # linkargs = linkargs_depset,
+        sigs       = sigs_depset,
+        structs    = structs_depset,
+        ofiles     = ofiles_depset,
+        archives   = archives_depset,
+        afiles     = afiles_depset,
+        astructs   = astructs_depset,
+        cclibs   = cclibs_depset,
+        paths      = paths_depset,
     )
 
     providers = [
@@ -372,7 +569,7 @@ def _ocaml_signature_impl(ctx):
 ################################
 rule_options = options("ocaml")
 rule_options.update(options_signature)
-rule_options.update(options_ns_opts("ocaml"))
+# rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
 #######################
@@ -466,9 +663,9 @@ the difference between '/' and ':' in such labels):
             doc = "Set module (sig) name to this string"
         ),
 
-        opaque = attr.bool(
-            doc = "Compile with -opaque if true",
-            default = False
+        xmo = attr.bool(
+            doc = "Cross-module optimization. If false, compile with -opaque",
+            default = True
         ),
 
         _rule = attr.string( default = "ocaml_signature" ),

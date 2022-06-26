@@ -55,12 +55,10 @@ def _import_ppx_executable(ctx):
 #########################
 def impl_executable(ctx, mode, tc, tool, tool_args):
 
-    debug = True
-    debug_ppx = False
-    # if ctx.label.name == "test":
-        # debug = True
+    debug =     False
+    debug_ppx = True
 
-    if debug:
+    if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
             kind = ctx.attr._rule,
             tgt  = ctx.label.name
@@ -68,6 +66,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
     if hasattr(ctx.attr, "bin"):
         if ctx.attr.bin:
+            if debug_ppx: print("importing precompiled ppx executable: %s" % ctx,attr.bin)
+            ## precompiled executable
             return _import_ppx_executable(ctx)
 
     if mode == "native":
@@ -79,6 +79,46 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #     "PATH": get_sdkpath(ctx),
     # }
 
+    # direct file deps of this target
+    # we don't use the directs but we need the data type instead of None
+    sigs_primary             = []
+    structs_primary          = []
+    ofiles_primary           = []  # .o files
+    archives_primary         = []
+    afiles_primary           = []  # .a files
+    astructs_primary         = []
+    # cclibs_primary         = []
+    cmts_primary             = []
+    paths_primary   = []
+
+    # depsets from 'deps' attribute:
+    sigs_secondary           = []
+    structs_secondary        = []
+    ofiles_secondary         = []  # .o files
+    archives_secondary       = []
+    afiles_secondary         = []  # .a files
+    astructs_secondary       = []
+    # cclibs_secondary       = []
+    paths_secondary = []
+
+    codep_sigs_primary       = []
+    codep_structs_primary    = []
+    codep_ofiles_primary     = []
+    codep_archives_primary   = []
+    codep_afiles_primary     = []
+    codep_astructs_primary   = []
+    # codep_cclibs_primary   = []
+    codep_paths_primary      = []
+
+    codep_sigs_secondary     = []
+    codep_structs_secondary  = []
+    codep_ofiles_secondary   = []
+    codep_archives_secondary = []
+    codep_afiles_secondary   = []
+    codep_astructs_secondary = []
+    # codep_cclibs_secondary = []
+    codep_paths_secondary    = []
+
     ################
     direct_cc_deps    = {}
     direct_cc_deps.update(ctx.attr.cc_deps)
@@ -86,8 +126,6 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
     ################
     includes   = []
-    dllpaths   = []
-    cmxa_args  = []
 
     out_exe = ctx.actions.declare_file(ctx.label.name)
 
@@ -97,26 +135,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     args.add_all(tool_args)
 
     if "ppx" in ctx.attr.tags:
-        print("PPX XXXXXXXXXXXXXXXX");
-
-    if mode == "bytecode":
-        if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
-            ## FIXME: get stublibs from toolchain?
-            # if hasattr(ctx.attr, "_stublibs"):
-            #     for x in ctx.files._stublibs:
-            #         includes.append(x.dirname)
-            #         ## FIXME: get correct path, or set CAML_LD_LIBRARY_PATH
-            #         dllpaths.append(x.dirname)
-            #         # dllpaths.append("/private/var/tmp/_bazel_gar/2452f4a294f2c90cde5ca0e06629a4e9/" + x.dirname)
-
-            # for stublib in tc.stublibs:
-            #     print("STUBLIB: %s" % stublib)
-
-            # if ctx.attr._rule == "ppx_executable":
-            ## FIXME: OR: ctx.attr.cc_linkstatic ???
-            ## see section 20.1.3 at https://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#s%3Ac-overview
-            ## and https://ocaml.org/manual/runtime.html
-                args.add("-custom")
+        print("PPX in tags XXXXXXXXXXXXXXXX");
 
     _options = get_options(rule, ctx)
     # print("OPTIONS: %s" % _options)
@@ -130,42 +149,40 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
                    ####    DEPENDENCIES    ####
     ################################################################
     # main_deps_list = []
-    paths_direct   = []
-    paths_indirect = []
 
-    direct_ppx_codep_depsets = []
-    direct_ppx_codep_depsets_paths = []
-    indirect_ppx_codep_depsets      = []
-    indirect_ppx_codep_depsets_paths = []
-    ppx_codep_linksets = []
-    ppx_codep_cdeps = []
-    ppx_codep_ldeps = []
+    # direct_ppx_codep_depsets = []
+    # direct_ppx_codep_depsets_paths = []
+    # indirect_ppx_codep_depsets      = []
+    # indirect_ppx_codep_depsets_paths = []
+    # ppx_codep_linksets = []
+    # ppx_codep_cdeps = []
+    # ppx_codep_ldeps = []
 
     # direct_inputs_depsets = []
-    direct_linkargs_depsets = []
-    direct_paths_depsets = []
+    # direct_linkargs_depsets = []
+    # direct_paths_depsets = []
 
     ccInfo_list = []
 
     # sigs_depsets = []
     # structs_depsets = []
     # direct file deps of this target
-    sigs_direct             = []
-    structs_direct          = []
-    ofiles_direct           = []
-    archives_direct         = []
-    arfiles_direct           = []
-    arstructs_direct        = []
+    # sigs_primary             = []
+    # structs_primary          = []
+    # ofiles_primary           = []
+    # archives_primary         = []
+    # afiles_primary           = []
+    # astructs_primary        = []
 
-    # depsets from 'deps' attribute:
-    sigs_indirect           = []
-    structs_indirect        = []
-    ofiles_indirect         = []
-    archives_indirect       = []
-    arfiles_indirect        = []
-    arstructs_indirect      = []
+    # # depsets from 'deps' attribute:
+    # sigs_secondary           = []
+    # structs_secondary        = []
+    # ofiles_secondary         = []
+    # archives_secondary       = []
+    # afiles_secondary         = []
+    # astructs_secondary       = []
 
-    ################ INDIRECT DEPENDENCIES ################
+    ################ SECONDARY DEPENDENCIES ################
     if debug: print("iterating deps")
     for dep in ctx.attr.deps:
         if debug:
@@ -180,75 +197,104 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             ccInfo_list.append(dep[CcInfo])
 
         if OcamlProvider in dep:
-            sigs_indirect.append(dep[OcamlProvider].sigs)
-            structs_indirect.append(dep[OcamlProvider].structs)
-            ofiles_indirect.append(dep[OcamlProvider].ofiles)
-            archives_indirect.append(dep[OcamlProvider].archives)
-            arfiles_indirect.append(dep[OcamlProvider].arfiles)
-            arstructs_indirect.append(dep[OcamlProvider].arstructs)
-            # structs_depsets.append(dep[DefaultInfo].files)
+            provider = dep[OcamlProvider]
+            sigs_secondary.append(provider.sigs)
+            structs_secondary.append(provider.structs)
+            ofiles_secondary.append(provider.ofiles)
+            archives_secondary.append(provider.archives)
+            afiles_secondary.append(provider.afiles)
+            astructs_secondary.append(provider.astructs)
+            # cclibs_secondary.append(provider.cclibs)
 
-            # direct_inputs_depsets.append(dep[OcamlProvider].ldeps) # inputs)
-            direct_linkargs_depsets.append(dep[OcamlProvider].linkargs)
-            direct_paths_depsets.append(dep[OcamlProvider].paths)
 
-            direct_linkargs_depsets.append(dep[DefaultInfo].files)
+            # direct_inputs_depsets.append(provider.ldeps) # inputs)
+            # direct_linkargs_depsets.append(provider.linkargs)
+            # direct_paths_depsets.append(provider.paths)
+            paths_secondary.append(provider.paths)
+
+            # direct_linkargs_depsets.append(dep[DefaultInfo].files)
 
         ################ PpxCodepsProvider ################
         ## only for ocaml_imports listed in deps, not ppx_codeps
         if PpxCodepsProvider in dep:
+            provider = dep[PpxCodepsProvider]
             if debug_ppx:
-                print("dep[PpxCodepsProvider]: %s" % dep[PpxCodepsProvider])
-            ppxcdp = dep[PpxCodepsProvider]
-            if hasattr(ppxcdp, "ppx_codeps"):
-                if ppxcdp.ppx_codeps:
-                    indirect_ppx_codep_depsets.append(ppxcdp.ppx_codeps)
-            if hasattr(ppxcdp, "paths"):
-                if ppxcdp.paths:
-                    indirect_ppx_codep_depsets_paths.append(ppxcdp.paths)
-            if hasattr(ppxcdp, "cdeps"):
-                if ppxcdp.cdeps:
-                    ppx_codep_cdeps.append(ppxcdp.cdeps)
-            if hasattr(ppxcdp, "ldeps"):
-                if ppxcdp.ldeps:
-                    ppx_codep_ldeps.append(ppxcdp.ldeps)
+                print("PpxCodepsProvider carrier: %s" % dep)
+            # if hasattr(ppxcdp, "ppx_codeps"):
+            #     if ppxcdp.ppx_codeps:
+            #         indirect_ppx_codep_depsets.append(ppxcdp.ppx_codeps)
+
+            sigs_secondary.append(provider.sigs)
+            structs_secondary.append(provider.structs)
+            ofiles_secondary.append(provider.ofiles)
+            archives_secondary.append(provider.archives)
+            # afiles_secondary.append(provider.afiles)
+            astructs_secondary.append(provider.astructs)
+            # cclibs_secondary.append(provider.cclibs)
+            paths_secondary.append(provider.paths)
+
+            # if hasattr(provider, "paths"):
+            #     if provider.paths:
+            #         path_depsets.append(provider.paths)
+            #         indirect_ppx_codep_depsets_paths.append(provider.paths)
+            # if hasattr(ppxcdp, "cdeps"):
+            #     if ppxcdp.cdeps:
+            #         ppx_codep_cdeps.append(ppxcdp.cdeps)
+            # if hasattr(ppxcdp, "ldeps"):
+            #     if ppxcdp.ldeps:
+            #         ppx_codep_ldeps.append(ppxcdp.ldeps)
 
     if debug:
         print("finished deps iteration")
-        print("sigs_direct: %s" % sigs_direct)
-        print("sigs_indirect: %s" % sigs_indirect)
-        print("structs_direct: %s" % structs_direct)
-        print("structs_indirect: %s" % structs_indirect)
-        print("ofiles_direct: %s" % ofiles_direct)
-        print("ofiles_indirect: %s" % ofiles_indirect)
+        print("sigs_primary: %s" % sigs_primary)
+        print("sigs_secondary: %s" % sigs_secondary)
+        print("structs_primary: %s" % structs_primary)
+        print("structs_secondary: %s" % structs_secondary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("ofiles_secondary: %s" % ofiles_secondary)
         ## archives cannot be direct deps
-        print("archives_direct: %s" % archives_direct)
-        print("archives_indirect: %s" % archives_indirect)
-        print("arfiles_direct: %s" % arfiles_direct)
-        print("arfiles_indirect: %s" % arfiles_indirect)
-        print("arstructs_direct: %s" % arstructs_direct)
-        print("arstructs_indirect: %s" % arstructs_indirect)
+        print("archives_primary: %s" % archives_primary)
+        print("archives_secondary: %s" % archives_secondary)
+        print("afiles_primary: %s" % afiles_primary)
+        print("afiles_secondary: %s" % afiles_secondary)
+        print("astructs_primary: %s" % astructs_primary)
+        print("astructs_secondary: %s" % astructs_secondary)
+        # print("cclibs_primary: %s" % astructs_primary)
+        # print("cclibs_secondary: %s" % astructs_secondary)
 
     action_inputs_ccdep_filelist = []
     manifest_list = []
 
     if ctx.attr._rule == "ppx_executable":
         if ctx.attr.ppx_codeps:
-            for codep in ctx.attr.ppx_codeps:
+            for dep in ctx.attr.ppx_codeps:
                 if debug_ppx:
-                    print("attr.ppx_codep: %s" % codep)
-                    print("codep[OcamlImportMarker: %s" %
-                          codep[OcamlImportMarker])
-                    print("codep[OcamlProvider]: %s" % codep[OcamlProvider])
+                    print("attr.ppx_codep: %s" % dep)
+                    print("dep[OcamlImportMarker: %s" %
+                          dep[OcamlImportMarker])
+                    print("dep[OcamlProvider]: %s" % dep)
+
+                codep = dep[OcamlProvider];
+                codep_sigs_secondary.append(codep.sigs)
+                codep_structs_secondary.append(codep.structs)
+                codep_archives_secondary.append(codep.archives)
+                codep_astructs_secondary.append(codep.astructs)
+                codep_ofiles_secondary.append(codep.ofiles)
+                codep_afiles_secondary.append(codep.afiles)
+                codep_paths_secondary.append(codep.paths)
+
                 # NB: codep[OcamlProvider]linkargs insufficient, it only
                 # contains archive files, for linking executables.
                 # We will need to list all modules as inputs
-                ppx_codep_linksets.append(codep[OcamlProvider].linkargs)
+                # ppx_codep_linksets.append(codep[OcamlProvider].linkargs)
                 # indirect_ppx_codep_depsets.append(codep[OcamlProvider].inputs)
-                indirect_ppx_codep_depsets_paths.append(codep[OcamlProvider].paths)
 
-                ppx_codep_cdeps.append(codep[OcamlProvider].cdeps)
-                ppx_codep_ldeps.append(codep[OcamlProvider].ldeps)
+                # codep_paths.append(codep
+
+                # indirect_ppx_codep_depsets_paths.append(codep[OcamlProvider].paths)
+
+                # ppx_codep_cdeps.append(codep[OcamlProvider].cdeps)
+                # ppx_codep_ldeps.append(codep[OcamlProvider].ldeps)
 
     # print("LDEPS: %s" % ppx_codep_ldeps)
 
@@ -271,42 +317,44 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
                         args,
                         ccInfo)
 
-        if OcamlProvider in main:
-            if hasattr(main[OcamlProvider], "archive_manifests"):
-                manifest_list.append(main[OcamlProvider].archive_manifests)
+        # if OcamlProvider in main:
+        #     if hasattr(main[0][OcamlProvider], "archive_manifests"):
+        #         manifest_list.append(main[0][OcamlProvider].archive_manifests)
 
-        sigs_indirect.append(main[OcamlProvider].sigs)
-        structs_indirect.append(main[OcamlProvider].structs)
-        ofiles_indirect.append(main[OcamlProvider].ofiles)
-        archives_indirect.append(main[OcamlProvider].archives)
-        arfiles_indirect.append(main[OcamlProvider].arfiles)
-        arstructs_indirect.append(main[OcamlProvider].arstructs)
+        # mainop = main[0][OcamlProvider] # int index if transition fn
+        mainop = main[OcamlProvider]
+        sigs_secondary.append(mainop.sigs)
+        structs_secondary.append(mainop.structs)
+        ofiles_secondary.append(mainop.ofiles)
+        archives_secondary.append(mainop.archives)
+        afiles_secondary.append(mainop.afiles)
+        astructs_secondary.append(mainop.astructs)
         # structs_depsets.append(main[DefaultInfo].files)
 
-        # direct_inputs_depsets.append(main[OcamlProvider].ldeps) # inputs)
-        # direct_linkargs_depsets.append(main[OcamlProvider].linkargs)
-        direct_paths_depsets.append(main[OcamlProvider].paths)
+        # direct_inputs_depsets.append(mainop.ldeps) # inputs)
+        # direct_linkargs_depsets.append(mainop.linkargs)
+        # direct_paths_depsets.append(mainop.paths)
 
         # direct_linkargs_depsets.append(main[DefaultInfo].files)
 
-        paths_indirect.append(main[OcamlProvider].paths)
+        paths_secondary.append(mainop.paths)
 
     ## end ctx.attr.main handling
     if debug:
         print("finished 'main' handling")
-        print("sigs_direct: %s" % sigs_direct)
-        print("sigs_indirect: %s" % sigs_indirect)
-        print("structs_direct: %s" % structs_direct)
-        print("structs_indirect: %s" % structs_indirect)
-        print("ofiles_direct: %s" % ofiles_direct)
-        print("ofiles_indirect: %s" % ofiles_indirect)
+        print("sigs_primary: %s" % sigs_primary)
+        print("sigs_secondary: %s" % sigs_secondary)
+        print("structs_primary: %s" % structs_primary)
+        print("structs_secondary: %s" % structs_secondary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("ofiles_secondary: %s" % ofiles_secondary)
         ## archives cannot be direct deps
-        print("archives_direct: %s" % archives_direct)
-        print("archives_indirect: %s" % archives_indirect)
-        print("arfiles_direct: %s" % arfiles_direct)
-        print("arfiles_indirect: %s" % arfiles_indirect)
-        print("arstructs_direct: %s" % arstructs_direct)
-        print("arstructs_indirect: %s" % arstructs_indirect)
+        print("archives_primary: %s" % archives_primary)
+        print("archives_secondary: %s" % archives_secondary)
+        print("afiles_primary: %s" % afiles_primary)
+        print("afiles_secondary: %s" % afiles_secondary)
+        print("astructs_primary: %s" % astructs_primary)
+        print("astructs_secondary: %s" % astructs_secondary)
 
 
     merged_manifests = depset(transitive = manifest_list)
@@ -316,7 +364,8 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     ################
     paths_depset  = depset(
         order = dsorder,
-        transitive = direct_paths_depsets
+        direct = paths_primary,
+        transitive = paths_secondary
     )
 
     # args.add_all(paths_depset.to_list(), before_each="-I")
@@ -350,31 +399,42 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #         print("ADDING: %s" % dep)
     #         args.add(dep)
 
-    print("ARCHIVES_DIRECT: %s" % archives_direct)
-    print("ARCHIVES_INDIRECT: %s" % archives_indirect)
+    # if debug_ppx:
+    #     print("ARCHIVES_PRIMARY: %s" % archives_primary)
+    #     print("ARCHIVES_SECONDARY: %s" % archives_secondary)
+    #     print("ASTRUCTS_PRIMARY: %s" % astructs_primary)
+    #     print("ASTRUCTS_SECONDARY: %s" % len(astructs_secondary))
+        # for x in astructs_secondary:
+        #     print ("x type: %s" % type(x))
+        #     for item in x.to_list():
+        #         print("t: %s" % type(item))
+        #         # if type(item) != "File":
+        #         print("item: %s" % item)
 
-    arstructs_depset = depset(order=dsorder,
-                            direct=arstructs_direct,
-                            transitive=arstructs_indirect)
+    astructs_depset = depset(order=dsorder,
+                            # direct=astructs_primary,
+                            transitive=astructs_secondary)
 
-    # for struct in arstructs_depset.to_list():
+    # for struct in astructs_depset.to_list():
     #     print("ADDING ARSTRUCT %s" % struct)
     #     args.add(struct)
 
     archives_depset = depset(order=dsorder,
-                             direct=archives_direct,
-                             transitive=archives_indirect)
+                             direct=archives_primary,
+                             transitive=archives_secondary)
 
     for archive in archives_depset.to_list():
-        print("ADDING ARCHIVE %s" % archive)
+        if debug:
+            print("ADDING ARCHIVE %s" % archive)
         args.add(archive)
 
     structs_depset = depset(order=dsorder,
-                            direct=structs_direct,
-                            transitive=structs_indirect)
+                            direct=structs_primary,
+                            transitive=structs_secondary)
 
     for struct in structs_depset.to_list():
-        print("ADDING STRUCT %s" % struct)
+        if debug:
+            print("ADDING STRUCT %s" % struct)
         args.add(struct)
 
     # structs_depset = depset(order="postorder", transitive = structs_depsets)
@@ -399,21 +459,32 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     #     args.add(ctx.file.main)
 
     if mode == "bytecode":
-        stublibs = tc.stublibs
+        vmlibs = tc.vmlibs
+        args.add_all(tc.vmlibs,
+                     before_each="-dllpath", uniquify=True)
+
+        if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
+            ## Currently we default to a custom runtime.
+            ## See section 20.1.3 "Statically linking C code with OCaml code"
+            ## https://v2.ocaml.org/manual/intfc.html#ss:staticlink-c-code
+            ## and https://ocaml.org/manual/runtime.html
+
+            args.add("-custom")
     elif mode == "native":
-        stublibs = []
+        vmlibs = []
 
-    for stublib in stublibs:
-        includes.append(stublib.dirname)
-        dllpaths.append(stublib.dirname)
+        ## no, we never need vmlibs for native code
+        # for lib in tc.vmlibs:
+        #     print("VMLIB: %s" % lib)
+        #     includes.append(lib.dirname)
+        # args.add_all(tc.vmlibs, before_each="-cclib", uniquify=True)
 
-    args.add_all(dllpaths, before_each="-dllpath", uniquify=True)
+    # for cclib in tc.vmlibs:
+    #     print("STUBLIB: %s" % cclib.dirname)
+    #     includes.append(cclib.dirname)
+    #     dllpaths.append(cclib.dirname)
 
     args.add_all(includes, before_each="-I", uniquify=True)
-
-    if "ppx" in ctx.attr.tags:
-        if hasattr(ctx.attr, "_stublibs"):
-            args.add_all(dllpaths, before_each="-dllpath", uniquify=True)
 
     args.add("-o", out_exe)
 
@@ -424,42 +495,47 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             # print("DATAFILE: %s" % f.path)
             args.add("-I", f.dirname)
 
-    # if tc.bootstrap_std_exit:
-    #     std_exit = tc.bootstrap_std_exit.files
-    # else:
-    #     std_exit = []
+    ## FIXME: use CcInfo
+    # cclibs_depset = depset(order=dsorder,
+    #                          direct = cclibs_primary,
+    #                          transitive = cclibs_secondary)
 
-    # if hasattr(ctx.attr, "_stublibs"):
-    #     stublibs = [depset(ctx.files._stublibs)]
-    # else:
-    #     stublibs = []
+    # cclib_args = []
+    # for cclib in cclibs_depset.to_list():
+    #     print("cclib: %s" % cclib)
+    #     cclib_args.append("-L" + cclib.dirname)
 
-    print("MAINMAIN: %s" % ctx.attr.main)
-    print("arstructs_direct: %s" % arstructs_direct)
+    # args.add_all(cclib_args, before_each="-ccopt", uniquify=True)
+
+    # args.add("-ccopt", "-L" + cclib.dirname)
+
+    if debug:
+        print("MAINMAIN: %s" % ctx.attr.main)
+        print("astructs_primary: %s" % astructs_primary)
     action_inputs_depset = depset(
         order=dsorder,
-        direct = stublibs
-        + arfiles_direct
-        + arstructs_direct
-        + archives_direct
-        + structs_direct
-        + ofiles_direct
-        + sigs_direct
+        direct = vmlibs
+        + afiles_primary
+        + astructs_primary
+        + archives_primary
+        + structs_primary
+        + ofiles_primary
+        + sigs_primary
         ,
         transitive =
         [depset(direct = [ctx.file.main])]
         # data_inputs
-        + arfiles_indirect
-        + arstructs_indirect
-        + archives_indirect
-        + structs_indirect
-        + ofiles_indirect
-        + sigs_indirect
-
+        + sigs_secondary
+        + structs_secondary
+        + archives_secondary
+        + afiles_secondary
+        + astructs_secondary
+        + ofiles_secondary
+        # + cclibs_secondary
         # + [depset(action_inputs_ccdep_filelist)]
         # + [depset(transitive=ppx_codep_ldeps)]
         # + [structs_depset]
-        # + stublibs
+        # + vmlibs
     )
     # if debug:
     #     for dep in action_inputs_depset.to_list():
@@ -495,18 +571,16 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     ################
 
     #### RUNFILE DEPS ####
+    rfiles = ctx.files.data + tc.vmlibs
     if ctx.attr.strip_data_prefixes:
-      myrunfiles = ctx.runfiles(
-        files = ctx.files.data + tc.stublibs,
-        symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
-      )
+        myrunfiles = ctx.runfiles(
+            files = rfiles,
+            symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
+        )
     else:
         myrunfiles = ctx.runfiles(
-            files = ctx.files.data + tc.stublibs,
+            files = rfiles
         )
-
-    # print("ARGS: %s" % ctx.attr.args)
-    # print("RUNFILES: %s" % ctx.attr.data)
 
     ##########################
     defaultInfo = DefaultInfo(
@@ -546,36 +620,66 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     ## be attached to the module that injects the dep.
 
     if ctx.attr._rule == "ppx_executable":
-        ppx_codeps_paths_depset = depset(
-            direct = direct_ppx_codep_depsets_paths,
-            transitive = indirect_ppx_codep_depsets_paths
-        )
+        # ppx_codeps_paths_depset = depset(
+        #     direct = direct_ppx_codep_depsets_paths,
+        #     transitive = depset(direct=indirect_ppx_codep_depsets_paths)
+        # )
 
-        ppx_codeps_depset = depset(
-            transitive = indirect_ppx_codep_depsets
-        )
+        # ppx_codeps_depset = depset(
+        # odep
+        #     transitive = indirect_ppx_codep_depsets
+        # )
 
-        ppx_codeps_linkset = depset(
-            transitive = ppx_codep_linksets
-        )
+        # ppx_codeps_linkset = depset(
+        #     transitive = ppx_codep_linksets
+        # )
+
+        # ppxCodepsProvider = PpxCodepsProvider(
+        #     ppx_codeps = ppx_codeps_depset,
+        #     # paths = ppx_codeps_paths_depset,
+        #     # linkset = ppx_codeps_linkset,
+        #     # sigs   = ppx_codep_cdeps,
+        #     # structs   = ppx_codep_ldeps,
+        # )
+
+        ppx_sigs_depset = depset(order=dsorder,
+                                 direct = codep_sigs_primary,
+                                 transitive = codep_sigs_secondary)
 
         ppxCodepsProvider = PpxCodepsProvider(
-            ppx_codeps = ppx_codeps_depset,
-            paths = ppx_codeps_paths_depset,
-            linkset = ppx_codeps_linkset,
-            sigs   = ppx_codep_cdeps,
-            structs   = ppx_codep_ldeps,
+            sigs       = ppx_sigs_depset,
+            structs    = depset(order=dsorder,
+                                direct = codep_structs_primary,
+                                transitive = codep_structs_secondary),
+            ofiles     = depset(order=dsorder,
+                                direct = codep_ofiles_primary,
+                                transitive = codep_ofiles_secondary),
+            archives   = depset(order=dsorder,
+                                direct = codep_archives_primary,
+                                transitive = codep_archives_secondary),
+            afiles     = depset(order=dsorder,
+                                direct = codep_afiles_primary,
+                                transitive = codep_afiles_secondary),
+            astructs       = depset(order=dsorder,
+                                   direct = codep_astructs_primary,
+                                   transitive = codep_astructs_secondary),
+            # cclibs = depset(order=dsorder,
+            #                 direct = codep_cclibs_primary,
+            #                 transitive = codep_cclibs_secondary),
+            paths    = depset(order=dsorder,
+                              direct = codep_paths_primary,
+                              transitive = codep_paths_secondary),
         )
         providers.append(ppxCodepsProvider)
 
-        outputGroupInfo = OutputGroupInfo(
-            ppx_codeps = ppx_codeps_depset,
-            linkset = ppx_codeps_linkset,
-            inputs = action_inputs_depset,
-            all = depset(transitive=[
-                ppx_codeps_depset,
-            ])
-        )
-        providers.append(outputGroupInfo)
+        # outputGroupInfo = OutputGroupInfo(
+        #     ppx_codeps = ppx_sigs_depset,
+        #     # linkset = ppx_codeps_linkset,
+        #     inputs = action_inputs_depset,
+        #     all = depset(transitive=[
+        #         ppx_codeps_depset,
+        #     ])
+        # )
+        # providers.append(outputGroupInfo)
 
     return providers

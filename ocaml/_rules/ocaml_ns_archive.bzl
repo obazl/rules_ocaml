@@ -3,7 +3,7 @@ load("//ocaml:providers.bzl",
      "OcamlArchiveMarker",
      "OcamlNsMarker")
 
-load(":options.bzl", "options", "options_ns_archive", "options_ns_opts")
+load(":options.bzl", "options", "options_ns_aggregators", "options_ns_opts")
 
 load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 
@@ -11,8 +11,8 @@ load(":impl_archive.bzl", "impl_archive")
 
 ###############################
 rule_options = options("ocaml")
-rule_options.update(options_ns_archive("ocaml"))
-rule_options.update(options_ns_opts("ocaml"))
+rule_options.update(options_ns_aggregators())
+# rule_options.update(options_ns_opts("ocaml"))
 
 ########################
 ocaml_ns_archive = rule(

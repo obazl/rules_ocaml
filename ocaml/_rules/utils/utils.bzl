@@ -39,11 +39,17 @@ def get_options(rule, ctx):
                 if not "-noassert" in ctx.attr.opts: # avoid dup, use the one in opts
                     options.append("-noassert")
 
-    if hasattr(ctx.attr, "_opaque"):
-        if ctx.attr._opaque[BuildSettingInfo].value:
-            if not "-no-opaque" in ctx.attr.opts:
-                if not "-opaque" in ctx.attr.opts: # avoid dup, use the one in opts
-                    options.append("-opaque")
+    # if hasattr(ctx.attr, "_opaque"):
+    #     if ctx.attr._opaque[BuildSettingInfo].value:
+    #         if not "-no-opaque" in ctx.attr.opts:
+    #             if not "-opaque" in ctx.attr.opts: # avoid dup, use the one in opts
+    #                 options.append("-opaque")
+
+    # if hasattr(ctx.attr, "_xmo"):
+    #     if not ctx.attr._xmo[BuildSettingInfo].value:
+    #         if not "-no-opaque" in ctx.attr.opts:
+    #             if not "-opaque" in ctx.attr.opts: # avoid dup, use the one in opts
+    #                 options.append("-opaque")
 
     if hasattr(ctx.attr, "_short_paths"):
         if ctx.attr._short_paths[BuildSettingInfo].value:

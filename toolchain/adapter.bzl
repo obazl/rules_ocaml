@@ -86,10 +86,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
         ocamllex   = ctx.file.ocamllex,
         ocamlyacc  = ctx.file.ocamlyacc,
 
-        stublibs  = ctx.files.stublibs,
-
-        # stdlib?
-        # dllpath    = ctx.path(Label("@opam//pkg:stublibs"))
+        vmlibs  = ctx.files.vmlibs,
 
         # cc_toolchain = ctx.attr.cc_toolchain,
         ## rules add [cc_toolchain.all_files] to action inputs
@@ -190,17 +187,16 @@ ocaml_toolchain_adapter = rule(
             cfg = "exec",
         ),
 
-        "stublibs": attr.label(
+        "vmlibs": attr.label(
+            doc = "Dynamically-loadable libs needed by the ocamlrun vm. Usually named 'dll<name>_stubs.so', e.g. 'dllcore_unix_stubs.so'.",
             allow_files = True,
-            # executable = True,
-            # cfg = "exec",
         ),
 
         ## stdlib?
 
-        "_dllpath": attr.label(
-            ## FIXME default = Label("@opam//pkg:stublibs"),
-        ),
+        # "_dllpath": attr.label(
+        #     ## FIXME default = Label("@opam//pkg:cclibs"),
+        # ),
 
         # "_coqc": attr.label(
         #     default = Label("//tools:coqc"),

@@ -1,7 +1,7 @@
 load("//ocaml:providers.bzl",
      "OcamlLibraryMarker")
 
-load(":options.bzl", "options", "options_library")
+load(":options.bzl", "options", "options_aggregators")
 
 load(":impl_library.bzl", "impl_library")
 
@@ -16,7 +16,7 @@ def _ocaml_library(ctx):
 
 ###############################
 rule_options = options("ocaml")
-rule_options.update(options_library("ocaml"))
+rule_options.update(options_aggregators())
 
 #####################
 ocaml_library = rule(

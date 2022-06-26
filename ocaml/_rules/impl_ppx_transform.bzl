@@ -20,13 +20,11 @@ def impl_ppx_transform(rule, ctx, src, to):
     Outputs: struct(intf :: declared File, maybe impl :: declared File)
     """
 
-    debug = False # True
-    # if ctx.label.name == "test":
-    #     debug = True
+    debug = False
 
     if debug:
         print()
-        print("Start: impl_ppx_transform: {src} to {dst}".format(src = src, dst = to))
+        print("impl_ppx_transform: {src} to {dst}".format(src = src, dst = to))
 
     # scope = tmpdir
 

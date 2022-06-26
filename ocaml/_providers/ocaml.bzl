@@ -20,33 +20,37 @@ OcamlProvider = provider(
         "structs":   "depset of .cmo or .cmx/.o files depending onn mode",
         "ofiles":    "depset of the .o files that go with .cmx files",
         "archives":  "depset of .cmxa or .cma files",
-        "arfiles":   "depset of the .a files that go with .cmxa files",
-        "arstructs": "depset of archived structs, added to link depgraph but not command line",
+        "afiles":    "depset of the .a files that go with .cmxa files",
+        "astructs":  "depset of archived structs, added to link depgraph but not command line",
+        "cmts":      "depset of cmt/cmti files",
+        "srcs":      "depset of src files after renaming/symlinking, so tools can inspect",
+
+        "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
+
+        # "cclibs": "depset of files of form 'foo_stubs.a'.",
 
         ## everything below is DEPRECATED
 
-        "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
+        # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
 
         "cmi" : "Cmi files provided",
 
-        "opaque": "boolean; true if either sig or struct was compiled with -opaque",
-
-        "closure"             : "File depset of transitive closure of deps",
-        "inputs"             : "file depset",
-        "cdeps"              : "file depset of compile deps",
-        "ldeps"              : "file depset of link deps",
-        "ldeps_n"            : "file depset of native link deps",
-        "ldeps_bc"           : "file depset of bytecode link deps",
-        "linkargs"           : "file depset",
+        # "closure"             : "File depset of transitive closure of deps",
+        # "inputs"             : "file depset",
+        # "cdeps"              : "file depset of compile deps",
+        # "ldeps"              : "file depset of link deps",
+        # "ldeps_n"            : "file depset of native link deps",
+        # "ldeps_bc"           : "file depset of bytecode link deps",
+        # "linkargs"           : "file depset",
         "paths"             : "string depset",
 
-        "files"             : "DEPRECATED",
+        # "files"             : "DEPRECATED",
         # "archives"          : "file depset",
-        "archive_deps"       : "file depset of archive deps",
+        # "archive_deps"       : "file depset of archive deps",
         "ppx_codeps"      : "file depset",
         "ppx_codep_paths" : "string depset",
         "cc_deps"           : "dictionary depset",
-        "ns_resolver"       : "single target",
+        # "ns_resolver"       : "single target",
     }
 )
 
@@ -68,10 +72,14 @@ OcamlNsResolverProvider = provider(
         "files"   : "Depset, instead of DefaultInfo.files",
         "paths":    "Depset of paths for -I params",
         "submodules": "String list of submodules in this ns",
-        "resolver_file": "file",
-        "resolver": "Name of resolver module",
+        "resolver_src": ".ml src file",
+        "module_name": "Name of resolver module.",
+        "ns_name": "Name of ns",
         "prefixes": "List of alias prefix segs",
-        "ns_name": "ns name (joined prefixes)"
+
+        "cmi"    : "file",
+        "struct" : "file",
+        "ofile"  : "file"
     }
 )
 
@@ -89,7 +97,7 @@ OcamlSignatureProvider = provider(
 
         "mli": ".mli input file",
         "cmi": ".cmi output file",
-        "opaque": "boolean flag"
+        "xmo": "boolean: cross-module optimization. False: compile with -opaque",
         # "module_links":    "Depset of module files to be linked by executable or archive rules.",
         # "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
         # "paths":    "Depset of paths for -I params",

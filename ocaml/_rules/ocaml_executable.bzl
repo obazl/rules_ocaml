@@ -1,3 +1,5 @@
+load("//ocaml:providers.bzl", "OcamlExecutableMarker", "OcamlModuleMarker")
+
 load(":options.bzl", "options", "options_executable")
 
 load(":impl_executable.bzl", "impl_executable")
@@ -48,9 +50,9 @@ the difference between '/' and ':' in such labels):
     attrs = dict(
         rule_options,
 
-        ## FIXME: get stublibs from toolchain?
-        _stublibs = attr.label_list( ## for ppx only
-            # default = ["@stublibs//:stublibs"]
+        ## FIXME: get cclibs from toolchain?
+        _cclibs = attr.label_list( ## for ppx only
+            # default = ["@cclibs//:cclibs"]
         ),
 
         _rule = attr.string( default  = "ocaml_executable" ),
@@ -59,6 +61,7 @@ the difference between '/' and ':' in such labels):
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
     ),
+    provides = [OcamlModuleMarker,OcamlExecutableMarker],
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are
     ## not affected if this is a dependency of an ns aggregator.
