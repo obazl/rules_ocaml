@@ -1,39 +1,36 @@
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
 
-
 load("//ocaml:providers.bzl",
      "OcamlArchiveMarker",
      "OcamlExecutableMarker",
      "OcamlImportMarker")
 
-RED="\033[0;31m"
-MAG="\033[0;35m"
-RESET="\033[0;0m"
+load("//ocaml/_debug:utils.bzl", "CCRED", "CCMAG", "CCRESET")
 
 ################
 def _dump_cc_toolchain(ctx):
     print("**** CcToolchainInfo ****")
-    tc = find_cpp_toolchain(ctx)
 
-    # tc2 = cc_common.CcToolchainInfo
-
-    items = dir(tc)
+    cctc = find_cpp_toolchain(ctx)
+    print("cctc type: %s" % type(cctc))
+    print("cctc: %s" % cctc)
+    items = dir(cctc)
     for item in items:
-        print("{c}{item}".format(c=RED, item=item))
-        val = getattr(tc, item)
-        print("  %s" % val)
+        print("{c}{item}".format(c=CCRED, item=item))
+        val = getattr(cctc, item)
+        print("  t: %s" % type(val))
         # if item == "dynamic_runtime_lib":
-        #     print(":: %s" % tc.dynamic_runtime_lib(
+        #     print(":: %s" % cctc.dynamic_runtime_lib(
         #         feature_configuration = cc_common.configure_features(
         #             ctx = ctx,
-        #             cc_toolchain = tc,
+        #             cc_toolchain = cctc,
         #             requested_features = ctx.features,
         #             unsupported_features = ctx.disabled_features,
         #         )
         #     ))
         # if item == "linker_files":
-        #     print(":: %s" % tc.linker_files)
+        #     print(":: %s" % cctc.linker_files)
 
 ################
 def _dump_tc_frags(ctx):
@@ -80,23 +77,26 @@ def _dump_tc_frags(ctx):
 def _ocaml_toolchain_adapter_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")
 
-    debug_cctc  = True
+    debug_cctc  = False
     debug_frags = False
 
+    ## On Linux, this yields a ToolchainInfo provider.
+    ## But on MacOS, it yields "dummy cc toolchain".
     cctc = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
     if debug_cctc: print("CC TOOLCHAIN: %s" % cctc)
 
     if debug_frags:
         _dump_tc_frags(ctx)
 
+    ## This returns a CcToolchainInfo provider on both platforms:
+    cctc = find_cpp_toolchain(ctx)
+
     if debug_cctc:
         _dump_cc_toolchain(ctx)
 
-    the_cc_toolchain = find_cpp_toolchain(ctx)
-
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
-        cc_toolchain = the_cc_toolchain,
+        cc_toolchain = cctc,
         requested_features = ctx.features,
         unsupported_features = ctx.disabled_features,
     )
@@ -141,7 +141,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
         ## rules add [cc_toolchain.all_files] to action inputs
         ## at least, rules linking to cc libs must do this;
         ## pure ocaml code need not?
-        # cc_toolchain = the_cc_toolchain,
+        # cc_toolchain = cctc,
         # cc_exe = _c_exe, ## to be passed via `-cc` (will be a sh script on mac)
 
         # cc_opts = _cc_opts,

@@ -38,8 +38,17 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default = "ocaml_test" ),
+
+        ## https://bazel.build/docs/integrating-with-rules-cc
+        ## hidden attr required to make find_cpp_toolchain work:
+        _cc_toolchain = attr.label(
+            default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
+        ),
     ),
     # cfg = executable_in_transition,
     test = True,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = [
+        "@rules_ocaml//toolchain:type",
+        "@bazel_tools//tools/cpp:toolchain_type"
+    ],
 )

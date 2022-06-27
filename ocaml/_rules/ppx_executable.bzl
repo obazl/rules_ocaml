@@ -138,5 +138,8 @@ ppx_executable = rule(
     provides = [DefaultInfo, PpxExecutableMarker],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = [
+        "@rules_ocaml//toolchain:type",
+        "@bazel_tools//tools/cpp:toolchain_type"
+    ],
 )
