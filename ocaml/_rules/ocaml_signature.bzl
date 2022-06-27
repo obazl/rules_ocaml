@@ -265,10 +265,12 @@ def _ocaml_signature_impl(ctx):
     _options = get_options(rule, ctx)
     if "-opaque" in _options:
         xmo = False
-    elif "-no-opaque" in _options:
-        xmo = True
     else:
-        xmo = ctx.attr._xmo
+        xmo = True
+    # elif "-no-opaque" in _options:
+    #     xmo = True
+    # else:
+    #     xmo = ctx.attr._xmo
 
     args.add_all(_options)
 

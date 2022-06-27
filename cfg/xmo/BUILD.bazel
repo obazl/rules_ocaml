@@ -2,7 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
 package(default_visibility = ["//visibility:public"])
 
-bool_flag( name = "xmo", build_setting_default = False)
+bool_flag( name = "xmo", build_setting_default = True)
 
 # omitting cmx files from the compile depgraph without using -opaque:
 

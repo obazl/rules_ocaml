@@ -234,7 +234,7 @@ def _handle_source_sig(ctx, modname, ext):
     debug = False
     if debug: print("_handle_source_sig")
 
-    xmo = True  # convention, no -opaque
+    # xmo = True  # convention, no -opaque
 
     if debug: print("sigattr is src: %s" % ctx.file.sig)
 
@@ -310,7 +310,7 @@ def impl_module(ctx, mode, tool, tool_args):
     debug_ns   = False
     debug_ppx  = False
     debug_sig  = False
-    debug_xmo  = False
+    debug_xmo  = True
 
     if debug:
         print("===============================")
@@ -554,6 +554,8 @@ def impl_module(ctx, mode, tool, tool_args):
     _options = get_options(ctx.attr._rule, ctx)
     if "-opaque" in ctx.attr.opts:
         xmo = False
+    # else:
+    #     xmo = True
     elif "-no-opaque" in ctx.attr.opts:
         xmo = True
     else:
@@ -1013,6 +1015,7 @@ def impl_module(ctx, mode, tool, tool_args):
         xmo_deps = structs_secondary + ofiles_secondary
     else:
         xmo_deps = []
+    if debug_xmo: print("XMO DEPS: %s" % xmo_deps)
 
     action_inputs_depset = depset(
         order = dsorder,
