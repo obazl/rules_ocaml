@@ -18,7 +18,7 @@ def _ppx_executable(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    return impl_executable(ctx, tc.emitting, tc, tc.compiler, [])
+    return impl_executable(ctx, tc.target, tc, tc.compiler, [])
 
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(

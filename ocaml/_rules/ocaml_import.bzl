@@ -39,7 +39,7 @@ def _ocaml_import_impl(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    if tc.emitting == "native":
+    if tc.target == "native":
         struct_extensions = ["cmxa", "cmx"]
     else:
         struct_extensions = ["cma", "cmo"]
@@ -85,13 +85,13 @@ def _ocaml_import_impl(ctx):
     cmts_primary             = []
     paths_primary            = []
 
-    cclibs_primary           = []
+    # cclibs_primary           = []
 
     stublibs_primary             = []  ## file list
     stublibs_secondary           = []  ## provider list?
 
     sigs_primary.extend(ctx.files.cmi)
-    if tc.emitting == "native":
+    if tc.target == "native":
         if hasattr(ctx.attr, "cmxa"):
             archives_primary.extend(ctx.files.cmxa)
             if (len(ctx.files.cmxa) > 0):
@@ -108,7 +108,7 @@ def _ocaml_import_impl(ctx):
         else:
             structs_primary.extend(ctx.files.cmo)
 
-    cclibs_primary.extend(ctx.files.stublibs)
+    # cclibs_primary.extend(ctx.files.stublibs)
     stublibs_primary.extend(ctx.files.stublibs)
 
     cmts_primary.extend(ctx.files.cmti)
@@ -124,8 +124,9 @@ def _ocaml_import_impl(ctx):
         print("ofiles_primary: %s" % ofiles_primary)
         print("afiles_primary: %s" % afiles_primary)
         print("astructs_primary: %s" % astructs_primary)
-        print("cclibs_primary: %s" % cclibs_primary)
         print("cmts_primary: %s" % cmts_primary)
+
+        # print("cclibs_primary: %s" % cclibs_primary)
 
         print("paths_primary: %s" % paths_primary)
 
@@ -141,7 +142,7 @@ def _ocaml_import_impl(ctx):
     codep_cmts_primary       = []
     codep_paths_primary      = []
 
-    codep_cclibs_primary     = []
+    # codep_cclibs_primary     = []
 
     ####################
     codep_sigs_secondary     = []
@@ -153,7 +154,7 @@ def _ocaml_import_impl(ctx):
     codep_cmts_secondary     = []
     codep_paths_secondary    = []
 
-    codep_cclibs_secondary   = []
+    # codep_cclibs_secondary   = []
 
     if ctx.attr.ppx_codeps:
         has_ppx_codeps = True
@@ -204,9 +205,9 @@ def _ocaml_import_impl(ctx):
         print("codep_ofiles_primary: %s" % codep_ofiles_primary)
         print("codep_afiles_primary: %s" % codep_afiles_primary)
         print("codep_astructs_primary: %s" % codep_astructs_primary)
-        print("codep_cclibs_primary: %s" % codep_cclibs_primary)
         print("codep_cmts_primary: %s" % codep_cmts_primary)
         print("codep_paths_primary: %s" % codep_paths_primary)
+        # print("codep_cclibs_primary: %s" % codep_cclibs_primary)
 
         print("SECONDARY PPX_CODEPS for %s" % ctx.label)
         print("codep_sigs_secondary: %s" % codep_sigs_secondary)
@@ -215,9 +216,9 @@ def _ocaml_import_impl(ctx):
         print("codep_ofiles_secondary: %s" % codep_ofiles_secondary)
         print("codep_afiles_secondary: %s" % codep_afiles_secondary)
         print("codep_astructs_secondary: %s" % codep_astructs_secondary)
-        print("codep_cclibs_secondary: %s" % codep_cclibs_secondary)
         print("codep_cmts_secondary: %s" % codep_cmts_secondary)
         print("codep_paths_secondary: %s" % codep_paths_secondary)
+        # print("codep_cclibs_secondary: %s" % codep_cclibs_secondary)
 
     ################ PRIMARY STUBLIB DEPENDENCIES ################
     # stublibs_primary   = []
@@ -245,7 +246,7 @@ def _ocaml_import_impl(ctx):
     cmts_secondary           = []
     paths_secondary          = []
 
-    cclibs_secondary         = []
+    # cclibs_secondary         = []
 
     #########################
     for dep in ctx.attr.deps:
@@ -336,14 +337,15 @@ def _ocaml_import_impl(ctx):
                                  # direct = codep_paths_primary,
                                  transitive = codep_paths_primary
                                  + codep_paths_secondary),
-            cclibs       = depset(order=dsorder,
-                                   # direct = codep_cclibs_primary,
-                                  transitive = codep_cclibs_primary
-                                  + codep_cclibs_secondary),
+            # cclibs       = depset(order=dsorder,
+            #                        # direct = codep_cclibs_primary,
+            #                       transitive = codep_cclibs_primary
+            #                       + codep_cclibs_secondary),
         )
         providers.append(ppxCodepsProvider)
-        print("PPX_CODEPS for %s" % ctx.label)
-        print(ppxCodepsProvider)
+        if debug_ppx:
+            print("PPX_CODEPS for %s" % ctx.label)
+            print(ppxCodepsProvider)
 
     #### Std OcamlProvider
     _ocamlProvider = OcamlProvider(

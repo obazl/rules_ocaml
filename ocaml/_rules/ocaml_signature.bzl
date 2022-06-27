@@ -114,7 +114,7 @@ def _handle_ns_deps(ctx):
     astructs_secondary = []
     afiles_secondary   = []
     archives_secondary = []
-    cclibs_secondary = []
+    # cclibs_secondary = []
 
     if debug_ns: print("collecting ns deps")
 
@@ -127,7 +127,7 @@ def _handle_ns_deps(ctx):
     archives_secondary.append(nsop.archives)
     afiles_secondary.append(nsop.afiles)
     astructs_secondary.append(nsop.astructs)
-    cclibs_secondary.append(nsop.cclibs)
+    # cclibs_secondary.append(nsop.cclibs)
     path_list.append(nsop.paths)
 
     if debug_ns: print("**************** exiting _handle_ns_deps")
@@ -135,7 +135,8 @@ def _handle_ns_deps(ctx):
     return (ns_enabled, ns_name, ns_cmi, ns_struct, ns_ofile,
             sigs_secondary, structs_secondary, ofiles_secondary,
             archives_secondary, afiles_secondary, astructs_secondary,
-            cclibs_secondary, path_list)
+            # cclibs_secondary,
+            path_list)
 
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
@@ -317,8 +318,8 @@ def _ocaml_signature_impl(ctx):
     afiles_secondary       = []
     archives_primary       = []
     archives_secondary     = []
-    cclibs_primary       = []
-    cclibs_secondary     = []
+    # cclibs_primary       = []
+    # cclibs_secondary     = []
     path_depsets           = []
 
     the_deps = ctx.attr.deps + ctx.attr.open
@@ -336,7 +337,7 @@ def _ocaml_signature_impl(ctx):
             archives_secondary.append(dep[OcamlProvider].archives)
             afiles_secondary.append(dep[OcamlProvider].afiles)
             astructs_secondary.append(dep[OcamlProvider].astructs)
-            cclibs_secondary.append(dep[OcamlProvider].cclibs)
+            # cclibs_secondary.append(dep[OcamlProvider].cclibs)
             path_depsets.append(dep[OcamlProvider].paths)
 
         if CcInfo in dep:
@@ -361,7 +362,7 @@ def _ocaml_signature_impl(ctx):
          ns_cmi, ns_struct, ns_ofile,
          nssigs_secondary, nsstructs_secondary, nsofiles_secondary,
          nsarchives_secondary, nsafiles_secondary, nsastructs_secondary,
-         nscclibs_secondary,
+         # nscclibs_secondary,
          ns_path_depsets) = _handle_ns_deps(ctx)
 
         sigs_secondary.extend(nssigs_secondary)
@@ -370,7 +371,7 @@ def _ocaml_signature_impl(ctx):
         astructs_secondary.extend(nsastructs_secondary)
         afiles_secondary.extend(afiles_secondary)
         archives_secondary.extend(archives_secondary)
-        cclibs_secondary.extend(nscclibs_secondary)
+        # cclibs_secondary.extend(nscclibs_secondary)
         path_depsets.extend(ns_path_depsets)
 
 
@@ -453,7 +454,7 @@ def _ocaml_signature_impl(ctx):
         + afiles_secondary
         + astructs_secondary
         + sigs_secondary
-        + cclibs_secondary
+        # + cclibs_secondary
         # + bottomup_ns_inputs
     )
     # if ctx.label.name in ["Red_cmi"]:
@@ -473,7 +474,7 @@ def _ocaml_signature_impl(ctx):
         tools = [tc.ocamlopt],
         mnemonic = "CompileOcamlSignature",
         progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}".format(
-            mode = tc.emitting,
+            mode = tc.target,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name
@@ -522,8 +523,8 @@ def _ocaml_signature_impl(ctx):
                             transitive=afiles_secondary)
     astructs_depset = depset(order=dsorder,
                               transitive=astructs_secondary)
-    cclibs_depset = depset(order=dsorder,
-                             transitive=cclibs_secondary)
+    # cclibs_depset = depset(order=dsorder,
+    #                          transitive=cclibs_secondary)
 
     ocamlProvider  = OcamlProvider(
         # inputs   = new_inputs_depset,
@@ -534,7 +535,7 @@ def _ocaml_signature_impl(ctx):
         archives   = archives_depset,
         afiles     = afiles_depset,
         astructs   = astructs_depset,
-        cclibs   = cclibs_depset,
+        # cclibs   = cclibs_depset,
         paths      = paths_depset,
     )
 

@@ -27,7 +27,7 @@ def _ocaml_lex_impl(ctx):
   #########################
   args = ctx.actions.args()
 
-  if tc.emitting == "native":
+  if tc.target == "native":
       args.add("-ml")
 
   args.add_all(ctx.attr.opts)
@@ -45,7 +45,7 @@ def _ocaml_lex_impl(ctx):
       tools = [tc.ocamllex],
       mnemonic = "OcamlLex",
       progress_message = "{mode} ocaml_lex: @{ws}//{pkg}:{tgt}".format(
-          mode = tc.emitting,
+          mode = tc.target,
           ws  = ctx.label.workspace_name,
           pkg = ctx.label.package,
           tgt=ctx.label.name

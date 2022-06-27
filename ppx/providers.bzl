@@ -11,7 +11,7 @@ PpxCodepsProvider = provider(
         "cmts":      "depset of .cmt, .cmti files",
         "paths":     "depset of path strings, for efficiency",
 
-        "cclibs":    "depset of *_stubs.so",
+        # "cclibs":    "depset of *_stubs.so",
     }
 )
 

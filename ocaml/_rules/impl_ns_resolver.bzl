@@ -101,8 +101,8 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     afiles_secondary = []
     archives_primary = []
     archives_secondary = []
-    cclibs_primary = []
-    cclibs_secondary = []
+    # cclibs_primary = []
+    # cclibs_secondary = []
 
     user_ns_resolver = None
 
@@ -447,9 +447,9 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         astructs   = depset(order=dsorder,
                            direct=astructs_primary,
                            transitive=astructs_secondary),
-        cclibs   = depset(order=dsorder,
-                           direct=cclibs_primary,
-                           transitive=cclibs_secondary),
+        # cclibs   = depset(order=dsorder,
+        #                    direct=cclibs_primary,
+        #                    transitive=cclibs_secondary),
 
         paths    = depset(direct = [out_cmi.dirname]),
     )

@@ -21,7 +21,7 @@ def _ocaml_archive(ctx):
 
     tool_args = []
 
-    return impl_archive(ctx, tc.emitting, tc.linkmode, tc.compiler, tool_args)
+    return impl_archive(ctx, tc.target, tc.linkmode, tc.compiler, tool_args)
 
 ###############################
 rule_options = options("ocaml")

@@ -9,7 +9,7 @@ def _ocaml_test(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    return impl_executable(ctx, tc.emitting, tc, tc.compiler, [])
+    return impl_executable(ctx, tc.target, tc, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")

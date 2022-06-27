@@ -194,9 +194,9 @@ def impl_pack_library(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    mode = tc.emitting
+    mode = tc.target
 
-    ext  = ".cmx" if  tc.emitting == "native" else ".cmo"
+    ext  = ".cmx" if  tc.target == "native" else ".cmo"
 
     ################
     merged_module_links_depsets = []

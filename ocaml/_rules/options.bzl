@@ -657,12 +657,18 @@ Runtime data dependencies: list of labels of data files needed by this module at
         ),
 
         ################
+        stublibs = attr.label_list(
+            doc = "Static (.a) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
+            providers = [CcInfo],
+        ),
+
         cc_deps = attr.label_keyed_string_dict(
-            doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
+            doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'stublibs' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
             """,
-            # providers = since this is a dictionary depset, no providers
-            ## but the keys must have CcInfo providers, check at build time
-            # cfg = ocaml_module_cc_deps_out_transition
+            # providers = since this is a dictionary depset, no
+            # providers constraints, but the keys must have CcInfo
+            # providers, check at build time
+            ## cfg = ocaml_module_cc_deps_out_transition
         ),
 
         _cc_deps = attr.label(

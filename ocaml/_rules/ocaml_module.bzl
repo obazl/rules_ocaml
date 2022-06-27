@@ -17,7 +17,7 @@ def _ocaml_module(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    return impl_module(ctx, tc.emitting, tc.compiler, [])
+    return impl_module(ctx, tc.target, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")

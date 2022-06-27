@@ -106,8 +106,6 @@ def _handle_ns_deps(ctx):
     archives_secondary = []
     paths_secondary = []
 
-    # cclibs_secondary = []
-
     if debug_ns: print("collecting ns deps")
 
     ns_cmi    = nsrp.cmi
@@ -310,7 +308,7 @@ def impl_module(ctx, mode, tool, tool_args):
     debug      = False
     debug_deps = False
     debug_ns   = False
-    debug_ppx  = True
+    debug_ppx  = False
     debug_sig  = False
     debug_xmo  = False
 
@@ -435,8 +433,8 @@ def impl_module(ctx, mode, tool, tool_args):
     paths_primary   = []
     paths_secondary = []
 
-    # cclibs_primary   = []
-    # cclibs_secondary = []
+    stublibs_primary             = []  ## file list
+    stublibs_secondary           = []  ## provider list?
 
     sig_is_xmo = True
 
@@ -675,15 +673,13 @@ def impl_module(ctx, mode, tool, tool_args):
     codep_astructs_secondary = []
     codep_paths_secondary   = []
 
-    # codep_cclibs_secondary = []
-
     the_deps = ctx.attr.deps + ctx.attr.open
 
     dep_is_xmo = True
 
     if debug: print("iterating deps")
 
-    ccdeps_secondary = []
+    # ccdeps_secondary = []
     for dep in the_deps:
 
         ## OCaml deps first
@@ -772,9 +768,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
         ## Finally CcInfo deps
         if CcInfo in dep:
-            # if ctx.label.name == "Main":
-            #     dump_CcInfo(ctx, dep)
-            ccdeps_secondary.append(dep[CcInfo])
+            stublibs_secondary.append(dep[CcInfo])
 
     if debug:
         print("finished deps iteration")
@@ -849,17 +843,22 @@ def impl_module(ctx, mode, tool, tool_args):
     #         indirect_linkargs_depsets.append(sig_linkargs)
     #         path_depsets.append(sig_paths)
 
-    ################ PPX Co-Deps ################
+    ############ PPX EXECUTABLE DEPENDENCIES ################
     ## ppx_codeps of the ppx executable are material deps of this
     ## module. They thus become elements in the depgraph of anything
     ## that depends on this module, so they are passed on just like
     ## regular deps.
 
-    ## Modules that do ppx processing may have a ppx_codeps attribute,
-    ## for the deps they inject into the files they preprocess. They
-    ## are _NOT_ material deps of the module itself. It follows that
-    ## they are passed on in a PpxCodepsProvider, not in
-    ## OcamlProvider.
+    ## Can a ppx_executable also have deps listed in OcamlProvider?
+    ## Don't think so.
+
+    ## But it can carry CcInfo
+
+    ## ppx_modules, that do ppx processing, may have a ppx_codeps
+    ## attribute, for the deps they inject into the files they
+    ## preprocess. They are _NOT_ material deps of the module itself.
+    ## It follows that they are passed on in a PpxCodepsProvider, not
+    ## in OcamlProvider.
 
     ppx_codeps_list = []
 
@@ -888,6 +887,9 @@ def impl_module(ctx, mode, tool, tool_args):
             astructs_secondary.append(codep.astructs)
             paths_secondary.append(codep.paths)
 
+        if CcInfo in ctx.attr.ppx:
+            stublibs_secondary.append(ctx.attr.ppx[CcInfo])
+
             # cclibs_secondary.append(codep.cclibs)
 
             ## 1. put ppx_codeps in search path with -I
@@ -903,6 +905,14 @@ def impl_module(ctx, mode, tool, tool_args):
             # codep_structs_secondary.append(codep.structs)
             # codep_archives_secondary.extend(codep.archives)
             # codep_astructs_secondary.extend(codep.astructs)
+
+
+    ################ PRIMARY STUBLIB (CC) DEPENDENCIES ################
+    for dep in ctx.attr.stublibs:
+        ## stublibs is label_keyed_string_dict, whose keys are targets
+        ## providing CcInfo
+        if CcInfo in dep:
+            stublibs_primary.append(dep[CcInfo])
 
 
     # codep_sigs_secondary_depset=depset(transitive=codep_sigs_secondary)
@@ -1232,18 +1242,18 @@ def impl_module(ctx, mode, tool, tool_args):
         if debug_ppx:
             print("Constructing PpxCodepsProvider: %s" % ctx.label)
 
-            codep_archives_depset = depset(
-                order=dsorder,
-                # direct=codep_archives_primary,
-                transitive=codep_archives_secondary)
-            codep_afiles_depset = depset(
-                order=dsorder,
-                # direct=codep_astructs_primary,
-                transitive=codep_afiles_secondary)
-            codep_astructs_depset = depset(
-                order=dsorder,
-                # direct=codep_astructs_primary,
-                transitive=codep_astructs_secondary)
+        codep_archives_depset = depset(
+            order=dsorder,
+            # direct=codep_archives_primary,
+            transitive=codep_archives_secondary)
+        codep_afiles_depset = depset(
+            order=dsorder,
+            # direct=codep_astructs_primary,
+            transitive=codep_afiles_secondary)
+        codep_astructs_depset = depset(
+            order=dsorder,
+            # direct=codep_astructs_primary,
+            transitive=codep_astructs_secondary)
 
         ppxCodepsProvider = PpxCodepsProvider(
             # ppx_codeps = ppx_codeps_depset,
@@ -1269,8 +1279,10 @@ def impl_module(ctx, mode, tool, tool_args):
         providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
-    if ccdeps_secondary:
-        ccInfo = cc_common.merge_cc_infos(cc_infos = ccdeps_secondary)
+    if stublibs_primary or stublibs_secondary:
+        ccInfo = cc_common.merge_cc_infos(
+            cc_infos = stublibs_primary + stublibs_secondary
+        )
         providers.append(ccInfo )
 
     ################

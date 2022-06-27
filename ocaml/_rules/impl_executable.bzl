@@ -162,7 +162,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     # direct_linkargs_depsets = []
     # direct_paths_depsets = []
 
-    ccInfo_list = []
+    stublibs_list = []
 
     # sigs_depsets = []
     # structs_depsets = []
@@ -194,7 +194,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
         if CcInfo in dep:
             # print("CcInfo dep: %s" % dep)
-            ccInfo_list.append(dep[CcInfo])
+            stublibs_list.append(dep[CcInfo])
 
         if OcamlProvider in dep:
             provider = dep[OcamlProvider]
@@ -306,16 +306,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
         if CcInfo in main: # [0]:
             # print("CcInfo main: %s" % main[0][CcInfo])
-            ccInfo_list.append(main[CcInfo]) # [0][CcInfo])
-
-        ccInfo = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
-        [
-            action_inputs_ccdep_filelist,
-            cc_runfiles
-        ] = link_ccdeps(ctx,
-                        tc.linkmode,
-                        args,
-                        ccInfo)
+            stublibs_list.append(main[CcInfo]) # [0][CcInfo])
 
         # if OcamlProvider in main:
         #     if hasattr(main[0][OcamlProvider], "archive_manifests"):
@@ -356,6 +347,39 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         print("astructs_primary: %s" % astructs_primary)
         print("astructs_secondary: %s" % astructs_secondary)
 
+
+    if debug:
+        print("finished 'main' handling")
+        print("sigs_primary: %s" % sigs_primary)
+        print("sigs_secondary: %s" % sigs_secondary)
+        print("structs_primary: %s" % structs_primary)
+        print("structs_secondary: %s" % structs_secondary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("ofiles_secondary: %s" % ofiles_secondary)
+        ## archives cannot be direct deps
+        print("archives_primary: %s" % archives_primary)
+        print("archives_secondary: %s" % archives_secondary)
+        print("afiles_primary: %s" % afiles_primary)
+        print("afiles_secondary: %s" % afiles_secondary)
+        print("astructs_primary: %s" % astructs_primary)
+        print("astructs_secondary: %s" % astructs_secondary)
+
+
+    if debug:
+        print("finished 'main' handling")
+        print("sigs_primary: %s" % sigs_primary)
+        print("sigs_secondary: %s" % sigs_secondary)
+        print("structs_primary: %s" % structs_primary)
+        print("structs_secondary: %s" % structs_secondary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("ofiles_secondary: %s" % ofiles_secondary)
+        ## archives cannot be direct deps
+        print("archives_primary: %s" % archives_primary)
+        print("archives_secondary: %s" % archives_secondary)
+        print("afiles_primary: %s" % afiles_primary)
+        print("afiles_secondary: %s" % afiles_secondary)
+        print("astructs_primary: %s" % astructs_primary)
+        print("astructs_secondary: %s" % astructs_secondary)
 
     merged_manifests = depset(transitive = manifest_list)
     archive_filter_list = merged_manifests.to_list()
@@ -458,18 +482,41 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     # if ctx.file.main:
     #     args.add(ctx.file.main)
 
-    if mode == "bytecode":
-        vmlibs = tc.vmlibs
-        args.add_all(tc.vmlibs,
-                     before_each="-dllpath", uniquify=True)
+    ## FIXME: use CcInfo
+    # cclibs_depset = depset(order=dsorder,
+    #                          direct = cclibs_primary,
+    #                          transitive = cclibs_secondary)
 
-        if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
+    ################ STUBLIBS ################
+    ## NB: we do not need to put anything on the cmd line; evidently
+    ## OCaml con figure out on its own when it needs to put a stublib
+    ## on the cmd line. But we DO need to add the stublibs to the
+    ## action_inputs depset.
+    ccInfo = cc_common.merge_cc_infos(cc_infos = stublibs_list)
+    [
+        action_inputs_ccdep_filelist, ## add this to action_inputs_depset
+        cc_runfiles
+    ] = link_ccdeps(ctx, tc.linkmode, args, ccInfo)
+    print("action_inputs_ccdep_filelist: %s" % action_inputs_ccdep_filelist)
+
+    if mode == "bytecode":
+        # vmlibs =  lib/stublibs/dll*.so, set by toolchain
+        # only needed for bytecode mode, else we get errors like:
+        # Error: I/O error: dllbase_internalhash_types_stubs.so: No such
+        # file or directory
+
+        ## WARNING: both -dllpath and -I are required!
+        args.add("-dllpath", tc.vmlibs[0].dirname)
+        args.add("-I", tc.vmlibs[0].dirname)
+
+        # if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
             ## Currently we default to a custom runtime.
             ## See section 20.1.3 "Statically linking C code with OCaml code"
             ## https://v2.ocaml.org/manual/intfc.html#ss:staticlink-c-code
             ## and https://ocaml.org/manual/runtime.html
 
-            args.add("-custom")
+        # args.add("-custom")
+
     elif mode == "native":
         vmlibs = []
 
@@ -495,32 +542,21 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             # print("DATAFILE: %s" % f.path)
             args.add("-I", f.dirname)
 
-    ## FIXME: use CcInfo
-    # cclibs_depset = depset(order=dsorder,
-    #                          direct = cclibs_primary,
-    #                          transitive = cclibs_secondary)
-
-    # cclib_args = []
-    # for cclib in cclibs_depset.to_list():
-    #     print("cclib: %s" % cclib)
-    #     cclib_args.append("-L" + cclib.dirname)
-
-    # args.add_all(cclib_args, before_each="-ccopt", uniquify=True)
-
-    # args.add("-ccopt", "-L" + cclib.dirname)
 
     if debug:
         print("MAINMAIN: %s" % ctx.attr.main)
         print("astructs_primary: %s" % astructs_primary)
     action_inputs_depset = depset(
         order=dsorder,
-        direct = vmlibs
+        direct = tc.vmlibs
+        + action_inputs_ccdep_filelist
         + afiles_primary
         + astructs_primary
         + archives_primary
         + structs_primary
         + ofiles_primary
         + sigs_primary
+        # + vmlibs
         ,
         transitive =
         [depset(direct = [ctx.file.main])]
@@ -528,18 +564,21 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         + sigs_secondary
         + structs_secondary
         + archives_secondary
-        + afiles_secondary
+        + afiles_secondary ## .a files for .cmxa files on cmd line
+        + ofiles_secondary  ## .o files for .cmx files on cmd line
         + astructs_secondary
-        + ofiles_secondary
+
         # + cclibs_secondary
         # + [depset(action_inputs_ccdep_filelist)]
         # + [depset(transitive=ppx_codep_ldeps)]
         # + [structs_depset]
         # + vmlibs
     )
-    # if debug:
-    #     for dep in action_inputs_depset.to_list():
-    #         print("IDEP: %s" % dep)
+    if debug:
+        for dep in action_inputs_depset.to_list():
+            if dep.dirname.endswith("stublibs"):
+                print("IDEP: {t} {d}".format(
+                    t=ctx.label, d=dep.path))
 
     if ctx.attr._rule == "ocaml_executable":
         mnemonic = "CompileOcamlExecutable"

@@ -13,7 +13,7 @@ def _ocaml_ns_resolver(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    return impl_ns_resolver(ctx, tc.emitting, tc.compiler, [])
+    return impl_ns_resolver(ctx, tc.target, tc.compiler, [])
 
 ###############################
 rule_options = options("ocaml")

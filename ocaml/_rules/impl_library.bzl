@@ -164,8 +164,8 @@ def impl_library(ctx, mode, tool, tool_args):
     afiles_secondary = []
     archives_primary = []
     archives_secondary = []
-    cclibs_primary = []
-    cclibs_secondary = []
+    # cclibs_primary = []
+    # cclibs_secondary = []
 
     ################
     paths_primary   = []
@@ -197,7 +197,7 @@ def impl_library(ctx, mode, tool, tool_args):
             archives_secondary.append(nsr_dep.archives)
             afiles_secondary.append(nsr_dep.afiles)
             astructs_secondary.append(nsr_dep.astructs)
-            cclibs_secondary.append(nsr_dep.cclibs)
+            # cclibs_secondary.append(nsr_dep.cclibs)
 
     #######################
     if hasattr(ctx.attr, "submodules"):
@@ -285,7 +285,7 @@ def impl_library(ctx, mode, tool, tool_args):
             archives_secondary.append(dep[OcamlProvider].archives)
             afiles_secondary.append(dep[OcamlProvider].afiles)
             astructs_secondary.append(dep[OcamlProvider].astructs)
-            cclibs_secondary.append(dep[OcamlProvider].cclibs)
+            # cclibs_secondary.append(dep[OcamlProvider].cclibs)
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
@@ -299,7 +299,7 @@ def impl_library(ctx, mode, tool, tool_args):
         if PpxCodepsProvider in dep:
             if debug_deps: print("PpxCodepsProvider: %s" % dep)
             indirect_codeps_path_depsets.append(dep[PpxCodepsProvider].paths)
-            indirect_codeps_depsets.append(dep[PpxCodepsProvider].ppx_codeps)
+            # indirect_codeps_depsets.append(dep[PpxCodepsProvider].ppx_codeps)
     if debug_deps:
         print("finished deps iteration")
         print("sigs_primary: %s" % sigs_primary)
@@ -312,7 +312,7 @@ def impl_library(ctx, mode, tool, tool_args):
         print("archives_secondary: %s" % archives_secondary)
         print("afiles_secondary: %s" % afiles_secondary)
         print("astructs_secondary: %s" % astructs_secondary)
-        print("cclibs_secondary: %s" % cclibs_secondary)
+        # print("cclibs_secondary: %s" % cclibs_secondary)
 
     # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
 
@@ -348,7 +348,7 @@ def impl_library(ctx, mode, tool, tool_args):
         + afiles_secondary
         + ofiles_secondary
         + astructs_secondary
-        + cclibs_secondary
+        # + cclibs_secondary
     )
 
     #######################
@@ -422,9 +422,9 @@ def impl_library(ctx, mode, tool, tool_args):
     astructs_depset = depset(order="postorder",
                          direct = astructs_primary,
                          transitive = astructs_secondary)
-    cclibs_depset = depset(order="postorder",
-                             direct = cclibs_primary,
-                             transitive = cclibs_secondary)
+    # cclibs_depset = depset(order="postorder",
+    #                          direct = cclibs_primary,
+    #                          transitive = cclibs_secondary)
 
     # print("new_linkargs: %s" % new_linkargs)
     ocamlProvider = OcamlProvider(
@@ -441,7 +441,7 @@ def impl_library(ctx, mode, tool, tool_args):
         archives = archives_depset,
         afiles   = afiles_depset,
         astructs = astructs_depset,
-        cclibs = cclibs_depset,
+        # cclibs = cclibs_depset,
 
         paths    = paths_depset,
         # ns_resolver = ns_resolver,

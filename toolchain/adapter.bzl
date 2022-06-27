@@ -70,23 +70,26 @@ def _ocaml_toolchain_adapter_impl(ctx):
     #          )
 
     return [platform_common.ToolchainInfo(
-        # testingn
-        platform = ctx.attr.platform,
         # Public fields
-        name = ctx.label.name,
-        linkmode       = ctx.attr.linkmode,
+        name                   = ctx.label.name,
+        host                   = ctx.attr.host,
+        target                 = ctx.attr.target,
+        compiler               = ctx.file.compiler,
+        vmruntime              = ctx.file.vmruntime,
+        vmruntime_debug        = ctx.file.vmruntime_debug,
+        vmruntime_instrumented = ctx.file.vmruntime_instrumented,
+        vmlibs                 = ctx.files.vmlibs,
 
-        compiler    = ctx.file.compiler,
-        emitting    = ctx.attr.emitting,
+        ocamllex               = ctx.file.ocamllex,
+        ocamlyacc              = ctx.file.ocamlyacc,
 
-        ocamlc     = ctx.file.ocamlc,
-        ocamlc_opt = ctx.file.ocamlc_opt,
-        ocamlopt   = ctx.file.ocamlopt,
-        ocamlopt_opt = ctx.file.ocamlopt_opt,
-        ocamllex   = ctx.file.ocamllex,
-        ocamlyacc  = ctx.file.ocamlyacc,
+        ## deprecated:
+        ocamlc                 = ctx.file.ocamlc,
+        ocamlc_opt             = ctx.file.ocamlc_opt,
+        ocamlopt               = ctx.file.ocamlopt,
+        ocamlopt_opt           = ctx.file.ocamlopt_opt,
+        linkmode               = ctx.attr.linkmode,
 
-        vmlibs  = ctx.files.vmlibs,
 
         # cc_toolchain = ctx.attr.cc_toolchain,
         ## rules add [cc_toolchain.all_files] to action inputs
@@ -114,28 +117,42 @@ def _ocaml_toolchain_adapter_impl(ctx):
 # ocaml_toolchain = rule(
 ocaml_toolchain_adapter = rule(
     _ocaml_toolchain_adapter_impl,
-    #     attrs = _ocaml_tools_attrs,
-    # _ocaml_tools_attrs = {
     attrs = {
-        "linkmode": attr.string(
-            doc = "Default link mode: 'static' or 'dynamic'"
-            # default = "static"
+
+        "host": attr.string(
+            doc     = "OCaml host platform: native or vm (bytecode).",
+            default = "native"
+        ),
+        "target": attr.string(
+            doc     = "OCaml target platform: native or vm (bytecode).",
+            default = "native"
         ),
 
-        ## https://bazel.build/docs/integrating-with-rules-cc
-        ## hidden attr required to make find_cpp_toolchain work:
-        "_cc_toolchain": attr.label(
-            default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
-        ),
-        # "_cc_opts": attr.string_list(
-        #     default = ["-Wl,-no_compact_unwind"]
-        # ),
-
-        "ocamlrun": attr.label(
-            # default = Label("//runtime:ocamlrun"),
-            executable = True,
+        "repl": attr.label(
+            doc = "A/k/a 'toplevel': 'ocaml' command.",
             allow_single_file = True,
+            executable = True,
             cfg = "exec",
+        ),
+
+        "vmruntime": attr.label(
+            doc = "ocamlrun, usually",
+            allow_single_file = True, executable = True, cfg = "exec"
+        ),
+        "vmruntime_debug": attr.label(
+            doc = "ocamlrund",
+            allow_single_file = True, executable = True, cfg = "exec"
+        ),
+        "vmruntime_instrumented": attr.label(
+            doc = "Usually the standard 'ocamlrun' interpreter.",
+            allow_single_file = True, executable = True, cfg = "exec"
+        ),
+
+
+
+        "vmlibs": attr.label(
+            doc = "Dynamically-loadable libs needed by the ocamlrun vm. Standard location: lib/stublibs. The libs are usually named 'dll<name>_stubs.so', e.g. 'dllcore_unix_stubs.so'.",
+            allow_files = True,
         ),
 
         "compiler": attr.label(
@@ -146,9 +163,26 @@ ocaml_toolchain_adapter = rule(
             cfg = "exec",
         ),
 
-        "emitting": attr.string(default = "native"),
+        "profiling_compiler": attr.label(
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
 
+        "ocamllex": attr.label(
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
 
+        "ocamlyacc": attr.label(
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
+
+        ## DEPRECATED: with platforms and toolchains the 'compiler'
+        ## attribute is sufficient - no need to list all compilers here.
         "ocamlc": attr.label(
             executable = True,
             ## providers constraints seem to be ignored
@@ -175,29 +209,6 @@ ocaml_toolchain_adapter = rule(
             cfg = "exec",
         ),
 
-        "ocamllex": attr.label(
-            executable = True,
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-
-        "ocamlyacc": attr.label(
-            executable = True,
-            allow_single_file = True,
-            cfg = "exec",
-        ),
-
-        "vmlibs": attr.label(
-            doc = "Dynamically-loadable libs needed by the ocamlrun vm. Usually named 'dll<name>_stubs.so', e.g. 'dllcore_unix_stubs.so'.",
-            allow_files = True,
-        ),
-
-        ## stdlib?
-
-        # "_dllpath": attr.label(
-        #     ## FIXME default = Label("@opam//pkg:cclibs"),
-        # ),
-
         # "_coqc": attr.label(
         #     default = Label("//tools:coqc"),
         #     executable = True,
@@ -205,8 +216,19 @@ ocaml_toolchain_adapter = rule(
         #     cfg = "exec",
         # ),
 
-        # testing platforms:
-        "platform" : attr.string(default = "noplatform")
+        "linkmode": attr.string(
+            doc = "Default link mode: 'static' or 'dynamic'"
+            # default = "static"
+        ),
+
+        ## https://bazel.build/docs/integrating-with-rules-cc
+        ## hidden attr required to make find_cpp_toolchain work:
+        "_cc_toolchain": attr.label(
+            default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
+        ),
+        # "_cc_opts": attr.string_list(
+        #     default = ["-Wl,-no_compact_unwind"]
+        # ),
     },
 
     doc = "Defines a Ocaml toolchain.",
