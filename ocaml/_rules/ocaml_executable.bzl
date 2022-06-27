@@ -68,5 +68,8 @@ the difference between '/' and ':' in such labels):
     # cfg     = nsarchive_in_transition,
     # cfg     = executable_in_transition,
     executable = True,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = [
+        "@rules_ocaml//toolchain:type",
+        "@bazel_tools//tools/cpp:toolchain_type"
+    ],
 )

@@ -2,6 +2,8 @@ load("//ocaml:providers.bzl",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider")
 
+load("//ppx:providers.bzl", "PpxModuleMarker")
+
 load("//ocaml/_transitions:transitions.bzl", "module_in_transition")
 
 load(":options.bzl",
@@ -13,7 +15,7 @@ load(":options.bzl",
 load(":impl_module.bzl", "impl_module")
 
 ###############################
-def _ocaml_module(ctx):
+def _ppx_module(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
@@ -26,11 +28,16 @@ rule_options.update(options_module("ocaml"))
 rule_options.update(options_ppx)
 
 ####################
-ocaml_module = rule(
+ppx_module = rule(
     implementation = _ocaml_module,
  # Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
     doc = """
-Compiles an OCaml module. The **module name** is determined by rule,
+
+Compiles a PPX module. Same as ocaml_module but with added ppx_codeps
+attribute. A ppx_module may depend on a standard ocaml_module, but not
+the other way around.
+
+The **module name** is determined by rule,
 based on the `struct`, `sig`, `name`, and `module` attributes:
 
 * If the `sig` attribute is the label of an `ocaml_signature` target,
@@ -98,6 +105,13 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     """,
     attrs = dict(
         rule_options,
+
+        ppx_codeps = attr.label_list(
+            doc = """List of non-opam adjunct dependencies (labels).""",
+            mandatory = False
+            # providers = [[DefaultInfo], [PpxModuleMarker]]
+        ),
+
     ),
 
     fragments = ["platform"],
@@ -116,7 +130,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     #     ),
     # },
     cfg     = module_in_transition,
-    provides = [OcamlModuleMarker],
+    provides = [OcamlModuleMarker, PpxModuleMarker],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain:type",
                   "@bazel_tools//tools/cpp:toolchain_type"

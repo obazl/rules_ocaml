@@ -77,19 +77,22 @@ def dump_CcInfo(ctx, cc_info): # dep):
     #         print(" Default f: %s" % dep)
 
 ################################################################
+## Extract all cc libs from merged CcInfo provider
 ## to be called from {ocaml,ppx}_executable
 ## tasks:
 ##     - construct args
 ##     - construct inputs_depset
 ##     - extract runfiles
-def link_ccdeps(ctx,
-                default_linkmode, # platform default
-                args,
-                ccInfo):
+def extract_cclibs(ctx,
+                   default_linkmode, # platform default
+                   args,
+                   ccInfo):
     # print("link_ccdeps %s" % ctx.label)
 
-    inputs_list = []
-    runfiles    = []
+    static_libs        = []
+    dynamic_libs       = []
+    # action_inputs_list = []
+    # runfiles    = []
 
     compilation_ctx = ccInfo.compilation_context
     linking_ctx     = ccInfo.linking_context
@@ -99,17 +102,21 @@ def link_ccdeps(ctx,
         if len(libs) > 0:
             for lib in libs:
                 if lib.pic_static_library:
-                    inputs_list.append(lib.pic_static_library)
-                    args.add(lib.pic_static_library.path)
+                    static_libs.append(lib.pic_static_library)
+                    # action_inputs_list.append(lib.pic_static_library)
+                    # args.add(lib.pic_static_library.path)
                 if lib.static_library:
-                    inputs_list.append(lib.static_library)
-                    args.add(lib.static_library.path)
+                    static_libs.append(lib.pic_static_library)
+                    # action_inputs_list.append(lib.static_library)
+                    # args.add(lib.static_library.path)
                 if lib.dynamic_library:
-                    inputs_list.append(lib.dynamic_library)
-                    args.add("-ccopt", "-L" + lib.dynamic_library.dirname)
-                    args.add("-cclib", lib.dynamic_library.path)
+                    dynamic_libs.append(lib.dynamic_library)
+                    # action_inputs_list.append(lib.dynamic_library)
+                    # args.add("-ccopt", "-L" + lib.dynamic_library.dirname)
+                    # args.add("-cclib", lib.dynamic_library.path)
 
-    return [inputs_list, runfiles]
+    # return [action_inputs_list, runfiles]
+    return [static_libs, dynamic_libs]
 
 ################################################################
 def x(ctx,

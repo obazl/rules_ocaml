@@ -1,3 +1,10 @@
+PpxModuleMarker = provider(
+    doc = "PPX module Marker.",
+    # fields = {
+    #     "name": "name of module"
+    # }
+)
+
 ###############################
 PpxCodepsProvider = provider(
     doc = "PPX Codeps provider.",

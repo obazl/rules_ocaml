@@ -44,7 +44,7 @@ load(":options.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
+# load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
 
 load(":impl_common.bzl",
      "dsorder",

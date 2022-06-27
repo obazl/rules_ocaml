@@ -14,7 +14,7 @@ load("//ppx:providers.bzl",
      "PpxExecutableMarker",
 )
 
-load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
+load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -55,7 +55,8 @@ def _import_ppx_executable(ctx):
 #########################
 def impl_executable(ctx, mode, tc, tool, tool_args):
 
-    debug =     False
+    debug     = False
+    debug_cc  = True
     debug_ppx = True
 
     if debug or debug_ppx:
@@ -489,15 +490,28 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
 
     ################ STUBLIBS ################
     ## NB: we do not need to put anything on the cmd line; evidently
-    ## OCaml con figure out on its own when it needs to put a stublib
+    ## OCaml can figure out on its own when it needs to put a stublib
     ## on the cmd line. But we DO need to add the stublibs to the
     ## action_inputs depset.
+
     ccInfo = cc_common.merge_cc_infos(cc_infos = stublibs_list)
+
+    ## extract cclibs from merged CcInfo provider:
     [
-        action_inputs_ccdep_filelist, ## add this to action_inputs_depset
-        cc_runfiles
-    ] = link_ccdeps(ctx, tc.linkmode, args, ccInfo)
-    print("action_inputs_ccdep_filelist: %s" % action_inputs_ccdep_filelist)
+        # action_inputs_ccdep_filelist, ## add this to action_inputs_depset
+        # cc_runfiles
+        static_cclibs, dynamic_cclibs
+    ] = extract_cclibs(ctx, tc.linkmode, args, ccInfo)
+    if debug_cc:
+        print("static_cclibs:  %s" % static_cclibs)
+        print("dynamic_cclibs: %s" % dynamic_cclibs)
+
+    cclib_linkpaths = []
+    for cclib in dynamic_cclibs:
+        cclib_linkpaths.append("-L" + cclib.dynamic_library.dirname)
+        args.add("-cclib", cclib.dynamic_library.path)
+
+    args.add_all(cclib_linkpaths, before_each="-ccopt", uniquify=True)
 
     if mode == "bytecode":
         # vmlibs =  lib/stublibs/dll*.so, set by toolchain

@@ -36,7 +36,7 @@ load("//ocaml/_functions:module_naming.bzl",
      "module_name_from_label",
      "normalize_module_name")
 
-load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
+# load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
 
 load(":impl_common.bzl",
      "dsorder",
@@ -310,7 +310,7 @@ def impl_module(ctx, mode, tool, tool_args):
     debug_ns   = False
     debug_ppx  = False
     debug_sig  = False
-    debug_xmo  = True
+    debug_xmo  = False
 
     if debug:
         print("===============================")
@@ -433,8 +433,8 @@ def impl_module(ctx, mode, tool, tool_args):
     paths_primary   = []
     paths_secondary = []
 
-    stublibs_primary             = []  ## file list
-    stublibs_secondary           = []  ## provider list?
+    cc_deps_primary             = []  ## list of CcInfo
+    cc_deps_secondary           = []  ## list of depsets (of CcInfo)
 
     sig_is_xmo = True
 
@@ -770,7 +770,7 @@ def impl_module(ctx, mode, tool, tool_args):
 
         ## Finally CcInfo deps
         if CcInfo in dep:
-            stublibs_secondary.append(dep[CcInfo])
+            cc_deps_secondary.append(dep[CcInfo])
 
     if debug:
         print("finished deps iteration")
@@ -787,6 +787,9 @@ def impl_module(ctx, mode, tool, tool_args):
         print("paths_secondary: %s" % paths_secondary)
 
         # print("cclibs_secondary: %s" % cclibs_secondary)
+
+    for ccdep in ctx.attr.cc_deps:
+        cc_deps_primary.append(ccdep)
 
     ns_enabled = False
     ns_name    = None
@@ -890,7 +893,7 @@ def impl_module(ctx, mode, tool, tool_args):
             paths_secondary.append(codep.paths)
 
         if CcInfo in ctx.attr.ppx:
-            stublibs_secondary.append(ctx.attr.ppx[CcInfo])
+            cc_deps_secondary.append(ctx.attr.ppx[CcInfo])
 
             # cclibs_secondary.append(codep.cclibs)
 
@@ -910,11 +913,11 @@ def impl_module(ctx, mode, tool, tool_args):
 
 
     ################ PRIMARY STUBLIB (CC) DEPENDENCIES ################
-    for dep in ctx.attr.stublibs:
+    for dep in ctx.attr.cc_deps:
         ## stublibs is label_keyed_string_dict, whose keys are targets
         ## providing CcInfo
         if CcInfo in dep:
-            stublibs_primary.append(dep[CcInfo])
+            cc_deps_primary.append(dep[CcInfo])
 
 
     # codep_sigs_secondary_depset=depset(transitive=codep_sigs_secondary)
@@ -1282,9 +1285,9 @@ def impl_module(ctx, mode, tool, tool_args):
         providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
-    if stublibs_primary or stublibs_secondary:
+    if cc_deps_primary or cc_deps_secondary:
         ccInfo = cc_common.merge_cc_infos(
-            cc_infos = stublibs_primary + stublibs_secondary
+            cc_infos = cc_deps_primary + cc_deps_secondary
         )
         providers.append(ccInfo )
 

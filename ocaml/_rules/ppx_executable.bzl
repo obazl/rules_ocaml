@@ -76,28 +76,35 @@ ppx_executable = rule(
             doc = "List of args that will be passed to the ppx_executable at runtime. E.g. -inline-test-lib. CAVEAT: will be used wherever the exec is run, and passed before command line args.  For finer granularity use the 'ppx_args' attr of e.g. ocaml_module."
         ),
 
+        ##FIXME: rename runtime_data?
         data  = attr.label_list(
             doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
         ),
+
         strip_data_prefixes = attr.bool(
             doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
             default = False
         ),
+
         deps = attr.label_list(
             doc = "Deps needed to build this ppx executable.",
             providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
             # cfg = ocaml_executable_deps_out_transition
         ),
+
         # _deps = attr.label(
         #     doc = "Dependency to be added last.",
         #     default = "@rules_ocaml//ppx/executable:deps"
         # ),
+
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             mandatory = False
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
+
+        ################
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",
             providers = [[CcInfo]]

@@ -595,6 +595,18 @@ def options_module(ws):
         _opts     = attr.label(default = ws + "//cfg/module:opts"),     # string list
         _linkall  = attr.label(default = ws + "//cfg/module/linkall"),  # bool
         # _threads   = attr.label(default = ws + "//cfg/module/threads"),   # bool
+        _warnings = attr.label(
+            default = "@rules_ocaml//cfg/module:warnings"
+        ),
+
+        _rule = attr.string( default = "ocaml_module" ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+
+        module = attr.string(
+            doc = "Use this string as module name, instead of deriving it from sig or struct"
+        ),
 
         struct = attr.label(
             doc = "A single module (struct) source file label.",
@@ -657,13 +669,13 @@ Runtime data dependencies: list of labels of data files needed by this module at
         ),
 
         ################
-        stublibs = attr.label_list(
-            doc = "Static (.a) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
+        cc_deps = attr.label_list(
+            doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
             providers = [CcInfo],
         ),
 
-        cc_deps = attr.label_keyed_string_dict(
-            doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'stublibs' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
+        cc_linkage = attr.label_keyed_string_dict(
+            doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'cc_deps' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
             """,
             # providers = since this is a dictionary depset, no
             # providers constraints, but the keys must have CcInfo

@@ -7,40 +7,93 @@ load("//ocaml:providers.bzl",
      "OcamlExecutableMarker",
      "OcamlImportMarker")
 
+RED="\033[0;31m"
+MAG="\033[0;35m"
+RESET="\033[0;0m"
+
+################
+def _dump_cc_toolchain(ctx):
+    print("**** CcToolchainInfo ****")
+    tc = find_cpp_toolchain(ctx)
+
+    # tc2 = cc_common.CcToolchainInfo
+
+    items = dir(tc)
+    for item in items:
+        print("{c}{item}".format(c=RED, item=item))
+        val = getattr(tc, item)
+        print("  %s" % val)
+        # if item == "dynamic_runtime_lib":
+        #     print(":: %s" % tc.dynamic_runtime_lib(
+        #         feature_configuration = cc_common.configure_features(
+        #             ctx = ctx,
+        #             cc_toolchain = tc,
+        #             requested_features = ctx.features,
+        #             unsupported_features = ctx.disabled_features,
+        #         )
+        #     ))
+        # if item == "linker_files":
+        #     print(":: %s" % tc.linker_files)
+
+################
+def _dump_tc_frags(ctx):
+    print("**** host platform frags: %s" % ctx.host_fragments.platform)
+    ds = dir(ctx.host_fragments.platform)
+    for d in ds:
+        print("\t{d}:\n\t{dval}".format(
+            d = d, dval = getattr(ctx.host_fragments.platform, d)))
+        _platform = ctx.host_fragments.platform.platform
+
+    print("**** target platform frags: %s" % ctx.fragments.platform)
+    ds = dir(ctx.fragments.platform)
+    for d in ds:
+        print("\t{d}:\n\t{dval}".format(
+            d = d, dval = getattr(ctx.host_fragments.platform, d)))
+    _platform = ctx.host_fragments.platform.platform
+
+    if ctx.host_fragments.apple:
+        _cc_opts = ["-Wl,-no_compact_unwind"]
+        print("**** host apple frags: %s" % ctx.host_fragments.apple)
+        ds = dir(ctx.host_fragments.apple)
+        for d in ds:
+            print("\t{d}:\n\t{dval}".format(
+                d = d, dval = getattr(ctx.host_fragments.apple, d)))
+    else:
+        _cc_opts = []
+
+    print("**** host cpp frags: %s" % ctx.host_fragments.cpp)
+    ds = dir(ctx.fragments.cpp)
+    for d in ds:
+        print("\t{d}:\n\t{dval}".format(
+            d = d,
+            dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
+
+    print("**** target cpp frags: %s" % ctx.fragments.cpp)
+    ds = dir(ctx.fragments.cpp)
+    for d in ds:
+        print("\t{d}:\n\t{dval}".format(
+            d = d,
+            dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
+
 ## obtaining CC toolchain:  https://github.com/bazelbuild/bazel/issues/7260
 ################################################################
 def _ocaml_toolchain_adapter_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")
 
-    # cctc = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
-    # print("CC TOOLCHAIN: %s" % cctc)
+    debug_cctc  = True
+    debug_frags = False
 
-    # print("platform frag: %s" % ctx.host_fragments.platform)
-    # ds = dir(ctx.host_fragments.platform)
-    # for d in ds:
-    #     print("\n\t{d}: {dval}".format(
-    #         d = d, dval = getattr(ctx.host_fragments.platform, d)))
-    # _platform = ctx.host_fragments.platform.platform
+    cctc = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
+    if debug_cctc: print("CC TOOLCHAIN: %s" % cctc)
 
-    if ctx.host_fragments.apple:
-        _cc_opts = ["-Wl,-no_compact_unwind"]
-    else:
-        _cc_opts = []
+    if debug_frags:
+        _dump_tc_frags(ctx)
 
-    # print("apple frag: %s" % ctx.host_fragments.apple)
-    # ds = dir(ctx.host_fragments.apple)
-    # for d in ds:
-    #     print("\n\t{d}: {dval}".format(
-    #         d = d, dval = getattr(ctx.host_fragments.apple, d)))
-
-    # print("cpp frag: %s" % ctx.fragments.cpp)
-    # ds = dir(ctx.fragments.cpp)
-    # for d in ds:
-    #     print("\n\t{d}: {dval}".format(
-    #         d = d,
-    #         dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
+    if debug_cctc:
+        _dump_cc_toolchain(ctx)
 
     the_cc_toolchain = find_cpp_toolchain(ctx)
+
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
         cc_toolchain = the_cc_toolchain,
@@ -51,7 +104,8 @@ def _ocaml_toolchain_adapter_impl(ctx):
         feature_configuration = feature_configuration,
         action_name = C_COMPILE_ACTION_NAME,
     )
-    # print("c_exe: %s" % _c_exe)
+    if debug_cctc: print("c_exe: %s" % _c_exe)
+
     if not ctx.attr.linkmode in ["static", "dynamic"]:
         fail("Bad value '{actual}' for attrib 'link'. Allowed values: 'static', 'dynamic' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
             ws = ctx.workspace_name,
@@ -60,14 +114,6 @@ def _ocaml_toolchain_adapter_impl(ctx):
             actual = ctx.attr.linkmode
         )
              )
-    # if not ctx.attr.mode in ["native", "bytecode"]:
-    #     fail("Bad value '{actual}' for attrib 'mode'. Allowed values: 'native', 'bytecode' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
-    #         ws = ctx.workspace_name,
-    #         bf = ctx.build_file_path,
-    #         n = ctx.label.name,
-    #         actual = ctx.attr.mode
-    #     )
-    #          )
 
     return [platform_common.ToolchainInfo(
         # Public fields
@@ -95,10 +141,10 @@ def _ocaml_toolchain_adapter_impl(ctx):
         ## rules add [cc_toolchain.all_files] to action inputs
         ## at least, rules linking to cc libs must do this;
         ## pure ocaml code need not?
-        cc_toolchain = the_cc_toolchain,
-        cc_exe = _c_exe, ## to be passed via `-cc` (will be a sh script on mac)
+        # cc_toolchain = the_cc_toolchain,
+        # cc_exe = _c_exe, ## to be passed via `-cc` (will be a sh script on mac)
 
-        cc_opts = _cc_opts,
+        # cc_opts = _cc_opts,
 
         ## config frag.cpp fld `linkopts` contains whatever was passed
         ## by CLI using `--linkopt`
@@ -237,7 +283,7 @@ ocaml_toolchain_adapter = rule(
     ## NB: config frags evidently expose CLI opts like `--cxxopt`;
     ## see https://docs.bazel.build/versions/main/skylark/lib/cpp.html
     fragments = ["cpp", "apple", "platform"],
-    host_fragments = ["apple", "platform"],
+    host_fragments = ["cpp", "apple", "platform"],
 
     ## ocaml toolchain adapter depends on cc toolchain?
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]

@@ -46,7 +46,7 @@ def get_options(rule, ctx):
     #                 options.append("-opaque")
 
     if hasattr(ctx.attr, "_xmo"):
-        print("XMO: %s" % ctx.attr._xmo[BuildSettingInfo].value)
+        # print("XMO: %s" % ctx.attr._xmo[BuildSettingInfo].value)
         if not "-no-opaque" in ctx.attr.opts:
             if "-opaque" in ctx.attr.opts: # avoid dup, use the one in opts
                 options.append("-opaque")
