@@ -134,7 +134,7 @@ def _handle_precompiled_sig(ctx, modname, ext):
 
     debug      = False
     debug_deps = False
-    debug_ppx  = True
+    debug_ppx  = False
     debug_ns   = False
 
     sigProvider = ctx.attr.sig[OcamlSignatureProvider]
