@@ -72,8 +72,8 @@ def _import_ppx_executable(ctx):
 def impl_executable(ctx, mode, tc, tool, tool_args):
 
     debug     = False
-    debug_cc  = True
-    debug_ppx = True
+    debug_cc  = False
+    debug_ppx = False
 
     if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(

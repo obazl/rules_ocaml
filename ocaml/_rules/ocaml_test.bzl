@@ -39,6 +39,8 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         rule_options,
         _rule = attr.string( default = "ocaml_test" ),
 
+        cc_libs = attr.label_list(),
+
         ## https://bazel.build/docs/integrating-with-rules-cc
         ## hidden attr required to make find_cpp_toolchain work:
         _cc_toolchain = attr.label(

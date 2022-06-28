@@ -120,7 +120,7 @@ def _dump_tc_frags(ctx):
 def _ocaml_toolchain_adapter_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")
 
-    debug_cctc  = True
+    debug_cctc  = False
     debug_frags = False
 
     if debug_cctc:
