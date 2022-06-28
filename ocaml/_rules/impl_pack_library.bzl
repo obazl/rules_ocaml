@@ -60,7 +60,7 @@ def _handle_cc_deps(ctx,
     # for macos linkmode is dynamic, so we need to override this for bytecode mode
 
     debug = False
-    # if ctx.attr._rule == "ocaml_executable":
+    # if ctx.attr._rule == "ocaml_binary":
     if ctx.label.name == "_Tacarg":
         debug = True
     if debug:

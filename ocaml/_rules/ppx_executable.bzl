@@ -6,7 +6,7 @@ load("//ppx:providers.bzl",
 )
 
 load("//ocaml/_transitions:transitions.bzl",
-     "ocaml_executable_deps_out_transition",
+     "ocaml_binary_deps_out_transition",
      "executable_in_transition")
 
 load(":options.bzl", "options")
@@ -55,7 +55,7 @@ ppx_executable = rule(
             allow_single_file = True,
             providers = [[OcamlModuleMarker], [PpxExecutableMarker]],
             default = None,
-            # cfg = ocaml_executable_deps_out_transition
+            # cfg = ocaml_binary_deps_out_transition
         ),
         # finalizer = attr.label(),
 
@@ -90,7 +90,7 @@ ppx_executable = rule(
         deps = attr.label_list(
             doc = "Deps needed to build this ppx executable.",
             providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
-            # cfg = ocaml_executable_deps_out_transition
+            # cfg = ocaml_binary_deps_out_transition
         ),
 
         # _deps = attr.label(
@@ -111,7 +111,7 @@ ppx_executable = rule(
             providers = [[CcInfo]]
         ),
         _cc_deps = attr.label(
-            doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_executable.",
+            doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_binary.",
             ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
             # providers = [[CcInfo]]
             default = "@rules_ocaml//cfg/executable:cc_deps"

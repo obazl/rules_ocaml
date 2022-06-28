@@ -16,7 +16,7 @@ load("//ppx:providers.bzl",
 
 load("//ocaml/_transitions:transitions.bzl",
      "ocaml_module_sig_out_transition",
-     "ocaml_executable_deps_out_transition",
+     "ocaml_binary_deps_out_transition",
      "ocaml_module_deps_out_transition")
 
 load("//ocaml/_transitions:ns_transitions.bzl",
@@ -109,7 +109,7 @@ def options_executable(ws):
             allow_single_file = True,
             providers = [[OcamlProvider,OcamlModuleMarker]],
             default = None,
-            # cfg = ocaml_executable_deps_out_transition
+            # cfg = ocaml_binary_deps_out_transition
         ),
         data = attr.label_list(
             allow_files = True,
@@ -127,7 +127,7 @@ def options_executable(ws):
                          [OcamlModuleMarker],
                          [OcamlNsMarker],
                          [CcInfo]],
-            # cfg = ocaml_executable_deps_out_transition
+            # cfg = ocaml_binary_deps_out_transition
         ),
 
         _deps = attr.label(
@@ -145,7 +145,7 @@ def options_executable(ws):
             # providers = [[CcInfo]]
         ),
         _cc_deps = attr.label(
-            doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_executable.",
+            doc = "Global C/C++ library dependencies. Apply to all instances of ocaml_binary.",
             ## FIXME: cc libs could come from LSPs that do not support CcInfo, e.g. rules_rust
             # providers = [[CcInfo]]
             default = "@rules_ocaml//cfg/executable:cc_deps"

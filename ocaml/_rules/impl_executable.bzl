@@ -268,7 +268,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
                           dep[OcamlImportMarker])
                     print("dep[OcamlProvider]: %s" % dep)
 
-                coprovider = dep[OcamlProvider];
+                coprovider = codep[OcamlProvider];
                 codep_sigs_secondary.append(coprovider.sigs)
                 codep_structs_secondary.append(coprovider.structs)
                 codep_ofiles_secondary.append(coprovider.ofiles)
@@ -507,7 +507,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
                 print("IDEP: {t} {d}".format(
                     t=ctx.label, d=dep.path))
 
-    if ctx.attr._rule == "ocaml_executable":
+    if ctx.attr._rule == "ocaml_binary":
         mnemonic = "CompileOcamlExecutable"
     elif "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
     # elif ctx.attr._rule == "ppx_executable":
@@ -563,7 +563,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         exe_provider = PpxExecutableMarker(
             args = ctx.attr.args
         )
-    elif ctx.attr._rule == "ocaml_executable":
+    elif ctx.attr._rule == "ocaml_binary":
         exe_provider = OcamlExecutableMarker()
     elif ctx.attr._rule == "ocaml_test":
         exe_provider = OcamlTestMarker()

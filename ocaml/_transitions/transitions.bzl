@@ -46,7 +46,7 @@ executable_in_transition = transition(
 )
 
 #####################################################
-def _ocaml_executable_deps_out_transition_impl(settings, attr):
+def _ocaml_binary_deps_out_transition_impl(settings, attr):
     print(">>> OCAML_EXECUTABLE_DEPS_OUT_TRANSITION: %s" % attr.name)
 
     # if attr.mode:
@@ -59,8 +59,8 @@ def _ocaml_executable_deps_out_transition_impl(settings, attr):
     }
 
 ################
-ocaml_executable_deps_out_transition = transition(
-    implementation = _ocaml_executable_deps_out_transition_impl,
+ocaml_binary_deps_out_transition = transition(
+    implementation = _ocaml_binary_deps_out_transition_impl,
     inputs = [
         "@rules_ocaml//cfg/xmo"
     ],

@@ -204,7 +204,7 @@ def x(ctx,
     # for macos linkmode is dynamic, so we need to override this for bytecode mode
 
     debug = False
-    # if ctx.attr._rule == "ocaml_executable":
+    # if ctx.attr._rule == "ocaml_binary":
     #     debug = True
     if debug:
         print("EXEC _handle_cc_deps %s" % ctx.label)

@@ -13,7 +13,7 @@ load("//ocaml/_rules:ocaml_null.bzl", _ocaml_null = "ocaml_null")
 
 load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
 
-load("//ocaml/_rules:ocaml_executable.bzl"  , _ocaml_executable = "ocaml_executable")
+load("//ocaml/_rules:ocaml_binary.bzl"  , _ocaml_binary = "ocaml_binary")
 
 # load("//ocaml/_rules:ocaml_genrule.bzl"      , _ocaml_genrule = "ocaml_genrule")
 
@@ -50,7 +50,7 @@ load("//ocaml/_rules:ppx_executable.bzl" ,
 
 ocaml_null = _ocaml_null
 
-ocaml_executable = _ocaml_executable
+ocaml_binary = _ocaml_binary
 ocaml_archive    = _ocaml_archive
 # ocaml_genrule    = _ocaml_genrule
 ocaml_import     = _ocaml_import
