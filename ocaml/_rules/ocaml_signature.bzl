@@ -55,10 +55,11 @@ workdir = tmpdir
 
 ################
 def _handle_ns_deps(ctx):
-    debug    = True
-    debug_ns = True
+    debug    = False
+    debug_ns = False
 
-    if debug: print("_handle_ns_deps ****************")
+    if debug_ns:
+        if debug: print("_handle_ns_deps ****************")
 
     path_list = []
 
@@ -144,7 +145,7 @@ def _ocaml_signature_impl(ctx):
     debug      = False
     debug_deps = False
     debug_ns   = False
-    debug_ppx  = True
+    debug_ppx  = False
     debug_sig  = False
     debug_xmo  = False
 

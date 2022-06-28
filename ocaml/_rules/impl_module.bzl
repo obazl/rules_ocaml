@@ -73,7 +73,7 @@ def _handle_ns_deps(ctx):
         ## topdown (hidden) resolver
         nsrp = ctx.attr.ns_resolver[OcamlNsResolverProvider]
         nsop = ctx.attr.ns_resolver[OcamlProvider]
-        print("_NS_RESOLVER: %s" % nsrp)
+        # print("_NS_RESOLVER: %s" % nsrp)
         if hasattr(nsrp, "ns_name"):
             ns_name = nsrp.ns_name
             if debug_ns:

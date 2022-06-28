@@ -187,8 +187,8 @@ def impl_library(ctx, mode, tool, tool_args):
             # WARNING: index by int not provider (due to transition fn)
             nsr = ns_resolver[0][OcamlNsResolverProvider]
             nsr_dep = ns_resolver[0][OcamlProvider]
-            print("nsr: %s" % nsr)
             if debug_ns:
+                print("nsr: %s" % nsr)
                 print("ns_resolver: %s" % nsr)
                 print("ns name: %s" % nsr.ns_name)
             sigs_secondary.append(nsr_dep.sigs)
@@ -202,12 +202,12 @@ def impl_library(ctx, mode, tool, tool_args):
     #######################
     if hasattr(ctx.attr, "submodules"):
         ## ocaml_ns_archive or ocaml_ns_library
-        print("Processing ns aggregator %s" % ctx.label)
+        # print("Processing ns aggregator %s" % ctx.label)
         direct_dep_files = ctx.files.submodules
         direct_deps_attr = ctx.attr.submodules
     elif hasattr(ctx.attr, "manifest"):
         ## ocaml_archive or ocaml_library
-        print("Processing non-ns aggregator %s" % ctx.label)
+        # print("Processing non-ns aggregator %s" % ctx.label)
         direct_dep_files = ctx.files.manifest
         direct_deps_attr = ctx.attr.manifest
     else:
