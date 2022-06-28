@@ -29,7 +29,7 @@ rule_options.update(options_ppx)
 
 ####################
 ppx_module = rule(
-    implementation = _ocaml_module,
+    implementation = _ppx_module,
  # Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
     doc = """
 

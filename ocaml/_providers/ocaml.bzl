@@ -27,8 +27,6 @@ OcamlProvider = provider(
 
         "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
 
-        # "cclibs": "depset of files of form 'foo_stubs.a'.",
-
         ## everything below is DEPRECATED
 
         # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",

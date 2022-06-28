@@ -98,6 +98,7 @@ ppx_executable = rule(
         #     default = "@rules_ocaml//ppx/executable:deps"
         # ),
 
+        ## ppx_executable only
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             mandatory = False

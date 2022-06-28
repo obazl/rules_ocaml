@@ -77,6 +77,44 @@ def dump_CcInfo(ctx, cc_info): # dep):
     #         print(" Default f: %s" % dep)
 
 ################################################################
+def lib_to_string(ctx, idx, lib):
+    text = "  alwayslink[{i}]: {al}\n".format(i=idx, al = lib.alwayslink)
+    flds = ["static_library",
+            "pic_static_library",
+            "interface_library",
+            "dynamic_library",]
+    for fld in flds:
+        if hasattr(lib, fld):
+            if getattr(lib, fld):
+                text = text + "  lib[{i}].{f}: {p}\n".format(
+                    i=idx, f=fld, p=getattr(lib,fld).path)
+            else:
+                text = text + "  lib[{i}].{f} == None\n".format(i=idx, f=fld)
+    return text
+
+################
+def ccinfo_to_string(ctx, cc_info):
+    # print("DUMP_CCINFO for %s" % ctx.label)
+    text = ""
+    compilation_ctx = cc_info.compilation_context
+    linking_ctx     = cc_info.linking_context
+    linker_inputs = linking_ctx.linker_inputs.to_list()
+    # print("linker_inputs count: %s" % len(linker_inputs))
+    lidx = 0
+    for linput in linker_inputs:
+        # print(" linker_input[{i}]".format(i=lidx))
+        # print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+        libs = linput.libraries
+        # print(" libs count: %s" % len(libs))
+        if len(libs) > 0:
+            i = 0
+            for lib in linput.libraries:
+                text = text + lib_to_string(ctx, i, lib)
+                i = i+1
+        lidx = lidx + 1
+    return text
+
+################################################################
 ## Extract all cc libs from merged CcInfo provider
 ## to be called from {ocaml,ppx}_executable
 ## tasks:
@@ -97,25 +135,30 @@ def extract_cclibs(ctx,
     compilation_ctx = ccInfo.compilation_context
     linking_ctx     = ccInfo.linking_context
     linker_inputs = linking_ctx.linker_inputs.to_list()
+    # print("LINKER_INPUTS: %s" % linker_inputs)
     for linput in linker_inputs:
         libs = linput.libraries
         if len(libs) > 0:
             for lib in libs:
+                # print("LIB: %s" % lib)
                 if lib.pic_static_library:
+                    # print("PIC static: %s" % lib.pic_static_library)
                     static_libs.append(lib.pic_static_library)
                     # action_inputs_list.append(lib.pic_static_library)
                     # args.add(lib.pic_static_library.path)
                 if lib.static_library:
-                    static_libs.append(lib.pic_static_library)
+                    # print("static: %s" % lib.static_library)
+                    static_libs.append(lib.static_library)
                     # action_inputs_list.append(lib.static_library)
                     # args.add(lib.static_library.path)
                 if lib.dynamic_library:
+                    # print("dynamic: %s" % lib.dynamic_library)
                     dynamic_libs.append(lib.dynamic_library)
                     # action_inputs_list.append(lib.dynamic_library)
                     # args.add("-ccopt", "-L" + lib.dynamic_library.dirname)
                     # args.add("-cclib", lib.dynamic_library.path)
 
-    # return [action_inputs_list, runfiles]
+    # print("static_libs: %s" % static_libs)
     return [static_libs, dynamic_libs]
 
 ################################################################

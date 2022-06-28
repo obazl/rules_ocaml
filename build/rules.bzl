@@ -38,8 +38,7 @@ load("//ocaml/_rules:ocaml_ns_signature.bzl",
 load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
 load("//ocaml/_rules:ocaml_yacc.bzl"        , _ocaml_yacc = "ocaml_yacc")
 
-# load("//ocaml/_rules:x_cppo_filegroup.bzl",
-#     _x_cppo_filegroup = "x_cppo_filegroup")
+load("//ocaml/_rules:ppx_module.bzl", _ppx_module = "ppx_module")
 
 load("//ocaml/_rules:ppx_executable.bzl" ,
      _ppx_executable = "ppx_executable")
@@ -69,5 +68,6 @@ ocaml_test       = _ocaml_test
 ocaml_yacc       = _ocaml_yacc
 
 ppx_executable   = _ppx_executable
+ppx_module       = _ppx_module
 # ppx_expect_test  = _ppx_expect_test
 # ppx_test         = _ppx_test

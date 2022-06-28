@@ -87,8 +87,8 @@ def _ocaml_import_impl(ctx):
 
     # cclibs_primary           = []
 
-    stublibs_primary             = []  ## file list
-    stublibs_secondary           = []  ## provider list?
+    cc_deps_primary             = []  ## file list
+    cc_deps_secondary           = []  ## provider list?
 
     sigs_primary.extend(ctx.files.cmi)
     if tc.target == "native":
@@ -108,8 +108,8 @@ def _ocaml_import_impl(ctx):
         else:
             structs_primary.extend(ctx.files.cmo)
 
-    # cclibs_primary.extend(ctx.files.stublibs)
-    stublibs_primary.extend(ctx.files.stublibs)
+    # cclibs_primary.extend(ctx.files.cc_deps)
+    cc_deps_primary.extend(ctx.files.cc_deps)
 
     cmts_primary.extend(ctx.files.cmti)
     cmts_primary.extend(ctx.files.cmt)
@@ -195,7 +195,7 @@ def _ocaml_import_impl(ctx):
 
         ################ SECONDARY CC DEPENDENCIES ################
         if CcInfo in codep:
-            stublibs_secondary.append(codep[CcInfo])
+            cc_deps_secondary.append(codep[CcInfo])
 
     if debug_ppx:
         print("PRIMARY PPX_CODEPS for %s" % ctx.label)
@@ -221,13 +221,13 @@ def _ocaml_import_impl(ctx):
         # print("codep_cclibs_secondary: %s" % codep_cclibs_secondary)
 
     ################ PRIMARY STUBLIB DEPENDENCIES ################
-    # stublibs_primary   = []
-    # stublibs_secondary = []
-    for dep in ctx.attr.stublibs:
+    # cc_deps_primary   = []
+    # cc_deps_secondary = []
+    for dep in ctx.attr.cc_deps:
         # print("STUBLIB DEP: {this}  {dep}".format(
         #     this=ctx.label, dep = dep))
-        print("STUBLIB PROVIDER: %s" % dep[CcInfo])
-        stublibs_primary.append(dep[CcInfo])
+        # print("STUBLIB PROVIDER: %s" % dep[CcInfo])
+        cc_deps_primary.append(dep[CcInfo])
 
     # #########################
     # for dep in ctx.attr.deps:
@@ -281,7 +281,7 @@ def _ocaml_import_impl(ctx):
 
         ################ SECONDARY CC DEPENDENCIES ################
         if CcInfo in dep:
-            stublibs_secondary.append(dep[CcInfo])
+            cc_deps_secondary.append(dep[CcInfo])
 
     ################################################################
     ######  IMPORT ACTION ######
@@ -381,10 +381,10 @@ def _ocaml_import_impl(ctx):
     providers.append(_ocamlProvider)
 
     ## CcInfo
-    if stublibs_primary or stublibs_secondary:
+    if cc_deps_primary or cc_deps_secondary:
         ccoutputs = []
         ccInfo = cc_common.merge_cc_infos(
-            cc_infos = stublibs_primary + stublibs_secondary
+            cc_infos = cc_deps_primary + cc_deps_secondary
         )
         providers.append(ccInfo)
 
@@ -421,7 +421,7 @@ ocaml_import = rule(
             doc = "list of .a files that go with .cmxa files",
             allow_files = True
         ),
-        stublibs = attr.label_list(
+        cc_deps = attr.label_list(
             doc = "C archive files (.a) for integrating OCaml and C libs",
             allow_files = True,
             providers = [CcInfo],

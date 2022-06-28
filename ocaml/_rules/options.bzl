@@ -107,7 +107,7 @@ def options_executable(ws):
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
             allow_single_file = True,
-            providers = [[OcamlModuleMarker]],
+            providers = [[OcamlProvider,OcamlModuleMarker]],
             default = None,
             # cfg = ocaml_executable_deps_out_transition
         ),
@@ -137,6 +137,7 @@ def options_executable(ws):
 
 
         ## FIXME: add cc_linkopts?
+        ## FIXME: no need, cc deps can be added to deps
         cc_deps = attr.label_keyed_string_dict(
             doc = """Dictionary specifying C/C++ library dependencies. Key: a target label; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see [CC Dependencies: Linkmode](../ug/cc_deps.md#linkmode).
             """,

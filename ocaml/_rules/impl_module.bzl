@@ -15,7 +15,7 @@ load("//ocaml:providers.bzl",
 
 load("//ppx:providers.bzl",
      "PpxCodepsProvider",
-
+     "PpxModuleMarker",
 )
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
@@ -119,14 +119,11 @@ def _handle_ns_deps(ctx):
     astructs_secondary.append(nsop.astructs)
     paths_secondary.append(nsop.paths)
 
-    # cclibs_secondary.append(nsop.cclibs)
-
     if debug_ns: print("**************** exiting _handle_ns_deps")
 
     return (ns_enabled, ns_name, ns_cmi, ns_struct, ns_ofile,
             sigs_secondary, structs_secondary, ofiles_secondary,
             archives_secondary, afiles_secondary, astructs_secondary,
-            # cclibs_secondary,
             paths_secondary)
 
 ################
@@ -305,12 +302,13 @@ def _resolve_modname(ctx):
 #####################
 def impl_module(ctx, mode, tool, tool_args):
 
-    debug      = False
-    debug_deps = False
-    debug_ns   = False
-    debug_ppx  = False
-    debug_sig  = False
-    debug_xmo  = False
+    debug        = False
+    debug_ccdeps = False
+    debug_deps   = False
+    debug_ns     = False
+    debug_ppx    = False
+    debug_sig    = False
+    debug_xmo    = False
 
     if debug:
         print("===============================")
@@ -478,8 +476,6 @@ def impl_module(ctx, mode, tool, tool_args):
             astructs_secondary.append(sig_attr[OcamlProvider].astructs)
             paths_secondary.append(sig_attr[OcamlProvider].paths)
 
-            # cclibs_secondary.append(sig_attr[OcamlProvider].cclibs)
-
         else:
             if debug: print("sigdep: source")
 
@@ -539,8 +535,6 @@ def impl_module(ctx, mode, tool, tool_args):
         print("afiles_secondary: %s" % afiles_secondary)
         print("astructs_secondary: %s" % astructs_secondary)
         print("paths_secondary: %s" % paths_secondary)
-
-        # print("cclibs_secondary: %s" % cclibs_secondary)
 
     if debug:
         print("scope: %s" % scope)
@@ -664,7 +658,7 @@ def impl_module(ctx, mode, tool, tool_args):
     # codep_archives_primary   = []
     # codep_afiles_primary     = []
     # codep_astructs_primary   = []
-    # codep_cclibs_primary   = []
+    # codep_cc_deps_primary   = []
     # codep_paths_primary   = []
 
     codep_sigs_secondary     = []
@@ -673,7 +667,8 @@ def impl_module(ctx, mode, tool, tool_args):
     codep_archives_secondary = []
     codep_afiles_secondary   = []
     codep_astructs_secondary = []
-    codep_paths_secondary   = []
+    codep_paths_secondary    = []
+    codep_cc_deps_secondary   = []
 
     the_deps = ctx.attr.deps + ctx.attr.open
 
@@ -681,7 +676,6 @@ def impl_module(ctx, mode, tool, tool_args):
 
     if debug: print("iterating deps")
 
-    # ccdeps_secondary = []
     for dep in the_deps:
 
         ## OCaml deps first
@@ -739,8 +733,6 @@ def impl_module(ctx, mode, tool, tool_args):
             astructs_secondary.append(provider.astructs)
             paths_secondary.append(provider.paths)
 
-            # cclibs_secondary.append(provider.cclibs)
-
         ## Then ppx codeps
 
         # indirect_linkargs_depsets.append(dep[DefaultInfo].files)
@@ -766,8 +758,6 @@ def impl_module(ctx, mode, tool, tool_args):
             codep_astructs_secondary.append(codep.astructs)
             codep_paths_secondary.append(codep.paths)
 
-            # codep_cclibs_secondary.append(codep.cclibs)
-
         ## Finally CcInfo deps
         if CcInfo in dep:
             cc_deps_secondary.append(dep[CcInfo])
@@ -787,9 +777,6 @@ def impl_module(ctx, mode, tool, tool_args):
         print("paths_secondary: %s" % paths_secondary)
 
         # print("cclibs_secondary: %s" % cclibs_secondary)
-
-    for ccdep in ctx.attr.cc_deps:
-        cc_deps_primary.append(ccdep)
 
     ns_enabled = False
     ns_name    = None
@@ -837,7 +824,7 @@ def impl_module(ctx, mode, tool, tool_args):
         print("astructs_secondary: %s" % astructs_secondary)
         print("paths_secondary: %s" % paths_secondary)
 
-        # print("cclibs_secondary: %s" % cclibs_secondary)
+        print("cc_deps_secondary: %s" % cc_deps_secondary)
 
     ################ Signature Dep ################
     ## FIXME: this logic does not work if we needed to
@@ -912,12 +899,13 @@ def impl_module(ctx, mode, tool, tool_args):
             # codep_astructs_secondary.extend(codep.astructs)
 
 
-    ################ PRIMARY STUBLIB (CC) DEPENDENCIES ################
-    for dep in ctx.attr.cc_deps:
+    ################ PRIMARY CCLIB DEPENDENCIES ################
+    for ccdep in ctx.attr.cc_deps:
+        if CcInfo in ccdep:
+            cc_deps_primary.append(ccdep[CcInfo])
+
         ## stublibs is label_keyed_string_dict, whose keys are targets
         ## providing CcInfo
-        if CcInfo in dep:
-            cc_deps_primary.append(dep[CcInfo])
 
 
     # codep_sigs_secondary_depset=depset(transitive=codep_sigs_secondary)
@@ -1041,6 +1029,8 @@ def impl_module(ctx, mode, tool, tool_args):
         + afiles_secondary
         + astructs_secondary
         + sigs_secondary
+
+        ## module compilation never depends on cclibs
         # + cclibs_secondary
         # + bottomup_ns_inputs
     )
@@ -1290,6 +1280,11 @@ def impl_module(ctx, mode, tool, tool_args):
             cc_infos = cc_deps_primary + cc_deps_secondary
         )
         providers.append(ccInfo )
+        if debug_ccdeps:
+            print("Module provides: %s" % ccInfo)
+
+    if hasattr(ctx.attr, "ppx_codeps"):
+        providers.append(PpxModuleMarker())
 
     ################
     outputGroupInfo = OutputGroupInfo(
