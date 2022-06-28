@@ -8,13 +8,56 @@ load("//ocaml:providers.bzl",
 
 load("//ocaml/_debug:utils.bzl", "CCRED", "CCMAG", "CCRESET")
 
+def _linker(ctx, cctc):
+    print(CCRED + "link experiment")
+    static_libs   = []
+    dynamic_libs  = []
+
+    linker_inputs = []
+    linking_ctx = cc_common.create_linking_context(
+        linker_inputs = depset(linker_inputs, order = "topological"),
+    )
+    print("linking_context: %s" % linking_ctx)
+    linker_inputs = linking_ctx.linker_inputs.to_list()
+    for linput in linker_inputs:
+        libs = linput.libraries
+        if len(libs) > 0:
+            for lib in libs:
+                if lib.pic_static_library:
+                    static_libs.append(lib.pic_static_library)
+                    # action_inputs_list.append(lib.pic_static_library)
+                    # args.add(lib.pic_static_library.path)
+                if lib.static_library:
+                    static_libs.append(lib.pic_static_library)
+                    # action_inputs_list.append(lib.static_library)
+                    # args.add(lib.static_library.path)
+                if lib.dynamic_library:
+                    dynamic_libs.append(lib.dynamic_library)
+                    # action_inputs_list.append(lib.dynamic_library)
+                    # args.add("-ccopt", "-L" + lib.dynamic_library.dirname)
+                    # args.add("-cclib", lib.dynamic_library.path)
+
+    print("static_libs: %s" % static_libs)
+    print("dynamic_libs: %s" % dynamic_libs)
+
+    # linking_outputs = cc_common.link(
+    #     actions = ctx.actions,
+    #     feature_configuration = feature_configuration,
+    #     cc_toolchain = cctc,
+    #     linking_contexts = [linking_context],
+    #     # user_link_flags = user_link_flags,
+    #     # additional_inputs = ctx.files.additional_linker_inputs,
+    #     name = ctx.label.name,
+    #     output_type = "dynamic_library",
+    # )
+    # print("linking_outputs: %s" % linking_outputs)
+
 ################
 def _dump_cc_toolchain(ctx):
     print("**** CcToolchainInfo ****")
 
     cctc = find_cpp_toolchain(ctx)
     print("cctc type: %s" % type(cctc))
-    print("cctc: %s" % cctc)
     items = dir(cctc)
     for item in items:
         print("{c}{item}".format(c=CCRED, item=item))
@@ -77,8 +120,14 @@ def _dump_tc_frags(ctx):
 def _ocaml_toolchain_adapter_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")
 
-    debug_cctc  = False
+    debug_cctc  = True
     debug_frags = False
+
+    if debug_cctc:
+        print("_cc_toolchain: %s" % ctx.attr._cc_toolchain)
+        for d in dir(ctx.attr._cc_toolchain):
+            print(CCRED + "d %s" % d)
+            print("  %s" % getattr(ctx.attr._cc_toolchain, d))
 
     ## On Linux, this yields a ToolchainInfo provider.
     ## But on MacOS, it yields "dummy cc toolchain".
@@ -94,12 +143,26 @@ def _ocaml_toolchain_adapter_impl(ctx):
     if debug_cctc:
         _dump_cc_toolchain(ctx)
 
+    cctc_config = cc_common.CcToolchainInfo
+    if debug_cctc: print("cctc_config: %s" % cctc_config)
+
+    # print("in {}, the enabled features are {}".format(ctx.label.name, ctx.features))
+    ## ctx.features == []
+
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
         cc_toolchain = cctc,
         requested_features = ctx.features,
         unsupported_features = ctx.disabled_features,
     )
+    if debug_cctc:
+        print("feature_configuration t: %s" % type(feature_configuration))
+        print("feature_configuration: %s" % feature_configuration)
+        # print(" lto_backend: %s" % feature_configuration.lto_backend)
+
+    # x = cctc.static_runtime_lib(feature_configuration=feature_configuration)
+    # print("STATIC_RUNTIME_LIB: %s" % x)
+
     _c_exe = cc_common.get_tool_for_action(
         feature_configuration = feature_configuration,
         action_name = C_COMPILE_ACTION_NAME,
