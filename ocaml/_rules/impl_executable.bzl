@@ -37,11 +37,12 @@ workdir = tmpdir
 ###############################
 def _get_cc_toolchain_deps(ctx):
     cctc = find_cpp_toolchain(ctx)
-    print("cctc type: %s" % type(cctc))
-    print("cctc: %s" % cctc)
-    items = dir(cctc)
-    for item in items:
-        print(CCRED + "  %s" % item)
+    if False:
+        print("cctc type: %s" % type(cctc))
+        print("cctc: %s" % cctc)
+        items = dir(cctc)
+        for item in items:
+            print(CCRED + "  %s" % item)
 
     return [cctc.all_files]
 
@@ -571,8 +572,6 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
             # print("DATAFILE: %s" % f.path)
             args.add("-I", f.dirname)
 
-    cctc_inputs = _get_cc_toolchain_deps(ctx)
-
     if debug:
         print("MAINMAIN: %s" % ctx.attr.main)
         print("astructs_primary: %s" % astructs_primary)
@@ -586,7 +585,6 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         + structs_primary
         + ofiles_primary
         + sigs_primary
-        # + vmlibs
         ,
         transitive =
         [depset(direct = [ctx.file.main])]
@@ -598,7 +596,7 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
         + ofiles_secondary  ## .o files for .cmx files on cmd line
         + astructs_secondary
 
-        + cctc_inputs
+        # + cctc_inputs
 
         # + cclibs_secondary
         # + [depset(action_inputs_ccdep_filelist)]
@@ -622,21 +620,25 @@ def impl_executable(ctx, mode, tc, tool, tool_args):
     else:
         fail("Unknown rule for executable: %s" % ctx.attr._rule)
 
+    # cctc = find_cpp_toolchain(ctx)
     ################
     ctx.actions.run(
-      # env = env,
-      executable = tool,
-      arguments = [args],
-      inputs = action_inputs_depset,
-      outputs = [out_exe],
-      tools = [tool] + tool_args,  # [tc.ocamlopt],
-      mnemonic = mnemonic,
-      progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
-          mode = mode,
-          rule = ctx.attr._rule,
-          ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
-          pkg = ctx.label.package,
-          tgt = ctx.label.name,
+        env = {"PATH": "/usr/bin:/usr"},
+        executable = tool,
+        arguments = [args],
+        inputs = action_inputs_depset,
+        outputs = [out_exe],
+        tools = [
+            tool,
+            # cctc.static_runtime_lib()
+      ] + tool_args,  # [tc.ocamlopt],
+        mnemonic = mnemonic,
+        progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
+            mode = mode,
+            rule = ctx.attr._rule,
+            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
+            pkg = ctx.label.package,
+            tgt = ctx.label.name,
         )
     )
     ################
