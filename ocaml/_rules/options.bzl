@@ -63,6 +63,11 @@ def options(ws):
 #             """,
 #         ),
 
+        env = attr.string_dict(
+            doc = "Env variables",
+            allow_empty = True
+        ),
+
         argsfile       = attr.label(
             doc = """
 Name of file containing newline-terminated arg lines, to be passed with `-args`.

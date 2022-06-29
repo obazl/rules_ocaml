@@ -505,10 +505,15 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
     else:
         fail("Unknown rule for executable: %s" % ctx.attr._rule)
 
-    # cctc = find_cpp_toolchain(ctx)
+    env = {"PATH": "/usr/bin:/usr"}
+    ## sweet jeebus. this is the only way I could find to merge two
+    ## dicts. sheesh.
+    for i in ctx.attr.env.items():
+        env[i[0]] = i[1]
+    print("ENV: %s" % env)
     ################
     ctx.actions.run(
-        env = {"PATH": "/usr/bin:/usr"},
+        env = env,
         executable = tool,
         arguments = [args],
         inputs = action_inputs_depset,
