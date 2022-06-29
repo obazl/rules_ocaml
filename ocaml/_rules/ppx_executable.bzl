@@ -110,7 +110,8 @@ ppx_executable = rule(
         ## ppx_executable only
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
-            mandatory = False
+            mandatory = False,
+            cfg = "target"
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
 

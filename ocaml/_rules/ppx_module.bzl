@@ -14,7 +14,39 @@ load(":options.bzl",
 
 load(":impl_module.bzl", "impl_module")
 
-load("//ocaml/_debug:colors.bzl", "CCNRG", "CCRESET")
+load("//ocaml/_debug:colors.bzl", "CCNRG", "CCDER", "CCRESET")
+
+#########################################
+def _ppx_codeps_transition_impl(settings, attr):
+    print("{color}_ppx_codeps_transition{reset}: {lbl}".format(
+        color=CCDER, reset = CCRESET, lbl = attr.name
+    ))
+
+    print("host_platform: %s" % settings["//command_line_option:host_platform"])
+    print("platforms: %s" % settings["//command_line_option:platforms"])
+    print("build-host: %s" % settings["@rules_ocaml//cfg/toolchain:build-host"])
+    print("target-host: %s" % settings["@rules_ocaml//cfg/toolchain:target-host"])
+
+    return {
+        # "@rules_ocaml//cfg/toolchain:build-host": "foo",
+        # "@rules_ocaml//cfg/toolchain:target-host": "bar"
+    }
+
+################
+_ppx_codeps_transition = transition(
+    implementation = _ppx_codeps_transition_impl,
+    inputs = [
+        "@rules_ocaml//cfg/toolchain:build-host",
+        "@rules_ocaml//cfg/toolchain:target-host",
+        # special labels for Bazel native command line args:
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms",
+    ],
+    outputs = [
+        # "@rules_ocaml//cfg/toolchain:build-host",
+        # "@rules_ocaml//cfg/toolchain:target-host"
+    ]
+)
 
 ###############################
 def _ppx_module(ctx):
@@ -117,8 +149,12 @@ NOTE: These do not support `:enable`, `:disable` syntax.
 
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
-            mandatory = False
+            mandatory = False,
+            # cfg = "target"
             # providers = [[DefaultInfo], [PpxModuleMarker]]
+        ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
 
     ),
@@ -139,10 +175,9 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     #     ),
     # },
     cfg     = module_in_transition,
-    provides = [OcamlModuleMarker, PpxModuleMarker],
+    provides = [PpxModuleMarker],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain:type",
                   "@bazel_tools//tools/cpp:toolchain_type"
                   ],
 )
-

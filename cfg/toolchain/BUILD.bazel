@@ -1,0 +1,17 @@
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag", "bool_setting",
+     "string_flag", "string_setting",
+     "string_list_setting")
+
+package(default_visibility = ["//visibility:public"])
+
+string_setting(name = "build-host",  build_setting_default = "")
+string_list_setting(name = "target-host", build_setting_default = [])
+
+# bool_flag( name = "strict-sequence", build_setting_default = True )
+
+# bool_setting( name = "enable", build_setting_default = True)
+# config_setting(name = "enabled", flag_values = {":strict-sequence": str(True)})
+
+# bool_setting( name = "disable", build_setting_default = False)
+# config_setting(name = "disabled", flag_values = {":strict-sequence": str(False)})

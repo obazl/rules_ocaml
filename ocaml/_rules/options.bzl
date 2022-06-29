@@ -28,6 +28,40 @@ load("//ocaml/_transitions:ns_transitions.bzl",
      "ocaml_nslib_ns_out_transition",
      )
 
+load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCMAG", "CCRESET")
+
+#########################################
+def _ppx_transition_impl(settings, attr):
+    print("{color}_ppx_transition{reset}: {lbl}".format(
+        color=CCDER, reset = CCRESET, lbl = attr.name
+    ))
+
+    print("build host: %s" % settings["//command_line_option:host_platform"])
+    print("target host: %s" % settings["//command_line_option:platforms"])
+
+    return {
+        "@rules_ocaml//cfg/toolchain:build-host":
+        settings["//command_line_option:host_platform"].name,
+        "@rules_ocaml//cfg/toolchain:target-host":
+        [x.name for x in settings["//command_line_option:platforms"]]
+    }
+
+################
+_ppx_transition = transition(
+    implementation = _ppx_transition_impl,
+    inputs = [
+        "@rules_ocaml//cfg/toolchain:build-host",
+        "@rules_ocaml//cfg/toolchain:target-host",
+        # special labels for Bazel native command line args:
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms",
+    ],
+    outputs = [
+        "@rules_ocaml//cfg/toolchain:build-host",
+        "@rules_ocaml//cfg/toolchain:target-host"
+    ]
+)
+
 ################
 def options(ws):
 
@@ -497,10 +531,15 @@ options_ppx = dict(
         Label of `ppx_executable` target to be used to transform source before compilation.
         """,
         executable = True,
-        cfg = "exec",
+        cfg = "target",
+        # cfg = _ppx_transition,
         allow_single_file = True,
         providers = [PpxExecutableMarker]
     ),
+    # _allowlist_function_transition = attr.label(
+    #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+    # ),
+
     ppx_args  = attr.string_list(
         doc = "Options to pass to PPX executable passed by the `ppx` attribute.",
     ),

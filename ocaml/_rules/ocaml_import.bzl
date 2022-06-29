@@ -11,6 +11,43 @@ load("//ppx:providers.bzl",
 
 load(":impl_common.bzl", "dsorder", "opam_lib_prefix")
 
+load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCMAG", "CCRESET")
+
+#####################################################
+def _ppx_codeps_transition_impl(settings, attr):
+    print("{color}_ppx_codeps_transition{reset}".format(
+        color=CCDER, reset = CCRESET
+    ))
+
+    print("build host: %s" % settings["//command_line_option:host_platform"])
+    print("target host: %s" % settings["//command_line_option:platforms"])
+
+    # for a in dir(attr):
+    #     print(a)
+    #     print(getattr(attr, a))
+    # print("TC: %s" % attr.toolchains)
+    # print("exec_compatible_with: %s" % attr.exec_compatible_with)
+    # tc = attr.toolchains["@rules_ocaml//toolchain:type"]
+    # print("  TC.NAME: %s" % tc.name)
+    # print("  TC.HOST: %s" % tc.host)
+    # print("  TC.TARGET: %s" % tc.target)
+    # print("  TC.COMPILER: %s" % tc.compiler.basename)
+
+    return {}
+
+################
+_ppx_codeps_transition = transition(
+    implementation = _ppx_codeps_transition_impl,
+    inputs = [
+        # "@rules_ocaml//cfg/module:warnings"
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms",
+    ],
+    outputs = [
+
+    ]
+)
+
 ##################################################
 ######## RULE DECL:  OCAML_IMPORT  #########
 ##################################################
@@ -469,8 +506,13 @@ ocaml_import = rule(
         ),
         ppx_codeps = attr.label_list(
             allow_files = True,
-            providers = [[OcamlImportMarker]]
+            providers = [[OcamlImportMarker]],
+            # cfg = _ppx_codeps_transition,
         ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
+
         version = attr.string(),
         doc = attr.string(),
         _rule = attr.string( default = "ocaml_import" ),

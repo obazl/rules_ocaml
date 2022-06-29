@@ -431,7 +431,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             ## https://v2.ocaml.org/manual/intfc.html#ss:staticlink-c-code
             ## and https://ocaml.org/manual/runtime.html
 
-        # args.add("-custom")
+        args.add("-custom")
 
     elif tc.target == "native":
         vmlibs = [] ## we never need vmlibs for native code

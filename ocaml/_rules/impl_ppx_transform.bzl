@@ -116,7 +116,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     )
     CHDIR = "cd {tmp}".format(tmp = tmpdir)
 
-    # ppx attrib may be: 1) built by ppx_executable; or 2) imported exe file
+    # ppx attrib may be: 1) built by ppx_executable; or 2) imported precompiled exe file
     if ctx.executable.ppx:
         ppx_exe = ctx.executable.ppx
     else:
