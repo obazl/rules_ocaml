@@ -1,0 +1,15 @@
+CCRED="\033[0;31m"
+CCBRED="\033[1;31m"
+CCDER="\033[7;31m" # inverse
+CCGRN="\033[0;32m"
+CCBGRN="\033[1;32m"
+CCUGRN="\033[4;32m"  # underline
+CCNRG="\033[7;32m"  # inverse
+CCORNG="\033[0;33m"
+CCBLU="\033[0;34m"
+CCMAG="\033[0;35m"
+CCGAM="\033[7;35m"
+CCCYAN="\033[0;36m"
+CCGRY="\033[0;37m"
+CCRESET="\033[0;0m"
+

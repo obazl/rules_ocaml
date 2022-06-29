@@ -3,7 +3,7 @@ load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
-load("@rules_ocaml//ocaml/_debug:utils.bzl",
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCRESET")
 
 ## see: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl

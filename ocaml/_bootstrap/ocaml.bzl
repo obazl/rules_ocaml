@@ -9,7 +9,7 @@ load("@bazel_skylib//lib:types.bzl", "types")
 #      "bootstrap_register_toolchains",
 #      "ocaml_register_toolchains")
 
-load("//ocaml/_debug:utils.bzl", "debug_report_progress")
+load("//ocaml/_debug:colors.bzl", "debug_report_progress")
 
 
 load("//ocaml/_repo_rules:new_local_pkg_repository.bzl",

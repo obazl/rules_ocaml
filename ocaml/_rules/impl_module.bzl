@@ -300,7 +300,7 @@ def _resolve_modname(ctx):
         return struct_modname
 
 #####################
-def impl_module(ctx, mode, tool, tool_args):
+def impl_module(ctx): ## , mode, tool, tool_args):
 
     debug        = False
     debug_ccdeps = False
@@ -308,6 +308,7 @@ def impl_module(ctx, mode, tool, tool_args):
     debug_ns     = False
     debug_ppx    = False
     debug_sig    = False
+    debug_tc     = True
     debug_xmo    = False
 
     if debug:
@@ -354,9 +355,11 @@ def impl_module(ctx, mode, tool, tool_args):
     #     else:
     #         exe = tc.ocamlc.basename
 
-    ext  = ".cmx" if  mode == "native" else ".cmo"
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    if mode == "native":
+    ext  = ".cmx" if  tc.target == "native" else ".cmo"
+
+    if tc.target == "native":
         struct_extensions = ["cmxa", "cmx"]
     else:
         struct_extensions = ["cma", "cmo"]
@@ -543,7 +546,7 @@ def impl_module(ctx, mode, tool, tool_args):
     #########################
     args = ctx.actions.args()
 
-    args.add_all(tool_args)
+    # args.add_all(tool_args)
 
     _options = get_options(ctx.attr._rule, ctx)
     if "-opaque" in ctx.attr.opts:
@@ -608,7 +611,7 @@ def impl_module(ctx, mode, tool, tool_args):
     action_outputs.append(out_struct)
     structs_primary.append(out_struct)
 
-    if mode == "native":
+    if tc.target == "native":
         out_ofile = ctx.actions.declare_file(
             scope + modname + ".o"
         )
@@ -1082,14 +1085,14 @@ def impl_module(ctx, mode, tool, tool_args):
     ################
     ctx.actions.run(
         # env = env,
-        executable = tool,
+        executable = tc.compiler,
         arguments = [args],
         inputs    = action_inputs_depset,
         outputs   = action_outputs,
-        tools = [tool] + tool_args,
+        tools = [tc.compiler], # + tool_args,
         mnemonic = "CompileOCamlModule" if ctx.attr._rule == "ocaml_module" else "CompilePpastructdule",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
-            mode = mode,
+            mode = tc.host + ">" + tc.target,
             rule=ctx.attr._rule,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,

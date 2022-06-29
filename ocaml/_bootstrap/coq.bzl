@@ -5,7 +5,7 @@ load("//coq/_toolchains:coq_toolchains.bzl", "coq_register_toolchains")
 
 load("//ocaml/_toolchains:ocaml_toolchains.bzl", "ocaml_register_toolchains")
 
-load("//ocaml/_debug:utils.bzl", "debug_report_progress")
+load("//ocaml/_debug:colors.bzl", "debug_report_progress")
 
 load("//opam:_opam.bzl", "opam_configure")
 

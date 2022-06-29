@@ -6,7 +6,7 @@ load("//ocaml:providers.bzl",
      "OcamlExecutableMarker",
      "OcamlImportMarker")
 
-load("//ocaml/_debug:utils.bzl", "CCRED", "CCMAG", "CCRESET")
+load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
 
 def _linker(ctx, cctc):
     print(CCRED + "link experiment")

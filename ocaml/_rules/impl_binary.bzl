@@ -28,7 +28,7 @@ load(":impl_common.bzl", "dsorder", "opam_lib_prefix",
      "tmpdir"
      )
 
-load("//ocaml/_debug:utils.bzl", "CCRED", "CCMAG", "CCRESET")
+load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
 
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 
