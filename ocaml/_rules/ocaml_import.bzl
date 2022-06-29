@@ -23,6 +23,7 @@ def _ocaml_import_impl(ctx):
     debug_primary_deps   = False
     debug_secondary_deps = False
     debug_ppx            = False
+    debug_tc             = True
 
     if debug: print("ocaml_import: %s" % ctx.label)
 
@@ -38,6 +39,13 @@ def _ocaml_import_impl(ctx):
         ]
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    if debug_tc:
+        print("BUILD TGT: {color}{lbl}{reset}".format(
+            color=CCRED, reset=CCRESET, lbl=ctx.label))
+        print("  TC.NAME: %s" % tc.name)
+        print("  TC.HOST: %s" % tc.host)
+        print("  TC.TARGET: %s" % tc.target)
+        print("  TC.COMPILER: %s" % tc.compiler.basename)
 
     if tc.target == "native":
         struct_extensions = ["cmxa", "cmx"]

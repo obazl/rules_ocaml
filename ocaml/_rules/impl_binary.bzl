@@ -57,11 +57,12 @@ def _import_ppx_executable(ctx):
     return providers
 
 #########################
-def impl_binary(ctx, mode, tc, tool, tool_args):
+def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     debug     = False
     debug_cc  = False
     debug_ppx = False
+    debug_tc  = True
 
     if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -75,7 +76,9 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
             ## precompiled executable
             return _import_ppx_executable(ctx)
 
-    if mode == "native":
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+
+    if tc.target == "native":
         struct_extensions = ["cmxa", "cmx"]
     else:
         struct_extensions = ["cma", "cmo"]
@@ -132,7 +135,7 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
     #########################
     args = ctx.actions.args()
 
-    args.add_all(tool_args)
+    # args.add_all(tool_args)
 
     _options = get_options(rule, ctx)
     # print("OPTIONS: %s" % _options)
@@ -510,21 +513,21 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
     ## dicts. sheesh.
     for i in ctx.attr.env.items():
         env[i[0]] = i[1]
-    print("ENV: %s" % env)
+    # print("ENV: %s" % env)
     ################
     ctx.actions.run(
         env = env,
-        executable = tool,
+        executable = tc.compiler, # tool,
         arguments = [args],
         inputs = action_inputs_depset,
         outputs = [out_exe],
         tools = [
-            tool,
+            tc.compiler # tool,
             # cctc.static_runtime_lib()
-      ] + tool_args,  # [tc.ocamlopt],
+        ], ## + tool_args,  # [tc.ocamlopt],
         mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
-            mode = mode,
+            mode = tc.host + ">" + tc.target,
             rule = ctx.attr._rule,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,

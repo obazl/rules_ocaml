@@ -14,12 +14,21 @@ load(":options.bzl",
 
 load(":impl_module.bzl", "impl_module")
 
+load("//ocaml/_debug:colors.bzl", "CCNRG", "CCRESET")
+
 ###############################
 def _ppx_module(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    if True:  # debug_tc:
+        tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+        print("BUILD TGT: {color}{lbl}{reset}".format(
+            color=CCNRG, reset=CCRESET, lbl=ctx.label))
+        print("  TC.NAME: %s" % tc.name)
+        print("  TC.HOST: %s" % tc.host)
+        print("  TC.TARGET: %s" % tc.target)
+        print("  TC.COMPILER: %s" % tc.compiler.basename)
 
-    return impl_module(ctx, tc.target, tc.compiler, [])
+    return impl_module(ctx) # , tc.target, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")

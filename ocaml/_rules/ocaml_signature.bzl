@@ -147,6 +147,7 @@ def _ocaml_signature_impl(ctx):
     debug_ns   = False
     debug_ppx  = False
     debug_sig  = False
+    debug_tc   = False
     debug_xmo  = False
 
 
@@ -158,6 +159,13 @@ def _ocaml_signature_impl(ctx):
         print("SIG %s" % ctx.label)
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+
+    if debug_tc:
+        print("BUILD TGT: %s" % ctx.label)
+        print("  TC.NAME: %s" % tc.name)
+        print("  TC.HOST: %s" % tc.host)
+        print("  TC.TARGET: %s" % tc.target)
+        print("  TC.COMPILER: %s" % tc.compiler.basename)
 
     ################
     indirect_adjunct_depsets      = []
@@ -474,10 +482,10 @@ def _ocaml_signature_impl(ctx):
         arguments = [args],
         inputs = action_inputs_depset,
         outputs = [out_cmi],
-        tools = [tc.ocamlopt],
+        tools = [tc.compiler],
         mnemonic = "CompileOcamlSignature",
         progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}".format(
-            mode = tc.target,
+            mode = tc.host + ">" + tc.target,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name

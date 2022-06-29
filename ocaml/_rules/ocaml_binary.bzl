@@ -7,12 +7,21 @@ load(":impl_binary.bzl", "impl_binary")
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 ## load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 
+load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
+
 ###############################
 def _ocaml_binary(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    if True: #  debug_tc:
+        tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+        print("BUILD TGT: {color}{lbl}{reset}".format(
+            color=CCMAG, reset=CCRESET, lbl=ctx.label))
+        print("  TC.NAME: %s" % tc.name)
+        print("  TC.HOST: %s" % tc.host)
+        print("  TC.TARGET: %s" % tc.target)
+        print("  TC.COMPILER: %s" % tc.compiler.basename)
 
-    return impl_binary(ctx, tc.target, tc, tc.compiler, [])
+    return impl_binary(ctx) # , tc.target, tc, tc.compiler, [])
 
 ################################
 rule_options = options("ocaml")
