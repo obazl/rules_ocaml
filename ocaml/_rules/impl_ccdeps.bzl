@@ -3,6 +3,9 @@ load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
+load("@rules_ocaml//ocaml/_debug:utils.bzl",
+     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCRESET")
+
 ## see: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl
 
 ## does this still apply?
@@ -21,7 +24,7 @@ load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 #########################
 def dump_library_to_link(ctx, idx, lib):
-
+    print("dump_library_to_link")
     print("  alwayslink[{i}]: {al}".format(i=idx, al = lib.alwayslink))
     flds = ["static_library",
             "pic_static_library",
@@ -86,7 +89,8 @@ def lib_to_string(ctx, idx, lib):
     for fld in flds:
         if hasattr(lib, fld):
             if getattr(lib, fld):
-                text = text + "  lib[{i}].{f}: {p}\n".format(
+                text = text + "  lib[{i}].{f}: {c}{p}{noc}\n".format(
+                    c=CCMAG, noc=CCRESET,
                     i=idx, f=fld, p=getattr(lib,fld).path)
             else:
                 text = text + "  lib[{i}].{f} == None\n".format(i=idx, f=fld)

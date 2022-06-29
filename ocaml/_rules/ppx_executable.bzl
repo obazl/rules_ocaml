@@ -11,14 +11,14 @@ load("//ocaml/_transitions:transitions.bzl",
 
 load(":options.bzl", "options")
 
-load(":impl_executable.bzl", "impl_executable")
+load(":impl_binary.bzl", "impl_binary")
 
 ###########################
 def _ppx_executable(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    return impl_executable(ctx, tc.target, tc, tc.compiler, [])
+    return impl_binary(ctx, tc.target, tc, tc.compiler, [])
 
 ########## DECL:  PPX_EXECUTABLE  ################
 ppx_executable = rule(

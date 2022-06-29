@@ -457,7 +457,7 @@ ocaml_import = rule(
         # ocaml_import can only depend on other ocaml_imports
         deps = attr.label_list(
             allow_files = True,
-            providers = [OcamlImportMarker],
+            providers = [[OcamlImportMarker],[CcInfo]],
         ),
         ppx_codeps = attr.label_list(
             allow_files = True,
