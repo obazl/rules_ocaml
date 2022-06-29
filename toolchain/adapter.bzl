@@ -181,6 +181,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
     return [platform_common.ToolchainInfo(
         # Public fields
         name                   = ctx.label.name,
+        ## fixme: rename build_host, target_host
         host                   = ctx.attr.host,
         target                 = ctx.attr.target,
         compiler               = ctx.file.compiler,

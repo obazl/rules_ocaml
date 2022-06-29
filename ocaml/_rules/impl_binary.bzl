@@ -226,8 +226,8 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
     if hasattr(ctx.attr, "ppx_codeps"):
         if debug_ppx: print("has ppx_codeps attrib")
         for codep in ctx.attr.ppx_codeps:
-            if OcamlImportMarker in codep:
-                print("ppx_codep is import: %s" % codep)
+            # if OcamlImportMarker in codep:
+            #     print("ppx_codep is import: %s" % codep)
 
             if OcamlProvider in codep:
                 if debug_ppx:
@@ -292,7 +292,8 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
             codep_paths_secondary.append(coprovider.paths)
 
         if CcInfo in main:
-            cc_deps_secondary.append(ctx.attr.main[CcInfo])
+            # print("MAIN CCINFO: %s" % main[CcInfo])
+            cc_deps_secondary.append(main[CcInfo])
 
     ## end ctx.attr.main handling
     if debug:
@@ -405,15 +406,17 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
 
     sincludes = []
     for dep in static_cc_deps:
-        print("STATIC DEP: %s" % dep)
+        # print("STATIC DEP: %s" % dep)
+        includes.append(dep.dirname)
         sincludes.append("-L" + dep.dirname)
     args.add_all(sincludes, before_each="-ccopt", uniquify=True)
 
-    if mode == "bytecode":
+    if tc.target == "vm":
         # vmlibs =  lib/stublibs/dll*.so, set by toolchain
         # only needed for bytecode mode, else we get errors like:
         # Error: I/O error: dllbase_internalhash_types_stubs.so: No such
         # file or directory
+
 
         ## WARNING: both -dllpath and -I are required!
         args.add("-dllpath", tc.vmlibs[0].dirname)
@@ -427,7 +430,7 @@ def impl_binary(ctx, mode, tc, tool, tool_args):
 
         # args.add("-custom")
 
-    elif mode == "native":
+    elif tc.target == "native":
         vmlibs = [] ## we never need vmlibs for native code
 
     args.add_all(includes, before_each="-I", uniquify=True)
