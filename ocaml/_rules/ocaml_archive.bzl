@@ -14,14 +14,21 @@ load("impl_archive.bzl", "impl_archive")
 
 load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
 
+load("//ocaml/_debug:colors.bzl", "CCUYEL", "CCRESET")
+
 ###############################
 def _ocaml_archive(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    # if True:
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    #     print("BUILD TGT: {color}{lbl}{reset}".format(
+    #         color=CCUYEL, reset=CCRESET, lbl=ctx.label))
+    #     print("  TC.NAME: %s" % tc.name)
+    #     print("  TC.HOST: %s" % tc.host)
+    #     print("  TC.TARGET: %s" % tc.target)
+    #     print("  TC.COMPILER: %s" % tc.compiler.basename)
 
-    tool_args = []
-
-    return impl_archive(ctx, tc.target, tc.linkmode, tc.compiler, tool_args)
+    return impl_archive(ctx)
 
 ###############################
 rule_options = options("ocaml")

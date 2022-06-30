@@ -10,9 +10,7 @@ load("//ocaml/_transitions:transitions.bzl", "reset_in_transition")
 ###############################
 def _ocaml_library(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-
-    return impl_library(ctx, tc.target, tc.compiler, [])
+    return impl_library(ctx)
 
 ###############################
 rule_options = options("ocaml")

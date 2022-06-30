@@ -308,7 +308,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     debug_ns     = False
     debug_ppx    = False
     debug_sig    = False
-    debug_tc     = True
+    debug_tc     = False
     debug_xmo    = False
 
     if debug:
@@ -741,25 +741,31 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # indirect_linkargs_depsets.append(dep[DefaultInfo].files)
         if PpxCodepsProvider in dep:
             codep = dep[PpxCodepsProvider]
+            ## aggregates may provide an empty PpxCodepsProvider
+            if hasattr(codep, "sigs"):
 
-            if debug_ppx:
-                print("processing ppx_codeps from ppx executable")
-                print("ppx_codeps provider: %s" % codep)
-                print("  sigs: %s" % codep.sigs)
-                print("ppx_codeps provider: %s" % codep)
-                print("ppx_codeps provider: %s" % codep)
-                print("ppx_codeps provider: %s" % codep)
-                # print("codep.paths: %s" % codep.paths)
-                # print("codep.: %s" % codep.sigs)
+                if debug_ppx:
+                    print("processing ppx_codeps from ppx executable")
+                    print("ppx_codeps provider: %s" % codep)
+                    print("  sigs: %s" % codep.sigs)
+                    print("ppx_codeps provider: %s" % codep)
+                    print("ppx_codeps provider: %s" % codep)
+                    print("ppx_codeps provider: %s" % codep)
+                    # print("codep.paths: %s" % codep.paths)
+                    # print("codep.: %s" % codep.sigs)
 
-            codep_sigs_secondary.append(codep.sigs)
-            codep_structs_secondary.append(codep.structs)
-            codep_archives_secondary.append(codep.archives)
-            codep_ofiles_secondary.append(codep.ofiles)
-            #FIXME
-            codep_afiles_secondary.append(codep.afiles)
-            codep_astructs_secondary.append(codep.astructs)
-            codep_paths_secondary.append(codep.paths)
+                # print("ppx dep: %s" % dep)
+                # for fld in dir(codep):
+                #     print("codep fld: %s" % fld)
+
+                codep_sigs_secondary.append(codep.sigs)
+                codep_structs_secondary.append(codep.structs)
+                codep_archives_secondary.append(codep.archives)
+                codep_ofiles_secondary.append(codep.ofiles)
+                #FIXME
+                codep_afiles_secondary.append(codep.afiles)
+                codep_astructs_secondary.append(codep.astructs)
+                codep_paths_secondary.append(codep.paths)
 
         ## Finally CcInfo deps
         if CcInfo in dep:
@@ -1018,8 +1024,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ## omit direct deps, they're outputs of this action
         # + sigs_primary + structs_primary + ofiles_primary
         + archives_primary
-        + afiles_primary
-        + astructs_primary
+
+        ## NB: we don't need cmx/cmo deps to _compile_ a module
+        ## at worst we'll get warning 58 about not using -opaque
+
+        # + structs_primary
+        # + afiles_primary
+        # + astructs_primary
         # + ns_resolver_files
         + ctx.files.deps_runtime,
         transitive = # sigs_depsets
@@ -1029,8 +1040,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
          # ns_deps
         xmo_deps
         + archives_secondary
-        + afiles_secondary
+        ## including archived cmx/cmo prevents warning 58
+        ## WARNING: only for module compilation; do not include for linking
+        ## TODO: reconcile archive processing with xmo
         + astructs_secondary
+        ## non-archived structs:
+        + structs_secondary
+        # + afiles_secondary
+
         + sigs_secondary
 
         ## module compilation never depends on cclibs

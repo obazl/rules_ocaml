@@ -174,22 +174,25 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         ## only for ocaml_imports listed in deps, not ppx_codeps
         if PpxCodepsProvider in dep:
             provider = dep[PpxCodepsProvider]
-            if debug_ppx:
-                print("PpxCodepsProvider in std dep: %s" % dep)
-                print(" provides archives: %s" % provider.archives)
-            # if hasattr(ppxcdp, "ppx_codeps"):
-            #     if ppxcdp.ppx_codeps:
-            #         indirect_ppx_codep_depsets.append(ppxcdp.ppx_codeps)
+            ## aggregates may provide an empty PpxCodepsProvider
+            if hasattr(provider, "sigs"):
 
-            codep_sigs_secondary.append(provider.sigs)
-            codep_structs_secondary.append(provider.structs)
-            codep_ofiles_secondary.append(provider.ofiles)
-            codep_archives_secondary.append(provider.archives)
-            codep_afiles_secondary.append(provider.afiles)
-            codep_astructs_secondary.append(provider.astructs)
-            codep_paths_secondary.append(provider.paths)
+                if debug_ppx:
+                    print("PpxCodepsProvider in std dep: %s" % dep)
+                    print(" provides archives: %s" % provider.archives)
+                # if hasattr(ppxcdp, "ppx_codeps"):
+                #     if ppxcdp.ppx_codeps:
+                #         indirect_ppx_codep_depsets.append(ppxcdp.ppx_codeps)
 
-            # cc_deps_secondary.append(provider.cc_deps)
+                codep_sigs_secondary.append(provider.sigs)
+                codep_structs_secondary.append(provider.structs)
+                codep_ofiles_secondary.append(provider.ofiles)
+                codep_archives_secondary.append(provider.archives)
+                codep_afiles_secondary.append(provider.afiles)
+                codep_astructs_secondary.append(provider.astructs)
+                codep_paths_secondary.append(provider.paths)
+
+                # cc_deps_secondary.append(provider.cc_deps)
 
             # if hasattr(provider, "paths"):
             #     if provider.paths:

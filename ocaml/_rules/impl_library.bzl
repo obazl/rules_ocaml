@@ -36,7 +36,7 @@ load(":impl_ccdeps.bzl", "dump_CcInfo")
 # if this is an ns_library then we need to pass on the deps from the
 # ns resolver
 #################
-def _handle_ns_library(ctx, mode, tool, tool_args):
+def _handle_ns_library(ctx):
     debug = True
 
     if debug: print("_handle_ns_library")
@@ -104,16 +104,19 @@ def _handle_ns_library(ctx, mode, tool, tool_args):
     # print("ns_resolver_depset: %s" % ns_resolver_depset)
     # print("ns_name: %s" % ns_name)
     return(## ns_name,
-           ns_resolver, ns_resolver_module,
-           # ns_resolver_depset, ns_resolver_files,
-           the_ns_resolvers)
+        ns_resolver, ns_resolver_module,
+        # ns_resolver_depset, ns_resolver_files,
+        # the_ns_resolvers
+    )
 
 #################
-def impl_library(ctx, mode, tool, tool_args):
+def impl_library(ctx): #, mode, tool, tool_args):
 
     debug      = False
     debug_deps = False
     debug_ns   = False
+
+    ppx = False
 
     if debug: print("**** NS_LIB {} ****************".format(ctx.label))
 
@@ -199,12 +202,13 @@ def impl_library(ctx, mode, tool, tool_args):
             astructs_secondary.append(nsr_dep.astructs)
             # cclibs_secondary.append(nsr_dep.cclibs)
 
-    #######################
-    if hasattr(ctx.attr, "submodules"):
-        ## ocaml_ns_archive or ocaml_ns_library
+    # #######################
+    # if hasattr(ctx.attr, "submodules"):
+        ## only ocaml_ns_archive or ocaml_ns_library have submodules
         # print("Processing ns aggregator %s" % ctx.label)
         direct_dep_files = ctx.files.submodules
         direct_deps_attr = ctx.attr.submodules
+
     elif hasattr(ctx.attr, "manifest"):
         ## ocaml_archive or ocaml_library
         # print("Processing non-ns aggregator %s" % ctx.label)
@@ -297,9 +301,11 @@ def impl_library(ctx, mode, tool, tool_args):
             ccInfo_list.append(dep[CcInfo])
 
         if PpxCodepsProvider in dep:
+            ppx = True
             if debug_deps: print("PpxCodepsProvider: %s" % dep)
-            indirect_codeps_path_depsets.append(dep[PpxCodepsProvider].paths)
+            # indirect_codeps_path_depsets.append(dep[PpxCodepsProvider].paths)
             # indirect_codeps_depsets.append(dep[PpxCodepsProvider].ppx_codeps)
+
     if debug_deps:
         print("finished deps iteration")
         print("sigs_primary: %s" % sigs_primary)
@@ -477,43 +483,52 @@ def impl_library(ctx, mode, tool, tool_args):
         outputGroupInfo,
     ]
 
-    ################ ppx codeps ################
-    # NOTE: PpxCodepsProvider goes on modules, not aggregates
-
-    # ppx_codeps_depset = depset(
-    #     order = dsorder,
-    #     transitive = indirect_codeps_depsets
-    # )
-    # ppxCodepsProvider = PpxCodepsProvider(
-    #     ppx_codeps = ppx_codeps_depset,
-    #     paths        = depset(
-    #         order = dsorder,
-    #         transitive = indirect_codeps_path_depsets
-    #     )
-    # )
-    # if ppx:
-    #     providers.append(ppxCodepsProvider)
-
-
+    ## Provider 3: Library Marker
     providers.append(
         OcamlLibraryMarker(marker = "OcamlLibraryMarker")
     )
 
-    if ctx.attr._rule.startswith("ocaml_ns"):
+    ## Provider 4: possibly empty PpxCodepsProvider
+    ################ ppx codeps ################
+    # NOTE: PpxCodepsProvider goes on modules, not aggregates
+    if ppx:
+        ppx_codeps_depset = depset(
+            order = dsorder,
+            transitive = indirect_codeps_depsets
+        )
+        ppxCodepsProvider = PpxCodepsProvider(
+            # ppx_codeps = ppx_codeps_depset,
+            # paths        = depset(
+            #     order = dsorder,
+            #     transitive = indirect_codeps_path_depsets
+            # )
+        )
+        providers.append(ppxCodepsProvider)
+    else:
+        providers.append(PpxCodepsProvider(
+            sigs = depset(), structs = depset(),  ofiles = depset(),
+            archives = depset(), afiles = depset(), astructs = depset(),
+            paths = depset()
+        ))
+
+    ## Provider 4: possibly empty CcInfo
+    ccInfo_merged = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+    # if ctx.label.name == "tezos-legacy-store":
+    #     print("ccInfo_merged: %s" % ccInfo_merged)
+    if ccInfo_list:
+        providers.append(ccInfo_merged)
+    else:
+        providers.append(CcInfo())
+
+    ## Provider 5: optional NS marker
+    # if ctx.attr._rule.startswith("ocaml_ns"):
+    if ns_enabled:
         providers.append(
             OcamlNsMarker(
                 marker = "OcamlNsMarker",
                 # ns_name = ns_name if ns_resolver else ""
             ),
         )
-
-    # if ctx.label.name == "tezos-legacy-store":
-    #     print("ccInfo_list ct: %s" % len(ccInfo_list))
-    ccInfo_merged = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
-    # if ctx.label.name == "tezos-legacy-store":
-    #     print("ccInfo_merged: %s" % ccInfo_merged)
-    if ccInfo_list:
-        providers.append(ccInfo_merged)
 
     ## if namespaced, then return OcamlNsResolverProvider, so that
     ## tools can find the resolver, e.g. @obazl//inspect:src

@@ -160,12 +160,12 @@ def _ocaml_signature_impl(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    if debug_tc:
-        print("BUILD TGT: %s" % ctx.label)
-        print("  TC.NAME: %s" % tc.name)
-        print("  TC.HOST: %s" % tc.host)
-        print("  TC.TARGET: %s" % tc.target)
-        print("  TC.COMPILER: %s" % tc.compiler.basename)
+    # if debug_tc:
+    #     print("BUILD TGT: %s" % ctx.label)
+    #     print("  TC.NAME: %s" % tc.name)
+    #     print("  TC.HOST: %s" % tc.host)
+    #     print("  TC.TARGET: %s" % tc.target)
+    #     print("  TC.COMPILER: %s" % tc.compiler.basename)
 
     ################
     indirect_adjunct_depsets      = []

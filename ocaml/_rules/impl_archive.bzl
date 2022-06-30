@@ -22,7 +22,7 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 load(":impl_common.bzl", "tmpdir", "dsorder")
 
 #################
-def impl_archive(ctx, mode, linkmode, tool, tool_args):
+def impl_archive(ctx): #, mode, linkmode, tool, tool_args):
 
     debug = False # True
     # if ctx.label.name == "Bare_structs":
@@ -36,63 +36,61 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     #     for f in ns_resolver:
     #         print("_ns_resolver f: %s" % f.path)
 
-    sigs_direct   = []
-    sigs_indirect = []
-    structs_direct   = []
-    structs_indirect = []
-    ofiles_direct   = [] # never? ofiles only come from deps
-    ofiles_indirect = []
-    astructs_direct = []
-    astructs_indirect = []
-    afiles_direct   = []
-    afiles_indirect = []
-    archives_direct = []
-    archives_indirect = []
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+
+    # sigs_direct   = []
+    # sigs_indirect = []
+    structs_primary   = []
+    structs_secondary = []
+    astructs_primary   = []
+    astructs_secondary = []
+
+    # ofiles_direct   = [] # never? ofiles only come from deps
+    # ofiles_indirect = []
+    # afiles_direct   = []
+    # afiles_indirect = []
+    # archives_direct = []
+    # archives_indirect = []
 
     ################################
     ####  call impl_ns_library  ####
     # FIXME: improve the return vals handling
     # print("CALL IMPL_LIB %s" % ctx.label)
-    lib_providers = impl_library(ctx, mode, tool, tool_args)
+    lib_providers = impl_library(ctx) #, tc.target, tool, tool_args)
 
     libDefaultInfo = lib_providers[0]
     # print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
 
     libOcamlProvider = lib_providers[1]
-    # if debug:
-        # print("libOcamlProvider.inputs type: %s" % type(libOcamlProvider.inputs))
-        # print("libOcamlProvider.linkargs: %s" % libOcamlProvider.linkargs)
-        # print("libOcamlProvider.cdeps: %s" % libOcamlProvider.cdeps)
-        # print("libOcamlProvider.ldeps: %s" % libOcamlProvider.ldeps)
-        # print("libOcamlProvider.paths type: %s" % type(libOcamlProvider.paths))
-        # print("libOcamlProvider.ns_resolver: %s" % libOcamlProvider.ns_resolver)
+    if debug:
+        print("libOcamlProvider.sigs: %s" % type(libOcamlProvider.sigs))
+        print("libOcamlProvider.archives: %s" % libOcamlProvider.archive)
 
-    ppxAdjunctsProvider = lib_providers[2] ## FIXME: only as needed
+    outputGroupInfo = lib_providers[2]
 
-    outputGroupInfo = lib_providers[3]
+    _ = lib_providers[3] # OcamlLibraryMarker
 
-    _ = lib_providers[4] # OcamlLibraryMarker
+    ppxCodepsProvider = lib_providers[4] ## may be empty
+
+    ccInfo  = lib_providers[5] # may be empty
 
     if ctx.attr._rule.startswith("ocaml_ns"):
-        nsMarker = lib_providers[5]  # OcamlNsMarker
-        ccInfo  = lib_providers[6] if len(lib_providers) == 7 else False
-    else:
-        ccInfo  = lib_providers[5] if len(lib_providers) == 6 else False
+        nsMarker = lib_providers[6]  # OcamlNsMarker
 
     # if ctx.label.name == "tezos-legacy-store":
     #     print("LEGACY CC: %s" % ccInfo)
         # dump_ccdep(ctx, dep)
 
     ################################
-    if libOcamlProvider.ns_resolver == None:
-        print("NO NSRESOLVER FROM NSLIB")
-        fail("NO NSRESOLVER FROM NSLIB")
-    else:
-        ns_resolver = libOcamlProvider.ns_resolver
-        if debug:
-            print("ARCH GOT NSRESOLVER FROM NSLIB")
-            for f in libOcamlProvider.ns_resolver: # .files.to_list():
-                print("nsrsolver: %s" % f)
+    # if libOcamlProvider.ns_resolver == None:
+    #     print("NO NSRESOLVER FROM NSLIB")
+    #     fail("NO NSRESOLVER FROM NSLIB")
+    # else:
+    #     ns_resolver = libOcamlProvider.ns_resolver
+    #     if debug:
+    #         print("ARCH GOT NSRESOLVER FROM NSLIB")
+    #         for f in libOcamlProvider.ns_resolver: # .files.to_list():
+    #             print("nsrsolver: %s" % f)
 
     paths_direct = []
     paths_indirect = libOcamlProvider.paths
@@ -108,7 +106,7 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
             if "-shared" in _options:
                 _options.remove("-shared") ## avoid dup
 
-    if mode == "native":
+    if tc.target == "native":
         if shared:
             ext = ".cmxs"
         else:
@@ -134,38 +132,40 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     paths_direct.append(archive_file.dirname)
     action_outputs.append(archive_file)
 
-    if mode == "native":
+    if tc.target == "native":
         archive_a_filename = tmpdir + archive_name + ".a"
         archive_a_file = ctx.actions.declare_file(archive_a_filename)
         paths_direct.append(archive_a_file.dirname)
         action_outputs.append(archive_a_file)
+    else:
+        archive_a_file = None
 
     #########################
     args = ctx.actions.args()
-
-    args.add_all(tool_args)
 
     args.add_all(_options)
 
     ## Submodules can be listed in ctx.files.submodules in any order,
     ## so we need to put them in correct order on the command line.
     ## Order is encoded in their depsets, which were merged by
-    ## impl_ns_library; the result contains the files of
+    ## impl_library; the result contains the files of
     ## ctx.files.submodules in the correct order.
-    ## submod[DefaultInfo].files won't work, it contains only one
-    ## module OcamlProvider. linkargs contains the deptree we need,
-    ## but it may contain additional modules, so we need to filter.
+    ## submod[DefaultInfo].files won't work, it contains OcamlProvider
+    ## for only one module, so order would be lost. The aggregate
+    ## fiels of libOcamlProvider have the ordering info, but we need
+    ## to filter out the direct submodules.
 
     submod_arglist = [] # direct deps
 
     ## ns_archives have submodules, plain archives have modules
-    # direct_submodule_deps = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.modules
-    direct_submodule_deps = ctx.files.manifest
+    direct_submodule_deps = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
+    # direct_submodule_deps = ctx.files.manifest
 
-    if OcamlProvider in ns_resolver:
-        ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
-    else:
-        ns_resolver_files = []
+    # if OcamlProvider in ns_resolver:
+    #     ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
+    # else:
+    ns_resolver_files = []
+
     # print("ns_resolver_files: %s" % ns_resolver_files)
 
     # print("direct_submodule_deps: %s" % direct_submodule_deps)
@@ -204,49 +204,60 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     #             if f.extension == "cmx":
     #                 args.add(f)
 
-    # for dep in ordered_submodules_depset.to_list():
-    for dep in libOcamlProvider.inputs.to_list():
+    for dep in libOcamlProvider.archives.to_list():
         # print("inputs dep: %s" % dep)
         # print("ns_resolver: %s" % ns_resolver)
         if dep in submod_arglist:
             # print("adding to args: %s" % dep)
             args.add(dep)
-        elif dep == ns_resolver:
-            args.add(dep)
 
-    linkargs_list = []
+    ## submodule structs must be 1) added to cmd line, and 2) moved
+    ## from structs list to astructs list
+    for dep in libOcamlProvider.structs.to_list():
+        # print("inputs dep: %s" % dep)
+        # print("ns_resolver: %s" % ns_resolver)
+        if dep in submod_arglist:
+            # print("adding to args: %s" % dep)
+            args.add(dep)
+            astructs_primary.append(dep)
+        else:
+            structs_primary.append(dep)
+        # elif dep == ns_resolver:
+        #     args.add(dep)
+
+    # linkargs_list = []
     # lbl_name = "tezos-lwt-result-stdlib.bare.structs"
     # if ctx.label.name == lbl_name:
     #     print("ns_name: %s" % nsMarker.ns_name)
-    for dep in libOcamlProvider.linkargs.to_list():
-        #FIXME: dep is not namespaced so we won't match ever:
-        # if ctx.label.name == lbl_name:
-        #     print("RULE: %s" % ctx.attr._rule)
-        #     print("TESTING: %s" % dep.basename)
-        if ctx.attr._rule.startswith("ocaml_ns"):
-            # if ctx.label.name == lbl_name:
-                # print("NS PFX: %s" % nsMarker.ns_name + "__")
-                # print("TEST1: %s" % dep.basename.startswith(nsMarker.ns_name + "__"))
-                # print("TEST2: %s" % (dep.basename != nsMarker.ns_name + ".cmxa"))
-            if dep.basename.startswith(nsMarker.ns_name):
-                if (dep.basename != nsMarker.ns_name + ".cmxa") and (dep.basename != nsMarker.ns_name + ".cma"):
-                    if not dep.basename.startswith(nsMarker.ns_name + "__"):
-                        # if ctx.label.name == lbl_name:
-                        #     print("xxxx")
-                        linkargs_list.append(dep)
-                    # else:
-                    #     if ctx.label.name == lbl_name:
-                    #         print("OMIT1 %s" % dep)
-                # else:
-                #     if ctx.label.name == lbl_name:
-                #         print("OMIT RESOLVER: %s" % dep)
-            else:
-                # if ctx.label.name == lbl_name:
-                #     print("APPEND: %s" % dep)
-                linkargs_list.append(dep)
-        else:
-            if not dep in direct_submodule_deps:
-                linkargs_list.append(dep)
+    # for dep in libOcamlProvider.linkargs.to_list():
+    #     #FIXME: dep is not namespaced so we won't match ever:
+    #     # if ctx.label.name == lbl_name:
+    #     #     print("RULE: %s" % ctx.attr._rule)
+    #     #     print("TESTING: %s" % dep.basename)
+    #     if ctx.attr._rule.startswith("ocaml_ns"):
+    #         # if ctx.label.name == lbl_name:
+    #             # print("NS PFX: %s" % nsMarker.ns_name + "__")
+    #             # print("TEST1: %s" % dep.basename.startswith(nsMarker.ns_name + "__"))
+    #             # print("TEST2: %s" % (dep.basename != nsMarker.ns_name + ".cmxa"))
+    #         if dep.basename.startswith(nsMarker.ns_name):
+    #             if (dep.basename != nsMarker.ns_name + ".cmxa") and (dep.basename != nsMarker.ns_name + ".cma"):
+    #                 if not dep.basename.startswith(nsMarker.ns_name + "__"):
+    #                     # if ctx.label.name == lbl_name:
+    #                     #     print("xxxx")
+    #                     linkargs_list.append(dep)
+    #                 # else:
+    #                 #     if ctx.label.name == lbl_name:
+    #                 #         print("OMIT1 %s" % dep)
+    #             # else:
+    #             #     if ctx.label.name == lbl_name:
+    #             #         print("OMIT RESOLVER: %s" % dep)
+    #         else:
+    #             # if ctx.label.name == lbl_name:
+    #             #     print("APPEND: %s" % dep)
+    #             linkargs_list.append(dep)
+    #     else:
+    #         if not dep in direct_submodule_deps:
+    #             linkargs_list.append(dep)
 
     # for dep in submod_arglist:
     #     # if dep.extension in ["cmx"]:
@@ -255,6 +266,17 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     args.add("-a")
 
     args.add("-o", archive_file)
+
+    action_inputs_depset = depset(
+        # direct =
+        # ,
+        transitive =
+        [libOcamlProvider.sigs,
+         libOcamlProvider.structs,
+         libOcamlProvider.ofiles,
+         libOcamlProvider.archives,
+         libOcamlProvider.afiles]
+    )
 
     if ctx.attr._rule == "ocaml_ns_archive":
         mnemonic = "CompileOcamlNsArchive"
@@ -266,14 +288,14 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     ################
     ctx.actions.run(
         # env = env,
-        executable = tool,
+        executable = tc.compiler,
         arguments = [args],
-        inputs = libOcamlProvider.inputs,
+        inputs = action_inputs_depset,
         outputs = action_outputs,
-        tools = [tool] + tool_args, # [tc.ocamlopt, tc.ocamlc],
+        tools = [tc.compiler],
         mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: @{ws}//{pkg}:{tgt}".format(
-            mode = mode,
+            mode = tc.host + ">" + tc.target,
             rule = ctx.attr._rule,
             ws  = ctx.label.workspace_name,
             pkg = ctx.label.package,
@@ -290,10 +312,10 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     )
     newDefaultInfo = DefaultInfo(files = default_depset)
 
-    new_inputs_depset = depset(
-        direct     = action_outputs, # + ns_resolver,
-        transitive = [libOcamlProvider.inputs]
-    )
+    # new_inputs_depset = depset(
+    #     direct     = action_outputs, # + ns_resolver,
+    #     transitive = [libOcamlProvider.inputs]
+    # )
 
     # linkargs_depsets = depset(
     #     ## indirect deps (excluding direct deps, i.e. submodules & resolver)
@@ -301,45 +323,55 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
     #     transitive = [libOcamlProvider.linkargs]
     # )
 
-    linkargs_depset = depset(
-        direct     = linkargs_list
-        # transitive = [libOcamlProvider.linkargs]
-        # transitive = [linkargs_depsets]
-    )
+    # linkargs_depset = depset(
+    #     direct     = linkargs_list
+    #     # transitive = [libOcamlProvider.linkargs]
+    #     # transitive = [linkargs_depsets]
+    # )
     paths_depset  = depset(
         order = dsorder,
         direct = paths_direct,
         transitive = [libOcamlProvider.paths]
     )
 
+    ## FIXME: move direct submodules from libOcamlProvider.structs to
+    ## astructs
     ocamlProvider = OcamlProvider(
-        files   = libOcamlProvider.files,
-        fileset = libOcamlProvider.fileset,
-        inputs   = new_inputs_depset,
-        linkargs = linkargs_depset,
+        # files   = libOcamlProvider.files,
+        # fileset = libOcamlProvider.fileset,
+        # inputs   = new_inputs_depset,
+        # linkargs = linkargs_depset,
         # cdeps    = libOcamlProvider.cdeps,
         # ldeps    = libOcamlProvider.ldeps,
 
         sigs   = depset(order=dsorder,
-                          direct=sigs_direct,
-                          transitive=sigs_indirect),
+                        transitive = [libOcamlProvider.sigs]),
+                          # direct=sigs_direct,
+                          # transitive=sigs_indirect),
         structs   = depset(order=dsorder,
-                          direct=structs_direct,
-                          transitive=structs_indirect),
-        ofiles   = depset(order=dsorder,
-                          direct=ofiles_direct,
-                          transitive=ofiles_indirect),
-        archives   = depset(order=dsorder,
-                          direct=archives_direct,
-                          transitive=archives_indirect),
-        afiles   = depset(order=dsorder,
-                           direct=afiles_direct,
-                           transitive=afiles_indirect),
+                          direct=structs_primary),
+                           # transitive = [libOcamlProvider.structs]),
+                          # transitive=structs_indirect),
         astructs   = depset(order=dsorder,
-                           direct=astructs_direct,
-                           transitive=astructs_indirect),
+                           direct=astructs_primary),
+                           # transitive = [libOcamlProvider.astructs]),
+                           # transitive=astructs_indirect),
+        ofiles   = depset(order=dsorder,
+                           transitive = [libOcamlProvider.ofiles]),
+                          # direct=ofiles_direct,
+                          # transitive=ofiles_indirect),
+        archives   = depset(order=dsorder,
+                            direct = [archive_file],
+                           transitive = [libOcamlProvider.archives]),
+                          # direct=archives_direct,
+                          # transitive=archives_indirect),
+        afiles   = depset(order=dsorder,
+                          direct = [archive_a_file] if archive_a_file else [],
+                           transitive = [libOcamlProvider.afiles]),
+                           # direct=afiles_direct,
+                           # transitive=afiles_indirect),
 
-        paths    = paths_depset,
+        paths    = libOcamlProvider.paths
     )
 
     providers = [
@@ -350,18 +382,18 @@ def impl_archive(ctx, mode, linkmode, tool, tool_args):
 
     # FIXME: only if needed
     # if has ppx codeps:
-    providers.append(ppxAdjunctsProvider)
-    ppx_codeps_depset = ppxAdjunctsProvider.ppx_codeps
+    providers.append(ppxCodepsProvider)
+    # ppx_codeps_depset = ppxCodepsProvider.ppx_codeps
 
     outputGroupInfo = OutputGroupInfo(
         # resolver = ns_resolver,
-        ppx_codeps = ppx_codeps_depset,
-        linkargs = linkargs_depset,
+        # ppx_codeps = ppx_codeps_depset,
+        # linkargs = linkargs_depset,
         # cdeps    = libOcamlProvider.cdeps,
         # ldeps    = libOcamlProvider.ldeps,
         all = depset(transitive=[
-            new_inputs_depset,
-            ppx_codeps_depset,
+            # new_inputs_depset,
+            # ppx_codeps_depset,
             # cclib_files_depset,
         ])
     )

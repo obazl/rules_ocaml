@@ -18,14 +18,14 @@ load("//ocaml/_debug:colors.bzl", "CCGAM", "CCRESET")
 ###########################
 def _ppx_executable(ctx):
 
-    if True: #  debug_tc:
-        tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-        print("BUILD TGT: {color}{lbl}{reset}".format(
-            color=CCGAM, reset=CCRESET, lbl=ctx.label))
-        print("  TC.NAME: %s" % tc.name)
-        print("  TC.HOST: %s" % tc.host)
-        print("  TC.TARGET: %s" % tc.target)
-        print("  TC.COMPILER: %s" % tc.compiler.basename)
+    # if True: #  debug_tc:
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    #     print("BUILD TGT: {color}{lbl}{reset}".format(
+    #         color=CCGAM, reset=CCRESET, lbl=ctx.label))
+    #     print("  TC.NAME: %s" % tc.name)
+    #     print("  TC.HOST: %s" % tc.host)
+    #     print("  TC.TARGET: %s" % tc.target)
+    #     print("  TC.COMPILER: %s" % tc.compiler.basename)
 
     return impl_binary(ctx) # , tc.target, tc, tc.compiler, [])
 
