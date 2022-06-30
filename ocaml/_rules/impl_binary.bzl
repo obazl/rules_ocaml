@@ -78,10 +78,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    if tc.target == "native":
-        struct_extensions = ["cmxa", "cmx"]
-    else:
+    if tc.target == "vm":
         struct_extensions = ["cma", "cmo"]
+    else:
+        struct_extensions = ["cmxa", "cmx"]
 
     # env = {
     #     "PATH": get_sdkpath(ctx),
@@ -436,7 +436,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
         args.add("-custom")
 
-    elif tc.target == "native":
+    # elif tc.target == "native":
+    else:
         vmlibs = [] ## we never need vmlibs for native code
 
     args.add_all(includes, before_each="-I", uniquify=True)

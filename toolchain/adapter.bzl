@@ -131,52 +131,52 @@ def _ocaml_toolchain_adapter_impl(ctx):
 
     ## On Linux, this yields a ToolchainInfo provider.
     ## But on MacOS, it yields "dummy cc toolchain".
-    cctc = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
-    if debug_cctc: print("CC TOOLCHAIN: %s" % cctc)
+    # cctc = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
+    # if debug_cctc: print("CC TOOLCHAIN: %s" % cctc)
 
-    if debug_frags:
-        _dump_tc_frags(ctx)
+    # if debug_frags:
+    #     _dump_tc_frags(ctx)
 
     ## This returns a CcToolchainInfo provider on both platforms:
-    cctc = find_cpp_toolchain(ctx)
+    # cctc = find_cpp_toolchain(ctx)
 
-    if debug_cctc:
-        _dump_cc_toolchain(ctx)
+    # if debug_cctc:
+    #     _dump_cc_toolchain(ctx)
 
-    cctc_config = cc_common.CcToolchainInfo
-    if debug_cctc: print("cctc_config: %s" % cctc_config)
+    # cctc_config = cc_common.CcToolchainInfo
+    # if debug_cctc: print("cctc_config: %s" % cctc_config)
 
     # print("in {}, the enabled features are {}".format(ctx.label.name, ctx.features))
     ## ctx.features == []
 
-    feature_configuration = cc_common.configure_features(
-        ctx = ctx,
-        cc_toolchain = cctc,
-        requested_features = ctx.features,
-        unsupported_features = ctx.disabled_features,
-    )
-    if debug_cctc:
-        print("feature_configuration t: %s" % type(feature_configuration))
-        print("feature_configuration: %s" % feature_configuration)
-        # print(" lto_backend: %s" % feature_configuration.lto_backend)
+    # feature_configuration = cc_common.configure_features(
+    #     ctx = ctx,
+    #     cc_toolchain = cctc,
+    #     requested_features = ctx.features,
+    #     unsupported_features = ctx.disabled_features,
+    # )
+    # if debug_cctc:
+    #     print("feature_configuration t: %s" % type(feature_configuration))
+    #     print("feature_configuration: %s" % feature_configuration)
+    #     # print(" lto_backend: %s" % feature_configuration.lto_backend)
 
     # x = cctc.static_runtime_lib(feature_configuration=feature_configuration)
     # print("STATIC_RUNTIME_LIB: %s" % x)
 
-    _c_exe = cc_common.get_tool_for_action(
-        feature_configuration = feature_configuration,
-        action_name = C_COMPILE_ACTION_NAME,
-    )
-    if debug_cctc: print("c_exe: %s" % _c_exe)
+    # _c_exe = cc_common.get_tool_for_action(
+    #     feature_configuration = feature_configuration,
+    #     action_name = C_COMPILE_ACTION_NAME,
+    # )
+    # if debug_cctc: print("c_exe: %s" % _c_exe)
 
-    if not ctx.attr.linkmode in ["static", "dynamic"]:
-        fail("Bad value '{actual}' for attrib 'link'. Allowed values: 'static', 'dynamic' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
-            ws = ctx.workspace_name,
-            bf = ctx.build_file_path,
-            n = ctx.label.name,
-            actual = ctx.attr.linkmode
-        )
-             )
+    # if not ctx.attr.linkmode in ["static", "dynamic"]:
+    #     fail("Bad value '{actual}' for attrib 'link'. Allowed values: 'static', 'dynamic' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
+    #         ws = ctx.workspace_name,
+    #         bf = ctx.build_file_path,
+    #         n = ctx.label.name,
+    #         actual = ctx.attr.linkmode
+    #     )
+    #          )
 
     return [platform_common.ToolchainInfo(
         # Public fields
@@ -230,12 +230,12 @@ ocaml_toolchain_adapter = rule(
     attrs = {
 
         "host": attr.string(
-            doc     = "OCaml host platform: native or vm (bytecode).",
-            default = "native"
+            doc     = "OCaml host platform: vm (bytecode) or an arch.",
+            default = "local"
         ),
         "target": attr.string(
-            doc     = "OCaml target platform: native or vm (bytecode).",
-            default = "native"
+            doc     = "OCaml target platform: vm (bytecode) or an arch.",
+            default = "local"
         ),
 
         "repl": attr.label(

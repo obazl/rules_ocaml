@@ -11,9 +11,7 @@ load("//ocaml/_rules:impl_ns_resolver.bzl", "impl_ns_resolver")
 ###############################
 def _ocaml_ns_resolver(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-
-    return impl_ns_resolver(ctx, tc.target, tc.compiler, [])
+    return impl_ns_resolver(ctx)
 
 ###############################
 rule_options = options("ocaml")

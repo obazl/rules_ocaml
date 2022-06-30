@@ -29,7 +29,7 @@ load(":impl_common.bzl",
 workdir = tmpdir
 
 #################
-def impl_ns_resolver(ctx, mode, tool, tool_args):
+def impl_ns_resolver(ctx):
 
     debug = False
 
@@ -43,6 +43,7 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     ## RULE: do not allow mixing bottomup and topdown namespaces.
     # but what happens if a selected submodule also elects?
@@ -291,14 +292,14 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
     action_outputs.append(out_cmi)
 
     out_ofile = None
-    if mode == "native":
+    if tc.target == "vm":
+        out_struct_fname = resolver_module_name + ".cmo"
+    else:
         out_ofile_fname = resolver_module_name + ".o"
         out_ofile = ctx.actions.declare_file(workdir + out_ofile_fname)
         action_outputs.append(out_ofile)
         # rule_outputs.append(out_ofile)
         out_struct_fname = resolver_module_name + ".cmx"
-    else:
-        out_struct_fname = resolver_module_name + ".cmo"
 
     out_struct = ctx.actions.declare_file(workdir + out_struct_fname)
     action_outputs.append(out_struct)
@@ -307,8 +308,6 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
 
     ################################
     args = ctx.actions.args()
-
-    args.add_all(tool_args)
 
     _options = get_options(ctx.attr._rule, ctx)
     args.add_all(_options)
@@ -347,17 +346,16 @@ def impl_ns_resolver(ctx, mode, tool, tool_args):
         transitive = merge_depsets
     )
 
-    # print("TOOL: %s" % tool)
     ctx.actions.run(
         # env = env,
-        executable = tool,
+        executable = tc.compiler,
         arguments = [args],
         inputs = action_inputs_depset,
         outputs = action_outputs,
-        tools = [tool] + tool_args,
+        tools = [tc.compiler],
         mnemonic = "OcamlNsResolverAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsResolverAction",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
-            mode = mode,
+            mode = tc.host + "->" + tc.target,
             rule=ctx.attr._rule,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,

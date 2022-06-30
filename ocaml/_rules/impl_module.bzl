@@ -357,12 +357,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
-    ext  = ".cmx" if  tc.target == "native" else ".cmo"
+    ext  = ".cmo" if  tc.target == "vm" else ".cmx"
 
-    if tc.target == "native":
-        struct_extensions = ["cmxa", "cmx"]
-    else:
-        struct_extensions = ["cma", "cmo"]
+    # if tc.target == "vm":
+    #     struct_extensions = ["cma", "cmo"]
+    # else:
+    #     struct_extensions = ["cmxa", "cmx"]
 
     ################
     includes   = []
@@ -611,7 +611,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     action_outputs.append(out_struct)
     structs_primary.append(out_struct)
 
-    if tc.target == "native":
+    if tc.target != "vm":
         out_ofile = ctx.actions.declare_file(
             scope + modname + ".o"
         )

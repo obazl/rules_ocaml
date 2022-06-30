@@ -151,6 +151,6 @@ ppx_executable = rule(
     ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = [
         "@rules_ocaml//toolchain:type",
-        "@bazel_tools//tools/cpp:toolchain_type"
+        # "@bazel_tools//tools/cpp:toolchain_type"
     ],
 )

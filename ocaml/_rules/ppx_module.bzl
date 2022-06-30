@@ -178,6 +178,6 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     provides = [PpxModuleMarker],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain:type",
-                  "@bazel_tools//tools/cpp:toolchain_type"
+                  # "@bazel_tools//tools/cpp:toolchain_type"
                   ],
 )

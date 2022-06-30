@@ -22,7 +22,7 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 load(":impl_common.bzl", "tmpdir", "dsorder")
 
 #################
-def impl_archive(ctx): #, mode, linkmode, tool, tool_args):
+def impl_archive(ctx):
 
     debug = False # True
     # if ctx.label.name == "Bare_structs":
@@ -106,13 +106,13 @@ def impl_archive(ctx): #, mode, linkmode, tool, tool_args):
             if "-shared" in _options:
                 _options.remove("-shared") ## avoid dup
 
-    if tc.target == "native":
+    if tc.target == "vm":
+        ext = ".cma"
+    else:
         if shared:
             ext = ".cmxs"
         else:
             ext = ".cmxa"
-    else:
-        ext = ".cma"
 
     #### declare output files ####
     ## same for plain and ns archives
@@ -132,13 +132,13 @@ def impl_archive(ctx): #, mode, linkmode, tool, tool_args):
     paths_direct.append(archive_file.dirname)
     action_outputs.append(archive_file)
 
-    if tc.target == "native":
+    if tc.target == "vm":
+        archive_a_file = None
+    else:
         archive_a_filename = tmpdir + archive_name + ".a"
         archive_a_file = ctx.actions.declare_file(archive_a_filename)
         paths_direct.append(archive_a_file.dirname)
         action_outputs.append(archive_a_file)
-    else:
-        archive_a_file = None
 
     #########################
     args = ctx.actions.args()
