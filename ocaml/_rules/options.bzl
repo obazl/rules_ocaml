@@ -74,19 +74,19 @@ def options(ws):
         ),
         ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
         ## these should never be directly set.
-        _debug           = attr.label(default = ws + "//cfg/debug"),
-        _cmt             = attr.label(default = ws + "//cfg/cmt"),
-        _keep_locs       = attr.label(default = ws + "//cfg/keep-locs"),
-        _noassert        = attr.label(default = ws + "//cfg/noassert"),
-        _opaque          = attr.label(default = ws + "//cfg/opaque"),
+        _debug           = attr.label(default = ws + "//cfg:debug"),
+        _cmt             = attr.label(default = ws + "//cfg:cmt"),
+        _keep_locs       = attr.label(default = ws + "//cfg:keep-locs"),
+        _noassert        = attr.label(default = ws + "//cfg:noassert"),
+        _opaque          = attr.label(default = ws + "//cfg:opaque"),
         _xmo             = attr.label(
             doc = "Cross-module optimization. Boolean",
-            default = "@rules_ocaml//cfg/xmo"
+            default = "@rules_ocaml//cfg:xmo"
         ),
-        _short_paths     = attr.label(default = ws + "//cfg/short-paths"),
-        _strict_formats  = attr.label(default = ws + "//cfg/strict-formats"),
-        _strict_sequence = attr.label(default = ws + "//cfg/strict-sequence"),
-        _verbose         = attr.label(default = ws + "//cfg/verbose"),
+        _short_paths     = attr.label(default = ws + "//cfg:short-paths"),
+        _strict_formats  = attr.label(default = ws + "//cfg:strict-formats"),
+        _strict_sequence = attr.label(default = ws + "//cfg:strict-sequence"),
+        _verbose         = attr.label(default = ws + "//cfg:verbose"),
 
 #         _mode       = attr.label(
 #             default = ws + "//build/mode",
@@ -768,7 +768,7 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
 
         _xmo = attr.label(
             doc = "Cross-module optimization. Boolean",
-            default = "@rules_ocaml//cfg/xmo"
+            default = "@rules_ocaml//cfg:xmo"
         )
     )
 

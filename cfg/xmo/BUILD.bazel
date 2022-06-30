@@ -2,8 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
 package(default_visibility = ["//visibility:public"])
 
-bool_flag( name = "xmo", build_setting_default = True)
-
 # omitting cmx files from the compile depgraph without using -opaque:
 
 # Warning 58 [no-cmx-file]: no cmx file was found in path for module

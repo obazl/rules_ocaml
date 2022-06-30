@@ -4,8 +4,6 @@ load("@rules_ocaml//ocaml/_config:settings.bzl",
 
 package(default_visibility = ["//visibility:public"])
 
-ocaml_verbose_flag( name = "verbose", build_setting_default = False )
-
 ocaml_verbose_setting( name = "enable", build_setting_default = True)
 config_setting(name = "enabled", flag_values = {":verbose": str(True)})
 

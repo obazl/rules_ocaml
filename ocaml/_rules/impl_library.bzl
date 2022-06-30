@@ -110,7 +110,7 @@ def _handle_ns_library(ctx):
     )
 
 #################
-def impl_library(ctx): #, mode, tool, tool_args):
+def impl_library(ctx):
 
     debug      = False
     debug_deps = False

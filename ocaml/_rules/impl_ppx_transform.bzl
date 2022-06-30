@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
      "OcamlExecutableMarker",
-     "OcamlVerboseFlagProvider"
      )
 # load("//ocaml:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
 # load("//ocaml/_functions:utils.bzl",
@@ -34,7 +33,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     # env = {"PATH": get_sdkpath(ctx)}
 
     verbose = False
-    if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
+    if ctx.attr._verbose[BuildSettingInfo].value:
         if not "-no-verbose" in ctx.attr.opts:
             verbose = True
     elif "-verbose" in ctx.attr.opts:

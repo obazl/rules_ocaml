@@ -1,5 +1,4 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
-load("//ocaml:providers.bzl", "OcamlVerboseFlagProvider")
 
 NEGATION_OPTS = [
     "-no-g", "-no-noassert",
@@ -72,7 +71,7 @@ def get_options(rule, ctx):
                     options.append("-strict-sequence")
 
     if hasattr(ctx.attr, "_verbose"):
-        if ctx.attr._verbose[OcamlVerboseFlagProvider].value:
+        if ctx.attr._verbose[BuildSettingInfo].value:
             if not "-no-verbose" in ctx.attr.opts:
                 if not "-verbose" in ctx.attr.opts: # avoid dup, use the one in opts
                     options.append("-verbose")
