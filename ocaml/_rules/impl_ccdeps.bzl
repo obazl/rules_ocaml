@@ -4,7 +4,7 @@ load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 load("@rules_ocaml//ocaml/_debug:colors.bzl",
-     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCRESET")
+     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCYEL", "CCRESET")
 
 ## see: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl
 
@@ -80,41 +80,53 @@ def dump_CcInfo(ctx, cc_info): # dep):
     #         print(" Default f: %s" % dep)
 
 ################################################################
-def lib_to_string(ctx, idx, lib):
-    text = "  alwayslink[{i}]: {al}\n".format(i=idx, al = lib.alwayslink)
-    flds = ["static_library",
-            "pic_static_library",
-            "interface_library",
-            "dynamic_library",]
-    for fld in flds:
-        if hasattr(lib, fld):
-            if getattr(lib, fld):
-                text = text + "  lib[{i}].{f}: {c}{p}{noc}\n".format(
-                    c=CCMAG, noc=CCRESET,
-                    i=idx, f=fld, p=getattr(lib,fld).path)
-            else:
-                text = text + "  lib[{i}].{f} == None\n".format(i=idx, f=fld)
+def lib_to_string(ctx, i, j, lib):
+    text = ""
+    # flds = ["static_library",
+    #         "pic_static_library",
+    #         "interface_library",
+    #         "dynamic_library",]
+    for fld in dir(lib):
+    # for fld in flds:
+        # if hasattr(lib, fld):
+        if getattr(lib, fld):
+            text = text + "  lib[{i}][{j}].{f}: {c}{p}{noc}\n".format(
+                c=CCMAG, noc=CCRESET,
+                i=i, j=j, f=fld, p=getattr(lib,fld)) # .path)
+        else:
+            text = text + "  lib[{i}][{j}].{f} == None\n".format(
+                i=i, j=j, f=fld)
     return text
 
 ################
 def ccinfo_to_string(ctx, cc_info):
-    # print("DUMP_CCINFO for %s" % ctx.label)
+    print("DUMP_CCINFO for %s" % ctx.label)
+    print(CCYEL + "ccinfo: %s" % cc_info)
+
     text = ""
     compilation_ctx = cc_info.compilation_context
+    print(CCYEL + "compilation_ctx: %s" % compilation_ctx)
     linking_ctx     = cc_info.linking_context
+    print(CCYEL + "linking_ctx: %s" % dir(linking_ctx))
     linker_inputs = linking_ctx.linker_inputs.to_list()
-    # print("linker_inputs count: %s" % len(linker_inputs))
+    print(CCYEL + "linker_inputs count: %s" % len(linker_inputs))
+    print(CCYEL + "linker_inputs: %s" % linker_inputs)
+    print(CCYEL + "linker_inputs: %s" % dir(linker_inputs))
     lidx = 0
     for linput in linker_inputs:
-        # print(" linker_input[{i}]".format(i=lidx))
-        # print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+        print(CCYEL + " linker_input[{i}]: %s" %linput)
+        print(CCYEL + " linker_input[{i}] flds: {li}".format(i=lidx, li=dir(linput)))
+        print(CCYEL + " linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
         libs = linput.libraries
-        # print(" libs count: %s" % len(libs))
+        print(CCYEL + " libs count: %s" % len(libs))
         if len(libs) > 0:
-            i = 0
-            for lib in linput.libraries:
-                text = text + lib_to_string(ctx, i, lib)
-                i = i+1
+            j = 0
+            for lib in libs:  # linput.libraries:
+                print(CCYEL + " lib[{j}]: %s" % lib)
+                print(CCYEL + " lib[{j}] dir: {l}".format(
+                    j=j, l=dir(lib)))
+                text = text + lib_to_string(ctx, lidx, j, lib)
+                j = j+1
         lidx = lidx + 1
     return text
 
@@ -506,3 +518,65 @@ def x(ctx,
 
 #     return [action_inputs_ccdep_filelist, ccDepsProvider]
 
+def dump_compilation_context(ccinfo):
+    print("dump_compilation_context")
+    compile_ctx = ccinfo.compilation_context
+    print("compilation_context: %s" % compile_ctx)
+    print("fields: %s" % dir(compile_ctx))
+    for f in dir(compile_ctx):
+        print("{f}: {val}".format(f=f, val = getattr(compile_ctx, f)))
+
+###############################
+def get_libname(linker_input):
+    ## should only be one library
+    lib = linker_input.libraries[0]
+    libname = file_to_lib_name(lib.static_library)
+
+    return libname
+
+##########################
+def filter_ccinfo(target):
+    print("filter_ccinfo: %s" % target)
+
+
+    # task: if target is produced by a cc_* rule, then filter out the
+    # OCaml CSDK libs.
+
+    default_files = target[DefaultInfo].files.to_list()
+
+    ## iterate over CcInfo LinkInputs and discard the CSDK libs
+
+    ## Retain any LibraryToLink with both a static/dynamic lib and a
+    ## list of objects. Infer that any additional libs (in the same
+    ## LibraryToLink) are from the CSDK.
+
+    ## BUT: can't we just take the first LinkInput? It looks like it
+    ## should correspond to DefaultInfo.
+
+    ## Then create a new CcInfo containing just the retained libs.
+
+    cc_info = target[CcInfo]
+    print("cc_info: %s" % cc_info)
+    # dump_compilation_context(cc_info)
+
+    # compilation_ctx = cc_info.compilation_context
+
+    linking_ctx     = cc_info.linking_context
+    print("LINKING_CTX: %s" % linking_ctx.linker_inputs)
+    linker_inputs = linking_ctx.linker_inputs.to_list()
+
+    if linker_inputs:
+        linker_input = linker_inputs[0]
+        # libname = get_libname(linker_input)
+        lib = linker_input.libraries[0].static_library
+        new_linking_ctx = cc_common.create_linking_context(
+            linker_inputs = depset(direct = [linker_input])
+        )
+        ccinfo_out = CcInfo(
+            # don't need the old compilation ctx
+            compilation_context = cc_common.create_compilation_context(),
+            linking_context = new_linking_ctx
+        )
+        return (lib, ccinfo_out)
+    else:
+        return None

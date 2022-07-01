@@ -127,6 +127,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     codep_cc_deps_secondary = []
     codep_paths_secondary    = []
 
+    cc_libs = []
+
     ################
     includes   = []
 
@@ -167,6 +169,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             archives_secondary.append(provider.archives)
             afiles_secondary.append(provider.afiles)
             astructs_secondary.append(provider.astructs)
+
+            if hasattr(provider, "cc_libs"):
+                cc_libs.extend(provider.cc_libs)
 
             paths_secondary.append(provider.paths)
 
@@ -286,6 +291,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         astructs_secondary.append(provider.astructs)
         paths_secondary.append(provider.paths)
 
+        cc_libs.extend(provider.cc_libs)
+
         if PpxCodepsProvider in main:
             if debug_ppx: print("main module has PpxCodepsProvider")
             coprovider = main[PpxCodepsProvider]
@@ -347,32 +354,6 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         transitive = paths_secondary
     )
 
-    # args.add_all(paths_depset.to_list(), before_each="-I")
-    includes.extend(paths_depset.to_list())
-
-    astructs_depset = depset(order=dsorder,
-                            # direct=astructs_primary,
-                            transitive=astructs_secondary)
-
-    ## Archives and structs must be on the command line:
-    archives_depset = depset(order=dsorder,
-                             direct=archives_primary,
-                             transitive=archives_secondary)
-
-    for archive in archives_depset.to_list():
-        if debug:
-            print("ADDING ARCHIVE %s" % archive)
-        args.add(archive)
-
-    structs_depset = depset(order=dsorder,
-                            direct=structs_primary,
-                            transitive=structs_secondary)
-
-    for struct in structs_depset.to_list():
-        if debug:
-            print("ADDING STRUCT %s" % struct)
-        args.add(struct)
-
     ############ CC DEPS ################
 
     ## NOTE: OCaml automatically adds -lfoo if a libfoo dependency is
@@ -415,14 +396,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # print("STATIC DEP: %s" % dep)
         includes.append(dep.dirname)
         sincludes.append("-L" + dep.dirname)
-    args.add_all(sincludes, before_each="-ccopt", uniquify=True)
+    # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
 
     if tc.target == "vm":
         # vmlibs =  lib/stublibs/dll*.so, set by toolchain
         # only needed for bytecode mode, else we get errors like:
         # Error: I/O error: dllbase_internalhash_types_stubs.so: No such
         # file or directory
-
+        vmlibs = tc.vmlibs
 
         ## WARNING: both -dllpath and -I are required!
         args.add("-dllpath", tc.vmlibs[0].dirname)
@@ -435,12 +416,39 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             ## and https://ocaml.org/manual/runtime.html
 
         args.add("-custom")
-
-    # elif tc.target == "native":
     else:
         vmlibs = [] ## we never need vmlibs for native code
 
     args.add_all(includes, before_each="-I", uniquify=True)
+
+    for lib in cc_libs:
+        args.add(lib.path)
+
+    # args.add_all(paths_depset.to_list(), before_each="-I")
+    includes.extend(paths_depset.to_list())
+
+    astructs_depset = depset(order=dsorder,
+                            # direct=astructs_primary,
+                            transitive=astructs_secondary)
+
+    ## Archives and structs must be on the command line:
+    archives_depset = depset(order=dsorder,
+                             direct=archives_primary,
+                             transitive=archives_secondary)
+
+    for archive in archives_depset.to_list():
+        if debug:
+            print("ADDING ARCHIVE %s" % archive)
+        args.add(archive)
+
+    structs_depset = depset(order=dsorder,
+                            direct=structs_primary,
+                            transitive=structs_secondary)
+
+    for struct in structs_depset.to_list():
+        if debug:
+            print("ADDING STRUCT %s" % struct)
+        args.add(struct)
 
     args.add("-o", out_exe)
 
@@ -453,7 +461,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     action_inputs_depset = depset(
         order=dsorder,
-        direct = tc.vmlibs
+        direct = vmlibs
         + afiles_primary
         + astructs_primary
         + archives_primary

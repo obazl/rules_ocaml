@@ -36,13 +36,19 @@ load("//ocaml/_functions:module_naming.bzl",
      "module_name_from_label",
      "normalize_module_name")
 
-# load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
+load(":impl_ccdeps.bzl",
+     "filter_ccinfo"
+     # "extract_cclibs", "dump_CcInfo",
+     )
 
 load(":impl_common.bzl",
      "dsorder",
      "opam_lib_prefix",
      "tmpdir"
      )
+
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCCYAN", "CCRESET")
 
 scope = tmpdir
 
@@ -342,19 +348,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
-    # if ctx.attr._rule.startswith("bootstrap"):
-    #     tc = ctx.toolchains["@rules_ocaml//ocaml/bootstrap:toolchain"]
-    #     if mode == "native":
-    #         exe = tc.ocamlrun
-    #     else:
-    #         ext = ".cmo"
-    # else:
-    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
-    #     if mode == "native":
-    #         exe = tc.ocamlopt.basename
-    #     else:
-    #         exe = tc.ocamlc.basename
-
     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
 
     ext  = ".cmo" if  tc.target == "vm" else ".cmx"
@@ -436,6 +429,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     cc_deps_primary             = []  ## list of CcInfo
     cc_deps_secondary           = []  ## list of depsets (of CcInfo)
+
+    cc_libs = [] # ccinfo dep libnames, so later we can emit -lfoo
 
     sig_is_xmo = True
 
@@ -680,7 +675,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if debug: print("iterating deps")
 
     for dep in the_deps:
-
+        if debug_deps: print("DEP: %s" % dep)
         ## OCaml deps first
 
         ## module deps have xmo flag
@@ -689,10 +684,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         if OcamlProvider in dep:
             provider = dep[OcamlProvider]
-            if debug: print("DEP: %s" % dep)
+            if debug_deps: print("OcamlProvider: %s" % dep)
             if hasattr(provider, "xmo"):
-                if debug:
-                    print("THIS: %s" % ctx.label)
+                if debug_xmo:
                     print("DEP XMO: %s" % provider)
                     # print("DEP.cmi: %s" % provider.cmi)
                     # print("DEP: %s" % provider)
@@ -736,6 +730,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             astructs_secondary.append(provider.astructs)
             paths_secondary.append(provider.paths)
 
+            if hasattr(provider, "cc_libs"):
+                cc_libs.extend(provider.cc_libs)
+
         ## Then ppx codeps
 
         # indirect_linkargs_depsets.append(dep[DefaultInfo].files)
@@ -768,8 +765,36 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 codep_paths_secondary.append(codep.paths)
 
         ## Finally CcInfo deps
+
+        ## If this dep was produced by a cc_* rule, then we just want
+        ## the DefaultInfo files, not everything in its CcInfo
+        ## provider. In the case of an FFI adapter, that would include
+        ## the OCaml C sdk libs (libcamlrun.a, etc.). We do not need
+        ## to pass those libs along, they were just needed by the cc_*
+        ## target.
+
+        ## So how can we detect here that a dep was produced by such a
+        ## target? For static libs, DefaultInfo would contain exactly
+        ## one .a file.
         if CcInfo in dep:
-            cc_deps_secondary.append(dep[CcInfo])
+            if debug_ccdeps: print("CcInfo dep: %s" % dep)
+            if OcamlProvider in dep:
+                if debug_ccdeps: print("OcamProvider dep: %s" % dep)
+                ## this ccinfo is a carrier, not a direct cc_* dep
+                cc_deps_secondary.append(dep[CcInfo])
+            else:
+                if debug_ccdeps: print("NOT OcamProvider dep: %s" % dep)
+                ## must be provided by a cc_* target
+                (libname, filtered_ccinfo) = filter_ccinfo(dep)
+                print("LIBNAME: %s" % libname)
+                print("FILTERED CCINFO: %s" % filtered_ccinfo)
+                if filtered_ccinfo:
+                    cc_deps_primary.append(filtered_ccinfo)
+                    cc_libs.append(libname)
+                else:
+                    ## must be a shared lib
+                    ## not yet supported
+                    print("DefaultInfo: %s" % dep[DefaultInfo])
 
     if debug:
         print("finished deps iteration")
@@ -784,8 +809,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         print("afiles_secondary: %s" % afiles_secondary)
         print("astructs_secondary: %s" % astructs_secondary)
         print("paths_secondary: %s" % paths_secondary)
-
-        # print("cclibs_secondary: %s" % cclibs_secondary)
 
     ns_enabled = False
     ns_name    = None
@@ -816,8 +839,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         afiles_secondary.extend(nsafiles_secondary)
         archives_secondary.extend(nsarchives_secondary)
         paths_secondary.extend(nspaths_secondary)
-
-        # cclibs_secondary.extend(nscclibs_secondary)
 
     if debug_ns:
         print("ns analysis result")
@@ -891,24 +912,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         if CcInfo in ctx.attr.ppx:
             cc_deps_secondary.append(ctx.attr.ppx[CcInfo])
 
-            # cclibs_secondary.append(codep.cclibs)
-
-            ## 1. put ppx_codeps in search path with -I
-            ## 2. add ppx_codeps.linkset to linkset of module,
-            ## otherwise linking an executable will fail with: "No
-            ## implementations provided for the following modules:..."
-            # indirect_linkargs_depsets.append(codep.linkset)
-            # indirect_ppx_codep_depsets.append(codep.ppx_codeps)
-            # indirect_ppx_codep_path_depsets.append(codep.paths)
-            # ppx_codep_sigs.extend(codep.sigs)
-            # ppx_codep_structs.extend(codep.structs)
-            # codep_sigs_secondary.append(codep.sigs)
-            # codep_structs_secondary.append(codep.structs)
-            # codep_archives_secondary.extend(codep.archives)
-            # codep_astructs_secondary.extend(codep.astructs)
-
-
     ################ PRIMARY CCLIB DEPENDENCIES ################
+    # FIXME: remove cc_deps attrib
     for ccdep in ctx.attr.cc_deps:
         if CcInfo in ccdep:
             cc_deps_primary.append(ccdep[CcInfo])
@@ -1214,6 +1219,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         # linkargs = linkset,
         paths    = paths_depset,
+
+        cc_libs = cc_libs,
 
         srcs = depset(direct=[work_ml])
     )

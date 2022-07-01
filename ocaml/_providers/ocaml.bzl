@@ -27,6 +27,9 @@ OcamlProvider = provider(
 
         "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
 
+        "cc_libs" : "list of files",
+        "ccinfo"  : "a single CcInfo provider",
+
         ## everything below is DEPRECATED
 
         # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",

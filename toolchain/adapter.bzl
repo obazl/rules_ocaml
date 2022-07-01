@@ -213,12 +213,6 @@ def _ocaml_toolchain_adapter_impl(ctx):
         ## config frag.cpp fld `linkopts` contains whatever was passed
         ## by CLI using `--linkopt`
         linkopts  = None,
-
-        # ocamlbuild = ctx.attr._ocamlbuild.files.to_list()[0],
-        # ocamlfind  = ctx.attr._ocamlfind.files.to_list()[0],
-        # ocamldep   = ctx.attr._ocamldep.files.to_list()[0],
-        # objext     = ".cmx" if mode == "native" else ".cmo",
-        # archext    = ".cmxa" if mode == "native" else ".cma",
     )]
 
 ## toolchain adapters bind tc interface to tc implementation
