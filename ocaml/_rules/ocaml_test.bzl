@@ -4,10 +4,19 @@ load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
 load(":options.bzl", "options", "options_executable")
 
+load("//ocaml/_debug:colors.bzl", "CCYEL", "CCRESET")
+
 ###############################
 def _ocaml_test(ctx):
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    # print("BUILD TGT: {color}{lbl}{reset}".format(
+    #     color=CCYEL, reset=CCRESET, lbl=ctx.label))
+
+    # print("  TC.NAME: %s" % tc.name)
+    # print("  TC.HOST: %s" % tc.host)
+    # print("  TC.TARGET: %s" % tc.target)
+    # print("  TC.COMPILER: %s" % tc.compiler.basename)
 
     return impl_binary(ctx) # , tc.target, tc, tc.compiler, [])
 
