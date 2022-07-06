@@ -511,12 +511,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                     t=ctx.label, d=dep.path))
 
     if ctx.attr._rule == "ocaml_binary":
-        mnemonic = "CompileOcamlExecutable"
+        mnemonic = "LinkOCamlExecutable"
     elif "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
     # elif ctx.attr._rule == "ppx_executable":
-        mnemonic = "CompilePpxExecutable"
+        mnemonic = "LinkOCamlPpxExecutable"
     elif ctx.attr._rule == "ocaml_test":
-        mnemonic = "CompileOcamlTest"
+        mnemonic = "LinkOCamlTest"
     else:
         fail("Unknown rule for executable: %s" % ctx.attr._rule)
 

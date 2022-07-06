@@ -353,7 +353,7 @@ def impl_ns_resolver(ctx):
         inputs = action_inputs_depset,
         outputs = action_outputs,
         tools = [tc.compiler],
-        mnemonic = "OcamlNsResolverAction" if ctx.attr._rule == "ocaml_ns" else "PpxNsResolverAction",
+        mnemonic = "CompileOCamlNsResolver",
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = tc.host + "->" + tc.target,
             rule=ctx.attr._rule,

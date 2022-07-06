@@ -161,7 +161,7 @@ def impl_ppx_transform(rule, ctx, src, to):
         inputs = dep_graph,
         outputs = [outfile],
         tools = [ppx_exe], # [ctx.executable.ppx],
-        mnemonic = "PpxTransformAction",
+        mnemonic = "OCamlPpxTransform",
         progress_message = "ppx_transform {rule}: {ws}//{pkg}:{tgt}".format(
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,

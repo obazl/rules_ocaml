@@ -1104,6 +1104,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if debug:
         print("COMPILE OUTPUTS: %s" % action_outputs)
 
+    if hasattr(ctx.attr, "ppx_codeps"):
+        mnemonic = "CompileOCamlPpxModule"
+        rule     = "ppx_module"
+    else:
+        mnemonic = "CompileOCamlModule"
+        rule     = "ocaml_module"
+
     ################
     ctx.actions.run(
         # env = env,
@@ -1112,10 +1119,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         inputs    = action_inputs_depset,
         outputs   = action_outputs,
         tools = [tc.compiler], # + tool_args,
-        mnemonic = "CompileOCamlModule" if ctx.attr._rule == "ocaml_module" else "CompilePpastructdule",
+        mnemonic = mnemonic,
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = tc.host + ">" + tc.target,
-            rule=ctx.attr._rule,
+            rule = rule,
             ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
