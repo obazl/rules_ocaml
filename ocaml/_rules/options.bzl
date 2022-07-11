@@ -72,6 +72,12 @@ def options(ws):
         opts             = attr.string_list(
             doc          = "List of compile options; overrides configurable default options. Supports `+-no-+` prefix for each option; for example, `-no-linkall`."
         ),
+        opts_ocamlc      = attr.string_list(
+            doc          = "Compile options for toolchains targetting the VM."
+        ),
+        opts_ocamlopt    = attr.string_list(
+            doc          = "Compile options for toolchains targetting sys native code."
+        ),
         ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
         ## these should never be directly set.
         _debug           = attr.label(default = ws + "//cfg:debug"),
@@ -158,6 +164,14 @@ def options_executable(ws):
             doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
             default = False
         ),
+
+        # FIXME: rename 'manifest' - this is a list of modules to link
+        # into the executable; it is NOT a list of "executable
+        # dependencies", which would make no sense. IOW not like a
+        # module's compile dependencies. So this is a list of
+        # components but not "submodules"; hence 'manifest' instead of
+        # 'submodules'. Compare ocaml_library.manifest v.
+        # ocaml_ns_library.submodules.
         deps = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],
@@ -637,9 +651,8 @@ def options_module(ws):
     ws = "@rules_ocaml"
 
     return dict(
-        _opts     = attr.label(default = ws + "//cfg/module:opts"),     # string list
-        _linkall  = attr.label(default = ws + "//cfg/module/linkall"),  # bool
-        # _threads   = attr.label(default = ws + "//cfg/module/threads"),   # bool
+        _opts     = attr.label(default = ws + "//cfg/module:opts"),
+        _linkall  = attr.label(default = ws + "//cfg/module/linkall"),
         _warnings = attr.label(
             default = "@rules_ocaml//cfg/module:warnings"
         ),
