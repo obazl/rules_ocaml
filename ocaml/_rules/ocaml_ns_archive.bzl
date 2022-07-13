@@ -26,6 +26,12 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     """,
     attrs = dict(
         rule_options,
+
+        shared = attr.bool(
+            doc = "True: build a shared lib (.cmxs)",
+            default = False
+        ),
+
         _rule = attr.string(default = "ocaml_ns_archive")
     ),
     cfg     = nsarchive_in_transition,
