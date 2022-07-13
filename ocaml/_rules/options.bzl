@@ -165,14 +165,13 @@ def options_binary():
             default = False
         ),
 
-        # FIXME: rename 'manifest' - this is a list of modules to link
-        # into the executable; it is NOT a list of "executable
-        # dependencies", which would make no sense. IOW not like a
-        # module's compile dependencies. So this is a list of
-        # components but not "submodules"; hence 'manifest' instead of
-        # 'submodules'. Compare ocaml_library.manifest v.
-        # ocaml_ns_library.submodules.
-        deps = attr.label_list(
+        # This is a list of modules to link into the executable; it is
+        # NOT a list of "executable dependencies", which would make no
+        # sense. IOW not like a module's compile dependencies. So this
+        # is a list of components but not "submodules"; hence
+        # 'manifest' instead of 'submodules'. Compare
+        # ocaml_library.manifest v. ocaml_ns_library.submodules.
+        manifest = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],

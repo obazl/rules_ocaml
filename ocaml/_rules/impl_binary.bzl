@@ -153,7 +153,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     ################ SECONDARY DEPENDENCIES ################
     if debug: print("iterating deps")
-    for dep in ctx.attr.deps:
+    for dep in ctx.attr.manifest:
         if debug:
             print("DEP: %s" % dep)
             if OcamlProvider in dep:

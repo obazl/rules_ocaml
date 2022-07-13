@@ -96,8 +96,8 @@ ppx_executable = rule(
             default = False
         ),
 
-        deps = attr.label_list(
-            doc = "Deps needed to build this ppx executable.",
+        manifest = attr.label_list(
+            doc = "Deps to be directly linked into ppx executable.",
             providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
             # cfg = ocaml_binary_deps_out_transition
         ),
