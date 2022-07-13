@@ -60,6 +60,7 @@ def _import_ppx_executable(ctx):
 def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     debug     = False
+    debug_deps= False
     debug_cc  = False
     debug_ppx = False
     debug_tc  = True
@@ -152,7 +153,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ################################################################
 
     ################ SECONDARY DEPENDENCIES ################
-    if debug: print("iterating deps")
+    if debug: print("iterating manifest")
     for dep in ctx.attr.manifest:
         if debug:
             print("DEP: %s" % dep)
@@ -459,9 +460,51 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             # print("DATAFILE: %s" % f.path)
             args.add("-I", f.dirname)
 
+    if debug_deps:
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        print("vmlibs: %s" % vmlibs)
+        print("afiles_primary: %s" % afiles_primary)
+        print("astructs_primary: %s" % astructs_primary)
+        print("archives_primary: %s" % archives_primary)
+        print("structs_primary: %s" % structs_primary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("sigs_primary: %s" % sigs_primary)
+        print("static_cc_deps: %s" % static_cc_deps)
+        print("dynamic_cc_deps: %s" % dynamic_cc_deps)
+
+        print("codep_afiles_primary: %s" % codep_afiles_primary)
+        print("codep_astructs_primary: %s" % codep_astructs_primary)
+        print("codep_archives_primary: %s" % codep_archives_primary)
+        print("codep_structs_primary: %s" % codep_structs_primary)
+        print("codep_ofiles_primary: %s" % codep_ofiles_primary)
+        print("codep_sigs_primary: %s" % codep_sigs_primary)
+        # print("codep_cc_deps_primary: %s" % codep_cc_deps_primary)
+        # transitive
+        print("ctx.file.main: %s" % ctx.file.main)
+        print("sigs_secondary: %s" % sigs_secondary)
+        print("structs_secondary: %s" % structs_secondary)
+        print("archives_secondary: %s" % archives_secondary)
+        print("afiles_secondary: %s" % afiles_secondary)
+        print("ofiles_secondary: %s" % ofiles_secondary)
+        print("astructs_secondary: %s" % astructs_secondary)
+
+        print("codep_afiles_secondary: %s" % codep_afiles_secondary)
+        print("codep_astructs_secondary: %s" % codep_astructs_secondary)
+        print("codep_archives_secondary: %s" % codep_archives_secondary)
+        print("codep_structs_secondary: %s" % codep_structs_secondary)
+        print("codep_ofiles_secondary: %s" % codep_ofiles_secondary)
+        print("codep_sigs_secondary: %s" % codep_sigs_secondary)
+        # print("codep_cc_deps_secondary
+
+    if ctx.file.main:
+        mainfile = ctx.file.main
+    else:
+        mainfile = []
+
     action_inputs_depset = depset(
         order=dsorder,
-        direct = vmlibs
+        direct = mainfile
+        + vmlibs
         + afiles_primary
         + astructs_primary
         + archives_primary
@@ -478,12 +521,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         + codep_ofiles_primary
         + codep_sigs_primary
         # + codep_cc_deps_primary
-
         ,
         transitive =
-        [depset(direct = [ctx.file.main])]
-        # data_inputs
-        + sigs_secondary
+          sigs_secondary
         + structs_secondary
         + archives_secondary
         + afiles_secondary ## .a files for .cmxa files on cmd line
