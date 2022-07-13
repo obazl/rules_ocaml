@@ -66,6 +66,13 @@ OcamlProvider = provider(
 #     }
 # )
 
+OcamlNsSubmoduleMarker = provider(
+    doc = "OCaml NS Submodule Marker.",
+    fields = {
+        "ns_name": "ns name (joined prefixes)"
+    }
+)
+
 # OcamlNsResolverMarker = provider(doc = "OCaml NsResolver Marker provider.")
 OcamlNsResolverProvider = provider(
     doc = "OCaml NS Resolver provider.",
@@ -81,13 +88,6 @@ OcamlNsResolverProvider = provider(
         "cmi"    : "file",
         "struct" : "file",
         "ofile"  : "file"
-    }
-)
-
-OcamlNsSubmoduleMarker = provider(
-    doc = "OCaml NS Submodule Marker.",
-    fields = {
-        "ns_name": "ns name (joined prefixes)"
     }
 )
 

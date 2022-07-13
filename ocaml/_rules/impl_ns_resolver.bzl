@@ -65,6 +65,7 @@ def impl_ns_resolver(ctx):
                             print("NO SUBMODULES/MODULES/MERGE")
                             print("label: %s" % ctx.label)
                         return [DefaultInfo(),
+                                OcamlProvider(),
                                 OcamlNsResolverProvider()]
 
     # env = {"PATH": get_sdkpath(ctx)}

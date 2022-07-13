@@ -187,19 +187,27 @@ def impl_library(ctx):
         else:
             ns_resolver = ctx.attr._ns_resolver
             if debug_ns: print("implicit resolver: %s" % ns_resolver)
+
             # WARNING: index by int not provider (due to transition fn)
             nsr = ns_resolver[0][OcamlNsResolverProvider]
             nsr_dep = ns_resolver[0][OcamlProvider]
             if debug_ns:
+                print("nsr[0]: %s" % ns_resolver[0])
                 print("nsr: %s" % nsr)
                 print("ns_resolver: %s" % nsr)
                 print("ns name: %s" % nsr.ns_name)
-            sigs_secondary.append(nsr_dep.sigs)
-            structs_secondary.append(nsr_dep.structs)
-            ofiles_secondary.append(nsr_dep.ofiles)
-            archives_secondary.append(nsr_dep.archives)
-            afiles_secondary.append(nsr_dep.afiles)
-            astructs_secondary.append(nsr_dep.astructs)
+                print("nsr_dep: %s" % nsr_dep)
+
+            # WARNING: beware of empty nss, with empty providers
+            if hasattr(nsr, "cmi"):
+                sigs_secondary.append(nsr.cmi) ## (nsr_dep.sigs)
+            if hasattr(nsr, "struct"):
+                structs_secondary.append(nsr.struct) # nsr_dep.structs)
+            if hasattr(nsr, "ofile"):
+                ofiles_secondary.append(nsr.ofile) # nsr_dep.ofiles)
+            # archives_secondary.append(nsr_dep.archives)
+            # afiles_secondary.append(nsr_dep.afiles)
+            # astructs_secondary.append(nsr_dep.astructs)
             # cclibs_secondary.append(nsr_dep.cclibs)
 
     # #######################
