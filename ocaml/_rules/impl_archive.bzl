@@ -405,8 +405,8 @@ def impl_archive(ctx):
     # we may be called by ocaml_ns_archive, so:
     if ctx.attr._rule.startswith("ocaml_ns"):
         providers.append(OcamlNsMarker(
-            marker = "OcamlNsMarker",
-            ns_name     = nsMarker.ns_name
+            # marker = "OcamlNsMarker",
+            # ns_name     = nsMarker.ns_name
         ))
 
     return providers

@@ -200,11 +200,11 @@ def impl_library(ctx):
 
             # WARNING: beware of empty nss, with empty providers
             if hasattr(nsr, "cmi"):
-                sigs_secondary.append(nsr.cmi) ## (nsr_dep.sigs)
+                sigs_primary.append(nsr.cmi) ## (nsr_dep.sigs)
             if hasattr(nsr, "struct"):
-                structs_secondary.append(nsr.struct) # nsr_dep.structs)
+                structs_primary.append(nsr.struct) # nsr_dep.structs)
             if hasattr(nsr, "ofile"):
-                ofiles_secondary.append(nsr.ofile) # nsr_dep.ofiles)
+                ofiles_primary.append(nsr.ofile) # nsr_dep.ofiles)
             # archives_secondary.append(nsr_dep.archives)
             # afiles_secondary.append(nsr_dep.afiles)
             # astructs_secondary.append(nsr_dep.astructs)
@@ -314,20 +314,6 @@ def impl_library(ctx):
             # indirect_codeps_path_depsets.append(dep[PpxCodepsProvider].paths)
             # indirect_codeps_depsets.append(dep[PpxCodepsProvider].ppx_codeps)
 
-    if debug_deps:
-        print("finished deps iteration")
-        print("sigs_primary: %s" % sigs_primary)
-        print("sigs_secondary: %s" % sigs_secondary)
-        print("structs_primary: %s" % structs_primary)
-        print("structs_secondary: %s" % structs_secondary)
-        print("ofiles_primary: %s" % ofiles_primary)
-        print("ofiles_secondary: %s" % ofiles_secondary)
-        ## archives cannot be direct deps
-        print("archives_secondary: %s" % archives_secondary)
-        print("afiles_secondary: %s" % afiles_secondary)
-        print("astructs_secondary: %s" % astructs_secondary)
-        # print("cclibs_secondary: %s" % cclibs_secondary)
-
     # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
 
     # normalized_primary_dep_files = []
@@ -346,6 +332,26 @@ def impl_library(ctx):
     #     transitive = ([ns_resolver_depset] if ns_resolver_depset else []) + indirect_inputs_depsets
     #     + [depset(direct_dep_files)]
     # )
+
+    debug_deps = True
+    if debug_deps:
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        ## direct
+        print("sigs_primary: %s" % sigs_primary)
+        print("archives_primary: %s" % archives_primary)
+        print("afiles_primary: %s" % afiles_primary)
+        print("ofiles_primary: %s" % ofiles_primary)
+        print("astructs_primary: %s" % astructs_primary)
+        # transitive
+        print("sigs_secondary: %s" % sigs_secondary)
+        print("structs_secondary: %s" % structs_secondary)
+        ## archives cannot be direct deps?
+        print("archives_secondary: %s" % archives_secondary)
+        print("afiles_secondary: %s" % afiles_secondary)
+        print("ofiles_secondary: %s" % ofiles_secondary)
+        print("astructs_secondary: %s" % astructs_secondary)
+        # print("cclibs_secondary: %s" % cclibs_secondary)
+
     action_inputs_depset = depset(
         order = dsorder,
         direct =
