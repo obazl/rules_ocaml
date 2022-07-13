@@ -2,7 +2,7 @@ load(":impl_binary.bzl", "impl_binary")
 
 load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
 
-load(":options.bzl", "options", "options_executable")
+load(":options.bzl", "options", "options_binary")
 
 load("//ocaml/_debug:colors.bzl", "CCYEL", "CCRESET")
 
@@ -22,7 +22,7 @@ def _ocaml_test(ctx):
 
 ################################
 rule_options = options("ocaml")
-rule_options.update(options_executable("ocaml"))
+rule_options.update(options_binary())
 
 ##################
 ocaml_test = rule(

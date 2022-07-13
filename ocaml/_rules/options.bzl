@@ -130,7 +130,7 @@ Name of file containing null-terminated arg lines, to be passed with `-args0`.
     )
 
 #######################
-def options_executable(ws):
+def options_binary():
 
     # ws = "@" + ws
     ws = "@rules_ocaml"

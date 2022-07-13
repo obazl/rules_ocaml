@@ -1,6 +1,6 @@
 load("//ocaml:providers.bzl", "OcamlExecutableMarker", "OcamlModuleMarker")
 
-load(":options.bzl", "options", "options_executable")
+load(":options.bzl", "options", "options_binary")
 
 load(":impl_binary.bzl", "impl_binary")
 
@@ -25,7 +25,7 @@ def _ocaml_binary(ctx):
 
 ################################
 rule_options = options("ocaml")
-rule_options.update(options_executable("ocaml"))
+rule_options.update(options_binary())
 
 ########################
 ocaml_binary = rule(
