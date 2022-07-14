@@ -497,7 +497,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # print("codep_cc_deps_secondary
 
     if ctx.file.main:
-        mainfile = ctx.file.main
+        mainfile = [ctx.file.main]
     else:
         mainfile = []
 
