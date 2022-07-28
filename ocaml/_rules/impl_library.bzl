@@ -116,6 +116,8 @@ def impl_library(ctx):
     debug_deps = False
     debug_ns   = False
 
+    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+
     ppx = False
 
     if debug: print("**** NS_LIB {} ****************".format(ctx.label))
@@ -204,7 +206,8 @@ def impl_library(ctx):
             if hasattr(nsr, "struct"):
                 structs_primary.append(nsr.struct) # nsr_dep.structs)
             if hasattr(nsr, "ofile"):
-                ofiles_primary.append(nsr.ofile) # nsr_dep.ofiles)
+                if  tc.target != "vm":
+                    ofiles_primary.append(nsr.ofile) # nsr_dep.ofiles)
             # archives_secondary.append(nsr_dep.archives)
             # afiles_secondary.append(nsr_dep.afiles)
             # astructs_secondary.append(nsr_dep.astructs)
@@ -293,7 +296,8 @@ def impl_library(ctx):
 
             sigs_secondary.append(dep[OcamlProvider].sigs)
             structs_secondary.append(dep[OcamlProvider].structs)
-            ofiles_secondary.append(dep[OcamlProvider].ofiles)
+            if  tc.target != "vm":
+                ofiles_secondary.append(dep[OcamlProvider].ofiles)
             archives_secondary.append(dep[OcamlProvider].archives)
             afiles_secondary.append(dep[OcamlProvider].afiles)
             astructs_secondary.append(dep[OcamlProvider].astructs)
@@ -340,6 +344,7 @@ def impl_library(ctx):
         print("sigs_primary: %s" % sigs_primary)
         print("archives_primary: %s" % archives_primary)
         print("afiles_primary: %s" % afiles_primary)
+        print("structs_primary: %s" % structs_primary)
         print("ofiles_primary: %s" % ofiles_primary)
         print("astructs_primary: %s" % astructs_primary)
         # transitive
