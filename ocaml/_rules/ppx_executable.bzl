@@ -80,12 +80,12 @@ ppx_executable = rule(
         #     default = "@ppx//print"
         # ),
 
-        ##FIXME: use std 'args' attrib, common to all "*_binary" rules
-        runtime_args = attr.string_list(
-            doc = "List of args that will be passed to the ppx_executable at runtime. E.g. -inline-test-lib. CAVEAT: will be used wherever the exec is run, and passed before command line args.  For finer granularity use the 'ppx_args' attr of e.g. ocaml_module."
-        ),
+        ## NB: 'args' is built-in, cannot add as attrib
+        # runtime_args = attr.string_list(
+        # args = attr.string_list(
+        #     doc = "List of args that will be passed to the ppx_executable at runtime. E.g. -inline-test-lib. CAVEAT: will be used wherever the exec is run, and passed before command line args.  For finer granularity use the 'ppx_args' attr of e.g. ocaml_module."
+        # ),
 
-        ##FIXME: rename runtime_data?
         data  = attr.label_list(
             doc = "Runtime data dependencies. E.g. a file used by %%import from ppx_optcomp.",
             allow_files = True,
