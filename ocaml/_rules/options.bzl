@@ -72,12 +72,12 @@ def options(ws):
         opts             = attr.string_list(
             doc          = "List of compile options; overrides configurable default options. Supports `+-no-+` prefix for each option; for example, `-no-linkall`."
         ),
-        opts_ocamlc      = attr.string_list(
-            doc          = "Compile options for toolchains targetting the VM."
-        ),
-        opts_ocamlopt    = attr.string_list(
-            doc          = "Compile options for toolchains targetting sys native code."
-        ),
+        # opts_ocamlc      = attr.string_list(
+        #     doc          = "Compile options for toolchains targetting the VM."
+        # ),
+        # opts_ocamlopt    = attr.string_list(
+        #     doc          = "Compile options for toolchains targetting sys native code."
+        # ),
         ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
         ## these should never be directly set.
         _debug           = attr.label(default = ws + "//cfg:debug"),
