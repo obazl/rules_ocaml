@@ -1,9 +1,7 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
-# load("//ocaml/_repo_rules:ocaml_repository.bzl", "ocaml_repository")
-
-def ocaml_configure():
+def fetch_repos():
 
     maybe(
         http_archive,
@@ -14,6 +12,3 @@ def ocaml_configure():
         ],
         sha256 = "c6966ec828da198c5d9adbaa94c05e3a1c7f21bd012a0b29ba8ddbccb2c93b0d",
     )
-
-    ## configure @ocaml workspace:
-    # ocaml_repository()
