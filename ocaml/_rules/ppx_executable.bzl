@@ -97,7 +97,7 @@ ppx_executable = rule(
         ),
 
         manifest = attr.label_list(
-            doc = "Deps to be directly linked into ppx executable.",
+            doc = "Mereological deps to be directly linked into ppx executable. Modular deps should be listed in ocaml_module, ppx_module rules.",
             providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
             # cfg = ocaml_binary_deps_out_transition
         ),

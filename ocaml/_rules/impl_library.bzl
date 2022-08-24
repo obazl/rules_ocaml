@@ -337,7 +337,7 @@ def impl_library(ctx):
     #     + [depset(direct_dep_files)]
     # )
 
-    debug_deps = True
+    debug_deps = False
     if debug_deps:
         print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
         ## direct

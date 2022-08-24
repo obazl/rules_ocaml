@@ -49,10 +49,12 @@ def impl_ns_resolver(ctx):
     # but what happens if a selected submodule also elects?
 
     if ctx.attr.submodules:
+        if debug: print("has submodules attr")
         ## verify not also topdown
         subnames = ctx.attr.submodules
         bottomup = True
     else:
+        if debug: print("no submodules attr")
         subnames = ctx.attr._ns_submodules[BuildSettingInfo].value
         bottomup = False
 
@@ -81,8 +83,10 @@ def impl_ns_resolver(ctx):
     aliases = []
 
     if ctx.attr.ns:
+        if debug: print("has ns attr")
         ns_prefixes = [ctx.attr.ns]
     else:
+        if debug: print("no ns attr")
         # ns_prefixes = [ctx.label.name]
         ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
@@ -140,16 +144,18 @@ def impl_ns_resolver(ctx):
                 if submodule == ns_prefixes[0]:
                     if debug:
                         print("submodule == ns_prefixes[0]: %s" % submodule)
-                    user_ns_resolver = submod_label
+                    if ctx.attr.submodules:
+                        user_ns_resolver = submod_label
                     if debug:
                         print("user_ns_resolver: %s" % user_ns_resolver)
                     continue ## no alias for main module
                 else:
                     if debug:
                         print("submodule != ns_prefixes[0]: %s" % submodule)
-            elif submodule == ns_prefixes[-1]:
+            elif submodule == ns_prefixes[-1]: # last pfx
                 # this is main nslib module
-                user_ns_resolver = submod_label
+                if ctx.attr.submodules:
+                    user_ns_resolver = submod_label
                 continue ## no alias for main module
         # print("submodule pre: %s" % submodule)
         submodule = capitalize_initial_char(submodule)
@@ -277,7 +283,8 @@ def impl_ns_resolver(ctx):
     resolver_src_filename = resolver_module_name + ".ml"
     resolver_src_file = ctx.actions.declare_file(workdir + resolver_src_filename)
 
-    # print("resolver_module_name: %s" % resolver_module_name)
+    if debug:
+        print("resolver_module_name: %s" % resolver_module_name)
     ## action: generate ns resolver module file with alias content
     ##################
     ctx.actions.write(

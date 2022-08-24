@@ -63,7 +63,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     debug_deps= False
     debug_cc  = False
     debug_ppx = False
-    debug_tc  = True
+    debug_tc  = False
 
     if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(

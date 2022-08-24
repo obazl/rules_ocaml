@@ -74,6 +74,7 @@ def _handle_ns_deps(ctx):
     ns_name    = None
 
     if ctx.attr.ns_resolver:
+        if debug_ns: print("has ns_resolver")
         if debug_ns: print("BOTTOMUP NS")
         ns_enabled = True
         ## topdown (hidden) resolver
@@ -86,6 +87,7 @@ def _handle_ns_deps(ctx):
                 print("TOP DOWN ns name: %s" % ns_name)
 
     elif ctx.attr._ns_resolver:
+        if debug_ns: print("has _ns_resolver")
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
         nsop = ctx.attr._ns_resolver[OcamlProvider]
         if nsrp.ns_name:
@@ -112,7 +114,9 @@ def _handle_ns_deps(ctx):
     archives_secondary = []
     paths_secondary = []
 
-    if debug_ns: print("collecting ns deps")
+    if debug_ns:
+        print("collecting ns deps")
+        print(nsrp)
 
     ns_cmi    = nsrp.cmi
     ns_struct = nsrp.struct

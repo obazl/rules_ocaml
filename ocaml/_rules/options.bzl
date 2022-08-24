@@ -167,7 +167,8 @@ def options_binary():
 
         # This is a list of modules to link into the executable; it is
         # NOT a list of "executable dependencies", which would make no
-        # sense. IOW not like a module's compile dependencies. So this
+        # sense. I.e. the dependency is mereological, not by ref.
+        # IOW not like a module's compile dependencies. So this
         # is a list of components but not "submodules"; hence
         # 'manifest' instead of 'submodules'. Compare
         # ocaml_library.manifest v. ocaml_ns_library.submodules.
@@ -183,7 +184,7 @@ def options_binary():
         ),
 
         _deps = attr.label(
-            doc = "Dependency to be added last.",
+            doc = "Hidden dependencies, set by CLI, to be added last.",
             default = "@rules_ocaml//cfg/executable:deps"
         ),
 
