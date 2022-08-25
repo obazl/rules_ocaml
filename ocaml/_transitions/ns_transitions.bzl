@@ -75,14 +75,19 @@ nsarchive_in_transition = transition(
 ################################################################
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     # print("_ocaml_nslib_out_transition_impl %s" % attr.name)
-    debug = False
-    # if attr.name in ["grammlib"]:
-    # debug = True
+    debug = True
+    # if attr.name in ["greek"]:
+    #     debug = True
 
     if debug:
         print("")
         print(">>> " + transition)
+        print("attr.name: %s" % attr.name)
         # print_config_state(settings, attr)
+        # print("attr: %s" % attr)
+        print("submodules: %s" % attr.submodules)
+        for submod in attr.submodules:
+            print("submod: %s" % submod)
 
     nslib_name = normalize_module_name(attr.name)
     # ns attribute overrides default derived from rule name
@@ -92,9 +97,9 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     ns_prefixes = []
     ns_prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
-    # print("X ns_prefixes: %s" % ns_prefixes)
+    if debug: print("ns_prefixes: %s" % ns_prefixes)
     ns_submodules = settings["@rules_ocaml//cfg/ns:submodules"]
-    # print("X ns_submodules: %s" % ns_submodules)
+    if debug: print("ns_submodules: %s" % ns_submodules)
 
     ## convert submodules label list to module name list
     attr_submodules = []
@@ -109,13 +114,16 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     nslib_module = capitalize_initial_char(nslib_name)
     if len(ns_prefixes) == 0 and ns_submodules == []:
+        # print("X 1")
         ## this is a toplevelnslib, not a descendant of another nslib
         ns_prefixes.append(nslib_module)
         ns_submodules = attr_submodules
     elif nslib_module in ns_submodules:
+        # print("X 2")
         ## this is nslib is a submodule of a parent nslib
         ns_prefixes.append(nslib_module)
     elif nslib_module not in ns_prefixes:
+        # print("X 3")
         # this is a descendant of another nslib, but it is not a
         # submodule; e.g. child of a submodule
         # - params are inherited from remote ns lib

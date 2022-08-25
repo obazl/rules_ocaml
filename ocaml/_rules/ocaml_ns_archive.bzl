@@ -5,7 +5,8 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options", "options_ns_aggregators", "options_ns_opts")
 
-load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+# load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+load("//ocaml/_transitions:transitions.bzl", "nslib_in_transition")
 
 load(":impl_archive.bzl", "impl_archive")
 
@@ -34,7 +35,8 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
 
         _rule = attr.string(default = "ocaml_ns_archive")
     ),
-    cfg     = nsarchive_in_transition,
+    # cfg     = nsarchive_in_transition,
+    cfg     = nslib_in_transition,
     provides = [OcamlNsMarker, OcamlArchiveMarker, OcamlProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain:type"],

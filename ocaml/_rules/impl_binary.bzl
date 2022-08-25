@@ -451,6 +451,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             print("ADDING STRUCT %s" % struct)
         args.add(struct)
 
+    # args.add(ctx.file.main)
+
     args.add("-o", out_exe)
 
     data_inputs = []

@@ -63,7 +63,7 @@ def _handle_ns_deps(ctx):
     ## <nsname>', deps for action inputs and target outputs.
 
     ## the resolver will be in one of two places:
-    ##   ctx.attr._ns_resolver (topdown) default "@rules_ocaml//cfg/ns:resolver",
+    ##   ctx.attr._ns_resolver (topdown) default "@rules_ocaml//cfg/ns:resolver", or
     ##   ctx.attr.ns_resolver  (bottomup) - defaults to None
 
     ## _ns_resolver is always present since it has a default value
@@ -77,7 +77,7 @@ def _handle_ns_deps(ctx):
         if debug_ns: print("has ns_resolver")
         if debug_ns: print("BOTTOMUP NS")
         ns_enabled = True
-        ## topdown (hidden) resolver
+        ## topdown (hidden) resolver (nsrp: ns resolver provider)
         nsrp = ctx.attr.ns_resolver[OcamlNsResolverProvider]
         nsop = ctx.attr.ns_resolver[OcamlProvider]
         # print("_NS_RESOLVER: %s" % nsrp)
@@ -99,7 +99,7 @@ def _handle_ns_deps(ctx):
             return None
 
     ## DEPS
-    ## ns resolvers have no deps
+    ## default (hidden) ns resolvers have no deps
     ## however a user-defined resolver may have deps. sigh.
     ## so we need all six dep classes: sig, struct, ofile, archive, etc.
     ns_cmi    = None
@@ -115,12 +115,13 @@ def _handle_ns_deps(ctx):
     paths_secondary = []
 
     if debug_ns:
-        print("collecting ns deps")
-        print(nsrp)
+        print("collecting ns deps from nsrp:")
+        print("nsrp: %s" % nsrp)
+        print("nsop: %s" % nsop)
 
-    ns_cmi    = nsrp.cmi
-    ns_struct = nsrp.struct
-    ns_ofile  = nsrp.ofile
+    resolver_cmi    = nsrp.cmi
+    resolver_struct = nsrp.struct
+    resolver_ofile  = nsrp.ofile
     sigs_secondary.append(nsop.sigs)
     structs_secondary.append(nsop.structs)
     ofiles_secondary.append(nsop.ofiles)
@@ -130,11 +131,14 @@ def _handle_ns_deps(ctx):
     paths_secondary.append(nsop.paths)
 
     if debug_ns: print("**************** exiting _handle_ns_deps")
+    # fail("nsrp")
 
-    return (ns_enabled, ns_name, ns_cmi, ns_struct, ns_ofile,
+    return (ns_enabled, ns_name,
+            resolver_cmi, resolver_struct, resolver_ofile,
             sigs_secondary, structs_secondary, ofiles_secondary,
             archives_secondary, afiles_secondary, astructs_secondary,
-            paths_secondary)
+            paths_secondary,
+            nsrp.submodules)
 
 ################
 def _handle_precompiled_sig(ctx, modname, ext):
@@ -431,8 +435,18 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     paths_primary   = []
     paths_secondary = []
 
+    resolvers = []
+
     cc_deps_primary             = []  ## list of CcInfo
     cc_deps_secondary           = []  ## list of depsets (of CcInfo)
+
+    sigs_ns  = []
+    structs_ns  = []
+    ofiles_ns   = []
+    astructs_ns = []
+    afiles_ns   = []
+    archives_ns = []
+    paths_ns = []
 
     cc_libs = [] # ccinfo dep libnames, so later we can emit -lfoo
 
@@ -676,6 +690,79 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     dep_is_xmo = True
 
+    ns_enabled = False
+    ns_name    = None
+    resolver_cmi    = None
+    resolver_struct = None
+    resolvers_secondary = []
+    resolver_ofile  = None
+    ns_ofile  = None
+
+    if ctx.attr.ns_resolver:
+        ns_enabled = True
+
+    elif ctx.attr._ns_resolver:
+        nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
+        if nsrp.ns_name:
+            ns_enabled = True
+
+    nspaths_secondary = []
+    ns_submodules = []
+
+    if ns_enabled:
+        (ns_enabled, ns_name,
+         # ns_cmi, ns_struct, ns_ofile,
+         resolver_cmi, resolver_struct, resolver_ofile,
+         nssigs_ns, nsstructs_ns, nsofiles_ns,
+         nsarchives_ns, nsafiles_ns, nsastructs_ns,
+         # nscclibs_ns,
+         nspaths_ns,
+         ns_submodules) = _handle_ns_deps(ctx)
+
+        sigs_ns.extend(nssigs_ns)
+        structs_ns.extend(nsstructs_ns)
+        ofiles_ns.extend(nsofiles_ns)
+        astructs_ns.extend(nsastructs_ns)
+        afiles_ns.extend(nsafiles_ns)
+        archives_ns.extend(nsarchives_ns)
+        paths_ns.extend(nspaths_ns)
+
+        sigs_secondary.extend(nssigs_ns)
+        # structs_secondary.extend(nsstructs_ns)
+        resolvers_secondary.extend(nsstructs_ns)
+        ofiles_secondary.extend(nsofiles_ns)
+        astructs_secondary.extend(nsastructs_ns)
+        afiles_secondary.extend(nsafiles_ns)
+        archives_secondary.extend(nsarchives_ns)
+        paths_secondary.extend(nspaths_ns)
+
+    if debug_ns:
+        print("ns analysis result")
+        print("resolver_cmi: %s" % resolver_cmi)
+        print("resolver_struct: %s" % resolver_struct)
+        print("resolver_ofile: %s" % resolver_ofile)
+
+        print("sigs_ns: %s" % sigs_ns)
+        print("structs_ns: %s" % structs_ns)
+        print("ofiles_ns: %s" % ofiles_ns)
+        print("archives_ns: %s" % archives_ns)
+        print("afiles_ns: %s" % afiles_ns)
+        print("astructs_ns: %s" % astructs_ns)
+        print("paths_ns: %s" % paths_ns)
+        # print("cc_deps_ns: %s" % cc_deps_ns)
+        print("paths_ns: %s" % paths_ns)
+        print("ns_submodules: %s" % ns_submodules)
+
+        # print("sigs_secondary: %s" % sigs_secondary)
+        # print("structs_secondary: %s" % structs_secondary)
+        # print("ofiles_secondary: %s" % ofiles_secondary)
+        # print("archives_secondary: %s" % archives_secondary)
+        # print("afiles_secondary: %s" % afiles_secondary)
+        # print("astructs_secondary: %s" % astructs_secondary)
+        # print("paths_secondary: %s" % paths_secondary)
+        # print("cc_deps_secondary: %s" % cc_deps_secondary)
+
+    ################################################################
     if debug: print("iterating deps")
 
     for dep in the_deps:
@@ -726,10 +813,17 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
             if debug: print("xmo-independent deps logic")
             ## xmo-independent logic
+            # this puts entire deptree into secondaries
             sigs_secondary.append(provider.sigs)
             structs_secondary.append(provider.structs)
             ofiles_secondary.append(provider.ofiles)
             archives_secondary.append(provider.archives)
+
+            if ns_enabled:
+                if OcamlArchiveMarker in dep:
+                    if str(dep.label) not in ns_submodules:
+                        archives_secondary.append(provider.structs)
+
             afiles_secondary.append(provider.afiles)
             astructs_secondary.append(provider.astructs)
             paths_secondary.append(provider.paths)
@@ -800,8 +894,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                     ## not yet supported
                     print("DefaultInfo: %s" % dep[DefaultInfo])
 
-    if debug:
-        print("finished deps iteration")
+    if debug_deps:
+        print("deps analysis result:")
         print("sigs_primary: %s" % sigs_primary)
         print("sigs_secondary: %s" % sigs_secondary)
         print("structs_primary: %s" % structs_primary)
@@ -814,51 +908,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         print("astructs_secondary: %s" % astructs_secondary)
         print("paths_secondary: %s" % paths_secondary)
 
-    ns_enabled = False
-    ns_name    = None
-    ns_cmi    = None
-    ns_struct = None
-    ns_ofile  = None
-
-    if ctx.attr.ns_resolver:
-        ns_enabled = True
-    elif ctx.attr._ns_resolver:
-        nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
-        if nsrp.ns_name:
-            ns_enabled = True
-
-    nspaths_secondary = []
-    if ns_enabled:
-        (ns_enabled, ns_name,
-         ns_cmi, ns_struct, ns_ofile,
-         nssigs_secondary, nsstructs_secondary, nsofiles_secondary,
-         nsarchives_secondary, nsafiles_secondary, nsastructs_secondary,
-         # nscclibs_secondary,
-         nspaths_secondary) = _handle_ns_deps(ctx)
-
-        sigs_secondary.extend(nssigs_secondary)
-        structs_secondary.extend(nsstructs_secondary)
-        ofiles_secondary.extend(nsofiles_secondary)
-        astructs_secondary.extend(nsastructs_secondary)
-        afiles_secondary.extend(nsafiles_secondary)
-        archives_secondary.extend(nsarchives_secondary)
-        paths_secondary.extend(nspaths_secondary)
-
-    if debug_ns:
-        print("ns analysis result")
-        print("sigs_primary: %s" % sigs_primary)
-        print("sigs_secondary: %s" % sigs_secondary)
-        print("structs_primary: %s" % structs_primary)
-        print("structs_secondary: %s" % structs_secondary)
-        print("ofiles_primary: %s" % ofiles_primary)
-        print("ofiles_secondary: %s" % ofiles_secondary)
-        ## archives cannot be direct deps
-        print("archives_secondary: %s" % archives_secondary)
-        print("afiles_secondary: %s" % afiles_secondary)
-        print("astructs_secondary: %s" % astructs_secondary)
-        print("paths_secondary: %s" % paths_secondary)
-
-        print("cc_deps_secondary: %s" % cc_deps_secondary)
+        print("resolver_struct: %s" % resolver_struct)
+        print("resolvers_secondary: %s" % resolvers_secondary)
 
     ################ Signature Dep ################
     ## FIXME: this logic does not work if we needed to
@@ -1230,6 +1281,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         # linkargs = linkset,
         paths    = paths_depset,
+
+        resolvers = depset(order=dsorder,
+                           direct=[resolver_struct],
+                           transitive=resolvers_secondary),
 
         cc_libs = cc_libs,
 

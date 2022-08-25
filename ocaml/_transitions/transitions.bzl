@@ -217,7 +217,7 @@ bootstrap_module_in_transition = transition(
 
 def _nslib_in_transition_impl(settings, attr):
     # print("_nslib_in_transition_impl %s" % attr.name)
-    debug = False
+    debug = True
     # if attr.name in ["color"]:
     #     debug = True
 

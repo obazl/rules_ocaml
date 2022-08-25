@@ -100,30 +100,31 @@ def lib_to_string(ctx, i, j, lib):
 
 ################
 def ccinfo_to_string(ctx, cc_info):
-    print("DUMP_CCINFO for %s" % ctx.label)
-    print(CCYEL + "ccinfo: %s" % cc_info)
+    debug = False
+    if debug: print("DUMP_CCINFO for %s" % ctx.label)
+    if debug: print(CCYEL + "ccinfo: %s" % cc_info)
 
     text = ""
     compilation_ctx = cc_info.compilation_context
-    print(CCYEL + "compilation_ctx: %s" % compilation_ctx)
+    if debug: print(CCYEL + "compilation_ctx: %s" % compilation_ctx)
     linking_ctx     = cc_info.linking_context
-    print(CCYEL + "linking_ctx: %s" % dir(linking_ctx))
+    if debug: print(CCYEL + "linking_ctx: %s" % dir(linking_ctx))
     linker_inputs = linking_ctx.linker_inputs.to_list()
-    print(CCYEL + "linker_inputs count: %s" % len(linker_inputs))
-    print(CCYEL + "linker_inputs: %s" % linker_inputs)
-    print(CCYEL + "linker_inputs: %s" % dir(linker_inputs))
+    if debug: print(CCYEL + "linker_inputs count: %s" % len(linker_inputs))
+    if debug: print(CCYEL + "linker_inputs: %s" % linker_inputs)
+    if debug: print(CCYEL + "linker_inputs: %s" % dir(linker_inputs))
     lidx = 0
     for linput in linker_inputs:
-        print(CCYEL + " linker_input[{i}]: %s" %linput)
-        print(CCYEL + " linker_input[{i}] flds: {li}".format(i=lidx, li=dir(linput)))
-        print(CCYEL + " linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+        if debug: print(CCYEL + " linker_input[{i}]: %s" %linput)
+        if debug: print(CCYEL + " linker_input[{i}] flds: {li}".format(i=lidx, li=dir(linput)))
+        if debug: print(CCYEL + " linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
         libs = linput.libraries
-        print(CCYEL + " libs count: %s" % len(libs))
+        if debug: print(CCYEL + " libs count: %s" % len(libs))
         if len(libs) > 0:
             j = 0
             for lib in libs:  # linput.libraries:
-                print(CCYEL + " lib[{j}]: %s" % lib)
-                print(CCYEL + " lib[{j}] dir: {l}".format(
+                if debug: print(CCYEL + " lib[{j}]: %s" % lib)
+                if debug: print(CCYEL + " lib[{j}] dir: {l}".format(
                     j=j, l=dir(lib)))
                 text = text + lib_to_string(ctx, lidx, j, lib)
                 j = j+1

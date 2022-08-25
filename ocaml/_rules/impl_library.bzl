@@ -37,7 +37,7 @@ load(":impl_ccdeps.bzl", "dump_CcInfo")
 # ns resolver
 #################
 def _handle_ns_library(ctx):
-    debug = True
+    debug = False
 
     if debug: print("_handle_ns_library")
 
@@ -120,7 +120,7 @@ def impl_library(ctx):
 
     ppx = False
 
-    if debug: print("**** NS_LIB {} ****************".format(ctx.label))
+    if debug: print("\n**** NS_LIB {} ****************".format(ctx.label))
 
     # env = {"PATH": get_sdkpath(ctx)}
 
@@ -169,6 +169,8 @@ def impl_library(ctx):
     afiles_secondary = []
     archives_primary = []
     archives_secondary = []
+
+    resolvers_secondary = []
     # cclibs_primary = []
     # cclibs_secondary = []
 
@@ -203,8 +205,8 @@ def impl_library(ctx):
             # WARNING: beware of empty nss, with empty providers
             if hasattr(nsr, "cmi"):
                 sigs_primary.append(nsr.cmi) ## (nsr_dep.sigs)
-            if hasattr(nsr, "struct"):
-                structs_primary.append(nsr.struct) # nsr_dep.structs)
+            # if hasattr(nsr, "struct"):
+            #     structs_primary.append(nsr.struct) # nsr_dep.structs)
             if hasattr(nsr, "ofile"):
                 if  tc.target != "vm":
                     ofiles_primary.append(nsr.ofile) # nsr_dep.ofiles)
@@ -295,6 +297,8 @@ def impl_library(ctx):
             # ldeps_depsets.append(dep[OcamlProvider].structs)
 
             sigs_secondary.append(dep[OcamlProvider].sigs)
+            if debug_ns:
+                print("structs_secondary.append: %s" % dep[OcamlProvider].structs)
             structs_secondary.append(dep[OcamlProvider].structs)
             if  tc.target != "vm":
                 ofiles_secondary.append(dep[OcamlProvider].ofiles)
@@ -302,6 +306,8 @@ def impl_library(ctx):
             afiles_secondary.append(dep[OcamlProvider].afiles)
             astructs_secondary.append(dep[OcamlProvider].astructs)
             # cclibs_secondary.append(dep[OcamlProvider].cclibs)
+
+            # resolvers_secondary.append(dep[OcamlProvider].resolvers)
 
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
@@ -337,7 +343,6 @@ def impl_library(ctx):
     #     + [depset(direct_dep_files)]
     # )
 
-    debug_deps = False
     if debug_deps:
         print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
         ## direct
@@ -438,6 +443,7 @@ def impl_library(ctx):
     ofiles_depset  = depset(order=dsorder,
                             direct=ofiles_primary,
                             transitive=ofiles_secondary)
+    ## FIXME: add unarchived module deps of archives
     archives_depset = depset(order="postorder",
                              direct = archives_primary,
                              transitive = archives_secondary)
@@ -447,6 +453,10 @@ def impl_library(ctx):
     astructs_depset = depset(order="postorder",
                          direct = astructs_primary,
                          transitive = astructs_secondary)
+    resolvers_depset = depset(order=dsorder,
+                              # direct=resolvers_primary,
+                              transitive=resolvers_secondary)
+
     # cclibs_depset = depset(order="postorder",
     #                          direct = cclibs_primary,
     #                          transitive = cclibs_secondary)
@@ -467,6 +477,8 @@ def impl_library(ctx):
         afiles   = afiles_depset,
         astructs = astructs_depset,
         # cclibs = cclibs_depset,
+
+        resolvers = resolvers_depset,
 
         paths    = paths_depset,
         # ns_resolver = ns_resolver,

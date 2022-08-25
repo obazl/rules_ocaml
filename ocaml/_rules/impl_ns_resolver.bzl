@@ -31,14 +31,14 @@ workdir = tmpdir
 #################
 def impl_ns_resolver(ctx):
 
-    debug = False
+    debug = True
 
     ## if resolver is user-provided, then this should immediately
     ## return a null result
 
     if debug:
-        print("")
-        print("ocaml_ns_resolver")
+        print("\n")
+        print("%%%% ocaml_ns_resolver %%%%")
         print("  %s" % ctx.label)
         print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)

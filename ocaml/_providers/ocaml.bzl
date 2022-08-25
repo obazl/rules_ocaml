@@ -17,13 +17,21 @@ OcamlProvider = provider(
     fields = {
 
         "sigs":      "depset of .cmi files",
-        "structs":   "depset of .cmo or .cmx/.o files depending onn mode",
+        # NB: structs should exclude archive_deps. Its for freestanding
+        # deps of <this> target (?)
+        "structs":   "depset of .cmo or .cmx files depending on mode",
         "ofiles":    "depset of the .o files that go with .cmx files",
         "archives":  "depset of .cmxa or .cma files",
         "afiles":    "depset of the .a files that go with .cmxa files",
-        "astructs":  "depset of archived structs, added to link depgraph but not command line",
+        "astructs":  "depset of archived structs, added to link depgraph but not command line.",
         "cmts":      "depset of cmt/cmti files",
         "srcs":      "depset of src files after renaming/symlinking, so tools can inspect",
+
+        # "archive_deps": "deps of archives, that must be listed before the archives in cmd line to link executable. cmx/cmo only, for cmd line",
+
+        # NB: resolvers is just for cmdline args, so we can control where
+        # they are listed relative to the ns archive/library on the cli
+        "resolvers":   "depset of .cmo or .cmx files depending on mode; CLI protocol",
 
         "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
 

@@ -50,7 +50,7 @@ def impl_archive(ctx):
     # afiles_direct   = []
     # afiles_indirect = []
     # archives_direct = []
-    # archives_indirect = []
+    archives_secondary = []
 
     ################################
     ####  call impl_ns_library  ####
@@ -204,15 +204,16 @@ def impl_archive(ctx):
     #             if f.extension == "cmx":
     #                 args.add(f)
 
-    for dep in libOcamlProvider.archives.to_list():
-        # print("inputs dep: %s" % dep)
-        # print("ns_resolver: %s" % ns_resolver)
-        if dep in submod_arglist:
-            # print("adding to args: %s" % dep)
-            args.add(dep)
+    # for dep in libOcamlProvider.archives.to_list():
+    #     # print("inputs dep: %s" % dep)
+    #     # print("ns_resolver: %s" % ns_resolver)
+    #     if dep in submod_arglist:
+    #         # print("adding to args: %s" % dep)
+    #         args.add(dep)
 
     ## submodule structs must be 1) added to cmd line, and 2) moved
     ## from structs list to astructs list
+    ## structs includes both primary and secondary from _library
     for dep in libOcamlProvider.structs.to_list():
         # print("inputs dep: %s" % dep)
         # print("ns_resolver: %s" % ns_resolver)
@@ -221,43 +222,11 @@ def impl_archive(ctx):
             args.add(dep)
             astructs_primary.append(dep)
         else:
-            structs_primary.append(dep)
+            # ensure this dep will go on link cmd line
+            archives_secondary.append(dep)
+            # structs_primary.append(dep)
         # elif dep == ns_resolver:
         #     args.add(dep)
-
-    # linkargs_list = []
-    # lbl_name = "tezos-lwt-result-stdlib.bare.structs"
-    # if ctx.label.name == lbl_name:
-    #     print("ns_name: %s" % nsMarker.ns_name)
-    # for dep in libOcamlProvider.linkargs.to_list():
-    #     #FIXME: dep is not namespaced so we won't match ever:
-    #     # if ctx.label.name == lbl_name:
-    #     #     print("RULE: %s" % ctx.attr._rule)
-    #     #     print("TESTING: %s" % dep.basename)
-    #     if ctx.attr._rule.startswith("ocaml_ns"):
-    #         # if ctx.label.name == lbl_name:
-    #             # print("NS PFX: %s" % nsMarker.ns_name + "__")
-    #             # print("TEST1: %s" % dep.basename.startswith(nsMarker.ns_name + "__"))
-    #             # print("TEST2: %s" % (dep.basename != nsMarker.ns_name + ".cmxa"))
-    #         if dep.basename.startswith(nsMarker.ns_name):
-    #             if (dep.basename != nsMarker.ns_name + ".cmxa") and (dep.basename != nsMarker.ns_name + ".cma"):
-    #                 if not dep.basename.startswith(nsMarker.ns_name + "__"):
-    #                     # if ctx.label.name == lbl_name:
-    #                     #     print("xxxx")
-    #                     linkargs_list.append(dep)
-    #                 # else:
-    #                 #     if ctx.label.name == lbl_name:
-    #                 #         print("OMIT1 %s" % dep)
-    #             # else:
-    #             #     if ctx.label.name == lbl_name:
-    #             #         print("OMIT RESOLVER: %s" % dep)
-    #         else:
-    #             # if ctx.label.name == lbl_name:
-    #             #     print("APPEND: %s" % dep)
-    #             linkargs_list.append(dep)
-    #     else:
-    #         if not dep in direct_submodule_deps:
-    #             linkargs_list.append(dep)
 
     # for dep in submod_arglist:
     #     # if dep.extension in ["cmx"]:
@@ -361,7 +330,8 @@ def impl_archive(ctx):
                           # direct=ofiles_direct,
                           # transitive=ofiles_indirect),
         archives   = depset(order=dsorder,
-                            direct = [archive_file],
+                            ## FIXME: add unarchived module deps of archive
+                            direct = archives_secondary + [archive_file],
                            transitive = [libOcamlProvider.archives]),
                           # direct=archives_direct,
                           # transitive=archives_indirect),
