@@ -277,9 +277,9 @@ def x(ctx,
                 if (depfile.extension == "a"):
                     cclib_deps.append(depfile)
                     includes.append(depfile.dirname)
-                    if ctx.toolchains["@rules_ocaml//toolchain:type"].cc_toolchain == "clang":
+                    if ctx.toolchains["@rules_ocaml//toolchain/type:std"].cc_toolchain == "clang":
                         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = depfile.path))
-                    elif ctx.toolchains["@rules_ocaml//toolchain:type"].cc_toolchain == "gcc":
+                    elif ctx.toolchains["@rules_ocaml//toolchain/type:std"].cc_toolchain == "gcc":
                         libname = file_to_lib_name(depfile)
                         args.add("-ccopt", "-L{dir}".format(dir=depfile.dirname))
                         args.add("-ccopt", "-Wl,--push-state,-whole-archive")
@@ -477,9 +477,9 @@ def x(ctx,
 #                 if (depfile.extension == "a"):
 #                     # cclib_deps.append(depfile)
 #                     # includes.append(depfile.dirname)
-#                     if ctx.toolchains["@rules_ocaml//toolchain:type"].cc_toolchain == "clang":
+#                     if ctx.toolchains["@rules_ocaml//toolchain/type:std"].cc_toolchain == "clang":
 #                         args.add("-ccopt", "-Wl,-force_load,{path}".format(path = depfile.path))
-#                     elif ctx.toolchains["@rules_ocaml//toolchain:type"].cc_toolchain == "gcc":
+#                     elif ctx.toolchains["@rules_ocaml//toolchain/type:std"].cc_toolchain == "gcc":
 #                         libname = file_to_lib_name(depfile)
 #                         args.add("-ccopt", "-L{dir}".format(dir=depfile.dirname))
 #                         args.add("-ccopt", "-Wl,--push-state,-whole-archive")

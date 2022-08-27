@@ -75,7 +75,7 @@ nsarchive_in_transition = transition(
 ################################################################
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     # print("_ocaml_nslib_out_transition_impl %s" % attr.name)
-    debug = True
+    debug = False
     # if attr.name in ["greek"]:
     #     debug = True
 
@@ -320,7 +320,7 @@ def _ocaml_module_cc_deps_out_transition_impl(settings, attr):
     # we do not want to do this - build cc deps in same ns as depender?
     debug = False
     if attr.name == "":
-        debug = True
+        debug = False
         print(">>> ocaml_module_ns_transition")
         print_config_state(settings, attr)
 

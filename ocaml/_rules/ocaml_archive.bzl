@@ -20,7 +20,7 @@ load("//ocaml/_debug:colors.bzl", "CCUYEL", "CCRESET")
 def _ocaml_archive(ctx):
 
     # if True:
-    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
     #         color=CCUYEL, reset=CCRESET, lbl=ctx.label))
     #     print("  TC.NAME: %s" % tc.name)
@@ -101,5 +101,5 @@ ocaml_archive = rule(
     cfg     = nsarchive_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = ["@rules_ocaml//toolchain/type:std"],
 )

@@ -19,7 +19,7 @@ load("//ocaml/_debug:colors.bzl", "CCGAM", "CCRESET")
 def _ppx_executable(ctx):
 
     # if True: #  debug_tc:
-    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
     #         color=CCGAM, reset=CCRESET, lbl=ctx.label))
     #     print("  TC.NAME: %s" % tc.name)
@@ -48,7 +48,7 @@ ppx_executable = rule(
             default = "@rules_ocaml//ppx/executable:opts"
         ),
         # IMPLICIT: args = string list = runtime args, passed whenever the binary is used
-        exe_name = attr.string(
+        exe = attr.string(
             doc = "Name for output executable file.  Overrides 'name' attribute."
         ),
 
@@ -150,7 +150,7 @@ ppx_executable = rule(
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'
     toolchains = [
-        "@rules_ocaml//toolchain:type",
+        "@rules_ocaml//toolchain/type:std",
         # "@bazel_tools//tools/cpp:toolchain_type"
     ],
 )

@@ -217,7 +217,7 @@ bootstrap_module_in_transition = transition(
 
 def _nslib_in_transition_impl(settings, attr):
     # print("_nslib_in_transition_impl %s" % attr.name)
-    debug = True
+    debug = False
     # if attr.name in ["color"]:
     #     debug = True
 
@@ -273,8 +273,8 @@ nslib_in_transition = transition(
 def _ocaml_module_deps_out_transition_impl(settings, attr):
     # print("_ocaml_module_deps_out_transition_impl %s" % attr.name)
     debug = False
-    if attr.name == "_Grammar":
-        debug = True
+    # if attr.name == "_Grammar":
+    #     debug = True
 
     if debug:
         print(">>> ocaml_module_deps_out_transition")
@@ -345,8 +345,8 @@ ocaml_module_sig_out_transition = transition(
 def _subsignature_in_transition_impl(settings, attr):
     # print("_subsignature_in_transition_impl %s" % attr.name)
     debug = False
-    if attr.name in ["_Feedback"]:
-        debug = True
+    # if attr.name in ["_Feedback"]:
+    #     debug = True
 
     if debug:
         print(">>> ocaml_subsignature_in_transition")
@@ -402,8 +402,8 @@ subsignature_in_transition = transition(
 def _ocaml_signature_deps_out_transition_impl(settings, attr):
     # print("_ocaml_signature_deps_out_transition_impl %s" % attr.name)
     debug = False # True
-    if attr.name == "":
-        debug = True
+    # if attr.name == "":
+    #     debug = True
 
     if debug:
         print(">>> ocaml_signature_deps_out_transition")

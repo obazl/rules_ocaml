@@ -36,7 +36,7 @@ def impl_archive(ctx):
     #     for f in ns_resolver:
     #         print("_ns_resolver f: %s" % f.path)
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     # sigs_direct   = []
     # sigs_indirect = []

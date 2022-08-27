@@ -48,5 +48,5 @@ Packages](../ug/collections.md).
     cfg     = reset_in_transition,
     provides = [OcamlLibraryMarker],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = ["@rules_ocaml//toolchain/type:std"],
 )

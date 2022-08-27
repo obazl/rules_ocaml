@@ -9,7 +9,7 @@ load("//ocaml/_debug:colors.bzl", "CCYEL", "CCRESET")
 ###############################
 def _ocaml_test(ctx):
 
-    # tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    # tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     # print("BUILD TGT: {color}{lbl}{reset}".format(
     #     color=CCYEL, reset=CCRESET, lbl=ctx.label))
 
@@ -59,7 +59,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     # cfg = executable_in_transition,
     test = True,
     toolchains = [
-        "@rules_ocaml//toolchain:type",
+        "@rules_ocaml//toolchain/type:std",
         # "@bazel_tools//tools/cpp:toolchain_type"
     ],
 )

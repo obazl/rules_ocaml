@@ -116,7 +116,7 @@ def impl_library(ctx):
     debug_deps = False
     debug_ns   = False
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     ppx = False
 

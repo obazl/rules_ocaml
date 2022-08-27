@@ -356,7 +356,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     ext  = ".cmo" if  tc.target == "vm" else ".cmx"
 

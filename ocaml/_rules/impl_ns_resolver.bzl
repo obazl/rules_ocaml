@@ -31,7 +31,7 @@ workdir = tmpdir
 #################
 def impl_ns_resolver(ctx):
 
-    debug = True
+    debug = False
 
     ## if resolver is user-provided, then this should immediately
     ## return a null result
@@ -43,7 +43,7 @@ def impl_ns_resolver(ctx):
         print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
         print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     ## RULE: do not allow mixing bottomup and topdown namespaces.
     # but what happens if a selected submodule also elects?

@@ -77,7 +77,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             ## precompiled executable
             return _import_ppx_executable(ctx)
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     if tc.target == "vm":
         struct_extensions = ["cma", "cmo"]
@@ -133,7 +133,15 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ################
     includes   = []
 
-    out_exe = ctx.actions.declare_file(ctx.label.name)
+    #FIXME: executable name
+    # use ctx.label.name or ctx.attr.exe if defined
+    # 1. strip extension (e.g. name="foo.exe" => "foo")
+    # 1b. throw warning if ctx.attr.exe has extension
+    # 2. add configured extension (default: .byte / none)
+    if ctx.attr.exe:
+        out_exe = ctx.actions.declare_file(ctx.attr.exe + ".exe")
+    else:
+        out_exe = ctx.actions.declare_file(ctx.label.name)
 
     #########################
     args = ctx.actions.args()

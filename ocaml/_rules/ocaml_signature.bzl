@@ -158,7 +158,7 @@ def _ocaml_signature_impl(ctx):
         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
         print("SIG %s" % ctx.label)
 
-    tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     # if debug_tc:
     #     print("BUILD TGT: %s" % ctx.label)
@@ -692,5 +692,5 @@ the difference between '/' and ':' in such labels):
     incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = ["@rules_ocaml//toolchain/type:std"],
 )

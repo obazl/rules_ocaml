@@ -52,7 +52,7 @@ _ppx_codeps_transition = transition(
 def _ppx_module(ctx):
 
     # if True:  # debug_tc:
-    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
     #         color=CCNRG, reset=CCRESET, lbl=ctx.label))
     #     print("  TC.NAME: %s" % tc.name)
@@ -169,7 +169,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     #             "@platforms//os:macos"
     #         ],
     #         toolchains = [
-    #             "@rules_ocaml//toolchain:type",
+    #             "@rules_ocaml//toolchain/type:std",
     #             # "@rules_ocaml//cfg/coq:toolchain_type",
     #         ],
     #     ),
@@ -177,7 +177,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     cfg     = module_in_transition,
     provides = [PpxModuleMarker],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type",
+    toolchains = ["@rules_ocaml//toolchain/type:std",
                   # "@bazel_tools//tools/cpp:toolchain_type"
                   ],
 )

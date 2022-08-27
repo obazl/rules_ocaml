@@ -227,6 +227,6 @@ Includes all submodules of an exogenous namespace.
     provides = [OcamlNsResolverProvider,OcamlProvider],
     executable = False,
     toolchains = [
-        "@rules_ocaml//toolchain:type",
+        "@rules_ocaml//toolchain/type:std",
     ],
 )

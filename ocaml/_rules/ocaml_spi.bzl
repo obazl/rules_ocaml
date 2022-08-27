@@ -33,6 +33,6 @@ ocaml_spi = rule(
     provides = [OcamlProvider],
     executable = False,
     toolchains = [
-        "@rules_ocaml//toolchain:type",
+        "@rules_ocaml//toolchain/type:std",
     ],
 )

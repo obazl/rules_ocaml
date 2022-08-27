@@ -13,7 +13,7 @@ load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
 def _ocaml_binary(ctx):
 
     # if True: #  debug_tc:
-    #     tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+    #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
     #         color=CCMAG, reset=CCRESET, lbl=ctx.label))
     #     print("  TC.NAME: %s" % tc.name)
@@ -78,7 +78,7 @@ the difference between '/' and ':' in such labels):
     # cfg     = executable_in_transition,
     executable = True,
     toolchains = [
-        "@rules_ocaml//toolchain:type",
+        "@rules_ocaml//toolchain/type:std",
         # "@bazel_tools//tools/cpp:toolchain_type"
     ],
 )

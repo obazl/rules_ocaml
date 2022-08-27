@@ -16,7 +16,7 @@ def _ocaml_lex_impl(ctx):
   if debug:
       print("OCAML LEX TARGET: %s" % ctx.label.name)
 
-  tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+  tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
   # env = {"PATH": get_sdkpath(ctx)}
 
   # lexer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
@@ -81,5 +81,5 @@ ocaml_lex = rule(
     ),
     # provides = [],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = ["@rules_ocaml//toolchain/type:std"],
 )

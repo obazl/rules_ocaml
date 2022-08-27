@@ -7,7 +7,7 @@ def _ocaml_yacc_impl(ctx):
   if debug:
       print("OCAML YACC TARGET: %s" % ctx.label.name)
 
-  tc = ctx.toolchains["@rules_ocaml//toolchain:type"]
+  tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
   yaccer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
   yacceri_fname = paths.replace_extension(ctx.file.src.basename, ".mli")
@@ -65,5 +65,5 @@ ocaml_yacc = rule(
     ),
     # provides = [],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain:type"],
+    toolchains = ["@rules_ocaml//toolchain/type:std"],
 )
