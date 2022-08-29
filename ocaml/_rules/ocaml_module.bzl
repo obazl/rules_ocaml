@@ -128,7 +128,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     provides = [OcamlModuleMarker],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std",
+                  "@rules_ocaml//toolchain/type:profile"],
                   # "@bazel_tools//tools/cpp:toolchain_type"
-                  ],
 )
 

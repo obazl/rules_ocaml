@@ -325,9 +325,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     debug_tc     = False
     debug_xmo    = False
 
-    if debug:
-        print("===============================")
-        print("OCAML_MODULE: %s" % ctx.label)
+    # if debug:
+    # print("===============================")
+    # print("OCAML_MODULE: %s" % ctx.label)
 
     # print("host_platform frag: %s" % ctx.fragments.platform.host_platform)
     # print("platform frag: %s" % ctx.fragments.platform.platform)
@@ -357,6 +357,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
+
+    tc_options = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
+    # print("tc_options: %s" % tc_options)
 
     ext  = ".cmo" if  tc.target == "vm" else ".cmx"
 
@@ -585,6 +588,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     args.add("-for-pack", ctx.attr.pack)
 
     args.add_all(_options)
+
+    args.add_all(tc_options.compile_opts)
 
     if debug:
         print("SIG_IS_XMO? %s" % sig_is_xmo)
