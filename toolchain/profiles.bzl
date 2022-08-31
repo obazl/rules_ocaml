@@ -1,17 +1,23 @@
-def toolchain_profile_selector(name, profile,
-                               target_compatible_with=None,
-                               target_settings=None):
+def toolchain_profile_selector(
+    name, profile,
+    toolchain_type = "@rules_ocaml//toolchain/type:profile",
+    build_host_constraints=None,
+    target_host_constraints=None,
+    toolchain_constraints=None,
+    visibility = ["//visibility:public"]):
+
     native.toolchain(
-        name = name,
-        toolchain = profile,
-        toolchain_type         = "@rules_ocaml//toolchain/type:profile",
-        target_compatible_with = target_compatible_with,
-        target_settings        = target_settings,
-        visibility             = ["//visibility:public"]
+        name                   = name,
+        toolchain              = profile,
+        toolchain_type         = toolchain_type,
+        exec_compatible_with   = build_host_constraints,
+        target_compatible_with = target_host_constraints,
+        target_settings        = toolchain_constraints,
+        visibility             = visibility
     )
 
 #############################
-def _ocaml_profile_impl(ctx):
+def _ocaml_toolchain_profile_impl(ctx):
 
     return [platform_common.ToolchainInfo(
         name    = ctx.label.name,
@@ -21,8 +27,8 @@ def _ocaml_profile_impl(ctx):
     )]
 
 #####################
-ocaml_profile = rule(
-    _ocaml_profile_impl,
+ocaml_toolchain_profile = rule(
+    _ocaml_toolchain_profile_impl,
     attrs = {
         "compile_opts": attr.string_list(
             doc     = "Options for compiling modules and signatures",
