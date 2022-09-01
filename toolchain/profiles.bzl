@@ -3,7 +3,7 @@ def toolchain_profile_selector(
     toolchain_type = "@rules_ocaml//toolchain/type:profile",
     build_host_constraints=None,
     target_host_constraints=None,
-    toolchain_constraints=None,
+    constraints=None,
     visibility = ["//visibility:public"]):
 
     native.toolchain(
@@ -12,7 +12,7 @@ def toolchain_profile_selector(
         toolchain_type         = toolchain_type,
         exec_compatible_with   = build_host_constraints,
         target_compatible_with = target_host_constraints,
-        target_settings        = toolchain_constraints,
+        target_settings        = constraints,
         visibility             = visibility
     )
 
