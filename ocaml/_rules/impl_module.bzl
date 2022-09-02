@@ -98,6 +98,8 @@ def _handle_ns_deps(ctx):
             if debug_ns: print("NOT NAMEPACED - exiting _handle_ns_deps")
             return None
 
+    ns_module_name = nsrp.module_name
+
     ## DEPS
     ## default (hidden) ns resolvers have no deps
     ## however a user-defined resolver may have deps. sigh.
@@ -133,7 +135,8 @@ def _handle_ns_deps(ctx):
     if debug_ns: print("**************** exiting _handle_ns_deps")
     # fail("nsrp")
 
-    return (ns_enabled, ns_name,
+    return (ns_enabled,
+            ns_name, ns_module_name,
             resolver_cmi, resolver_struct, resolver_ofile,
             sigs_secondary, structs_secondary, ofiles_secondary,
             archives_secondary, afiles_secondary, astructs_secondary,
@@ -703,19 +706,32 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     resolver_ofile  = None
     ns_ofile  = None
 
+    ## bottom-up namespacing
     if ctx.attr.ns_resolver:
         ns_enabled = True
 
+    ## top-down namespacing
     elif ctx.attr._ns_resolver:
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
         if nsrp.ns_name:
             ns_enabled = True
 
+    ## if we have a udr (from the 'resolver' attr of ocaml_ns*),
+    ## then our _ns_resolver will be contain a null resolver,
+    ## but we still need to rename our submodules.
+    # print("{c} _ns_resolver nsrp:{r} {s}".format(
+    #     c=CCGRN, r=CCRESET, s=ctx.attr._ns_resolver[OcamlNsResolverProvider]))
+    # print("{c} _ns_prefixes:{r} {s}".format(
+    #     c=CCGRN, r=CCRESET, s=ctx.attr._ns_prefixes[BuildSettingInfo].value))
+    # print("{c} _ns_submodules:{r} {s}".format(
+    #     c=CCGRN, r=CCRESET, s=ctx.attr._ns_submodules[BuildSettingInfo].value))
+
     nspaths_secondary = []
     ns_submodules = []
 
     if ns_enabled:
-        (ns_enabled, ns_name,
+        (ns_enabled,
+         ns_name, ns_module_name,
          # ns_cmi, ns_struct, ns_ofile,
          resolver_cmi, resolver_struct, resolver_ofile,
          nssigs_ns, nsstructs_ns, nsofiles_ns,
@@ -1034,7 +1050,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     paths_depset  = depset(
         order = dsorder,
         direct = paths_primary,
-        transitive = paths_secondary
+        transitive = paths_secondary + paths_ns
         # + indirect_ppx_codep_path_depsets
     )
 
@@ -1042,9 +1058,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # args.add("-absname")
     args.add_all(includes, before_each="-I", uniquify = True)
 
+    # FIXME: -no-alias-deps and -open only required for sibling deps.
+    # in case of udr, they break the build?
+    # For udrs, open the Foo__ form, not Foo
     if ns_enabled:
         args.add("-no-alias-deps")
-        args.add("-open", ns_name)
+        args.add("-open", ns_module_name)
 
     # attr '_ns_resolver' a label_flag that resolves to a (fixed)
     # ocaml_ns_resolver target whose params are set by transition fns.

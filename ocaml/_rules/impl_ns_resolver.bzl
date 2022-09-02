@@ -110,6 +110,7 @@ def impl_ns_resolver(ctx):
     # cclibs_primary = []
     # cclibs_secondary = []
 
+    no_main_alias = False
     user_ns_resolver = None
 
     if debug: print("iterating submodules")
@@ -142,8 +143,11 @@ def impl_ns_resolver(ctx):
                     print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
+                    no_main_alias = True
                     if debug:
                         print("submodule == ns_prefixes[0]: %s" % submodule)
+                    # ctx.attr.submodules can only be explicitly set
+                    # in bottom-up ns using ocaml_ns_resolver target
                     if ctx.attr.submodules:
                         user_ns_resolver = submod_label
                     if debug:
@@ -154,6 +158,7 @@ def impl_ns_resolver(ctx):
                         print("submodule != ns_prefixes[0]: %s" % submodule)
             elif submodule == ns_prefixes[-1]: # last pfx
                 # this is main nslib module
+                no_main_alias = True
                 if ctx.attr.submodules:
                     user_ns_resolver = submod_label
                 continue ## no alias for main module
@@ -271,7 +276,10 @@ def impl_ns_resolver(ctx):
 
     ################################################################
     else:
-        resolver_module_name = ns_name
+        if no_main_alias:
+            resolver_module_name = ns_name + "__"
+        else:
+            resolver_module_name = ns_name
 
     # do not generate a resolver module unless we have at least one alias
     if len(aliases) < 1:

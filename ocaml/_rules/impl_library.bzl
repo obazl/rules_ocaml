@@ -22,6 +22,7 @@ load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
 load(":impl_ccdeps.bzl", "dump_CcInfo")
 
+load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCGRN", "CCMAG", "CCRESET")
 # load("//ocaml/_functions:utils.bzl", "get_sdkpath")
 
 ## Plain Library targets do not produce anything, they just pass on
@@ -46,8 +47,9 @@ def _handle_ns_library(ctx):
     ns_resolver = []
     # ns_resolver_files = []
     the_ns_resolvers = []
+    ns_paths = []
 
-    if ctx.attr.resolver:
+    if hasattr(ctx.attr, "resolver"):
         if debug: print("user-provided resolver")
         ns_resolver = ctx.attr.resolver
         ns_resolver_module = ctx.file.resolver
@@ -99,14 +101,16 @@ def _handle_ns_library(ctx):
         # ns_resolver_files = ns_resolver[OcamlProvider].inputs
         # ns_resolver_depset = ns_resolver[OcamlProvider].inputs
 
-    # the_ns_resolvers.append(ns_resolver_module[0])
+    ns_paths.append(ns_resolver_module.dirname)
+    the_ns_resolvers.append(ns_resolver_module)
 
     # print("ns_resolver_depset: %s" % ns_resolver_depset)
     # print("ns_name: %s" % ns_name)
     return(## ns_name,
         ns_resolver, ns_resolver_module,
         # ns_resolver_depset, ns_resolver_files,
-        # the_ns_resolvers
+        ns_paths,
+        the_ns_resolvers
     )
 
 #################
@@ -129,22 +133,25 @@ def impl_library(ctx):
 
     # this implementation is used by both ocaml_library and
     # ocaml_ns_library
-    # if ctx.attr._rule.startswith("ocaml_ns"):
-    #     (# ns_name,
-    #      ns_resolver,
-    #      ns_resolver_module,
-    #      # ns_resolver_files,
-    #      # ns_resolver_depset,
-    #      the_ns_resolvers) = _handle_ns_library(ctx, mode, tool, tool_args)
-    # else:
-    #     #ns_name            = None
-    #     ns_resolver        = None
-    #     ns_resolver_module = None
-    #     # ns_resolver_files  = []
-    #     # ns_resolver_depset = None
-    #     the_ns_resolvers   = None
+    if ctx.attr._rule.startswith("ocaml_ns"):
+        (# ns_name,
+        ns_resolver,
+        ns_resolver_module,
+        # ns_resolver_files,
+        # ns_resolver_depset,
+        ns_paths,
+        the_ns_resolvers) = _handle_ns_library(ctx) #, mode, tool, tool_args)
+    else:
+        #ns_name            = None
+        ns_resolver        = None
+        ns_resolver_module = None
+        # ns_resolver_files  = []
+        # ns_resolver_depset = None
+        ns_paths = []
+        the_ns_resolvers   = None
 
     ns_enabled = False
+    ## only for ocaml_ns_library, ocaml_ns_archive:
     if hasattr(ctx.attr, "_ns_resolver"):
         ns_enabled = True
 
@@ -179,13 +186,14 @@ def impl_library(ctx):
     # resolver_depsets_list = []
 
     #### First the ns resolver IF we're an ns rule
+    debug_ns = True
     if ns_enabled:
-        if debug: print("ns processing")
+        if debug_ns: print("{c}ns processing{r}".format(c=CCRED, r=CCRESET))
         ## we always have _ns_resolver, since it defaults to
         ## "@rules_ocaml//cfg/ns:resolver", but it will be null unless
         ## we're in an ns. attr.resolver overrides.
 
-        if ctx.attr.resolver:
+        if hasattr(ctx.attr, "resolver"):
             if debug_ns: print("user-provided resolver")
             ns_resolver = ctx.attr.resolver
         else:
@@ -198,21 +206,21 @@ def impl_library(ctx):
             if debug_ns:
                 print("nsr[0]: %s" % ns_resolver[0])
                 print("nsr: %s" % nsr)
-                print("ns_resolver: %s" % nsr)
+                print("{c}ns_resolver{r}: {s}".format(c=CCGRN,r=CCRESET,s=nsr))
                 print("ns name: %s" % nsr.ns_name)
                 print("nsr_dep: %s" % nsr_dep)
 
             # WARNING: beware of empty nss, with empty providers
             if hasattr(nsr, "cmi"):
                 sigs_primary.append(nsr.cmi) ## (nsr_dep.sigs)
-            # if hasattr(nsr, "struct"):
-            #     structs_primary.append(nsr.struct) # nsr_dep.structs)
+            if hasattr(nsr, "struct"):
+                structs_primary.append(nsr.struct) # nsr_dep.structs)
             if hasattr(nsr, "ofile"):
                 if  tc.target != "vm":
                     ofiles_primary.append(nsr.ofile) # nsr_dep.ofiles)
-            # archives_secondary.append(nsr_dep.archives)
-            # afiles_secondary.append(nsr_dep.afiles)
-            # astructs_secondary.append(nsr_dep.astructs)
+            archives_secondary.append(nsr_dep.archives)
+            afiles_secondary.append(nsr_dep.afiles)
+            astructs_secondary.append(nsr_dep.astructs)
             # cclibs_secondary.append(nsr_dep.cclibs)
 
     # #######################
@@ -221,6 +229,8 @@ def impl_library(ctx):
         # print("Processing ns aggregator %s" % ctx.label)
         direct_dep_files = ctx.files.submodules
         direct_deps_attr = ctx.attr.submodules
+
+        print("{c} end of ns processing{r}".format(c=CCRED,r=CCRESET))
 
     elif hasattr(ctx.attr, "manifest"):
         ## ocaml_archive or ocaml_library
@@ -256,12 +266,21 @@ def impl_library(ctx):
     ##FIXME: this dups what's above with direct_dep_files ,direct_deps_attr
     direct_module_deps_files = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
 
-    direct_module_deps = ctx.attr.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.attr.manifest
+    direct_module_deps = []
+    if ctx.attr._rule.startswith("ocaml_ns"):
+        direct_module_deps.extend(ctx.attr.submodules)
+    else:
+        direct_module_deps.extend(ctx.attr.manifest)
+
+    # if ctx.attr.resolver:
+    #     direct_module_deps.append(ctx.file.resolver)
+
+    # print("direct_module_deps: %s" % direct_module_deps)
 
     if debug_deps: print("iterating deps ****************")
     for dep in direct_module_deps:
-        if debug:
-            print("LIB DEP: %s" % dep)
+        # if debug:
+        #     print("LIB DEP: %s" % dep)
         # ignore DefaultInfo, its just for printing, not propagation
 
         if OcamlNsResolverProvider in dep:
@@ -365,6 +384,7 @@ def impl_library(ctx):
     action_inputs_depset = depset(
         order = dsorder,
         direct =
+        # [ctx.file.resolver]
         sigs_primary
         + structs_primary
         + archives_primary
@@ -398,7 +418,8 @@ def impl_library(ctx):
         # direct = normalized_primary_dep_files, # ns_resolver_module,
         # transitive = [depset(direct = the_ns_resolvers)]
 
-        # direct = the_ns_resolvers + [ns_resolver_module] if ns_resolver_module else [],
+        direct = the_ns_resolvers + [ns_resolver_module] if ns_resolver_module else [],
+        # direct = ctx.attr.resolver,
         transitive = [depset(direct_dep_files)]
         # transitive = [depset(normalized_primary_dep_files)]
     )
@@ -416,7 +437,7 @@ def impl_library(ctx):
 
     paths_depset  = depset(
         order = dsorder,
-        direct = paths_primary,
+        direct = paths_primary + ns_paths,
         transitive = indirect_paths_depsets
     )
 

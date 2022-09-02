@@ -184,11 +184,13 @@ def impl_archive(ctx):
         elif ctx.attr._rule.startswith("ocaml_ns"):
             if dep in ns_resolver_files:
                 submod_arglist.append(dep)
-            else: # should not happen!
+            else:
                 ## nslib linkargs should only contain what's needed to
                 ## link and executable or build and archive.
                 # linkargs_list.append(dep)
-                fail("ns lib contains extra linkarg: %s" % dep)
+                ## ns resolver?
+                submod_arglist.append(dep)
+                # fail("ns lib contains extra linkarg: %s" % dep)
         else:
             # linkargs should match direct deps list?
             fail("lib contains extra linkarg: %s" % dep)

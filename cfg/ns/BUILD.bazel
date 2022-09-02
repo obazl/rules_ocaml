@@ -20,3 +20,5 @@ string_list_setting(name = "submodules", build_setting_default = [])
 label_setting(name="resolver", build_setting_default = ":_resolver")
 ocaml_ns_resolver(name    = "_resolver")
 
+# string_flag(name="name", build_setting_default = "")
+

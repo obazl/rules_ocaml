@@ -133,7 +133,7 @@ Includes all submodules of an exogenous namespace.
         # )
 
         _ns_prefixes   = attr.label(
-            doc = "Experimental",
+            doc = "List of prefixes to use in renaming submodules",
             default = "@rules_ocaml//cfg/ns:prefixes"
         ),
         # _ns_strategy = attr.label(
