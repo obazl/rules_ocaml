@@ -136,7 +136,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         ## no changes to ConfigState
 
     # user-defined resolver in attr.resolver overrides ns name
-    if attr.resolver:
+    if hasattr(attr, "resolver"):
         ns_name = capitalize_initial_char(attr.resolver.name)
         print("RESOLVER name: %s" % ns_name)
         ns_prefixes = [ns_name]

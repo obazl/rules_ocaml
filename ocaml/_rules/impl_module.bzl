@@ -90,6 +90,9 @@ def _handle_ns_deps(ctx):
         if debug_ns: print("has _ns_resolver")
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
         nsop = ctx.attr._ns_resolver[OcamlProvider]
+        if debug_ns:
+            print("nsrp: %s" % nsrp)
+            print("nsop: %s" % nsop)
         if nsrp.ns_name:
             ns_name = nsrp.ns_name
             if debug_ns: print("TOPDOWN, ns name: %s" % ns_name)
