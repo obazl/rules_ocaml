@@ -151,7 +151,7 @@ def options_binary():
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
-            allow_single_file = True,
+            # allow_single_file = True,
             providers = [[OcamlProvider,OcamlModuleMarker]],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
@@ -780,7 +780,7 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
 
         ## this one is for topdown-up namespacing:
         _ns_resolver = attr.label(
-            doc = "NS resolver module for bottom-up namespacing",
+            doc = "NS resolver module for top-down namespacing",
             # allow_single_file = True,
             providers = [OcamlNsResolverProvider],
             ## @rules_ocaml//cfg/ns is a 'label_setting' whose value is an

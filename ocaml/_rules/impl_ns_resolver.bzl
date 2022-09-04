@@ -58,6 +58,8 @@ def impl_ns_resolver(ctx):
         subnames = ctx.attr._ns_submodules[BuildSettingInfo].value
         bottomup = False
 
+    subnames_ct = len(subnames)
+
     if bottomup:
         if len(ctx.attr.submodules) < 1:
             if len(ctx.attr.include) < 1:
@@ -143,6 +145,8 @@ def impl_ns_resolver(ctx):
                     print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
+                    if subnames_ct == 1:
+                        fail("Disallowed: ns of one submodule whose name matches ns name ({n}). Use ocaml_module with ocaml_library or ocaml_archive; or change  the name of either the ns or the submodule.".format(n=submodule))
                     no_main_alias = True
                     if debug:
                         print("submodule == ns_prefixes[0]: %s" % submodule)

@@ -1215,7 +1215,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## put default output on cmd line
     default_depset = depset(
         order = dsorder,
-        direct = [out_struct]  ## target_outputs,
+        direct = [out_cmi, out_struct, out_ofile]  ## target_outputs,
         # transitive = bottomup_ns_files
     )
 

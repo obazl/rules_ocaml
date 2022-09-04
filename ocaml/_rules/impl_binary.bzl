@@ -490,7 +490,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         print("codep_sigs_primary: %s" % codep_sigs_primary)
         # print("codep_cc_deps_primary: %s" % codep_cc_deps_primary)
         # transitive
-        print("ctx.file.main: %s" % ctx.file.main)
+        print("ctx.files.main: %s" % ctx.files.main)
         print("sigs_secondary: %s" % sigs_secondary)
         print("structs_secondary: %s" % structs_secondary)
         print("archives_secondary: %s" % archives_secondary)
@@ -506,8 +506,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         print("codep_sigs_secondary: %s" % codep_sigs_secondary)
         # print("codep_cc_deps_secondary
 
-    if ctx.file.main:
-        mainfile = [ctx.file.main]
+    if ctx.files.main:
+        mainfile = ctx.files.main
     else:
         mainfile = []
 

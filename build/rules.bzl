@@ -18,8 +18,8 @@ load("//ocaml/_rules:ocaml_binary.bzl"  , _ocaml_binary = "ocaml_binary")
 # load("//ocaml/_rules:ocaml_genrule.bzl"      , _ocaml_genrule = "ocaml_genrule")
 
 # load("//ocaml/_rules:ocaml_import.bzl"      , _ocaml_import = "ocaml_import")
-load("//ocaml/_rules:ocaml_lex.bzl"         , _ocaml_lex = "ocaml_lex")
-load("//ocaml/_rules:ocaml_yacc.bzl"        , _ocaml_yacc = "ocaml_yacc")
+# load("//ocaml/_rules:ocaml_lex.bzl"         , _ocaml_lex = "ocaml_lex")
+# load("//ocaml/_rules:ocaml_yacc.bzl"        , _ocaml_yacc = "ocaml_yacc")
 
 load("//ocaml/_rules:ocaml_parsing.bzl",
      _ocamllex = "ocamllex", _ocamlyacc = "ocamlyacc")
@@ -69,8 +69,8 @@ ocaml_ns_signature  = _ocaml_ns_signature
 # ocaml_ns_subsignature  = _ocaml_ns_subsignature
 ocaml_test       = _ocaml_test
 
-ocaml_lex        = _ocaml_lex
-ocaml_yacc       = _ocaml_yacc
+# ocaml_lex        = _ocaml_lex
+# ocaml_yacc       = _ocaml_yacc
 ocamllex         = _ocamllex
 ocamlyacc        = _ocamlyacc
 
