@@ -142,7 +142,9 @@ def impl_ppx_transform(rule, ctx, src, to):
             "cd .."
         ])
 
-    runner = ctx.actions.declare_file(ctx.attr.name + "{}_ppx.sh".format(
+    ##FIXME: use same sh script for both files, when module has both
+    ##sig and struct files
+    runner = ctx.actions.declare_file(ctx.attr.name + ".{}_ppx.sh".format(
         "mli" if src.path.endswith(".mli") else "ml"
     ))
 
