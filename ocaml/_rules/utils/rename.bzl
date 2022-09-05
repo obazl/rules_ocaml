@@ -151,68 +151,71 @@ def get_module_name (ctx, src):
     else: ## not a submodule
         out_module = this_module
 
-    if ctx.label.name == "Std_exit":
-        out_module = "std_exit"
-    if ctx.label.name == "Stdlib":
-        out_module = "stdlib"
+    # if ctx.label.name == "Std_exit":
+    #     out_module = "std_exit"
+    # if ctx.label.name == "Stdlib":
+    #     out_module = "stdlib"
 
+    # if this_module == out_module:
     # print("THIS: %s" % this_module)
     # print("OUT: %s" % out_module)
+
     return this_module, out_module
 
 ################################################################
-def rename_module(ctx, src):  # , pfx):
-  """Rename implementation and interface (if given) using ns_resolver.
+# def rename_module(ctx, src):  # , pfx):
+#   """Rename implementation and interface (if given) using ns_resolver.
 
-  Inputs: context, src
-  Outputs: outfile :: declared File
-  """
+#   Inputs: context, src
+#   Outputs: outfile :: declared File
+#   """
 
-  debug = False
-  # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
-  #     debug = True
+#   debug = False
+#   print("**** rename module %s" % ctx.label)
+#   # if ctx.label.name in ["_Red", "_Green", "_Blue"]:
+#   #     debug = True
 
-  out_filename = get_module_name(ctx, src)
+#   out_filename = get_module_name(ctx, src)
 
-  inputs  = []
-  outputs = {}
-  inputs.append(src)
+#   inputs  = []
+#   outputs = {}
+#   inputs.append(src)
 
-  scope = tmpdir
+#   scope = tmpdir
 
-  outfile = ctx.actions.declare_file(scope + out_filename)
+#   outfile = ctx.actions.declare_file(scope + out_filename)
 
-  destdir = paths.normalize(outfile.dirname)
+#   destdir = paths.normalize(outfile.dirname)
 
-  cmd = ""
-  dest = outfile.path
-  cmd = cmd + "mkdir -p {destdir} && cp {src} {dest} && ".format(
-    src = src.path,
-    destdir = destdir,
-    dest = dest
-  )
+#   cmd = ""
+#   dest = outfile.path
+#   cmd = cmd + "mkdir -p {destdir} && cp {src} {dest} && ".format(
+#     src = src.path,
+#     destdir = destdir,
+#     dest = dest
+#   )
 
-  cmd = cmd + " true;"
+#   cmd = cmd + " true;"
 
-  ctx.actions.symlink(
-      output = outfile,
-      target_file = src
-  )
+#   ctx.actions.symlink(
+#       output = outfile,
+#       target_file = src
+#   )
 
-  # ctx.actions.run_shell(
-  #     exec_group = "compile",
-  #     command = cmd,
-  #     inputs = inputs,
-  #     outputs = [outfile],
-  #     mnemonic = ctx.attr._rule + "_rename_module",
-  #     progress_message = "{rule}: rename_module {src}".format(
-  #         rule = ctx.attr._rule,
-  #         # n    = ctx.label.name,
-  #       src  = src
-  #     )
-  # )
+#   # ctx.actions.run_shell(
+#   #     exec_group = "compile",
+#   #     command = cmd,
+#   #     inputs = inputs,
+#   #     outputs = [outfile],
+#   #     mnemonic = ctx.attr._rule + "_rename_module",
+#   #     progress_message = "{rule}: rename_module {src}".format(
+#   #         rule = ctx.attr._rule,
+#   #         # n    = ctx.label.name,
+#   #       src  = src
+#   #     )
+#   # )
 
-  return outfile
+#   return outfile
 
 ################################################################
 def rename_srcfile(ctx, src, dest):

@@ -15,7 +15,7 @@
 OcamlProvider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
     fields = {
-
+        "submodule": "name of module without ns prefix",
         "sigs":      "depset of .cmi files",
         # NB: structs should exclude archive_deps. Its for freestanding
         # deps of <this> target (?)

@@ -255,20 +255,33 @@ def _handle_source_sig(ctx, modname, ext):
 
     if debug: print("sigattr is src: %s" % ctx.file.sig)
 
-    work_mli = ctx.actions.declare_file(
-        scope + modname + ".mli"
-    )
-    ctx.actions.symlink(output = work_mli, target_file = ctx.file.sig)
+    if ctx.attr.ppx: ## no sig, plus ppx
+        work_mli = impl_ppx_transform(
+            ctx.attr._rule, ctx,
+            ctx.file.sig, modname + ".mli"
+        )
+    else:
+        work_mli = ctx.actions.declare_file(
+            scope + modname + ".mli"
+        )
+        ctx.actions.symlink(output = work_mli, target_file = ctx.file.sig)
 
     work_cmi = ctx.actions.declare_file(
         scope + modname + ".cmi"
     )
     # no symlink, will be output of compile action
 
-    work_ml = ctx.actions.declare_file(
-        scope + modname + ".ml"
-    )
-    ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
+    if ctx.attr.ppx: ## no sig, plus ppx
+        if debug: print("ppxing module:")
+        work_ml = impl_ppx_transform(
+            ctx.attr._rule, ctx,
+            ctx.file.struct, modname + ".ml"
+        )
+    else:
+        work_ml = ctx.actions.declare_file(
+            scope + modname + ".ml"
+        )
+        ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
 
     out_struct = ctx.actions.declare_file(
         scope + modname + ext
@@ -969,7 +982,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ## 2. extract ppx_codeps from the ppx.exe
         ## 3. add them to the module's depsets
         ## 4. compile transformed src, with ppx_codeps
-        if debug_ppx: print("processing deps of ppx: %s" % ctx.attr.ppx)
+        if debug_ppx:
+            print("ppx for: %s" % ctx.label)
+            print("processing deps of ppx: %s" % ctx.attr.ppx)
 
         if PpxCodepsProvider in ctx.attr.ppx:
             codep = ctx.attr.ppx[PpxCodepsProvider]
@@ -1287,6 +1302,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #                          transitive=cclibs_secondary)
 
     ocamlProvider = OcamlProvider(
+        submodule = normalize_module_name(ctx.label.name),
         # files = outputGroup_all_depset,
         # cmi      = depset(direct = [out_cmi]),
         cmi      = out_cmi,  ## no need for a depset for one file?
