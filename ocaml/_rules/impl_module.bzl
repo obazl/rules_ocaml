@@ -301,34 +301,73 @@ def _resolve_modname(ctx):
     # if ctx.attr.forcename: ## FIXME: ctx.attr.module, name string
 
     ## 'module' attrib overrides module name
-    if ctx.attr.module:
-        if ctx.attr.sig:
-            if OcamlSignatureProvider in ctx.attr.sig:
-                fail("Cannot force module name if sig attr is cmi file")
-        if debug: print("Forcing module name to %s" % ctx.attr.module)
-        basename = ctx.attr.module
-        return basename[:1].capitalize() + basename[1:]
-        # return ctx.label.name[1:]
+    # if ctx.attr.module:
+    #     if ctx.attr.sig:
+    #         if OcamlSignatureProvider in ctx.attr.sig:
+    #             fail("Cannot force module name if sig attr is cmi file")
+    #     if debug: print("Forcing module name to %s" % ctx.attr.module)
 
+    #     ## FIXME: namespacing support
+    #     basename = ctx.attr.module
+    #     return basename[:1].capitalize() + basename[1:]
+    #     # return ctx.label.name[1:]
+
+    ## Always use derive_module_name (unless sig attr is a cmi), since
+    ## it will handle ns prefixing, even when 'module' att is used.
     if ctx.attr.sig:
-        # name of cmi always determines modname
         if OcamlSignatureProvider in ctx.attr.sig:
-            (from_name, module_name) = get_module_name(ctx, ctx.file.sig)
+            # name of cmi always determines modname
+            if ctx.attr.module:
+                fail("Cannot force module name if sig attr is cmi file")
+
+            (module_name, extension) = paths.split_extension(
+                ctx.file.sig.basename)
+            # cmi name should already be normalized and namespaced
             return module_name
-
-        (from_name, sig_modname) = get_module_name(ctx, ctx.file.sig)
-        # print("sig modname: %s" % sig_modname)
-        (from_name, struct_modname) = get_module_name(ctx, ctx.file.struct)
-        # print("struct modname: %s" % struct_modname)
-
-        if sig_modname == struct_modname:
-            return sig_modname
         else:
-            return module_name_from_label(ctx.label)
+            ## sigfile is srcfile; derive mod name from module attrib
+            ## or label
+
+            if ctx.attr.module:
+                (from_name, modname) = derive_module_name(
+                    ctx, ctx.attr.module)
+                return modname
+            else:
+                (from_name, modname) = derive_module_name(
+                    ctx, ctx.label.name)
+                return modname
+
+                # return normalize_module_name(ctx.label.name)
+                # return module_name_from_label(ctx.label)
+
+            # (mname, extension) = paths.split_extension(
+            #     ctx.file.struct.basename)
+
+            # (from_name, struct_modname) = derive_module_name(ctx, mname)
+            # # print("struct modname: %s" % struct_modname)
+
+            # # (from_name, sig_modname) = derive_module_name(ctx, mname)
+            # # print("sig modname: %s" % sig_modname)
+
+            # if sig_modname == struct_modname:
+            #     return sig_modname
+            # else:
+            #     return module_name_from_label(ctx.label)
 
     else:
-        (from_name, struct_modname) = get_module_name(ctx, ctx.file.struct)
-        return struct_modname
+        ## singleton, no sig attribute
+        if ctx.attr.module:
+            (from_name, modname) = derive_module_name(
+                ctx, ctx.attr.module)
+            return modname
+            # basename = ctx.attr.module
+            # return basename[:1].capitalize() + basename[1:]
+        else:
+            (mname, extension) = paths.split_extension(
+                ctx.file.struct.basename)
+            (from_name, modname) = derive_module_name(ctx, mname)
+
+            return modname
 
 #####################
 def impl_module(ctx): ## , mode, tool, tool_args):

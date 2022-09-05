@@ -17,9 +17,7 @@ load("//ppx:providers.bzl",
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_rules/utils:rename.bzl",
-     "get_module_name",
-     "rename_srcfile")
+load("//ocaml/_functions:module_naming.bzl", "derive_module_name")
 
 load("//ocaml/_rules/utils:utils.bzl",
      "get_options",

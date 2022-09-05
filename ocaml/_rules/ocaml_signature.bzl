@@ -25,9 +25,7 @@ load("//ppx:providers.bzl",
      "PpxCodepsProvider",
 )
 
-load("//ocaml/_rules/utils:rename.bzl",
-     "get_module_name",
-     "rename_srcfile")
+load("//ocaml/_functions:module_naming.bzl", "derive_module_name")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -195,9 +193,12 @@ def _ocaml_signature_impl(ctx):
         modname = basename[:1].capitalize() + basename[1:]
         #FIXME: add ns prefix if needed
     else:
-        (from_name, modname) = get_module_name(ctx, ctx.file.src)
+        (mname, extension) = paths.split_extension(
+            ctx.file.src.basename)
+        (from_name, modname) = derive_module_name(ctx, mname)
+        # (from_name, modname) = derive_module_name(ctx, ctx.file.src)
 
-    # (from_name, module_name) = get_module_name(ctx, sig_src)
+    # (from_name, module_name) = derive_module_name(ctx, sig_src)
 
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig")
