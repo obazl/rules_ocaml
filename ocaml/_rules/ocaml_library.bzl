@@ -5,7 +5,7 @@ load(":options.bzl", "options", "options_aggregators")
 
 load(":impl_library.bzl", "impl_library")
 
-load("//ocaml/_transitions:transitions.bzl", "reset_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl", "reset_in_transition")
 
 ###############################
 def _ocaml_library(ctx):

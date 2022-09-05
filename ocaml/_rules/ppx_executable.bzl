@@ -5,9 +5,11 @@ load("//ppx:providers.bzl",
      "PpxExecutableMarker",
 )
 
-load("//ocaml/_transitions:transitions.bzl",
-     "ocaml_binary_deps_out_transition",
+load("//ocaml/_transitions:in_transitions.bzl",
      "executable_in_transition")
+
+load("//ocaml/_transitions:out_transitions.bzl",
+     "ocaml_binary_deps_out_transition")
 
 load(":options.bzl", "options")
 

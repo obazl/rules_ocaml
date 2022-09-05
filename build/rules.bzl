@@ -36,9 +36,9 @@ load("//ocaml/_rules:ocaml_ns_resolver.bzl"      , _ocaml_ns_resolver = "ocaml_n
 load("//ocaml/_rules:ocaml_signature.bzl",
      _ocaml_signature = "ocaml_signature",
      )
-load("//ocaml/_rules:ocaml_ns_signature.bzl",
-     _ocaml_ns_signature = "ocaml_ns_signature"
-     )
+# load("//ocaml/_rules:ocaml_ns_signature.bzl",
+#      _ocaml_ns_signature = "ocaml_ns_signature"
+#      )
 
 load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
 
@@ -65,7 +65,7 @@ ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns_library = _ocaml_ns_library
 ocaml_ns_resolver = _ocaml_ns_resolver
 ocaml_signature  = _ocaml_signature
-ocaml_ns_signature  = _ocaml_ns_signature
+# ocaml_ns_signature  = _ocaml_ns_signature
 # ocaml_ns_subsignature  = _ocaml_ns_subsignature
 ocaml_test       = _ocaml_test
 

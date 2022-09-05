@@ -5,8 +5,8 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options", "options_ns_aggregators", "options_ns_opts")
 
-# load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
-load("//ocaml/_transitions:transitions.bzl", "nslib_in_transition")
+# load("//ocaml/_transitions:out_transitions.bzl", "nsarchive_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl", "nslib_in_transition")
 
 load(":impl_archive.bzl", "impl_archive")
 

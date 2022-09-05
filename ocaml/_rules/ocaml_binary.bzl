@@ -4,8 +4,8 @@ load(":options.bzl", "options", "options_binary")
 
 load(":impl_binary.bzl", "impl_binary")
 
-load("//ocaml/_transitions:transitions.bzl", "executable_in_transition")
-## load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl", "executable_in_transition")
+## load("//ocaml/_transitions:out_transitions.bzl", "nsarchive_in_transition")
 
 load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
 

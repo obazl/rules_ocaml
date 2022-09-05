@@ -186,7 +186,6 @@ def impl_library(ctx):
     # resolver_depsets_list = []
 
     #### First the ns resolver IF we're an ns rule
-    debug_ns = True
     if ns_enabled:
         if debug_ns: print("{c}ns processing{r}".format(c=CCRED, r=CCRESET))
         ## we always have _ns_resolver, since it defaults to
@@ -230,7 +229,7 @@ def impl_library(ctx):
         direct_dep_files = ctx.files.submodules
         direct_deps_attr = ctx.attr.submodules
 
-        print("{c} end of ns processing{r}".format(c=CCRED,r=CCRESET))
+        # print("{c} end of ns processing{r}".format(c=CCRED,r=CCRESET))
 
     elif hasattr(ctx.attr, "manifest"):
         ## ocaml_archive or ocaml_library

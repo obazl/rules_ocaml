@@ -2,7 +2,12 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl",
+     "nsarchive_in_transition")
+
+load("//ocaml/_transitions:out_transitions.bzl",
+     "ocaml_signature_deps_out_transition")
+
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
@@ -25,8 +30,6 @@ load("//ocaml/_rules/utils:rename.bzl",
      "rename_srcfile")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
-
-load("//ocaml/_transitions:transitions.bzl", "ocaml_signature_deps_out_transition")
 
 load("//ocaml/_functions:utils.bzl",
      "capitalize_initial_char",

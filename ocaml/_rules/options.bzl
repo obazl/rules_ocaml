@@ -14,12 +14,13 @@ load("//ppx:providers.bzl",
      "PpxExecutableMarker",
 )
 
-load("//ocaml/_transitions:transitions.bzl",
+# load("//ocaml/_transitions:in_transitions.bzl")
+
+load("//ocaml/_transitions:out_transitions.bzl",
      "ocaml_module_sig_out_transition",
      "ocaml_binary_deps_out_transition",
-     "ocaml_module_deps_out_transition")
+     "ocaml_module_deps_out_transition",
 
-load("//ocaml/_transitions:ns_transitions.bzl",
      "ocaml_module_cc_deps_out_transition",
      "ocaml_nslib_main_out_transition",
      "ocaml_nslib_resolver_out_transition",

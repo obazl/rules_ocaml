@@ -12,7 +12,7 @@ load(":options.bzl", "options", "options_aggregators")
 
 load("impl_archive.bzl", "impl_archive")
 
-load("//ocaml/_transitions:ns_transitions.bzl", "nsarchive_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl", "nsarchive_in_transition")
 
 load("//ocaml/_debug:colors.bzl", "CCUYEL", "CCRESET")
 
