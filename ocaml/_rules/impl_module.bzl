@@ -24,10 +24,10 @@ load("//ocaml/_functions:module_naming.bzl", "derive_module_name")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load("//ocaml/_functions:utils.bzl",
-     "capitalize_initial_char",
-     # "get_sdkpath",
-)
+# load("//ocaml/_functions:utils.bzl",
+#      "capitalize_initial_char",
+#      # "get_sdkpath",
+# )
 
 load("//ocaml/_functions:module_naming.bzl",
      "file_to_lib_name",
@@ -46,14 +46,14 @@ load(":impl_common.bzl",
      )
 
 load("@rules_ocaml//ocaml/_debug:colors.bzl",
-     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCCYAN", "CCRESET")
+     "CCRED", "CCGRN", "CCBLU", "CCBLUBG", "CCMAG", "CCCYN", "CCRESET")
 
 scope = tmpdir
 
 ################
 def _handle_ns_deps(ctx):
-    debug    = False
-    debug_ns = False
+    debug    = True
+    debug_ns = True
 
     if debug: print("_handle_ns_deps ****************")
 
@@ -89,6 +89,8 @@ def _handle_ns_deps(ctx):
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
         nsop = ctx.attr._ns_resolver[OcamlProvider]
         if debug_ns:
+            print("lbl %s" % ctx.label)
+            print("resolver %s" % ctx.attr._ns_resolver[DefaultInfo])
             print("nsrp: %s" % nsrp)
             print("nsop: %s" % nsop)
         if nsrp.ns_name:
@@ -314,6 +316,7 @@ def _resolve_modname(ctx):
 
     ## Always use derive_module_name (unless sig attr is a cmi), since
     ## it will handle ns prefixing, even when 'module' att is used.
+
     if ctx.attr.sig:
         if OcamlSignatureProvider in ctx.attr.sig:
             # name of cmi always determines modname
@@ -336,24 +339,6 @@ def _resolve_modname(ctx):
                 (from_name, modname) = derive_module_name(
                     ctx, ctx.label.name)
                 return modname
-
-                # return normalize_module_name(ctx.label.name)
-                # return module_name_from_label(ctx.label)
-
-            # (mname, extension) = paths.split_extension(
-            #     ctx.file.struct.basename)
-
-            # (from_name, struct_modname) = derive_module_name(ctx, mname)
-            # # print("struct modname: %s" % struct_modname)
-
-            # # (from_name, sig_modname) = derive_module_name(ctx, mname)
-            # # print("sig modname: %s" % sig_modname)
-
-            # if sig_modname == struct_modname:
-            #     return sig_modname
-            # else:
-            #     return module_name_from_label(ctx.label)
-
     else:
         ## singleton, no sig attribute
         if ctx.attr.module:
@@ -381,9 +366,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     debug_tc     = False
     debug_xmo    = False
 
-    # if debug:
-    # print("===============================")
-    # print("OCAML_MODULE: %s" % ctx.label)
+    # if ctx.label.name == "Source_map_io":
+    #     debug = True
+    #     debug_ns = True
+
+    if debug:
+        print("===============================")
 
     # print("host_platform frag: %s" % ctx.fragments.platform.host_platform)
     # print("platform frag: %s" % ctx.fragments.platform.platform)
@@ -475,7 +463,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     cmi_precompiled = False ## is cmi already produced by sig dep?
 
     modname = _resolve_modname(ctx)
-    if debug: print("resolved module name: %s" % modname)
+    # if debug:
+    if ctx.label.name == "Source_map_io":
+        print("{c}Source_map_io m{r}: {m}".format(
+            c=CCRED,r=CCRESET,m=modname))
 
     #### INDIRECT DEPS first ####
     # these are "indirect" from the perspective of the consumer
@@ -765,8 +756,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     ## top-down namespacing
     elif ctx.attr._ns_resolver:
+        print("_ns_resolver")
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
-        if nsrp.ns_name:
+        print("nsrp: %s" % nsrp)
+        if hasattr(nsrp, "ns_name"):
             ns_enabled = True
 
     ## if we have a udr (from the 'resolver' attr of ocaml_ns*),
@@ -811,7 +804,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         paths_secondary.extend(nspaths_ns)
 
     if debug_ns:
-        print("ns analysis result")
+        print("ns analysis result %s" % ctx.label)
         print("resolver_cmi: %s" % resolver_cmi)
         print("resolver_struct: %s" % resolver_struct)
         print("resolver_ofile: %s" % resolver_ofile)
@@ -859,7 +852,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
                 # depending on xmo means...
                 if not provider.xmo:
-                    if debug:
+                    if debug_xmo:
                         print("DEP is not xmo: %s" % provider.sigs)
                     dep_is_xmo = False
                     # sigs_secondary.append(provider.cmi)
@@ -885,7 +878,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                     # if not OcamlLibraryMarker in dep:
                     ##FIXME: also check for OcamlArchiveMarker?
 
-            if debug: print("xmo-independent deps logic")
+            if debug_xmo: print("xmo-independent deps logic")
             ## xmo-independent logic
             # this puts entire deptree into secondaries
             sigs_secondary.append(provider.sigs)

@@ -21,8 +21,21 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load(":impl_common.bzl", "tmpdir", "dsorder")
 
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCGRN", "CCBLU", "CCBLUBG",
+     "CCMAG", "CCMAGBG",
+     "CCCYN", "CCCYNBG",
+     "CCYEL", "CCUYEL", "CCYELBG", "CCYELBGH",
+     "CCRESET",
+     )
+
+CCBLUCYN="\033[44m\033[36m"
+
 #################
 def impl_archive(ctx):
+
+    # print("{c}impl_archive: {a}{r}".format(
+    #     c=CCBLUCYN,a=ctx.label,r=CCRESET))
 
     debug = False # True
     # if ctx.label.name == "Bare_structs":
@@ -53,7 +66,7 @@ def impl_archive(ctx):
     archives_secondary = []
 
     ################################
-    ####  call impl_ns_library  ####
+    ####  call impl_library  ####
     # FIXME: improve the return vals handling
     # print("CALL IMPL_LIB %s" % ctx.label)
     lib_providers = impl_library(ctx) #, tc.target, tool, tool_args)

@@ -22,8 +22,8 @@ load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
 load(":impl_ccdeps.bzl", "dump_CcInfo")
 
-load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCGRN", "CCMAG", "CCRESET")
-# load("//ocaml/_functions:utils.bzl", "get_sdkpath")
+load("//ocaml/_debug:colors.bzl",
+     "CCRED", "CCBLU", "CCDER", "CCGRN", "CCMAG", "CCRESET")
 
 ## Plain Library targets do not produce anything, they just pass on
 ## their deps.
@@ -39,8 +39,8 @@ load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCGRN", "CCMAG", "CCRESET")
 #################
 def _handle_ns_library(ctx):
     debug = False
-
-    if debug: print("_handle_ns_library")
+    debug_ns = True
+    if debug or debug_ns: print("_handle_ns_library")
 
     # ns_resolver_depset = None
     # ns_resolver_module = None
@@ -48,6 +48,9 @@ def _handle_ns_library(ctx):
     # ns_resolver_files = []
     the_ns_resolvers = []
     ns_paths = []
+
+    # ns aggregators: _ns_resolver has out transition,
+    # so it is forced to list
 
     if hasattr(ctx.attr, "resolver"):
         if debug: print("user-provided resolver")

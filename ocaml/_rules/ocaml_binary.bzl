@@ -4,14 +4,19 @@ load(":options.bzl", "options", "options_binary")
 
 load(":impl_binary.bzl", "impl_binary")
 
-load("//ocaml/_transitions:in_transitions.bzl", "executable_in_transition")
-## load("//ocaml/_transitions:out_transitions.bzl", "nsarchive_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl",
+     "ocaml_executable_in_transition")
+# ## load("//ocaml/_transitions:out_transitions.bzl", "nsarchive_in_transition")
 
 load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
+
+CCBLURED="\033[44m\033[31m"
 
 ###############################
 def _ocaml_binary(ctx):
 
+    print("{c}ocaml_binary: {m}{r}".format(
+        c=CCBLURED,m=ctx.label,r=CCRESET))
     # if True: #  debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(

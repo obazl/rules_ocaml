@@ -26,27 +26,49 @@ load(":impl_common.bzl",
      "tmpdir"
      )
 
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCREDBG", "CCYEL", "CCGRN", "CCBLU", "CCMAG", "CCCYN", "CCRESET")
+
+CCBLUYEL = "\033[44m\033[33m"
+
 workdir = tmpdir
 
 #################
 def impl_ns_resolver(ctx):
 
-    debug = False
+    debug = True
+    debug_submodules = False
+    debug_includes = False
+    debug_embeds = False
+    debug_merges = False
+    # if ctx.label.name == "Jsoo_runtime":
+    #     debug = True
 
     ## if resolver is user-provided, then this should immediately
     ## return a null result
 
     if debug:
-        print("\n")
-        print("%%%% ocaml_ns_resolver %%%%")
-        print("  %s" % ctx.label)
-        print("_NS_PREFIXES: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
-        print("_NS_SUBMODULES: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
+        print("{c}ocaml_ns_resolver{r}".format(
+            c=CCBLUYEL,r=CCRESET))
+
+        print("{c}attrs:{r}".format(c=CCYEL,r=CCRESET))
+        print("attr._ns_prefixes: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
+        print("attr._ns_submodules: %s" % ctx.attr._ns_submodules[BuildSettingInfo].value)
+
+    ## if ns:prefixes and ns:submodules are empty, return empy
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     ## RULE: do not allow mixing bottomup and topdown namespaces.
     # but what happens if a selected submodule also elects?
+
+    if ctx.attr.ns:
+        if debug: print("has ns attr")
+        ns_prefixes = [ctx.attr.ns]
+    else:
+        if debug: print("no ns attr")
+        # ns_prefixes = [ctx.label.name]
+        ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
     if ctx.attr.submodules:
         if debug: print("has submodules attr")
@@ -115,9 +137,9 @@ def impl_ns_resolver(ctx):
     no_main_alias = False
     user_ns_resolver = None
 
-    if debug: print("iterating submodules")
+    if debug_submodules: print("iterating submodules")
     for submod_label in subnames:  # e.g. [Color, Red, Green, Blue], where main = Color
-        if debug: print("submod_label: %s" % submod_label)
+        if debug_submodules: print("submod_label: %s" % submod_label)
         # NB: //a/b:c will be normalized to C
         submodule = normalize_module_label(submod_label)
         # print("submodule normed: %s" % submodule)
@@ -139,26 +161,29 @@ def impl_ns_resolver(ctx):
 
         if len(ns_prefixes) > 0:
             if len(ns_prefixes) == 1:
-                if debug:
+                if debug_submodules:
                     print("lbl: %s" % ctx.label)
                     print("one ns_prefixes: %s" % ns_prefixes)
                     print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
                     if subnames_ct == 1:
+                        # print("SUBMODULE %s" % submodule)
+                        # print("SUBMOD_LABEL %s" % submod_label)
                         fail("Disallowed: ns of one submodule whose name matches ns name ({n}). Use ocaml_module with ocaml_library or ocaml_archive; or change  the name of either the ns or the submodule.".format(n=submodule))
                     no_main_alias = True
-                    if debug:
+                    if debug_submodules:
                         print("submodule == ns_prefixes[0]: %s" % submodule)
+
                     # ctx.attr.submodules can only be explicitly set
                     # in bottom-up ns using ocaml_ns_resolver target
                     if ctx.attr.submodules:
                         user_ns_resolver = submod_label
-                    if debug:
-                        print("user_ns_resolver: %s" % user_ns_resolver)
+                    if debug_submodules:
+                        print("USER_NS_RESOLVER: %s" % user_ns_resolver)
                     continue ## no alias for main module
                 else:
-                    if debug:
+                    if debug_submodules:
                         print("submodule != ns_prefixes[0]: %s" % submodule)
             elif submodule == ns_prefixes[-1]: # last pfx
                 # this is main nslib module
@@ -176,15 +201,15 @@ def impl_ns_resolver(ctx):
         )
         aliases.append(alias)
 
-    if debug: print("finished iterating submodules")
+    if debug_submodules: print("finished iterating submodules")
 
-    if debug: print("iterating includes")
+    if debug_includes: print("iterating includes")
     ## include specific exogenous (sub)modules, namespaced or not
     for k,v in ctx.attr.include.items():
         ## WARNING: check for namespacing first
         if OcamlNsSubmoduleMarker in k:
             resolver = k[OcamlNsSubmoduleMarker]
-            if debug:
+            if debug_includes:
                 print("FUSE namespaced module, ns: %s" % resolver.ns_name)
             alias = "module {alias} = {ns}{sep}{mod}".format(
                 alias = v,
@@ -194,23 +219,23 @@ def impl_ns_resolver(ctx):
             )
             aliases.append(alias)
         elif OcamlModuleMarker in k:
-            if debug:
+            if debug_includes:
                 print("FUSE non-namespaced module: {} -> {}".format(v, k))
             alias = "module {alias} = {mod}".format(
                 alias = v,
                 mod = normalize_module_name(k.label.name)
             )
             aliases.append(alias)
-    if debug: print("finished iterating includes")
+    if debug_includes: print("finished iterating includes")
 
-    if debug: print("iterating embeds")
+    if debug_embeds: print("iterating embeds")
     # embed exogenous namespace (not its submodules)
     for k,v in ctx.attr.embed.items():
-        if debug:
+        if debug_embeds:
             print("EMBED: {} -> {}".format(v, k))
         if  OcamlNsResolverProvider in k:
             resolver = k[OcamlNsResolverProvider]
-            if debug:
+            if debug_embeds:
                 print("EMBED NS: %s" % resolver.ns_name)
             alias = "module {alias} = {mod}".format(
                 alias = v,
@@ -218,15 +243,15 @@ def impl_ns_resolver(ctx):
                 mod = resolver.ns_name
             )
             aliases.append(alias)
-    if debug: print("finished iterating embeds")
+    if debug_embeds: print("finished iterating embeds")
 
-    if debug: print("iterating merges")
+    if debug_merges: print("iterating merges")
     # import ALL submodules from exogenous namespaces
     for f in ctx.attr.merge:
-        if debug: print("IMPORT: {}".format(f))
+        if debug_merges: print("IMPORT: {}".format(f))
         if  OcamlNsResolverProvider in f:
             resolver = f[OcamlNsResolverProvider]
-            if debug: print("IMPORT ns: %s" % resolver.ns_name)
+            if debug_merges: print("IMPORT ns: %s" % resolver.ns_name)
             for submod in resolver.submodules:
                 alias = "module {alias} = {ns}{sep}{mod}".format(
                     alias = submod,
@@ -235,17 +260,21 @@ def impl_ns_resolver(ctx):
                     mod = submod
                 )
                 aliases.append(alias)
-    if debug: print("finished iterating merges")
+    if debug_merges: print("finished iterating merges")
 
     ns_name = module_sep.join(ns_prefixes)
     if debug: print("ns_name: %s" % ns_name)
     if debug: print("aliases: %s" % aliases)
 
+    if ns_name == "":
+        print("WTF?")
+        fail("xxxxxxxxxxxxxxxx")
 
     ################################################################
     ## user-provided resolver
+    debug_ns = True
     if user_ns_resolver:
-        if debug:
+        if debug_ns:
             print("User-provided resolver for ns: %s" % ns_name)
             print(" resolver: %s" % user_ns_resolver)
 
@@ -286,11 +315,29 @@ def impl_ns_resolver(ctx):
             resolver_module_name = ns_name
 
     # do not generate a resolver module unless we have at least one alias
+    # NO, always generate a resolver, even if no aliases
+    # (in case user provides one, or its a singleton with module name matching ns name
     if len(aliases) < 1:
-        if debug: print("NO ALIASES: %s" % ctx.label)
         return [DefaultInfo(),
                 OcamlProvider(),
                 OcamlNsResolverProvider(ns_name = ns_name)]
+        # debug=True
+        # print("LBL: %s" % ctx.label)
+        if user_ns_resolver:
+            print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        #     return [DefaultInfo(),
+        #             OcamlProvider(),
+        #             OcamlNsResolverProvider(
+        #                 ns_name = ns_name,
+        #                 module_name = user_ns_resolver
+        #             )]
+        else:
+        #     if debug: print("NO ALIASES: %s" % ctx.label)
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % ns_name)
+        #     print("user_ns_resolver: %s" % user_ns_resolver)
+            return [DefaultInfo(),
+                    OcamlProvider(),
+                    OcamlNsResolverProvider(ns_name = ns_name)]
 
     resolver_src_filename = resolver_module_name + ".ml"
     resolver_src_file = ctx.actions.declare_file(workdir + resolver_src_filename)
@@ -488,7 +535,8 @@ def impl_ns_resolver(ctx):
         # )
     )
 
-    if debug: print("resolver provider: %s" % ocamlProvider)
+    if debug: print("resolver OcamlProvider: %s" % ocamlProvider)
+    if debug: print("resolver nsrp: %s" % nsResolverProvider)
 
     return [
         defaultInfo,

@@ -15,7 +15,10 @@ load(":options.bzl", "options")
 
 load(":impl_binary.bzl", "impl_binary")
 
-load("//ocaml/_debug:colors.bzl", "CCGAM", "CCRESET")
+load("//ocaml/_debug:colors.bzl", "CCDER", "CCGAM", "CCRESET")
+
+CCBLURED="\033[44m\033[31m"
+
 
 ###########################
 def _ppx_executable(ctx):

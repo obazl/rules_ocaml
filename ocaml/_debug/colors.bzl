@@ -1,17 +1,37 @@
 CCRED="\033[0;31m"
-CCBRED="\033[1;31m"
-CCDER="\033[7;31m" # inverse
 CCGRN="\033[0;32m"
-CCBGRN="\033[1;32m"
-CCUGRN="\033[4;32m"  # underline
-CCNRG="\033[7;32m"  # inverse
-CCORNG="\033[0;33m"
 CCYEL="\033[0;33m"
-CCUYEL="\033[4;33m" # underline
 CCBLU="\033[0;34m"
 CCMAG="\033[0;35m"
-CCGAM="\033[7;35m"
-CCCYAN="\033[0;36m"
+CCCYN="\033[0;36m"
 CCGRY="\033[0;37m"
+
+# bold
+CCBRED="\033[1;31m"
+CCBGRN="\033[1;32m"
+
+# underline
+CCURED="\033[4;31m"
+CCUGRN="\033[4;32m"
+CCUYEL="\033[4;33m"
+
+# inverse
+CCDER="\033[7;31m"
+CCNRG="\033[7;32m"
+CCGAM="\033[7;35m"
+
+# regular background
+CCREDBG="\033[41m"
+CCGRNBG="\033[42m"
+CCYELBG="\033[43m"
+CCBLUBG="\033[44m"
+CCMAGBG="\033[45m"
+CCCYNBG="\033[45m"
+CCWHTBG="\033[45m"
+
+# high intensty background
+CCREDBGH="\033[0;101m"
+CCYELBGH="\033[0;103m"
+
 CCRESET="\033[0;0m"
 

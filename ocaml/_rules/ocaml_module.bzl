@@ -12,11 +12,14 @@ load(":options.bzl",
 
 load(":impl_module.bzl", "impl_module")
 
-load("//ocaml/_debug:colors.bzl", "CCYEL", "CCRESET")
-
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCGRN", "CCBLU", "CCBLUBG", "CCMAG", "CCCYN", "CCRESET")
 
 ###############################
 def _ocaml_module(ctx):
+
+    print("{c}ocaml_module: {m}{r}".format(
+        c=CCBLUBG,m=ctx.label,r=CCRESET))
 
     # tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     # print("BUILD TGT: {color}{lbl}{reset}".format(

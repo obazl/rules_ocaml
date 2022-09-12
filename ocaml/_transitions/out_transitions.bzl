@@ -8,16 +8,26 @@ load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
 
-load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCMAGBG", "CCCYN", "CCRESET",
+     "CCYEL", "CCUYEL", "CCYELBG", "CCYELBGH",
+     "CCWHTBG"
+     )
 
 #######################################
 def print_config_state(settings, attr):
     print("CONFIG State:")
-    print("  rule name: %s" % attr.name)
-    # print("  rule x: %s" % attr.transitive_configsx)
+    print("kind: %s" % attr._rule)
+    print("nm: %s" % attr.name)
+    print("{c}{n} attrs:{r}".format(
+        c=CCYEL,n=attr.name,r=CCRESET))
+    if hasattr(attr, "ns"):
+        print("attr.ns: %s" % attr.ns)
+    if hasattr(attr, "submodules"):
+        print("attr.submodules: %s" % attr.submodules)
     if hasattr(attr, "resolver"):
         print("  attr.resolver: %s" % attr.resolver)
-    # print("  ns: %s" % settings["@"])
+
     print("  ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
     print("  ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
     print("/CONFIG State")
@@ -25,19 +35,21 @@ def print_config_state(settings, attr):
 ################################################################
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     # print("_ocaml_nslib_out_transition_impl %s" % attr.name)
-    debug = False
+    debug = True
     # if attr.name in ["greek"]:
     #     debug = True
 
     if debug:
         print("")
-        print(">>> " + transition)
-        print("attr.name: %s" % attr.name)
-        # print_config_state(settings, attr)
+        print("{c}>>> {t}{r}".format(
+            c=CCWHTBG,t=transition,r=CCRESET))
+        # print(">>> " + transition)
+        # print("attr.name: %s" % attr.name)
+        print_config_state(settings, attr)
         # print("attr: %s" % attr)
-        print("submodules: %s" % attr.submodules)
-        for submod in attr.submodules:
-            print("submod: %s" % submod)
+        # print("submodules: %s" % attr.submodules)
+        # for submod in attr.submodules:
+        #     print("submod: %s" % submod)
 
     nslib_name = normalize_module_name(attr.name)
     # ns attribute overrides default derived from rule name

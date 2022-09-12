@@ -14,9 +14,11 @@ load(":options.bzl",
 
 load(":impl_module.bzl", "impl_module")
 
-load("//ocaml/_debug:colors.bzl", "CCNRG", "CCDER", "CCRESET")
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCDER", "CCGRN", "CCBLU", "CCBLUBG", "CCMAG", "CCCYN", "CCRESET")
 
-#########################################
+
+################################################
 def _ppx_codeps_transition_impl(settings, attr):
     print("{color}_ppx_codeps_transition{reset}: {lbl}".format(
         color=CCDER, reset = CCRESET, lbl = attr.name
@@ -51,6 +53,8 @@ _ppx_codeps_transition = transition(
 ###############################
 def _ppx_module(ctx):
 
+    print("{c}ppx_module: {m}{r}".format(
+        c=CCBLUBG,m=ctx.label,r=CCRESET))
     # if True:  # debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(

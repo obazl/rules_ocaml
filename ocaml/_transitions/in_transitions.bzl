@@ -14,31 +14,79 @@ load("//ocaml/_functions:module_naming.bzl",
 load("//ocaml/_rules:impl_common.bzl", "module_sep")
 
 load("@rules_ocaml//ocaml/_debug:colors.bzl",
-     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCCYAN", "CCRESET")
+     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCCYN", "CCRESET",
+     "CCYEL", "CCUYEL", "CCYELBG", "CCYELBGH"
+     )
 
 #######################################
 def print_config_state(settings, attr):
 
-    print("  rule name: %s" % attr.name)
-    print("  ns_resolver ws: %s" % attr._ns_resolver.workspace_name)
-    print("  @rules_ocaml//cfg/ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
-    print("  @rules_ocaml//cfg/ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+    print("CONFIG State:")
+    print("kind: %s" % attr._rule)
+    print("nm: %s" % attr.name)
+    print("{c}{n} attrs:{r}".format(
+        c=CCYEL,n=attr.name,r=CCRESET))
+    if hasattr(attr, "ns"):
+        print("attr.ns: %s" % attr.ns)
     if hasattr(attr, "submodules"):
-        print("  attr.submodules: %s" % attr.submodules)
+        print("attr.submodules: %s" % attr.submodules)
+
+    print("pfxs: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+    print("submods: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+
+    print("/CONFIG State")
+
+    # for d in dir(attr):
+    #     print(" %s" % d)
+
+    # if hasattr(attr, "_ns_resolver"):
+    #     print("{c}hidden nsr:{r}".format(c=CCYEL,r=CCRESET))
+    #     print(" nsr: %s" % attr._ns_resolver)
+    #     print(" %s" % settings[str(attr._ns_resolver)])
+    #     fail("xxxx")
+        # for d in attr._ns_resolver[OcamlNsResolverProvider]:
+        #     print(" %s" % d)
+        # print("nsr ws: %s" % attr._ns_resolver.workspace_name)
+
+    print("{c}settings:{r}".format(c=CCCYN,r=CCRESET))
+    for item in settings.items():
+        print("{k}: {v}".format(k=item[0],v=item[1]))
+
+    # print("{c}settings:{r}".format(c=CCYEL,r=CCRESET))
+    # print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+    # print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+
 
 ##################################################
-def _executable_in_transition_impl(settings, attr):
-    ## FIXME: ppx_executable uses @ppx//mode to set @rules_ocaml//cfg/mode
+def _executable_in_transition_impl(transition, settings, attr):
+    debug = True
+
+    if debug:
+        print("")
+        print("{c}>>> {t}{r}".format(
+            c=CCYELBGH,r=CCRESET,t=transition))
+        print_config_state(settings, attr)
+        print("{c}attrs:{r}".format(c=CCYEL,r=CCRESET))
+        # for a in attr:
+        print("  %s" % attr)
+
+    if debug:
+        print("nslib in OUT STATE:")
+        print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+
+
     return {
-        # "@rules_ocaml//cfg/mode"          : settings["@rules_ocaml//cfg/mode:mode"],
-        # "@ppx//mode"            : settings["@rules_ocaml//cfg/mode:mode"], ## Why?
-        "@rules_ocaml//cfg/ns:prefixes"   : ["foo"],
+        "@rules_ocaml//cfg/ns:prefixes"   : [],
         "@rules_ocaml//cfg/ns:submodules" : [],
     }
 
-#######################
-executable_in_transition = transition(
-    implementation = _executable_in_transition_impl,
+#######################################################
+def _ppx_executable_in_transition_impl(settings, attr):
+    return _executable_in_transition_impl("ppx_executable_in_transition", settings, attr)
+
+ppx_executable_in_transition = transition(
+    implementation = _ppx_executable_in_transition_impl,
     inputs = [
         # "@rules_ocaml//cfg/mode:mode",
         # "@ppx//mode:mode",
