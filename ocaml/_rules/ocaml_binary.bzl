@@ -71,16 +71,16 @@ the difference between '/' and ':' in such labels):
 
         _rule = attr.string( default  = "ocaml_binary" ),
 
-        # _allowlist_function_transition = attr.label(
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
     provides = [OcamlExecutableMarker], # OcamlModuleMarker],
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are
     ## not affected if this is a dependency of an ns aggregator.
     # cfg     = nsarchive_in_transition,
-    # cfg     = executable_in_transition,
+    cfg     = ocaml_executable_in_transition,
     executable = True,
     toolchains = [
         "@rules_ocaml//toolchain/type:std",

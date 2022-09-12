@@ -43,7 +43,7 @@ rule_options.update(options_ns_aggregators())
 
 ########################
 ocaml_ns_archive = rule(
-    implementation = impl_archive,
+    implementation = _ocaml_ns_archive_impl,
     doc = """Generate a 'namespace' module. [User Guide](../ug/ocaml_ns.md).  Provides: [OcamlNsMarker](providers_ocaml.md#ocamlnsmoduleprovider).
 
 **NOTE** 'name' must be a legal OCaml module name string.  Leading underscore is illegal.

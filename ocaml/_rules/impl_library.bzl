@@ -60,12 +60,37 @@ def _handle_ns_library(ctx):
         #     ns_name = ctx.attr.ns
         # else:
         #     ns_name = normalize_module_name(ctx.attr.resolver.label.name)
+
+    # elif hasattr(ctx.attr, "_ns_resolver"): ## always true?
     else:
-        if debug:
-            print("generated resolver")
+        if debug_ns:
+            print("implicit resolver for %s" % ctx.label)
+            print("rule kind: %s" % ctx.attr._rule)
+            print("NS RESOLVER ATTRCT: %s" % len(ctx.attr._ns_resolver))
+            nsr = ctx.attr._ns_resolver
+            print("nsr: %s" % nsr)
+            if type(nsr) == "list":
+                print("nsr[0].label: %s" % nsr[0].label)
+                print("nsr[0].files: %s" % nsr[0].files)
+
+            print("nsr[0]: %s" % ctx.attr._ns_resolver[0])
+            print("nsr[nsrp]: %s" % ctx.attr._ns_resolver[0][OcamlNsResolverProvider])
+            # print("nsr bsi: %s" % ctx.attr._ns_resolver[0])
             print("NS RESOLVER FILECT: %s" % len(ctx.files._ns_resolver))
+            nsrp = ctx.attr._ns_resolver[0]
+            print("nsrp: %s" % nsrp)
+            # nsr_dep = ns_resolver[0][OcamlProvider]
+
         ns_resolver = ctx.attr._ns_resolver[0] # index by int
-        ns_resolver_module = ctx.files._ns_resolver[0]
+        if len(ctx.files._ns_resolver) > 0:
+            ns_resolver_module = ctx.files._ns_resolver[0]
+        else:
+            ns_resolver_module = None
+
+        # if len(ctx.files._ns_resolver) > 0:
+        #     ns_resolver_module = ctx.files._ns_resolver[0]
+        # else:
+        #     ns_resolver_module = ctx.files._ns_resolver
 
     # print("ns_resolver: %s" % ns_resolver)
     # print("ns_resolver_module: %s" % ns_resolver_module)
@@ -104,8 +129,8 @@ def _handle_ns_library(ctx):
         # ns_resolver_files = ns_resolver[OcamlProvider].inputs
         # ns_resolver_depset = ns_resolver[OcamlProvider].inputs
 
-    ns_paths.append(ns_resolver_module.dirname)
-    the_ns_resolvers.append(ns_resolver_module)
+    # ns_paths.append(ns_resolver_module.dirname)
+    # the_ns_resolvers.append(ns_resolver_module)
 
     # print("ns_resolver_depset: %s" % ns_resolver_depset)
     # print("ns_name: %s" % ns_name)
@@ -121,7 +146,7 @@ def impl_library(ctx):
 
     debug      = False
     debug_deps = False
-    debug_ns   = False
+    debug_ns   = True
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
@@ -152,6 +177,16 @@ def impl_library(ctx):
         # ns_resolver_depset = None
         ns_paths = []
         the_ns_resolvers   = None
+
+    if debug_ns:
+        print("{c}resolved ns_resolver: {nsr}{r}".format(
+            c=CCBLU,r=CCRESET,nsr=ns_resolver))
+        print("{c}resolved ns_resolver_module: {nsr}{r}".format(
+            c=CCBLU,r=CCRESET,nsr=ns_resolver_module))
+        print("{c}resolved ns_paths: {nsr}{r}".format(
+            c=CCBLU,r=CCRESET,nsr=ns_paths))
+        print("{c}resolved the_ns_resolvers: {nsr}{r}".format(
+            c=CCBLU,r=CCRESET,nsr=the_ns_resolvers))
 
     ns_enabled = False
     ## only for ocaml_ns_library, ocaml_ns_archive:
@@ -382,6 +417,14 @@ def impl_library(ctx):
         print("ofiles_secondary: %s" % ofiles_secondary)
         print("astructs_secondary: %s" % astructs_secondary)
         # print("cclibs_secondary: %s" % cclibs_secondary)
+
+    for dep in ctx.attr.cc_deps:
+        if CcInfo in dep:
+            ## we do not need to do anything with ccdeps here,
+            ## just pass them on in a provider
+            # if ctx.label.name == "tezos-legacy-store":
+            #     dump_CcInfo(ctx, dep)
+            ccInfo_list.append(dep[CcInfo])
 
     action_inputs_depset = depset(
         order = dsorder,

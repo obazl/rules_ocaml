@@ -6,7 +6,7 @@ load("//ppx:providers.bzl",
 )
 
 load("//ocaml/_transitions:in_transitions.bzl",
-     "executable_in_transition")
+     "ppx_executable_in_transition")
 
 load("//ocaml/_transitions:out_transitions.bzl",
      "ocaml_binary_deps_out_transition")
@@ -19,10 +19,35 @@ load("//ocaml/_debug:colors.bzl", "CCDER", "CCGAM", "CCRESET")
 
 CCBLURED="\033[44m\033[31m"
 
+################################################
+def _ppx_manifest_out_transition_impl(settings, attr):
+    print("{c}_ppx_manifest_out_transition{r}: {lbl}".format(
+        c=CCDER, r = CCRESET, lbl = attr.name
+    ))
+
+    return {
+        "@rules_ocaml//cfg/ns:prefixes":   [],
+        "@rules_ocaml//cfg/ns:submodules": []
+    }
+
+################
+_ppx_manifest_out_transition = transition(
+    implementation = _ppx_manifest_out_transition_impl,
+    inputs = [
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
+    ],
+    outputs = [
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
+    ]
+)
 
 ###########################
 def _ppx_executable(ctx):
 
+    print("{c}ppx_executable: {m}{r}".format(
+        c=CCBLURED,m=ctx.label,r=CCRESET))
     # if True: #  debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
@@ -104,7 +129,7 @@ ppx_executable = rule(
         manifest = attr.label_list(
             doc = "Mereological deps to be directly linked into ppx executable. Modular deps should be listed in ocaml_module, ppx_module rules.",
             providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
-            # cfg = ocaml_binary_deps_out_transition
+            cfg = _ppx_manifest_out_transition
         ),
 
         # _deps = attr.label(
@@ -144,13 +169,13 @@ ppx_executable = rule(
         # _sdkpath = attr.label(
         #     default = Label("@rules_ocaml//cfg:sdkpath")
         # ),
-        # _allowlist_function_transition = attr.label(
-        #     ## required for transition fn of attribute _mode
-        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        # ),
+        _allowlist_function_transition = attr.label(
+            ## required for transition fn of attribute _mode
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
 
     ),
-    # cfg     = executable_in_transition,
+    cfg     = ppx_executable_in_transition,
     provides = [DefaultInfo, PpxExecutableMarker],
     executable = True,
     ## NB: 'toolchains' actually means 'toolchain types'

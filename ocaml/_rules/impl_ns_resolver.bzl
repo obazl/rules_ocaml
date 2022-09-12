@@ -82,6 +82,15 @@ def impl_ns_resolver(ctx):
 
     subnames_ct = len(subnames)
 
+    ################
+    if len(ns_prefixes) == 0 and subnames_ct == 0:
+        print("{c}returning null ns_resolver{r}".format(c=CCREDBG,r=CCRESET))
+        return [DefaultInfo(),
+                OcamlProvider(),
+                OcamlNsResolverProvider(tag = "NULL")
+                ]
+    ################
+
     if bottomup:
         if len(ctx.attr.submodules) < 1:
             if len(ctx.attr.include) < 1:
@@ -92,7 +101,7 @@ def impl_ns_resolver(ctx):
                             print("label: %s" % ctx.label)
                         return [DefaultInfo(),
                                 OcamlProvider(),
-                                OcamlNsResolverProvider()]
+                                OcamlNsResolverProvider(ns_name = "FOO")]
 
     # env = {"PATH": get_sdkpath(ctx)}
 
@@ -105,14 +114,6 @@ def impl_ns_resolver(ctx):
     out_cmi = None
 
     aliases = []
-
-    if ctx.attr.ns:
-        if debug: print("has ns attr")
-        ns_prefixes = [ctx.attr.ns]
-    else:
-        if debug: print("no ns attr")
-        # ns_prefixes = [ctx.label.name]
-        ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
     if debug:
         print("ctx.attr.ns: %s" % ctx.attr.ns)

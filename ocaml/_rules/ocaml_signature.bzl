@@ -2,12 +2,11 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml/_transitions:in_transitions.bzl",
-     "nsarchive_in_transition")
+# load("//ocaml/_transitions:in_transitions.bzl",
+#      "nsarchive_in_transition")
 
-load("//ocaml/_transitions:out_transitions.bzl",
-     "ocaml_signature_deps_out_transition")
-
+# load("//ocaml/_transitions:out_transitions.bzl",
+#      "ocaml_signature_deps_out_transition")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",

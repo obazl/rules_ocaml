@@ -32,36 +32,36 @@ load("//ocaml/_transitions:out_transitions.bzl",
 load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCMAG", "CCRESET")
 
 #########################################
-def _ppx_transition_impl(settings, attr):
-    print("{color}_ppx_transition{reset}: {lbl}".format(
-        color=CCDER, reset = CCRESET, lbl = attr.name
-    ))
+# def _ppx_transition_impl(settings, attr):
+#     print("{color}_ppx_transition{reset}: {lbl}".format(
+#         color=CCDER, reset = CCRESET, lbl = attr.name
+#     ))
 
-    print("build host: %s" % settings["//command_line_option:host_platform"])
-    print("target host: %s" % settings["//command_line_option:platforms"])
+#     print("build host: %s" % settings["//command_line_option:host_platform"])
+#     print("target host: %s" % settings["//command_line_option:platforms"])
 
-    return {
-        "@rules_ocaml//cfg/toolchain:build-host":
-        settings["//command_line_option:host_platform"].name,
-        "@rules_ocaml//cfg/toolchain:target-host":
-        [x.name for x in settings["//command_line_option:platforms"]]
-    }
+#     return {
+#         "@rules_ocaml//cfg/toolchain:build-host":
+#         settings["//command_line_option:host_platform"].name,
+#         "@rules_ocaml//cfg/toolchain:target-host":
+#         [x.name for x in settings["//command_line_option:platforms"]]
+#     }
 
-################
-_ppx_transition = transition(
-    implementation = _ppx_transition_impl,
-    inputs = [
-        "@rules_ocaml//cfg/toolchain:build-host",
-        "@rules_ocaml//cfg/toolchain:target-host",
-        # special labels for Bazel native command line args:
-        "//command_line_option:host_platform",
-        "//command_line_option:platforms",
-    ],
-    outputs = [
-        "@rules_ocaml//cfg/toolchain:build-host",
-        "@rules_ocaml//cfg/toolchain:target-host"
-    ]
-)
+# ################
+# _ppx_transition = transition(
+#     implementation = _ppx_transition_impl,
+#     inputs = [
+#         "@rules_ocaml//cfg/toolchain:build-host",
+#         "@rules_ocaml//cfg/toolchain:target-host",
+#         # special labels for Bazel native command line args:
+#         "//command_line_option:host_platform",
+#         "//command_line_option:platforms",
+#     ],
+#     outputs = [
+#         "@rules_ocaml//cfg/toolchain:build-host",
+#         "@rules_ocaml//cfg/toolchain:target-host"
+#     ]
+# )
 
 ################
 def options(ws):
@@ -389,76 +389,76 @@ def options_ns_aggregators():
 
 #######################
 ## DEPRECATED - use options_ns_aggregators
-def options_ns_archive():
+# def options_ns_archive():
 
-    # _submod_providers   = [
-    #     [OcamlModuleMarker],
-    #     [OcamlNsMarker],
-    #     [OcamlSignatureProvider]
-    # ]
+#     # _submod_providers   = [
+#     #     [OcamlModuleMarker],
+#     #     [OcamlNsMarker],
+#     #     [OcamlSignatureProvider]
+#     # ]
 
-    # ws = "@" + ws
-    ws = "@rules_ocaml" + ws
+#     # ws = "@" + ws
+#     ws = "@rules_ocaml" + ws
 
-    return dict(
-        _linkall     = attr.label(default = ws + "//cfg/archive/linkall"),
-        # _threads     = attr.label(default = ws + "//cfg/cfg/ns/threads"),
-        _warnings    = attr.label(default = ws + "//cfg/archive:warnings"),
+#     return dict(
+#         _linkall     = attr.label(default = ws + "//cfg/archive/linkall"),
+#         # _threads     = attr.label(default = ws + "//cfg/cfg/ns/threads"),
+#         _warnings    = attr.label(default = ws + "//cfg/archive:warnings"),
 
-        shared = attr.bool(
-            doc = "True: build a shared lib (.cmxs)",
-            default = False
-        ),
+#         shared = attr.bool(
+#             doc = "True: build a shared lib (.cmxs)",
+#             default = False
+#         ),
 
-        ns = attr.string(
-            doc = "Namespace name is derived from 'name' attribute by default; use this to override."
-        ),
+#         ns = attr.string(
+#             doc = "Namespace name is derived from 'name' attribute by default; use this to override."
+#         ),
 
-        ns_resolver = attr.label(
-            doc = """User-provided resolver module.""",
-            allow_single_file = True,
-            providers = [OcamlModuleMarker],
-            ## user-provided resolver is not itself namespaced,
-            ## do not use transition
-            # cfg = ocaml_nslib_submodules_out_transition
-        ),
+#         ns_resolver = attr.label(
+#             doc = """User-provided resolver module.""",
+#             allow_single_file = True,
+#             providers = [OcamlModuleMarker],
+#             ## user-provided resolver is not itself namespaced,
+#             ## do not use transition
+#             # cfg = ocaml_nslib_submodules_out_transition
+#         ),
 
-        submodules = attr.label_list(
-            doc = "List of *_module submodules",
-            allow_files = [".cmo", ".cmx", ".cmi"],
-            providers   = [[OcamlModuleMarker], [OcamlNsMarker]],
-            # providers   = _submod_providers,
-            cfg = ocaml_nslib_submodules_out_transition
-        ),
+#         submodules = attr.label_list(
+#             doc = "List of *_module submodules",
+#             allow_files = [".cmo", ".cmx", ".cmi"],
+#             providers   = [[OcamlModuleMarker], [OcamlNsMarker]],
+#             # providers   = _submod_providers,
+#             cfg = ocaml_nslib_submodules_out_transition
+#         ),
 
-        _ns_submodules = attr.label( # Not needed?
-            doc = "A configuration setting set by transition function on submodules attribute, passed to submodules and ns resolver.",
-            default = "@rules_ocaml//cfg/ns:submodules",
-        ),
+#         _ns_submodules = attr.label( # Not needed?
+#             doc = "A configuration setting set by transition function on submodules attribute, passed to submodules and ns resolver.",
+#             default = "@rules_ocaml//cfg/ns:submodules",
+#         ),
 
-        _ns_resolver = attr.label(
-            doc = "Resolver module generated by ocaml_ns_resolver",
-            providers = [OcamlNsResolverProvider],
-            default = "@rules_ocaml//cfg/ns:resolver",
-            cfg = ocaml_nslib_submodules_out_transition
-        ),
+#         _ns_resolver = attr.label(
+#             doc = "Resolver module generated by ocaml_ns_resolver",
+#             providers = [OcamlNsResolverProvider],
+#             default = "@rules_ocaml//cfg/ns:resolver",
+#             cfg = ocaml_nslib_submodules_out_transition
+#         ),
 
-        _ns_prefixes   = attr.label(
-            doc = "String to be prefixed to submodule filenames. Set by transition function.",
-            default = "@rules_ocaml//cfg/ns:prefixes"
-        ),
+#         _ns_prefixes   = attr.label(
+#             doc = "String to be prefixed to submodule filenames. Set by transition function.",
+#             default = "@rules_ocaml//cfg/ns:prefixes"
+#         ),
 
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+#         _allowlist_function_transition = attr.label(
+#             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+#         ),
 
-        # _mode = attr.label(
-        #     default = ws + "//build/mode"
-        # ),
-        # _projroot = attr.label(
-        #     default = "@rules_ocaml//cfg:projroot"
-        # )
-    )
+#         # _mode = attr.label(
+#         #     default = ws + "//build/mode"
+#         # ),
+#         # _projroot = attr.label(
+#         #     default = "@rules_ocaml//cfg:projroot"
+#         # )
+#     )
 
 #######################
 ## DEPRECATED - use options_ns_aggregators
@@ -555,7 +555,7 @@ options_ppx = dict(
         Label of `ppx_executable` target to be used to transform source before compilation.
         """,
         executable = True,
-        cfg = "target",
+        cfg = "exec",
         # cfg = _ppx_transition,
         allow_single_file = True,
         providers = [PpxExecutableMarker]

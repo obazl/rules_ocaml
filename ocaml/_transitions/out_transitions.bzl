@@ -74,10 +74,11 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         attr_submodules.append(submod)
         attr_submodule_labels.append(str(submod_label))
 
-    nslib_module = capitalize_initial_char(nslib_name)
+    nslib_module = capitalize_initial_char(nslib_name) # not needed?
+
     if len(ns_prefixes) == 0 and ns_submodules == []:
         # print("X 1")
-        ## this is a toplevelnslib, not a descendant of another nslib
+        ## this is a toplevel nslib, not a descendant of another nslib
         ns_prefixes.append(nslib_module)
         ns_submodules = attr_submodules
     elif nslib_module in ns_submodules:

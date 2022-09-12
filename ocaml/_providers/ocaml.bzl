@@ -85,6 +85,8 @@ OcamlNsSubmoduleMarker = provider(
 OcamlNsResolverProvider = provider(
     doc = "OCaml NS Resolver provider.",
     fields = {
+        "tag": "For testing",
+
         "files"   : "Depset, instead of DefaultInfo.files",
         "paths":    "Depset of paths for -I params",
         "submodules": "String list of submodules in this ns",
