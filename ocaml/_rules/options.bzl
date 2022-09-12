@@ -247,8 +247,19 @@ def options_aggregators():
                          # [OcamlSignatureMarker]
                          ],
         ),
+        cc_deps = attr.label_list(
+            doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
+            providers = [CcInfo],
+        ),
 
-
+        cc_linkage = attr.label_keyed_string_dict(
+            doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'cc_deps' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
+            """,
+            # providers = since this is a dictionary depset, no
+            # providers constraints, but the keys must have CcInfo
+            # providers, check at build time
+            ## cfg = ocaml_module_cc_deps_out_transition
+        ),
     )
 
 #######################
@@ -370,12 +381,34 @@ def options_ns_aggregators():
 
         _ns_submodules = attr.label(
             doc = "List of submodules.",
+            ## to be set by out transition fn?
             default = "@rules_ocaml//cfg/ns:submodules",
         ),
 
         _ns_prefixes   = attr.label(
             doc = "String to be prefixed to submodule filenames.",
+            ## to be set by transition fn
             default = "@rules_ocaml//cfg/ns:prefixes"
+        ),
+
+        cc_deps = attr.label_list(
+            doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
+            providers = [CcInfo],
+        ),
+
+        cc_linkage = attr.label_keyed_string_dict(
+            doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'cc_deps' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
+            """,
+            # providers = since this is a dictionary depset, no
+            # providers constraints, but the keys must have CcInfo
+            # providers, check at build time
+            ## cfg = ocaml_module_cc_deps_out_transition
+        ),
+
+        _cc_deps = attr.label(
+            doc = "Global cc-deps, apply to all instances of rule. Added last.",
+            # default = "@rules_ocaml//cfg/ns:deps",
+            providers = [CcInfo],
         ),
 
         _allowlist_function_transition = attr.label(
