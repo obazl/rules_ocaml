@@ -118,7 +118,7 @@ def _handle_ns_library(ctx):
 
     # if user_provided_resolver:
     #     ##FIXME: efficiency
-    #     for submodule in ctx.files.submodules:
+    #     for submodule in ctx.files.manifest:
     #         (bname, ext) = paths.split_extension(submodule.basename)
     #         if bname == ns_name:
     #             print("Found user-provided resolver submodule")
@@ -264,8 +264,8 @@ def impl_library(ctx):
     # if hasattr(ctx.attr, "submodules"):
         ## only ocaml_ns_archive or ocaml_ns_library have submodules
         # print("Processing ns aggregator %s" % ctx.label)
-        direct_dep_files = ctx.files.submodules
-        direct_deps_attr = ctx.attr.submodules
+        direct_dep_files = ctx.files.manifest
+        direct_deps_attr = ctx.attr.manifest
 
         # print("{c} end of ns processing{r}".format(c=CCRED,r=CCRESET))
 
@@ -301,11 +301,11 @@ def impl_library(ctx):
     ccInfo_list = []
 
     ##FIXME: this dups what's above with direct_dep_files ,direct_deps_attr
-    direct_module_deps_files = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
+    direct_module_deps_files = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
 
     direct_module_deps = []
     if ctx.attr._rule.startswith("ocaml_ns"):
-        direct_module_deps.extend(ctx.attr.submodules)
+        direct_module_deps.extend(ctx.attr.manifest)
     else:
         direct_module_deps.extend(ctx.attr.manifest)
 

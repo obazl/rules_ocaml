@@ -24,7 +24,7 @@ def print_config_state(settings, attr):
     if hasattr(attr, "ns"):
         print("attr.ns: %s" % attr.ns)
     if hasattr(attr, "submodules"):
-        print("attr.submodules: %s" % attr.submodules)
+        print("attr.manifest: %s" % attr.manifest)
     if hasattr(attr, "resolver"):
         print("  attr.resolver: %s" % attr.resolver)
 
@@ -47,8 +47,8 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         # print("attr.name: %s" % attr.name)
         print_config_state(settings, attr)
         # print("attr: %s" % attr)
-        # print("submodules: %s" % attr.submodules)
-        # for submod in attr.submodules:
+        # print("submodules: %s" % attr.manifest)
+        # for submod in attr.manifest:
         #     print("submod: %s" % submod)
 
     nslib_name = normalize_module_name(attr.name)
@@ -69,7 +69,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     ## submodules is a label list of targets, but since the targets
     ## have not yet been build the vals are labels not targets
-    for submod_label in attr.submodules:
+    for submod_label in attr.manifest:
         submod = normalize_module_name(submod_label.name)
         attr_submodules.append(submod)
         attr_submodule_labels.append(str(submod_label))
@@ -219,7 +219,7 @@ ocaml_nslib_resolver_out_transition = transition(
 
 #     ## submodules is a label list of targets, but since the targets
 #     ## have not yet been built the vals are labels not targets
-#     for submod_label in attr.submodules:
+#     for submod_label in attr.manifest:
 #         submod = normalize_module_name(submod_label.name)
 #         attr_submodules.append(submod)
 #         attr_submodule_labels.append(str(submod_label))

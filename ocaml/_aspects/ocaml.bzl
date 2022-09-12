@@ -10,8 +10,8 @@ def _print_aspect_impl(target, ctx):
             #     for pkg in dep[OpamDepsProvider].pkgs.to_list():
             #         print("OPAM dep pkg: %s" % pkg)
     if hasattr(ctx.rule.attr, 'submodules'):
-        print("submods: %s" % ctx.rule.attr.submodules)
-        for [f, m] in ctx.rule.attr.submodules.items():
+        print("submods: %s" % ctx.rule.attr.manifest)
+        for [f, m] in ctx.rule.attr.manifest.items():
             print("submod: %s" % m)
             for fdep in f[DefaultInfo].files.to_list():
                 print("NOPAM dep: %s" % fdep.path)

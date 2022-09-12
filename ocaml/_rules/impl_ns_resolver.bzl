@@ -70,10 +70,10 @@ def impl_ns_resolver(ctx):
         # ns_prefixes = [ctx.label.name]
         ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
 
-    if ctx.attr.submodules:
+    if ctx.attr.manifest:
         if debug: print("has submodules attr")
         ## verify not also topdown
-        subnames = ctx.attr.submodules
+        subnames = ctx.attr.manifest
         bottomup = True
     else:
         if debug: print("no submodules attr")
@@ -92,7 +92,7 @@ def impl_ns_resolver(ctx):
     ################
 
     if bottomup:
-        if len(ctx.attr.submodules) < 1:
+        if len(ctx.attr.manifest) < 1:
             if len(ctx.attr.include) < 1:
                 if len(ctx.attr.embed) < 1:
                     if len(ctx.attr.merge) < 1:
@@ -176,9 +176,9 @@ def impl_ns_resolver(ctx):
                     if debug_submodules:
                         print("submodule == ns_prefixes[0]: %s" % submodule)
 
-                    # ctx.attr.submodules can only be explicitly set
+                    # ctx.attr.manifest can only be explicitly set
                     # in bottom-up ns using ocaml_ns_resolver target
-                    if ctx.attr.submodules:
+                    if ctx.attr.manifest:
                         user_ns_resolver = submod_label
                     if debug_submodules:
                         print("USER_NS_RESOLVER: %s" % user_ns_resolver)
@@ -189,7 +189,7 @@ def impl_ns_resolver(ctx):
             elif submodule == ns_prefixes[-1]: # last pfx
                 # this is main nslib module
                 no_main_alias = True
-                if ctx.attr.submodules:
+                if ctx.attr.manifest:
                     user_ns_resolver = submod_label
                 continue ## no alias for main module
         # print("submodule pre: %s" % submodule)

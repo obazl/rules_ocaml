@@ -32,7 +32,7 @@ def print_config_state(settings, attr):
     if hasattr(attr, "ns"):
         print("attr.ns: %s" % attr.ns)
     if hasattr(attr, "submodules"):
-        print("attr.submodules: %s" % attr.submodules)
+        print("attr.manifest: %s" % attr.manifest)
 
     print("pfxs: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
     print("submods: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
@@ -163,7 +163,7 @@ def _nslib_in_transition_impl(settings, attr):
 
     ## submodules is a label list of targets, but since the targets
     ## have not yet been build the vals are labels not targets
-    for submod_label in attr.submodules:
+    for submod_label in attr.manifest:
         submod = normalize_module_name(submod_label.name)
         attr_submodules.append(submod)
         attr_submodule_labels.append(str(submod_label))

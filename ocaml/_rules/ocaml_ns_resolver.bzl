@@ -78,7 +78,8 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
         rule_options,
         ns = attr.string(),
 
-        submodules = attr.string_list(
+        # submodules = attr.string_list(
+        manifest = attr.string_list(
             # default = "@rules_ocaml//cfg/ns:submodules", # => string_list_setting
             doc = """
 List of strings from which submodule names are to be derived for aliasing. Bazel labels may be used; the submodule name will be derived from the target part. For example, '//a/b:c' normalizes to C. But they are just strings, and will not be checked against any files.

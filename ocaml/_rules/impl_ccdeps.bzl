@@ -357,7 +357,7 @@ def x(ctx,
 #         all_deps.extend(ctx.attr.modules)
 #     ## for ocaml_ns_library
 #     if hasattr(ctx.attr, "submodules"):
-#         all_deps.extend(ctx.attr.submodules)
+#         all_deps.extend(ctx.attr.manifest)
 #     ## [ocaml/ppx]_executable
 #     if hasattr(ctx.attr, "main"):
 #         all_deps.append(ctx.attr.main)

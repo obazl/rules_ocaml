@@ -158,11 +158,11 @@ def impl_archive(ctx):
 
     args.add_all(_options)
 
-    ## Submodules can be listed in ctx.files.submodules in any order,
+    ## Submodules can be listed in ctx.files.manifest in any order,
     ## so we need to put them in correct order on the command line.
     ## Order is encoded in their depsets, which were merged by
     ## impl_library; the result contains the files of
-    ## ctx.files.submodules in the correct order.
+    ## ctx.files.manifest in the correct order.
     ## submod[DefaultInfo].files won't work, it contains OcamlProvider
     ## for only one module, so order would be lost. The aggregate
     ## fiels of libOcamlProvider have the ordering info, but we need
@@ -171,7 +171,7 @@ def impl_archive(ctx):
     submod_arglist = [] # direct deps
 
     ## ns_archives have submodules, plain archives have modules
-    direct_submodule_deps = ctx.files.submodules if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
+    direct_submodule_deps = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
     # direct_submodule_deps = ctx.files.manifest
 
     # if OcamlProvider in ns_resolver:
