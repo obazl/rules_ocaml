@@ -1298,11 +1298,19 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ################
     ## only the structfile is default output; that way consumers can
     ## put default output on cmd line
-    default_depset = depset(
-        order = dsorder,
-        direct = [out_cmi, out_struct, out_ofile]  ## target_outputs,
-        # transitive = bottomup_ns_files
-    )
+    if tc.target != "vm":
+        default_depset = depset(
+            order = dsorder,
+            direct = [out_cmi, out_struct, out_ofile]  ## target_outputs,
+            # transitive = bottomup_ns_files
+        )
+    else:
+        default_depset = depset(
+            order = dsorder,
+            direct = [out_cmi, out_struct]
+            # transitive = bottomup_ns_files
+        )
+
 
     defaultInfo = DefaultInfo(
         files = default_depset
