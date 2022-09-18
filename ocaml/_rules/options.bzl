@@ -381,7 +381,7 @@ def options_ns_aggregators():
         # submodules = attr.label_list(
         manifest = attr.label_list(
             doc = "List of namespaced submodules; will be renamed by prefixing the namespace,",
-            allow_files = [".cmo", ".cmx", ".cmi", "cmxa", "cma"],
+            allow_files = [".cmo", ".cmx", ".cmi", ".cmxa", ".cma"],
             providers   = [[OcamlModuleMarker], [OcamlNsMarker]],
             cfg = ocaml_nslib_submodules_out_transition
         ),
