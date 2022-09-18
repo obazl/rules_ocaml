@@ -5,15 +5,18 @@ load("//ocaml/_rules:impl_common.bzl", "tmpdir", "module_sep")
 
 load("//ocaml:providers.bzl", "OcamlNsResolverProvider")
 
-# load("//ocaml:providers.bzl",
-#      # "OcamlSDK",
-#      # "OcamlArchiveProvider",
-#      # "OcamlSignatureProvider",
-#      # "OcamlLibraryMarker",
-#      # "OcamlModuleMarker",
-#      # "PpxArchiveProvider",
-#      "PpxExecutableProvider",
-#      "PpxModuleProvider")
+load("@rules_ocaml//ocaml/_debug:colors.bzl",
+     "CCRED", "CCGRN", "CCBLU", "CCBLUBG", "CCMAG", "CCCYN", "CCRESET")
+
+## FIXME FIXME FIXME
+## topdown namespacing:
+## submodules are accessible in rule implementations as targets, but in transition functions they are just labels.
+## so in the former we can derive module names from file names, but in the latter we only have the labels.
+## which means we're forced to derive module names from labels, not file names.
+
+## where this presents a problem - e.g. labels use chars that are
+## disallowed in module names - the 'module' attribute must be used to
+## override.
 
 ###############################
 def submodule_from_label_string(s):
@@ -22,17 +25,41 @@ def submodule_from_label_string(s):
     target = lbl.name
     # (segs, sep, basename) = s.rpartition(":")
     # (basename, ext) = paths.split_extension(basename)
-    basename = target.strip("_")
+    basename = target.lstrip("_")
     submod = basename[:1].capitalize() + basename[1:]
     return lbl.package, submod
 
 ################################
-def normalize_module_label(lbl):
-    """Normalize module label: remove leading path segs, extension and prefixed underscores, capitalize first char."""
-    # print("NORMALIZING LBL: %s" % lbl.label.name)
+
+def label_to_module_name(lbl):
+    """Normalize module label: turn basename into a module name by removing extention and removing illegal chars. We do this as a convenience, so devs can use chars like $, !, @ etc. in target labels. The alternative is to force devs to use legal module names as target names. NB: if 'module' attr is used, then the label target must match it after normalization. So if target is //foo/bar:$BAZ!, module must be "BAZ" (or "baz" etc.) Or the filename must match I guess.
+
+    Except that for now we only strip leading and trailing '.', '$', '@', '*', '?', '-', and '_', and internal '_', '-', '.', and '$'
+    """
+
+    ## FIXME: efficiency. this will happen for every target.
+
+    ## Module name grammar
+    ## module-name       ::=	capitalized-ident
+    ## capitalized-ident ::=	 (A…Z) { letter ∣ 0…9 ∣ _ ∣ ' } 
+
     (segs, sep, basename) = lbl.rpartition(":")
     (basename, ext) = paths.split_extension(basename)
-    basename = basename.strip("_")
+    basename = basename.strip("_-.$@*?")
+    basename = basename.replace("-", "")
+    basename = basename.replace(".", "")
+    basename = basename.replace("$", "")
+    result = basename[:1].capitalize() + basename[1:]
+    # print("Normalized: %s" % result)
+    return result
+
+################################
+def normalize_module_label(lbl):
+    """Normalize module label: remove leading path segs and extension, capitalize first char.  Used by transitions, which compare this "normalized" module name to those derived from submodule labels, which may not be valid module names (e.g. may start with underscore, or contain other chars not permitted in module names.  This is same as label_to_module_name except it does not remove leading underscore.  Transition functions can only access labels, not targets.
+    """
+    # print("normalize_module_label: %s" % lbl.label.name)
+    (segs, sep, basename) = lbl.rpartition(":")
+    (basename, ext) = paths.split_extension(basename)
     result = basename[:1].capitalize() + basename[1:]
     # print("Normalized: %s" % result)
     return result
@@ -104,8 +131,10 @@ def file_to_lib_name(file):
 def _src_module_in_submod_list(ctx, src, submodules):
     # src: File
     # submodules: list of strings (bottomup) or labels (topdown)
-    # print("_src_module_in_submod_list src: %s" % src)
-    # print("_src_module_in_submod_list submodules: %s" % submodules)
+    if debug:
+        print("_src_module_in_submod_list src: %s" % src)
+        print("_src_module_in_submod_list submodules: %s" % submodules)
+
     (src_module, ext) = paths.split_extension(src) # .basename)
     src_module = src_module[:1].capitalize() + src_module[1:]
     # print("src module: %s" % src_module)
@@ -120,10 +149,11 @@ def _src_module_in_submod_list(ctx, src, submodules):
     submods = []
     for lbl_string in submodules:
         # print("submod str: %s" % lbl_string)
-        submod = Label(lbl_string + ".ml")
+        # submod = Label(lbl_string + ".ml")
         # print("submod label pkg: %s" % submod.package)
 
-        (submod_path, submod_name) = submodule_from_label_string(lbl_string)
+        # (submod_path, submod_name) = submodule_from_label_string(lbl_string)
+        submod_name = label_to_module_name(lbl_string)
         # print("submod_name: %s" % submod_name)
         if src_module == submod_name:
             result = True
@@ -138,11 +168,13 @@ def _src_module_in_submod_list(ctx, src, submodules):
 # if this is a submodule, add the prefix
 # otherwise, if ppx, rename
 # derive module name from ns prefixes
-def derive_module_name(ctx, src): # src: string
-    debug = False
+def derive_module_name_from_file_name(ctx, src): # src: string
+    debug = True
 
-    # if debug:
-    # print("derive_module_name: %s" % src)
+    if debug:
+        print("{c}derive_module_name_from_file_name{r}: {m}".format(
+            c=CCBLU,r=CCRESET,m=src))
+
     ## src: string ## for modules, ctx.file.struct, for sigs, ctx.file.src
 
     # we get prefix list from ns_resolver module. they're also in the
@@ -175,18 +207,17 @@ def derive_module_name(ctx, src): # src: string
         if debug: print("TOPDOWN renaming")
         if type(ctx.attr._ns_resolver) == "list":
             ns_resolver = ctx.attr._ns_resolver[0]
-            # print("NSR: %s" % ns_resolver)
+            if debug: print("ctx.attr._ns_resolver[0]: %s" % ns_resolver)
         else:
             ns_resolver = ctx.attr._ns_resolver
-        if debug: print("_ns_resolver: %s" % ns_resolver)
+            if debug: print("ctx.attr._ns_resolver: %s" % ns_resolver)
         if OcamlNsResolverProvider in ns_resolver:
             ns_resolver = ns_resolver[OcamlNsResolverProvider]
-            # print("OcamlNsResolverProvider: %s" % nsresp)
+            if debug: print("OcamlNsResolverProvider: %s" % ns_resolver)
         else:
-            print("MISSING OcamlNsResolverProvider")
+            print("{c}MISSING OcamlNsResolverProvider{r}".format(c=CCRED,r=CCRESET))
 
-    # if debug:
-    # print("ns_resolver: %s" % ns_resolver)
+    if debug: print("ns_resolver: %s" % ns_resolver)
 
     ns     = None
     # module_sep = "__"
@@ -194,7 +225,7 @@ def derive_module_name(ctx, src): # src: string
     ##WARN: this_module == src_module (src may be in difference dir/pkg);
     # (this_module, extension) = paths.split_extension(src) # .basename)
     this_module = src[:1].capitalize() + src[1:]
-
+    if debug: print("this_module: %s" % this_module)
     # if ctx.label.name == "Char_cmi":
     #     print("this_module: %s" % this_module)
 
@@ -206,7 +237,7 @@ def derive_module_name(ctx, src): # src: string
     if bottomup:
         out_module = prefix + module_sep + this_module
     elif hasattr(ns_resolver, "prefixes"): # "prefix"):
-        # print("hasattr prefixes: %s" % ns_resolver.prefixes)
+        if debug: print("hasattr prefixes: %s" % ns_resolver.prefixes)
         ns_prefixes = ns_resolver.prefixes # .prefix
         if len(ns_prefixes) == 0:
             out_module = this_module

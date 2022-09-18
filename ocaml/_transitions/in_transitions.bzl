@@ -10,7 +10,8 @@ load("//ocaml:providers.bzl",
 load("//ocaml/_functions:utils.bzl", "capitalize_initial_char")
 
 load("//ocaml/_functions:module_naming.bzl",
-     "derive_module_name",
+     "derive_module_name_from_file_name",
+     "label_to_module_name",
      "normalize_module_label",
      "normalize_module_name")
 
@@ -270,9 +271,25 @@ def _module_in_transition_impl(settings, attr):
         print("{c} this module:{r} {m}".format(c=CCBLU,r=CCRESET,m=module))
 
     submodules = []
+    ## derive module names from manifest labels. note that we only have labels to work with, not targets and so not file names.
     for submodule_label in settings["@rules_ocaml//cfg/ns:submodules"]:
-        submodule = normalize_module_label(submodule_label)
+        # quasi-normalize. basenames of labels in ns:submodules may not be legal module names.
+        # submodule = normalize_module_label(submodule_label)
+        submodule = label_to_module_name(submodule_label)
         submodules.append(submodule)
+    if debug: print("normalized submodules: %s" % submodules)
+
+    ## FIXME: we derive a module name from label name, or from module attrib.
+    ## but then we need to see if it is in the manifest.
+    ## but manifest entries are just labels, which have no necessary
+    ## connection to filename or module name.
+
+    ## the rule must be: derive module names from manifest labels by stripping illegal chars,
+    ## then test for module name inclusion
+
+    ## the grammar for module names (https://v2.ocaml.org/manual/names.html):
+    ## module-name       ::=	capitalized-ident
+    ## capitalized-ident ::=	 (A…Z) { letter ∣ 0…9 ∣ _ ∣ ' } 
 
     if module in settings["@rules_ocaml//cfg/ns:prefixes"]:
         prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]

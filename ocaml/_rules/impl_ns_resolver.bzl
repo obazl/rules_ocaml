@@ -15,6 +15,7 @@ load("//ocaml/_functions:utils.bzl",
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load("//ocaml/_functions:module_naming.bzl",
+     "label_to_module_name",
      "normalize_module_label",
      "normalize_module_name")
 

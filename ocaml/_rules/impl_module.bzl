@@ -20,7 +20,7 @@ load("//ppx:providers.bzl",
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_functions:module_naming.bzl", "derive_module_name")
+load("//ocaml/_functions:module_naming.bzl", "derive_module_name_from_file_name")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -328,29 +328,35 @@ def _resolve_modname(ctx):
             # cmi name should already be normalized and namespaced
             return module_name
         else:
+            if debug: print("sig arg is src file")
             ## sigfile is srcfile; derive mod name from module attrib
             ## or label
 
             if ctx.attr.module:
-                (from_name, modname) = derive_module_name(
+                (from_name, modname) = derive_module_name_from_file_name(
                     ctx, ctx.attr.module)
                 return modname
             else:
-                (from_name, modname) = derive_module_name(
+                (from_name, modname) = derive_module_name_from_file_name(
                     ctx, ctx.label.name)
                 return modname
     else:
+        if debug: print("singleton module, no sig arg")
         ## singleton, no sig attribute
         if ctx.attr.module:
-            (from_name, modname) = derive_module_name(
+            if debug: print("ctx.attr.module override: %s" % ctx.attr.module)
+            ## now we need to namespace it
+            (from_name, modname) = derive_module_name_from_file_name(
                 ctx, ctx.attr.module)
+            if debug: print("derived module name: %s" % modname)
             return modname
             # basename = ctx.attr.module
             # return basename[:1].capitalize() + basename[1:]
         else:
-            (mname, extension) = paths.split_extension(
-                ctx.file.struct.basename)
-            (from_name, modname) = derive_module_name(ctx, mname)
+            if debug: print("deriving module name from structfile: %s" % ctx.file.struct.basename)
+            (mname, extension) = paths.split_extension(ctx.file.struct.basename)
+            (from_name, modname) = derive_module_name_from_file_name(ctx, mname)
+            if debug: print("derived module name: %s" % modname)
 
             return modname
 
@@ -358,7 +364,8 @@ def _resolve_modname(ctx):
 def impl_module(ctx): ## , mode, tool, tool_args):
 
     debug        = False
-    debug_ccdeps = False
+    debug_modname = True
+    debug_ccdeps = True
     debug_deps   = False
     debug_ns     = False
     debug_ppx    = False
@@ -463,7 +470,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     cmi_precompiled = False ## is cmi already produced by sig dep?
 
     modname = _resolve_modname(ctx)
-    # if debug:
+    if debug_modname: print("resolved modname: %s" % modname)
     if ctx.label.name == "Source_map_io":
         print("{c}Source_map_io m{r}: {m}".format(
             c=CCRED,r=CCRESET,m=modname))
