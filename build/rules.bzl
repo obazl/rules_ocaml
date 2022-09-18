@@ -50,6 +50,12 @@ load("//ocaml/_rules:ppx_executable.bzl" ,
 #      _ppx_expect_test = "ppx_expect_test",
 #      _ppx_test = "ppx_test")
 
+load("//ocaml/_rules:selection_proxy.bzl",
+     _ocaml_selection_proxy = "ocaml_selection_proxy",
+     _cc_selection_proxy = "cc_selection_proxy",
+     )
+
+
 # new_local_pkg_repository = _new_local_pkg_repository
 
 ocaml_null = _ocaml_null
@@ -78,3 +84,6 @@ ppx_executable   = _ppx_executable
 ppx_module       = _ppx_module
 # ppx_expect_test  = _ppx_expect_test
 # ppx_test         = _ppx_test
+
+ocaml_selection_proxy = _ocaml_selection_proxy
+cc_selection_proxy = _cc_selection_proxy
