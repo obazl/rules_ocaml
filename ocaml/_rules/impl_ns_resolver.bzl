@@ -37,7 +37,7 @@ workdir = tmpdir
 #################
 def impl_ns_resolver(ctx):
 
-    debug = True
+    debug = False
     debug_submodules = False
     debug_includes = False
     debug_embeds = False

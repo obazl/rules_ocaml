@@ -63,7 +63,7 @@ def print_config_state(settings, attr):
 
 ##################################################
 def _executable_in_transition_impl(transition, settings, attr):
-    debug = True
+    debug = False
 
     if debug:
         print("")
@@ -133,9 +133,9 @@ ocaml_executable_in_transition = transition(
 
 def _nslib_in_transition_impl(settings, attr):
     # print("_nslib_in_transition_impl %s" % attr.name)
-    debug = True
-    if attr.name in ["ppx_optcomp_light"]:
-        debug = True
+    debug = False
+    # if attr.name in ["ppx_optcomp_light"]:
+    #     debug = True
 
     if debug:
         print("")
