@@ -141,10 +141,10 @@ def impl_ns_resolver(ctx):
 
     if debug_submodules: print("iterating submodules")
     for submod_label in subnames:  # e.g. [Color, Red, Green, Blue], where main = Color
-        if debug_submodules: print("submod_label: %s" % submod_label)
+        if debug_submodules: print("next submod_label: %s" % submod_label)
         # NB: //a/b:c will be normalized to C
-        submodule = normalize_module_label(submod_label)
-        # print("submodule normed: %s" % submodule)
+        submodule = label_to_module_name(submod_label)
+        if debug_submodules: print("submodule normed: %s" % submodule)
         # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
         #     ## NB: subnames may come from different pkgs
         #     fs_prefix = get_fs_prefix(submod_label)
@@ -152,7 +152,7 @@ def impl_ns_resolver(ctx):
         # else:
         fs_prefix = ""
         alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
-        # print("alias_prefix: %s" % alias_prefix)
+        if debug_submodules: print("alias_prefix: %s" % alias_prefix)
 
         ## an ns can be used as a submodule of another ns
         nslib_submod = False
@@ -162,10 +162,10 @@ def impl_ns_resolver(ctx):
         #     submodule = capitalize_initial_char(submodule[1:])
 
         if len(ns_prefixes) > 0:
+            if debug_submodules: print("len(pfxs) > 0")
             if len(ns_prefixes) == 1:
                 if debug_submodules:
-                    print("lbl: %s" % ctx.label)
-                    print("one ns_prefixes: %s" % ns_prefixes)
+                    print("one ns_prefix: %s" % ns_prefixes)
                     print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
@@ -193,14 +193,20 @@ def impl_ns_resolver(ctx):
                 if ctx.attr.manifest:
                     user_ns_resolver = submod_label
                 continue ## no alias for main module
+        ## else len(pfxs) !> 0
+
         # print("submodule pre: %s" % submodule)
         submodule = capitalize_initial_char(submodule)
-        # print("submodule uc: %s" % submodule)
+        if debug_submodules: print("submodule uc: %s" % submodule)
+        # if attr.module:
+        #     if debug_submodules: print("module attrib: %s" % attr.module)
+
         alias = "module {mod} = {ns}{sep}{mod}".format(
             mod = submodule,
             sep = "" if nslib_submod else module_sep, # fs_prefix != "" else module_sep,
             ns  = "" if nslib_submod else alias_prefix
         )
+        if debug_submodules: print("appending alias: %s" % alias)
         aliases.append(alias)
 
     if debug_submodules: print("finished iterating submodules")

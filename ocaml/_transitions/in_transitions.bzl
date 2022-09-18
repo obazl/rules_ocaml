@@ -243,7 +243,8 @@ def _module_in_transition_impl(settings, attr):
     #     print("target:{c}{t}{r}".format(c=CCRED,t=attr.name,r=CCRESET))
 
     if debug:
-        print(">>> ocaml_module_in_transition")
+        print("{c}>>> module_in_transition{r}".format(
+            c=CCYELBG,r=CCRESET))
         print_config_state(settings, attr)
 
     module = None
@@ -305,13 +306,13 @@ def _module_in_transition_impl(settings, attr):
     # if prefixes == []:
     #     print("\n\n{c}NULL PFXS: {n}{r}  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n".format(
     #         c=CCRED,r=CCRESET,n=attr.name))
-    # # if debug:
-    #     print("IN STATE:")
-    #     print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
-    #     print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
-    #     print("OUT STATE:")
-    #     print("  ns:prefixes: %s" % prefixes)
-    #     print("  ns:submodules: %s" % submodules)
+    if debug:
+        print("IN STATE:")
+        print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+        print("OUT STATE:")
+        print("  ns:prefixes: %s" % prefixes)
+        print("  ns:submodules: %s" % submodules)
 
         # fail("xxxxxxxxxxxxxxxx")
 

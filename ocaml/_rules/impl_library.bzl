@@ -44,7 +44,7 @@ load("//ocaml/_debug:colors.bzl",
 #################
 def _handle_ns_library(ctx):
     debug = False
-    debug_ns = True
+    debug_ns = False
     if debug or debug_ns: print("_handle_ns_library")
 
     # ns_resolver_depset = None
@@ -146,12 +146,19 @@ def _handle_ns_library(ctx):
         the_ns_resolvers
     )
 
-#################
+CCBLUCYN="\033[44m\033[36m"
+
+
+######################
 def impl_library(ctx):
+
+    print("{c}impl_library: {a}{r}".format(
+        c=CCBLUCYN,a=ctx.label,r=CCRESET))
 
     debug      = False
     debug_deps = False
-    debug_ns   = True
+    debug_ns   = False
+    debug_cc   = True
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 

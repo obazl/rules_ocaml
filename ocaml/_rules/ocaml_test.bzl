@@ -9,6 +9,11 @@ load("//ocaml/_debug:colors.bzl", "CCYEL", "CCRESET")
 ###############################
 def _ocaml_test(ctx):
 
+    # print("ctx.attr.constraint_deps: %s" % ctx.attr.constraint_deps)
+    # for dep in ctx.attr.constraint_deps:
+    #     print("constraint_deps[DefaultInfo]: %s" % dep[DefaultInfo])
+    #     print("constraint_deps[BuildSettingInfo]: %s" % dep[BuildSettingInfo])
+
     # tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     # print("BUILD TGT: {color}{lbl}{reset}".format(
     #     color=CCYEL, reset=CCRESET, lbl=ctx.label))

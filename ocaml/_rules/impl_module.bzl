@@ -316,11 +316,13 @@ def _resolve_modname(ctx):
     #     return basename[:1].capitalize() + basename[1:]
     #     # return ctx.label.name[1:]
 
-    ## Always use derive_module_name (unless sig attr is a cmi), since
+    ## Always use derive_module_name_from_file_name (unless sig attr is a cmi), since
     ## it will handle ns prefixing, even when 'module' att is used.
 
     if ctx.attr.sig:
+        if debug: print("ctx.attr.sig: %s" % ctx.attr.sig)
         if OcamlSignatureProvider in ctx.attr.sig:
+            if debug: print("sig arg is cmi")
             # name of cmi always determines modname
             if ctx.attr.module:
                 fail("Cannot force module name if sig attr is cmi file")
@@ -514,10 +516,15 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if ctx.attr.sig:
         ##FIXME: make this a fn
         if debug: print("dyadic module, with sig: %s" % ctx.attr.sig)
+        # if debug: print("sig default: %s" % ctx.attr.sig[DefaultInfo])
+        # if debug: print("sig in attr? %s" % (OcamlSignatureProvider in ctx.attr.sig))
+        # if debug: print("sig ocamlsig: %s" % ctx.attr.sig[OcamlSignatureProvider])
+        # if debug: print("sigfile: %s" % ctx.file.sig)
 
         ## handlers to deal with ns renaming and ppx
 
         if OcamlSignatureProvider in ctx.attr.sig:
+        # or ctx.file.sig.extension == "cmi"):
             if debug:
                 print("sigattr is precompiled .cmi")
                 print("ctx.attr.sig: %s" % ctx.attr.sig)
@@ -1056,7 +1063,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ################ PRIMARY CCLIB DEPENDENCIES ################
     # FIXME: remove cc_deps attrib
     for ccdep in ctx.attr.cc_deps:
+        if debug_ccdeps:
+            print("CCDEP: %s" % ccdep)
         if CcInfo in ccdep:
+            # dump_CcInfo(ctx, ccdep[CcInfo])
             cc_deps_primary.append(ccdep[CcInfo])
 
         ## stublibs is label_keyed_string_dict, whose keys are targets

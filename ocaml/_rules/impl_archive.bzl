@@ -33,13 +33,16 @@ load("@rules_ocaml//ocaml/_debug:colors.bzl",
 
 CCBLUCYN="\033[44m\033[36m"
 
-#################
+######################
 def impl_archive(ctx):
 
-    # print("{c}impl_archive: {a}{r}".format(
-    #     c=CCBLUCYN,a=ctx.label,r=CCRESET))
+    print("{c}impl_archive: {a}{r}".format(
+        c=CCBLUCYN,a=ctx.label,r=CCRESET))
 
     debug = False # True
+    debug_lib = False
+    debug_cc  = False
+
     # if ctx.label.name == "Bare_structs":
     #     debug = True #False
 
@@ -74,20 +77,27 @@ def impl_archive(ctx):
     lib_providers = impl_library(ctx) #, tc.target, tool, tool_args)
 
     libDefaultInfo = lib_providers[0]
-    # print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
+    if debug_lib:
+        print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
 
     libOcamlProvider = lib_providers[1]
-    if debug:
-        print("libOcamlProvider.sigs: %s" % type(libOcamlProvider.sigs))
-        print("libOcamlProvider.archives: %s" % libOcamlProvider.archive)
+    if debug_lib:
+        print("libOcamlProvider: %s" % type(libOcamlProvider))
 
     outputGroupInfo = lib_providers[2]
+    if debug_lib:
+        print("lib outputGroupInfo: %s" % outputGroupInfo)
 
     _ = lib_providers[3] # OcamlLibraryMarker
 
     ppxCodepsProvider = lib_providers[4] ## may be empty
+    if debug_lib:
+        print("lib ppxCodepsProvider: %s" % ppxCodepsProvider)
 
     ccInfo  = lib_providers[5] # may be empty
+    if debug_lib:
+        print("lib ccInfo")
+        print("%s" % dump_CcInfo(ctx, ccInfo))
 
     if ctx.attr._rule.startswith("ocaml_ns"):
         nsMarker = lib_providers[6]  # OcamlNsMarker

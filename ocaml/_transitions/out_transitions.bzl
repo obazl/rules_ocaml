@@ -23,19 +23,19 @@ def print_config_state(settings, attr):
         c=CCYEL,n=attr.name,r=CCRESET))
     if hasattr(attr, "ns"):
         print("attr.ns: %s" % attr.ns)
-    if hasattr(attr, "submodules"):
+    if hasattr(attr, "manifest"):
         print("attr.manifest: %s" % attr.manifest)
     if hasattr(attr, "resolver"):
         print("  attr.resolver: %s" % attr.resolver)
 
-    print("  ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
-    print("  ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+    print("@rules_ocaml//cfg/ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+    print("@rules_ocaml//cfg/ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
     print("/CONFIG State")
 
 ################################################################
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     # print("_ocaml_nslib_out_transition_impl %s" % attr.name)
-    debug = True
+    debug = False
     # if attr.name in ["greek"]:
     #     debug = True
 
@@ -46,22 +46,21 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         # print(">>> " + transition)
         # print("attr.name: %s" % attr.name)
         print_config_state(settings, attr)
-        # print("attr: %s" % attr)
         # print("submodules: %s" % attr.manifest)
         # for submod in attr.manifest:
         #     print("submod: %s" % submod)
 
     nslib_name = normalize_module_name(attr.name)
+    if debug: print("nslib_name: %s" % nslib_name)
     # ns attribute overrides default derived from rule name
     if hasattr(attr, "ns"):
         if attr.ns:
             nslib_name = normalize_module_name(attr.ns)
+            if debug: print("nslib_name, overridden by ns attrib: %s" % nslib_name)
 
     ns_prefixes = []
     ns_prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
-    if debug: print("ns_prefixes: %s" % ns_prefixes)
     ns_submodules = settings["@rules_ocaml//cfg/ns:submodules"]
-    if debug: print("ns_submodules: %s" % ns_submodules)
 
     ## convert submodules label list to module name list
     attr_submodules = []
@@ -75,6 +74,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         attr_submodule_labels.append(str(submod_label))
 
     nslib_module = capitalize_initial_char(nslib_name) # not needed?
+    if debug: print("nslib_module: %s" % nslib_module)
 
     if len(ns_prefixes) == 0 and ns_submodules == []:
         # print("X 1")

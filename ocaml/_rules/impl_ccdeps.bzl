@@ -110,8 +110,8 @@ def lib_to_string(ctx, i, j, lib):
 
 ################
 def ccinfo_to_string(ctx, cc_info):
-    debug = False
-    if debug: print("DUMP_CCINFO for %s" % ctx.label)
+    debug = True
+    if debug: print("CCINFO_TO_STRING for %s" % ctx.label)
     if debug: print(CCYEL + "ccinfo: %s" % cc_info)
 
     text = ""
@@ -541,7 +541,7 @@ def x(ctx,
 #     return [action_inputs_ccdep_filelist, ccDepsProvider]
 
 def dump_compilation_context(ccinfo):
-    print("dump_compilation_context")
+    print("{c}dumping compilation_context{r}".format(c=CCRED,r=CCRESET))
     compile_ctx = ccinfo.compilation_context
     print("compilation_context: %s" % compile_ctx)
     print("fields: %s" % dir(compile_ctx))
@@ -558,7 +558,7 @@ def get_libname(linker_input):
 
 ##########################
 def filter_ccinfo(target):
-    print("filter_ccinfo: %s" % target)
+    print("{c}filter_ccinfo{r}: {t}".format(c=CCRED,t=target,r=CCRESET))
 
 
     # task: if target is produced by a cc_* rule, then filter out the
