@@ -154,8 +154,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # do not uniquify options, it collapses all -I
     args.add_all(_options)
 
-    if "-g" in _options:
-        args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
+    ## FIXME: drive this with compilation_mode == dbg, not -g
+    if tc.target == "vm":
+        if "-g" in _options:
+            args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
 
     ################################################################
                    ####    DEPENDENCIES    ####
