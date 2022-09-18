@@ -367,7 +367,7 @@ def _ocaml_signature_impl(ctx):
         ns_enabled = True
     elif ctx.attr._ns_resolver:
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
-        if nsrp.ns_name:
+        if hasattr(nsrp, "ns_name"):
             ns_enabled = True
 
     ns_path_depsets = []
