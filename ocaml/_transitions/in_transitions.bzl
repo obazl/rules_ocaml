@@ -253,18 +253,21 @@ def _module_in_transition_impl(settings, attr):
 
     # 1. derive this module name w/o ns prefix
 
-    if attr.sig:
+    if hasattr(attr, "sig"):
         if debug: print("SIG: %s" % attr.sig)
         if attr.module:
             module = attr.module[:1].capitalize() + attr.module[1:]
         else:
+            ## FIXME: label_to_module_name?
             module = attr.name[:1].capitalize() + attr.name[1:]
     else: ## singleton, no sig attribute
         if attr.module:
+            ## must be a legal ocaml module name, so we can just upcase the first char
             module = attr.module[:1].capitalize() + attr.module[1:]
         else:
             if debug:
                 print("{c} struct:{r} {m}".format(c=CCBLU,r=CCRESET,m=attr.struct))
+            ## FIXME: label_to_module_name?
             (bn, ext) = paths.split_extension(attr.struct.name)
             module = bn[:1].capitalize() + bn[1:]
 
