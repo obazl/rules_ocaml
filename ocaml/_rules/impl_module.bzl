@@ -711,7 +711,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         )
         ofiles_primary.append(out_ofile)
         action_outputs.append(out_ofile)
-    else: out_ofile = None
+    else: out_ofile = []
 
     ################################################################
                    ####    DEPENDENCIES    ####
