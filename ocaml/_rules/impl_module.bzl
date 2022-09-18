@@ -214,11 +214,21 @@ def _handle_precompiled_sig(ctx, modname, ext):
         work_mli = ctx.actions.declare_file(
             scope + sigProvider.mli.basename
         )
-        ctx.actions.symlink(output = work_mli, target_file = sigProvider.mli)
+        ctx.actions.symlink(
+            output = work_mli, target_file = sigProvider.mli,
+            progress_message = "symlinking {src} to {dst}".format(
+                src = sigProvider.mli.basename, dst = work_mli.basename
+            )
+        )
         work_cmi = ctx.actions.declare_file(
             scope + sigProvider.cmi.basename
         )
-        ctx.actions.symlink(output = work_cmi, target_file = sigProvider.cmi)
+        ctx.actions.symlink(
+            output = work_cmi, target_file = sigProvider.cmi,
+            progress_message = "symlinking {src} to {dst}".format(
+                src = sigProvider.cmi.basename, dst = work_cmi.basename
+            )
+        )
 
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig:")
@@ -232,7 +242,10 @@ def _handle_precompiled_sig(ctx, modname, ext):
             # scope + ctx.file.struct.basename
             scope + modname + ".ml"
         )
-        ctx.actions.symlink(output = work_ml, target_file = ctx.file.struct)
+        ctx.actions.symlink(
+            output = work_ml, target_file = ctx.file.struct,
+            progress_message = "symlinking %{input} to %{output}"
+        )
 
     work_struct = ctx.actions.declare_file(
         scope + modname + ext
