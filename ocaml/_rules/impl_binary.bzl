@@ -129,7 +129,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     codep_cc_deps_secondary = []
     codep_paths_secondary    = []
 
-    cc_libs = []
+    # cc_libs = []
 
     ################
     includes   = []
@@ -180,8 +180,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             afiles_secondary.append(provider.afiles)
             astructs_secondary.append(provider.astructs)
 
-            if hasattr(provider, "cc_libs"):
-                cc_libs.extend(provider.cc_libs)
+            # if hasattr(provider, "cc_libs"):
+            #     cc_libs.extend(provider.cc_libs)
 
             paths_secondary.append(provider.paths)
 
@@ -301,7 +301,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         astructs_secondary.append(provider.astructs)
         paths_secondary.append(provider.paths)
 
-        cc_libs.extend(provider.cc_libs)
+        # cc_libs.extend(provider.cc_libs)
 
         if PpxCodepsProvider in main:
             if debug_ppx: print("main module has PpxCodepsProvider")
@@ -395,18 +395,15 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     ## we put -lfoo before -Lpath/to/foo, to avoid iterating twice
     cclib_linkpaths = []
-    for cclib in dynamic_cc_deps:
-        cclib_linkpaths.append("-L" + cclib.dynamic_library.dirname)
-        args.add("-cclib", cclib.dynamic_library.path)
+    cc_runfiles = []
 
-    args.add_all(cclib_linkpaths, before_each="-ccopt", uniquify=True)
+    ## NB: -cclib -lfoo is just for -custom linking!
+    ## for std (non-custom) linking use -dllib
 
-    sincludes = []
-    for dep in static_cc_deps:
-        # print("STATIC DEP: %s" % dep)
-        includes.append(dep.dirname)
-        sincludes.append("-L" + dep.dirname)
-    # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
+    runfiles_root = out_exe.path + ".runfiles"
+    print("runfiles_root: %s" % runfiles_root)
+    ws_name = ctx.workspace_name
+    print("ws name: %s" % ws_name)
 
     if tc.target == "vm":
         # vmlibs =  lib/stublibs/dll*.so, set by toolchain
@@ -656,7 +653,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ################
 
     #### RUNFILE DEPS ####
-    rfiles = ctx.files.data + tc.vmlibs
+    rfiles = ctx.files.data + tc.vmlibs + cc_runfiles
     if ctx.attr.strip_data_prefixes:
         myrunfiles = ctx.runfiles(
             files = rfiles,

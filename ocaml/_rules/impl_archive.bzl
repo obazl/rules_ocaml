@@ -13,6 +13,8 @@ load("//ppx:providers.bzl",
      "PpxCodepsProvider",
 )
 
+load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
+
 load(":impl_library.bzl", "impl_library")
 
 load("//ocaml/_functions:module_naming.bzl", "normalize_module_name")
@@ -243,9 +245,32 @@ def impl_archive(ctx):
         # elif dep == ns_resolver:
         #     args.add(dep)
 
-    # for dep in submod_arglist:
-    #     # if dep.extension in ["cmx"]:
-    #     args.add(dep)
+    ##FIXME: cc deps same as for ocaml_binary, all indirect cc_deps in
+    ## manifest should be added to cmd line of archive, plus direct cc
+    ## deps in cc_deps attr.
+
+    if ctx.attr.cc_deps:
+        includes = []
+        sincludes = []
+        cc_deps_primary         = []
+        for dep in ctx.attr.cc_deps:
+            cc_deps_primary.append(dep[CcInfo])
+            dump_CcInfo(ctx, dep[CcInfo])
+        ccInfo_direct = cc_common.merge_cc_infos(
+            cc_infos = cc_deps_primary)
+        if debug_cc: print("Merged CcInfo: %s" % ccInfo)
+        ## extract cc_deps from merged CcInfo provider:
+        [
+            static_cc_deps, dynamic_cc_deps
+        ] = extract_cclibs(ctx, tc.linkmode, args, ccInfo)
+        for dep in static_cc_deps:
+            print("STATIC DEP: %s" % dep)
+            args.add(dep.path)
+            # includes.append(dep.dirname)
+            # sincludes.append("-L" + dep.dirname)
+        # fail("xxxxxxxxxxxxxxxx")
+        # args.add_all(includes, before_each="-I", uniquify=True)
+        # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
 
     args.add("-a")
 

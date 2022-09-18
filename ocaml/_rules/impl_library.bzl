@@ -14,13 +14,18 @@ load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
 
+load(":impl_ccdeps.bzl",
+     "dso_to_ccinfo",
+     "filter_ccinfo",
+     "extract_cclibs", "dump_CcInfo",
+     "ccinfo_to_string"
+     )
+
 load("//ppx:providers.bzl",
      "PpxCodepsProvider",
 )
 
 load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
-
-load(":impl_ccdeps.bzl", "dump_CcInfo")
 
 load("//ocaml/_debug:colors.bzl",
      "CCRED", "CCBLU", "CCDER", "CCGRN", "CCMAG", "CCRESET")
@@ -298,7 +303,7 @@ def impl_library(ctx):
     indirect_linkargs_depsets = []
     indirect_paths_depsets = []
 
-    ccInfo_list = []
+    cc_depslist = []
 
     ##FIXME: this dups what's above with direct_dep_files ,direct_deps_attr
     direct_module_deps_files = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
@@ -368,11 +373,13 @@ def impl_library(ctx):
         indirect_linkargs_depsets.append(dep[DefaultInfo].files)
 
         if CcInfo in dep:
+            if debug_cc: print("direct module cc_dep: %s" % dep)
+
             ## we do not need to do anything with ccdeps here,
             ## just pass them on in a provider
             # if ctx.label.name == "tezos-legacy-store":
             #     dump_CcInfo(ctx, dep)
-            ccInfo_list.append(dep[CcInfo])
+            cc_depslist.append(dep[CcInfo])
 
         if PpxCodepsProvider in dep:
             ppx = True
@@ -420,11 +427,24 @@ def impl_library(ctx):
 
     for dep in ctx.attr.cc_deps:
         if CcInfo in dep:
+            if debug_cc: print("ctx.attr.cc_deps dep: %s" % dep)
             ## we do not need to do anything with ccdeps here,
             ## just pass them on in a provider
-            # if ctx.label.name == "tezos-legacy-store":
-            #     dump_CcInfo(ctx, dep)
-            ccInfo_list.append(dep[CcInfo])
+
+            (libname, filtered_ccinfo) = filter_ccinfo(dep)
+            print("LIBNAME: %s" % libname)
+            print("FILTERED CCINFO: %s" % filtered_ccinfo)
+            if filtered_ccinfo:
+                cc_depslist.append(filtered_ccinfo)
+                # cc_depslist.append(libname)
+            else:
+                ## this dep has CcInfo but not OcamlProvider;
+                ## infer it was delivered by cc_binary
+                ## must be a shared lib
+                    ccfile = dep[DefaultInfo].files.to_list()[0]
+                    cc_info = dso_to_ccinfo(ctx, dep[CcInfo], ccfile)
+                    cc_depslist.append(cc_info)
+            # dump_CcInfo(ctx, dep[CcInfo])
 
     action_inputs_depset = depset(
         order = dsorder,
@@ -608,16 +628,18 @@ def impl_library(ctx):
             paths = depset()
         ))
 
-    ## Provider 4: possibly empty CcInfo
-    ccInfo_merged = cc_common.merge_cc_infos(cc_infos = ccInfo_list)
+    ## Provider 5: possibly empty CcInfo
+    ccInfo_merged = cc_common.merge_cc_infos(cc_infos = cc_depslist)
     # if ctx.label.name == "tezos-legacy-store":
-    #     print("ccInfo_merged: %s" % ccInfo_merged)
-    if ccInfo_list:
+    print("ccInfo_merged: %s" % ccInfo_merged)
+    dump_CcInfo(ctx, ccInfo_merged)
+    if cc_depslist:
+        print("XXXXXXXXXXXXXXXX")
         providers.append(ccInfo_merged)
     else:
         providers.append(CcInfo())
 
-    ## Provider 5: optional NS marker
+    ## Provider 6: optional NS marker
     # if ctx.attr._rule.startswith("ocaml_ns"):
     if ns_enabled:
         providers.append(

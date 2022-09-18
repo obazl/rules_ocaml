@@ -1,4 +1,7 @@
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
+
 # load("//ocaml:providers.bzl", "CcDepsProvider")
 load("//ocaml:providers.bzl",
      "OcamlVmRuntimeProvider",
@@ -49,34 +52,38 @@ def dump_library_to_link(ctx, idx, lib):
 
 #########################
 def dump_CcInfo(ctx, cc_info): # dep):
-    # print("DUMP_CCINFO for %s" % ctx.label)
+    print("DUMP_CCINFO for %s" % ctx.label)
     # print("CcInfo dep: {d}".format(d = dep))
 
     # dfiles = dep[DefaultInfo].files.to_list()
     # if len(dfiles) > 0:
 
-        # for f in dfiles:
-        #     print("  %s" % f)
+    # for f in dfiles:
+    #     print("  %s" % f)
 
-        ## ASSUMPTION: all files in DefaultInfo are also in CcInfo
-        # print("dep[CcInfo].linking_context:")
-        # cc_info = dep[CcInfo]
-        compilation_ctx = cc_info.compilation_context
-        linking_ctx     = cc_info.linking_context
-        linker_inputs = linking_ctx.linker_inputs.to_list()
-        # print("linker_inputs count: %s" % len(linker_inputs))
-        lidx = 0
-        for linput in linker_inputs:
-            # print(" linker_input[{i}]".format(i=lidx))
-            # print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
-            libs = linput.libraries
-            # print(" libs count: %s" % len(libs))
-            if len(libs) > 0:
-                i = 0
-                for lib in linput.libraries:
-                    dump_library_to_link(ctx, i, lib)
-                    i = i+1
-            lidx = lidx + 1
+    dump_compilation_context(cc_info)
+
+    ## ASSUMPTION: all files in DefaultInfo are also in CcInfo
+    # print("dep[CcInfo].linking_context:")
+    # cc_info = dep[CcInfo]
+    # compilation_ctx = cc_info.compilation_context
+
+    print("{c}dumping linking_context{r}".format(c=CCRED,r=CCRESET))
+    linking_ctx     = cc_info.linking_context
+    linker_inputs = linking_ctx.linker_inputs.to_list()
+    print("linker_inputs count: %s" % len(linker_inputs))
+    lidx = 0
+    for linput in linker_inputs:
+        print(" linker_input[{i}]".format(i=lidx))
+        print(" linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+        libs = linput.libraries
+        print(" libs count: %s" % len(libs))
+        if len(libs) > 0:
+            i = 0
+            for lib in linput.libraries:
+                dump_library_to_link(ctx, i, lib)
+                i = i+1
+        lidx = lidx + 1
 
     # else:
     #     for dep in dfiles:
@@ -159,24 +166,35 @@ def extract_cclibs(ctx,
     for linput in linker_inputs:
         libs = linput.libraries
         if len(libs) > 0:
+
+            # if lib contains both .a and .so, consult linkmode to choose
+
+            ##FIXME: what about interface_library and
+            ##resolved_symlink_interface_library?
+
+            ## FIXME: what about lto_bitcode_files, pic_lto_bitcode_files?
             for lib in libs:
                 # print("LIB: %s" % lib)
-                if lib.pic_static_library:
-                    # print("PIC static: %s" % lib.pic_static_library)
-                    static_libs.append(lib.pic_static_library)
-                    # action_inputs_list.append(lib.pic_static_library)
-                    # args.add(lib.pic_static_library.path)
-                if lib.static_library:
-                    # print("static: %s" % lib.static_library)
-                    static_libs.append(lib.static_library)
-                    # action_inputs_list.append(lib.static_library)
-                    # args.add(lib.static_library.path)
-                if lib.dynamic_library:
-                    # print("dynamic: %s" % lib.dynamic_library)
-                    dynamic_libs.append(lib.dynamic_library)
-                    # action_inputs_list.append(lib.dynamic_library)
-                    # args.add("-ccopt", "-L" + lib.dynamic_library.dirname)
-                    # args.add("-cclib", lib.dynamic_library.path)
+
+                if lib.static_library and lib.dynamic_library:
+                    if ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "static":
+                    # if default_linkmode == "static":
+                        ## FIXME: what about pic_static_library?
+                        static_libs.append(lib.static_library)
+                    else:
+                        if lib.resolved_symlink_dynamic_library:
+                            dynamic_libs.append(lib.resolved_symlink_dynamic_library)
+                        elif lib.dynamic_library:
+                            dynamic_libs.append(lib.dynamic_library)
+                else:
+                    if lib.pic_static_library:
+                        static_libs.append(lib.pic_static_library)
+                    if lib.static_library:
+                        static_libs.append(lib.static_library)
+                    if lib.resolved_symlink_dynamic_library:
+                        dynamic_libs.append(lib.resolved_symlink_dynamic_library)
+                    elif lib.dynamic_library:
+                        dynamic_libs.append(lib.dynamic_library)
 
     # print("static_libs: %s" % static_libs)
     return [static_libs, dynamic_libs]
@@ -583,4 +601,45 @@ def filter_ccinfo(target):
         )
         return (lib, ccinfo_out)
     else:
-        return None
+        return (None, None)
+
+##########################
+def dso_to_ccinfo(ctx, ccinfo, ccfile):
+    print("{c}dso_to_ccinfo{r}: {t}".format(c=CCRED,t=ccinfo,r=CCRESET))
+
+    ## Create a new CcInfo containing just the ccfile
+
+    cc_toolchain = find_cpp_toolchain(ctx)
+    # cc_toolchain = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
+
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        requested_features = ctx.features,
+        unsupported_features = ctx.disabled_features,
+    )
+
+    lib_to_link = cc_common.create_library_to_link(
+        actions = ctx.actions,
+        feature_configuration = feature_configuration,
+        dynamic_library = ccfile,
+        dynamic_library_symlink_path = ccfile.path,
+        cc_toolchain = cc_toolchain
+    )
+    print("lib_to_link: %s" % lib_to_link)
+
+    linker_input = cc_common.create_linker_input(
+        owner = ctx.label,
+        libraries = depset(direct=[lib_to_link])
+    )
+
+    linking_ctx     = cc_common.create_linking_context(
+        linker_inputs = depset(direct=[linker_input])
+    )
+
+    cc_info = CcInfo(
+        compilation_context = cc_common.create_compilation_context(),
+        linking_context = linking_ctx
+    )
+
+    return cc_info

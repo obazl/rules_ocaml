@@ -112,26 +112,14 @@ NOTE: These do not support `:enable`, `:disable` syntax.
         rule_options,
     ),
 
-    fragments = ["platform"],
-    host_fragments = ["platform"],
+    fragments = ["platform", "cpp"],
+    host_fragments = ["platform",  "cpp"],
     incompatible_use_toolchain_transition = True,
-    # exec_groups = {
-    #     "compile": exec_group(
-    #         exec_compatible_with = [
-    #             # "@platforms//os:linux",
-    #             "@platforms//os:macos"
-    #         ],
-    #         toolchains = [
-    #             "@rules_ocaml//toolchain/type:std",
-    #             # "@rules_ocaml//cfg/coq:toolchain_type",
-    #         ],
-    #     ),
-    # },
     cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std",
-                  "@rules_ocaml//toolchain/type:profile"],
-                  # "@bazel_tools//tools/cpp:toolchain_type"
+                  "@rules_ocaml//toolchain/type:profile",
+                  "@bazel_tools//tools/cpp:toolchain_type"]
 )
 

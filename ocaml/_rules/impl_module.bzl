@@ -35,8 +35,10 @@ load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_name")
 
 load(":impl_ccdeps.bzl",
-     "filter_ccinfo"
-     # "extract_cclibs", "dump_CcInfo",
+     "dso_to_ccinfo",
+     "filter_ccinfo",
+     "extract_cclibs", "dump_CcInfo",
+     "ccinfo_to_string"
      )
 
 load(":impl_common.bzl",
@@ -949,7 +951,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ## target? For static libs, DefaultInfo would contain exactly
         ## one .a file.
         if CcInfo in dep:
-            if debug_ccdeps: print("CcInfo dep: %s" % dep)
+            if debug_ccdeps:
+                print("CcInfo dep: %s" % dep)
+                print("CcInfo default: %s" % dep[DefaultInfo])
+                print("CcInfo provider: %s" % dep[CcInfo])
+                dump_CcInfo(ctx,dep[CcInfo])
+
             if OcamlProvider in dep:
                 if debug_ccdeps: print("OcamProvider dep: %s" % dep)
                 ## this ccinfo is a carrier, not a direct cc_* dep
@@ -964,9 +971,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                     cc_deps_primary.append(filtered_ccinfo)
                     cc_libs.append(libname)
                 else:
+                    ## this dep has CcInfo but not OcamlProvider;
+                    ## infer it was delivered by cc_binary
                     ## must be a shared lib
-                    ## not yet supported
-                    print("DefaultInfo: %s" % dep[DefaultInfo])
+                    ccfile = dep[DefaultInfo].files.to_list()[0]
+                    cc_info = dso_to_ccinfo(ctx, dep[CcInfo], ccfile)
+                    cc_deps_secondary.append(cc_info)
 
     if debug_deps:
         print("deps analysis result:")
@@ -1454,6 +1464,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         )
         providers.append(ccInfo )
         if debug_ccdeps:
+            dump_CcInfo(ctx, ccInfo)
+            print("x: %s" % ccinfo_to_string(ctx, ccInfo))
             print("Module provides: %s" % ccInfo)
 
     if hasattr(ctx.attr, "ppx_codeps"):

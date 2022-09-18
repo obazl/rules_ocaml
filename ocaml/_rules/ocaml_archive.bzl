@@ -102,5 +102,10 @@ ocaml_archive = rule(
     cfg     = nslib_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain/type:std"],
+    fragments = ["platform", "cpp"],
+    host_fragments = ["platform",  "cpp"],
+    # toolchains = ["@rules_ocaml//toolchain/type:std"],
+    toolchains = ["@rules_ocaml//toolchain/type:std",
+                  "@rules_ocaml//toolchain/type:profile",
+                  "@bazel_tools//tools/cpp:toolchain_type"]
 )
