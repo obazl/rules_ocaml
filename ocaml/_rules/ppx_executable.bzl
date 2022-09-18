@@ -165,6 +165,12 @@ ppx_executable = rule(
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
+
+        vm_runtime = attr.label(
+            doc = "@ocaml_rules//cfg/runtime:dynamic (default), @ocaml_rules//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
+            default = "@rules_ocaml//cfg/runtime"
+        ),
+
         _rule = attr.string( default = "ppx_executable" ),
         # _sdkpath = attr.label(
         #     default = Label("@rules_ocaml//cfg:sdkpath")

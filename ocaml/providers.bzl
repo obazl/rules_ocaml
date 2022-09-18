@@ -16,8 +16,9 @@ load("//ocaml/_providers:ocaml.bzl",
      _OcamlNsSubmoduleMarker = "OcamlNsSubmoduleMarker",
      ## FIXME: choose one:
      _OcamlSignatureMarker  = "OcamlSignatureMarker",
-     _OcamlSignatureProvider  = "OcamlSignatureProvider",
-     _OcamlTestMarker    = "OcamlTestMarker",
+     _OcamlSignatureProvider = "OcamlSignatureProvider",
+     _OcamlTestMarker        = "OcamlTestMarker",
+     _OcamlVmRuntimeProvider = "OcamlVmRuntimeProvider"
      )
 
 load("//ppx:providers.bzl", # FIXME: //ppx/_providers.bzl?
@@ -40,6 +41,7 @@ OcamlNsSubmoduleMarker             = _OcamlNsSubmoduleMarker
 OcamlSignatureMarker               = _OcamlSignatureMarker
 OcamlSignatureProvider             = _OcamlSignatureProvider
 OcamlTestMarker                    = _OcamlTestMarker
+OcamlVmRuntimeProvider             = _OcamlVmRuntimeProvider
 
 PpxExecutableMarker = _PpxExecutableMarker
 

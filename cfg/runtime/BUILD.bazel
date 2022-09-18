@@ -1,0 +1,17 @@
+package(default_visibility = ["//visibility:public"])
+
+load("@rules_ocaml//build:rules.bzl", "ocaml_vm_runtime")
+
+label_setting(name="runtime", build_setting_default = ":dynamic")
+
+ocaml_vm_runtime(name = "dynamic")
+ocaml_vm_runtime(name = "static")
+
+## user-defined runtimes, using ocamlc -make-runtime
+ocaml_vm_runtime(
+    name = "foo",
+    deps = [
+        "@unix//lib/unix",
+        "@threads//lib/threads"
+    ]
+)

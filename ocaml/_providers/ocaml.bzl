@@ -63,6 +63,13 @@ OcamlProvider = provider(
     }
 )
 
+OcamlVmRuntimeProvider = provider(
+    doc = "OCaml VM Runtime provider",
+    fields = {
+        "kind": "string: dynamic (default), static, or standalone"
+    }
+)
+
 # OcamlArchiveProvider = provider(
 #     doc = """OCaml archive provider.
 

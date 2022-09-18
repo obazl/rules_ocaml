@@ -213,6 +213,12 @@ def options_binary():
             doc = "List of C/C++ link options. E.g. `[\"-lstd++\"]`.",
 
         ),
+
+        vm_runtime = attr.label(
+            doc = "@ocaml_rules//cfg/runtime:dynamic (default), @ocaml_rules//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
+            default = "@rules_ocaml//cfg/runtime"
+        ),
+
         # mode = attr.label(
         #     default = ws + "//build/mode"
         # ),

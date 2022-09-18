@@ -42,6 +42,8 @@ load("//ocaml/_rules:ocaml_signature.bzl",
 
 load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
 
+load("//ocaml/_rules:ocaml_vm_runtime.bzl", _ocaml_vm_runtime = "ocaml_vm_runtime")
+
 load("//ocaml/_rules:ppx_module.bzl", _ppx_module = "ppx_module")
 
 load("//ocaml/_rules:ppx_executable.bzl" ,
@@ -74,6 +76,7 @@ ocaml_signature  = _ocaml_signature
 # ocaml_ns_signature  = _ocaml_ns_signature
 # ocaml_ns_subsignature  = _ocaml_ns_subsignature
 ocaml_test       = _ocaml_test
+ocaml_vm_runtime = _ocaml_vm_runtime
 
 # ocaml_lex        = _ocaml_lex
 # ocaml_yacc       = _ocaml_yacc

@@ -7,6 +7,7 @@ load("//ocaml:providers.bzl",
      "OcamlImportMarker",
      "OcamlModuleMarker",
      "OcamlTestMarker",
+     "OcamlVmRuntimeProvider",
 )
 
 load("//ppx:providers.bzl",
@@ -418,20 +419,76 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         args.add("-dllpath", tc.vmlibs[0].dirname)
         args.add("-I", tc.vmlibs[0].dirname)
 
+        if debug:
+            print("{c}vm_runtime:{r} {rt}".format(
+                c=CCGRN,r=CCRESET, rt = ctx.attr.vm_runtime))
+            print("vm_runtime[OcamlVmRuntimeProvider: %s" %
+                  ctx.attr.vm_runtime[OcamlVmRuntimeProvider])
+
         # if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
             ## Currently we default to a custom runtime.
             ## See section 20.1.3 "Statically linking C code with OCaml code"
             ## https://v2.ocaml.org/manual/intfc.html#ss:staticlink-c-code
             ## and https://ocaml.org/manual/runtime.html
 
-        args.add("-custom")
-    else:
+        # args.add("-custom")
+
+        if ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "dynamic":
+            for cclib in dynamic_cc_deps:
+                print("cclib.short_path: %s" % cclib.short_path)
+                print("cclib.dirname: %s" % cclib.dirname)
+
+                linkpath = "%s/%s/%s" % (
+                    runfiles_root, ws_name, cclib.short_path)
+
+                # this is for build-time:
+                includes.append(cclib.dirname)
+                # and this is for run-time:
+                includes.append(paths.dirname(linkpath))
+                # args.add("-dllpath", "-L" + cclib.dirname)
+                args.add("-dllpath", paths.dirname(cclib.short_path))
+                # as is this:
+                cc_runfiles.append(cclib)
+
+                bn = cclib.basename[3:]
+                bn = bn[:-3]
+                args.add("-dllib", "-l" + bn)
+
+                # args.add("-cclib", "-l" + bn)
+                cclib_linkpaths.append("-L" + cclib.dirname)
+                # cclib_linkpaths.append("-L" + paths.dirname(cclib.short_path))
+                # includes.append(paths.dirname(linkpath))
+                # includes.append(paths.dirname(cclib.short_path))
+                # cc_runfiles.append(cclib)
+                # fail("xxxxxxxxxxxxxxxx")
+
+        elif ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "static":
+            ## should not be any .so files???
+            sincludes = []
+            for dep in static_cc_deps:
+                print("STATIC DEP: %s" % dep)
+                args.add("-custom")
+                args.add("-ccopt", dep.path)
+                includes.append(dep.dirname)
+                sincludes.append("-L" + dep.dirname)
+
+                # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
+                # includes.append(cclib.dirname)
+                # args.add(cclib.short_path)
+    else: # tc.target == sys
         vmlibs = [] ## we never need vmlibs for native code
+        ## this accomodates ml libs with cc deps
+        ## e.g. 'base' depends on libbase_stubs.a
+        for cclib in static_cc_deps:
+            # print("STATIC DEP: %s" % dep)
+            cclib_linkpaths.append("-L" + cclib.dirname)
+
+    args.add_all(cclib_linkpaths, before_each="-ccopt", uniquify=True)
 
     args.add_all(includes, before_each="-I", uniquify=True)
 
-    for lib in cc_libs:
-        args.add(lib.path)
+    # for lib in cc_libs:
+    #     args.add(lib.path)
 
     # args.add_all(paths_depset.to_list(), before_each="-I")
     includes.extend(paths_depset.to_list())

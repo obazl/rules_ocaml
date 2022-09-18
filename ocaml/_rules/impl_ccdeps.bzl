@@ -1,5 +1,8 @@
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 # load("//ocaml:providers.bzl", "CcDepsProvider")
+load("//ocaml:providers.bzl",
+     "OcamlVmRuntimeProvider",
+)
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
