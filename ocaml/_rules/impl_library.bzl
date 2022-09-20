@@ -267,9 +267,11 @@ def impl_library(ctx):
             if hasattr(nsr, "ofile"):
                 if  tc.target != "vm":
                     ofiles_primary.append(nsr.ofile) # nsr_dep.ofiles)
-            archives_secondary.append(nsr_dep.archives)
-            afiles_secondary.append(nsr_dep.afiles)
-            astructs_secondary.append(nsr_dep.astructs)
+            if hasattr(nsr_dep, "archives"):
+                archives_secondary.append(nsr_dep.archives)
+                afiles_secondary.append(nsr_dep.afiles)
+                astructs_secondary.append(nsr_dep.astructs)
+
             # cclibs_secondary.append(nsr_dep.cclibs)
 
     # #######################
@@ -641,7 +643,6 @@ def impl_library(ctx):
     print("ccInfo_merged: %s" % ccInfo_merged)
     dump_CcInfo(ctx, ccInfo_merged)
     if cc_depslist:
-        print("XXXXXXXXXXXXXXXX")
         providers.append(ccInfo_merged)
     else:
         providers.append(CcInfo())

@@ -129,6 +129,7 @@ def file_to_lib_name(file):
 
 ######################################################
 def _src_module_in_submod_list(ctx, src, submodules):
+    debug = False
     # src: File
     # submodules: list of strings (bottomup) or labels (topdown)
     if debug:
