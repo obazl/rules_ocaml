@@ -1331,10 +1331,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #         direct = [out_cmi],
     #         transitive = bottomup_ns_cmi
     #     )
-    cmi_depset = depset(
-        direct = [out_cmi]
-        # transitive = bottomup_ns_cmi
-    )
 
     new_sigs_depset = depset(
         order = dsorder,
@@ -1342,7 +1338,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # ns_resolver_files
         + ctx.files.deps_runtime,
         transitive = [sigs_depset]
-        # + [cmi_depset] ## action_outputs
+        # + [sig_depset] ## action_outputs
         # + indirect_ppx_codep_depsets
         # + ns_deps
         # + bottomup_ns_inputs
@@ -1505,8 +1501,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ################
     outputGroupInfo = OutputGroupInfo(
         # cc         = ccInfo.linking_context.linker_inputs.libraries,
-        cmi       = cmi_depset,
-        # fileset   = fileset_depset,
+        # cmi       = sig_depset,
+        sig       = depset(direct = [out_cmi]),
+        struct    = depset(direct = [out_struct]),
+
         sigs      = new_sigs_depset,
         structs   = new_structs_depset,
         ofiles    = ofiles_depset,
