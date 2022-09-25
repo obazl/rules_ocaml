@@ -45,6 +45,7 @@ Packages](../ug/collections.md).
     ),
     ## this is not an ns library, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
+    # cfg     = module_in_transition,
     cfg     = reset_in_transition,
     provides = [OcamlLibraryMarker],
     executable = False,

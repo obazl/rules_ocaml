@@ -132,6 +132,9 @@ def _dump_tc_frags(ctx):
             dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
 
 ## obtaining CC toolchain:  https://github.com/bazelbuild/bazel/issues/7260
+
+## two tc adapters, one for targeting vm, one for sys
+
 ################################################################
 def _ocaml_toolchain_adapter_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")

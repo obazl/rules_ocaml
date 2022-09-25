@@ -158,7 +158,7 @@ def impl_library(ctx):
     debug      = False
     debug_deps = False
     debug_ns   = False
-    debug_cc   = True
+    debug_cc   = False
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
@@ -641,7 +641,7 @@ def impl_library(ctx):
     ccInfo_merged = cc_common.merge_cc_infos(cc_infos = cc_depslist)
     # if ctx.label.name == "tezos-legacy-store":
     print("ccInfo_merged: %s" % ccInfo_merged)
-    dump_CcInfo(ctx, ccInfo_merged)
+    # dump_CcInfo(ctx, ccInfo_merged)
     if cc_depslist:
         providers.append(ccInfo_merged)
     else:

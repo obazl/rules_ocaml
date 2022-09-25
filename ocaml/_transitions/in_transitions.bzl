@@ -224,8 +224,8 @@ def _reset_in_transition_impl(settings, attr):
 reset_in_transition = transition(
     implementation = _reset_in_transition_impl,
     inputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//cfg/ns:prefixes",
+        # "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",

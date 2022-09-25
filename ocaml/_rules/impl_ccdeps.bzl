@@ -110,7 +110,7 @@ def lib_to_string(ctx, i, j, lib):
 
 ################
 def ccinfo_to_string(ctx, cc_info):
-    debug = True
+    debug = False
     if debug: print("CCINFO_TO_STRING for %s" % ctx.label)
     if debug: print(CCYEL + "ccinfo: %s" % cc_info)
 

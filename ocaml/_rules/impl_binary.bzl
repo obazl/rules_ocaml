@@ -140,7 +140,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # 1b. throw warning if ctx.attr.exe has extension
     # 2. add configured extension (default: .byte / none)
     if ctx.attr.exe:
-        out_exe = ctx.actions.declare_file(ctx.attr.exe + ".exe")
+        out_exe = ctx.actions.declare_file(ctx.attr.exe) # + ".exe")
     else:
         out_exe = ctx.actions.declare_file(ctx.label.name)
 
@@ -164,8 +164,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ################################################################
 
     ################ SECONDARY DEPENDENCIES ################
-    if debug: print("iterating manifest")
-    for dep in ctx.attr.manifest:
+    if debug: print("iterating deps")
+    for dep in ctx.attr.deps:
         if debug:
             print("DEP: %s" % dep)
             if OcamlProvider in dep:

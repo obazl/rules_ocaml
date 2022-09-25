@@ -170,7 +170,7 @@ def _src_module_in_submod_list(ctx, src, submodules):
 # otherwise, if ppx, rename
 # derive module name from ns prefixes
 def derive_module_name_from_file_name(ctx, src): # src: string
-    debug = True
+    debug = False
 
     if debug:
         print("{c}derive_module_name_from_file_name{r}: {m}".format(

@@ -1,5 +1,9 @@
 load("//ocaml:providers.bzl",
-     "OcamlModuleMarker")
+     "OcamlArchiveMarker",
+     "OcamlImportMarker",
+     "OcamlLibraryMarker",
+     "OcamlModuleMarker",
+     "OcamlNsMarker")
 
 load("//ppx:providers.bzl",
      "PpxExecutableMarker",
@@ -20,8 +24,8 @@ load("//ocaml/_debug:colors.bzl", "CCDER", "CCGAM", "CCRESET")
 CCBLURED="\033[44m\033[31m"
 
 ################################################
-def _ppx_manifest_out_transition_impl(settings, attr):
-    print("{c}_ppx_manifest_out_transition{r}: {lbl}".format(
+def _ppx_deps_out_transition_impl(settings, attr):
+    print("{c}_ppx_deps_out_transition{r}: {lbl}".format(
         c=CCDER, r = CCRESET, lbl = attr.name
     ))
 
@@ -31,8 +35,8 @@ def _ppx_manifest_out_transition_impl(settings, attr):
     }
 
 ################
-_ppx_manifest_out_transition = transition(
-    implementation = _ppx_manifest_out_transition_impl,
+_ppx_deps_out_transition = transition(
+    implementation = _ppx_deps_out_transition_impl,
     inputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
@@ -96,6 +100,18 @@ ppx_executable = rule(
             default = None,
             # cfg = ocaml_binary_deps_out_transition
         ),
+        deps = attr.label_list(
+            doc = "List of OCaml dependencies.",
+            providers = [[OcamlArchiveMarker],
+                         [OcamlImportMarker],
+                         [OcamlLibraryMarker],
+                         [OcamlModuleMarker],
+                         [OcamlNsMarker],
+                         [CcInfo]],
+            cfg = _ppx_deps_out_transition
+            # cfg = ocaml_binary_deps_out_transition
+        ),
+
         # finalizer = attr.label(),
 
         # FIXME: no need for ppx attrib on ppx_executable?
@@ -126,11 +142,11 @@ ppx_executable = rule(
             default = False
         ),
 
-        manifest = attr.label_list(
-            doc = "Mereological deps to be directly linked into ppx executable. Modular deps should be listed in ocaml_module, ppx_module rules.",
-            providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
-            cfg = _ppx_manifest_out_transition
-        ),
+        # manifest = attr.label_list(
+        #     doc = "Mereological deps to be directly linked into ppx executable. Modular deps should be listed in ocaml_module, ppx_module rules.",
+        #     providers = [[DefaultInfo], [OcamlModuleMarker], [CcInfo]],
+        #     cfg = _ppx_deps_out_transition
+        # ),
 
         # _deps = attr.label(
         #     doc = "Dependency to be added last.",

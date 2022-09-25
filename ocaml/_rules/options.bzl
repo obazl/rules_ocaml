@@ -157,23 +157,13 @@ def options_binary():
             default = None,
             # cfg = ocaml_binary_deps_out_transition
         ),
-        data = attr.label_list(
-            allow_files = True,
-            doc = "Runtime dependencies: list of labels of data files needed by this executable at runtime."
-        ),
-        strip_data_prefixes = attr.bool(
-            doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
-            default = False
-        ),
+        ## what is a dependency of a binary?
+        ## implicitly, its a dependency of the main module.
 
-        # This is a list of modules to link into the executable; it is
-        # NOT a list of "executable dependencies", which would make no
-        # sense. I.e. the dependency is mereological, not by ref.
-        # IOW not like a module's compile dependencies. So this
-        # is a list of components but not "submodules"; hence
-        # 'manifest' instead of 'submodules'. Compare
-        # ocaml_library.manifest v. ocaml_ns_library.submodules.
-        manifest = attr.label_list(
+        ## it cannot be a dep of the binary, since that does not exist
+        ## yes (unlike e.g. a structfile whose code depends on some
+        ## other module).
+        deps = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
@@ -189,6 +179,14 @@ def options_binary():
             default = "@rules_ocaml//cfg/executable:deps"
         ),
 
+        data = attr.label_list(
+            allow_files = True,
+            doc = "Runtime dependencies: list of labels of data files needed by this executable at runtime."
+        ),
+        strip_data_prefixes = attr.bool(
+            doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
+            default = False
+        ),
 
         ## FIXME: add cc_linkopts?
         ## FIXME: no need, cc deps can be added to deps

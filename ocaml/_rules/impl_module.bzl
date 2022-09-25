@@ -54,8 +54,8 @@ scope = tmpdir
 
 ################
 def _handle_ns_deps(ctx):
-    debug    = True
-    debug_ns = True
+    debug    = False
+    debug_ns = False
 
     if debug: print("_handle_ns_deps ****************")
 
@@ -381,11 +381,11 @@ def _resolve_modname(ctx):
 def impl_module(ctx): ## , mode, tool, tool_args):
 
     debug        = False
-    debug_modname = True
-    debug_ccdeps = True
+    debug_modname = False
+    debug_ccdeps = False
     debug_deps   = False
     debug_ns     = False
-    debug_ppx    = False
+    debug_ppx    = True
     debug_sig    = False
     debug_tc     = False
     debug_xmo    = False
@@ -428,6 +428,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     tc_options = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
     # print("tc_options: %s" % tc_options)
+
+    print("target platform: %s" % tc.target)
 
     ext  = ".cmo" if  tc.target == "vm" else ".cmx"
 
@@ -591,7 +593,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 ctx.file.struct, modname + ".ml"
             )
             ## tooling may set _ppx_only to stop processing after ppx:
-            if ctx.attr._ppx_only[BuildSettingInfo].value:
+            if ctx.attr._ppx_only[BuildSettingInfo].value == True:
                 return [
                     DefaultInfo(files = depset(direct=[work_ml])),
                     OcamlModuleMarker()
@@ -785,9 +787,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     ## top-down namespacing
     elif ctx.attr._ns_resolver:
-        print("_ns_resolver")
+        # print("_ns_resolver")
         nsrp = ctx.attr._ns_resolver[OcamlNsResolverProvider]
-        print("nsrp: %s" % nsrp)
+        # print("nsrp: %s" % nsrp)
         if hasattr(nsrp, "ns_name"):
             ns_enabled = True
 
@@ -1380,6 +1382,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # files = outputGroup_all_depset,
         # cmi      = depset(direct = [out_cmi]),
         cmi      = out_cmi,  ## no need for a depset for one file?
+        sig      = out_cmi,
+        struct   = out_struct,
         xmo      = module_xmo,
         # fileset  = fileset_depset,
         # inputs   = new_structs_depset,

@@ -15,6 +15,10 @@
 OcamlProvider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
     fields = {
+        "cmi" : "Cmi file provided",
+        "sig" : "Cmi file provided",
+        "struct" : "Structure file (.cmo or .cmx) provided",
+
         "submodule": "name of module without ns prefix",
         "sigs":      "depset of .cmi files",
         # NB: structs should exclude archive_deps. Its for freestanding
@@ -41,8 +45,6 @@ OcamlProvider = provider(
         ## everything below is DEPRECATED
 
         # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
-
-        "cmi" : "Cmi files provided",
 
         # "closure"             : "File depset of transitive closure of deps",
         # "inputs"             : "file depset",

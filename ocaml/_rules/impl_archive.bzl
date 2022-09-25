@@ -206,20 +206,20 @@ def impl_archive(ctx):
         # print("linkarg: %s" % dep)
         if dep in direct_submodule_deps: # add direct deps to cmd line...
             submod_arglist.append(dep)
-        elif ctx.attr._rule.startswith("ocaml_ns"):
-            if dep in ns_resolver_files:
-                submod_arglist.append(dep)
-            else:
-                ## nslib linkargs should only contain what's needed to
-                ## link and executable or build and archive.
-                # linkargs_list.append(dep)
-                ## ns resolver?
-                submod_arglist.append(dep)
-                # fail("ns lib contains extra linkarg: %s" % dep)
-        else:
-            # linkargs should match direct deps list?
-            fail("lib contains extra linkarg: %s" % dep)
-            # submod_arglist.append(dep)
+        # elif ctx.attr._rule.startswith("ocaml_ns"):
+        #     if dep in ns_resolver_files:
+        #         submod_arglist.append(dep)
+        #     else:
+        #         ## nslib linkargs should only contain what's needed to
+        #         ## link and executable or build and archive.
+        #         # linkargs_list.append(dep)
+        #         ## ns resolver?
+        #         submod_arglist.append(dep)
+        #         # fail("ns lib contains extra linkarg: %s" % dep)
+        # else:
+        #     # linkargs should match direct deps list?
+        #     fail("lib contains extra linkarg: %s" % dep)
+        #     # submod_arglist.append(dep)
 
     ordered_submodules_depset = depset(direct=submod_arglist)
 
@@ -353,6 +353,14 @@ def impl_archive(ctx):
         transitive = [libOcamlProvider.paths]
     )
 
+    structs_depset = depset(order=dsorder,
+                            direct=structs_primary)
+
+    astructs_depset = depset(order=dsorder,
+                             direct=astructs_primary)
+    # transitive = [libOcamlProvider.structs]),
+    # transitive=structs_indirect),
+
     ## FIXME: move direct submodules from libOcamlProvider.structs to
     ## astructs
     ocamlProvider = OcamlProvider(
@@ -367,12 +375,10 @@ def impl_archive(ctx):
                         transitive = [libOcamlProvider.sigs]),
                           # direct=sigs_direct,
                           # transitive=sigs_indirect),
-        structs   = depset(order=dsorder,
-                          direct=structs_primary),
-                           # transitive = [libOcamlProvider.structs]),
-                          # transitive=structs_indirect),
-        astructs   = depset(order=dsorder,
-                           direct=astructs_primary),
+        structs = structs_depset,
+        astructs = astructs_depset,
+        # astructs   = depset(order=dsorder,
+        #                    direct=astructs_primary),
                            # transitive = [libOcamlProvider.astructs]),
                            # transitive=astructs_indirect),
         ofiles   = depset(order=dsorder,
@@ -406,6 +412,8 @@ def impl_archive(ctx):
     # ppx_codeps_depset = ppxCodepsProvider.ppx_codeps
 
     outputGroupInfo = OutputGroupInfo(
+        structs = structs_depset,
+        astructs = astructs_depset,
         # resolver = ns_resolver,
         # ppx_codeps = ppx_codeps_depset,
         # linkargs = linkargs_depset,
@@ -430,5 +438,3 @@ def impl_archive(ctx):
         ))
 
     return providers
-
-
