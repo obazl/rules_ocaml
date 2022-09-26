@@ -385,7 +385,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     debug_ccdeps = False
     debug_deps   = False
     debug_ns     = False
-    debug_ppx    = True
+    debug_ppx    = False
     debug_sig    = False
     debug_tc     = False
     debug_xmo    = False
@@ -667,7 +667,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     args.add_all(_options)
 
-    args.add_all(tc_options.compile_opts)
+    # args.add_all(tc_options.compile_opts)
 
     if debug:
         print("SIG_IS_XMO? %s" % sig_is_xmo)

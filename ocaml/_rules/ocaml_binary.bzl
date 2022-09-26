@@ -84,6 +84,7 @@ the difference between '/' and ':' in such labels):
     executable = True,
     toolchains = [
         "@rules_ocaml//toolchain/type:std",
+        "@rules_ocaml//toolchain/type:profile",
         # "@bazel_tools//tools/cpp:toolchain_type"
     ],
 )

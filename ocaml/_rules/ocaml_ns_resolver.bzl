@@ -229,5 +229,6 @@ Includes all submodules of an exogenous namespace.
     executable = False,
     toolchains = [
         "@rules_ocaml//toolchain/type:std",
+        "@rules_ocaml//toolchain/type:profile",
     ],
 )
