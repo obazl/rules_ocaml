@@ -48,11 +48,11 @@ def impl_archive(ctx):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
-    # ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
+    ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
 
-    # if debug:
-    #     for f in ns_resolver:
-    #         print("_ns_resolver f: %s" % f.path)
+    if debug:
+        for f in ns_resolver:
+            print("_ns_resolver f: %s" % f.path)
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
@@ -189,7 +189,7 @@ def impl_archive(ctx):
     # if OcamlProvider in ns_resolver:
     #     ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
     # else:
-    ns_resolver_files = []
+    #     ns_resolver_files = []
 
     # print("ns_resolver_files: %s" % ns_resolver_files)
 
@@ -220,6 +220,39 @@ def impl_archive(ctx):
         #     # linkargs should match direct deps list?
         #     fail("lib contains extra linkarg: %s" % dep)
         #     # submod_arglist.append(dep)
+
+    if ctx.attr.cc_deps:
+        includes = []
+        sincludes = []
+        cc_deps_primary         = []
+        for dep in ctx.attr.cc_deps:
+            cc_deps_primary.append(dep[CcInfo])
+            dump_CcInfo(ctx, dep[CcInfo])
+        ccInfo_direct = cc_common.merge_cc_infos(
+            cc_infos = cc_deps_primary)
+        if debug_cc: print("Merged CcInfo: %s" % ccInfo)
+        ## extract cc_deps from merged CcInfo provider:
+        [
+            static_cc_deps, dynamic_cc_deps
+        ] = extract_cclibs(ctx, tc.linkmode, args, ccInfo)
+        for dep in static_cc_deps:
+            print("STATIC DEP: %s" % dep)
+            args.add(dep.path)
+            args.add(dep)
+            # includes.append(dep.dirname)
+            # sincludes.append("-L" + dep.dirname)
+        for dep in dynamic_cc_deps:
+            print("DYNAMIC DEP: %s" % dep)
+            # args.add(dep.path)
+            args.add("-dllpath", dep.dirname)
+            if dep.basename.startswith("dll"):
+                args.add("-dllib", "-l" + dep.basename[3:-3])
+            else:
+                args.add("-ccopt", "-l" + dep.basename[:-3])
+
+        # fail("xxxxxxxxxxxxxxxx")
+        # args.add_all(includes, before_each="-I", uniquify=True)
+        # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
 
     ordered_submodules_depset = depset(direct=submod_arglist)
 
@@ -259,28 +292,9 @@ def impl_archive(ctx):
     ## manifest should be added to cmd line of archive, plus direct cc
     ## deps in cc_deps attr.
 
-    if ctx.attr.cc_deps:
-        includes = []
-        sincludes = []
-        cc_deps_primary         = []
-        for dep in ctx.attr.cc_deps:
-            cc_deps_primary.append(dep[CcInfo])
-            dump_CcInfo(ctx, dep[CcInfo])
-        ccInfo_direct = cc_common.merge_cc_infos(
-            cc_infos = cc_deps_primary)
-        if debug_cc: print("Merged CcInfo: %s" % ccInfo)
-        ## extract cc_deps from merged CcInfo provider:
-        [
-            static_cc_deps, dynamic_cc_deps
-        ] = extract_cclibs(ctx, tc.linkmode, args, ccInfo)
-        for dep in static_cc_deps:
-            print("STATIC DEP: %s" % dep)
-            args.add(dep.path)
-            # includes.append(dep.dirname)
-            # sincludes.append("-L" + dep.dirname)
-        # fail("xxxxxxxxxxxxxxxx")
-        # args.add_all(includes, before_each="-I", uniquify=True)
-        # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
+    ##FIXME: what if deps include resolvers?
+    if ns_resolver:
+        args.add_all(ns_resolver)
 
     args.add("-a")
 

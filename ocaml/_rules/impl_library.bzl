@@ -157,6 +157,7 @@ def impl_library(ctx):
 
     debug      = False
     debug_deps = False
+    debug_ppx  = False
     debug_ns   = False
     debug_cc   = False
 
@@ -209,10 +210,17 @@ def impl_library(ctx):
                    ####    DEPENDENCIES    ####
 
     ################
-    ## FIXME: does lib need to handle ppx_codeps? they're carried by
-    ## modules
-    indirect_codeps_depsets      = []
-    indirect_codeps_path_depsets = []
+    # indirect_codeps_depsets      = []
+    # indirect_codeps_path_depsets = []
+
+    codep_sigs_secondary     = []
+    codep_structs_secondary  = []
+    codep_ofiles_secondary   = []
+    codep_archives_secondary = []
+    codep_afiles_secondary   = []
+    codep_astructs_secondary = []
+    codep_paths_secondary    = []
+    codep_cc_deps_secondary   = []
 
     sigs_primary   = []
     sigs_secondary = []
@@ -392,9 +400,17 @@ def impl_library(ctx):
 
         if PpxCodepsProvider in dep:
             ppx = True
-            if debug_deps: print("PpxCodepsProvider: %s" % dep)
-            # indirect_codeps_path_depsets.append(dep[PpxCodepsProvider].paths)
-            # indirect_codeps_depsets.append(dep[PpxCodepsProvider].ppx_codeps)
+            codep = dep[PpxCodepsProvider]
+            if debug_ppx: print("libdep PpxCodepsProvider: %s" % codep)
+            codep_sigs_secondary.append(codep.sigs)
+            codep_structs_secondary.append(codep.structs)
+            codep_ofiles_secondary.append(codep.ofiles)
+            codep_archives_secondary.append(codep.archives)
+            codep_afiles_secondary.append(codep.afiles)
+            codep_astructs_secondary.append(codep.astructs)
+            codep_paths_secondary.append(codep.paths)
+            if hasattr(codep, "ccdeps"):
+                codep_cc_deps_secondary.append(codep.ccdeps)
 
     # print("indirect_inputs_depsets: %s" % indirect_inputs_depsets)
 
@@ -618,16 +634,39 @@ def impl_library(ctx):
     ################ ppx codeps ################
     # NOTE: PpxCodepsProvider goes on modules, not aggregates
     if ppx:
-        ppx_codeps_depset = depset(
-            order = dsorder,
-            transitive = indirect_codeps_depsets
-        )
+        codep_archives_depset = depset(
+            order=dsorder,
+            # direct=codep_archives_primary,
+            transitive=codep_archives_secondary)
+        codep_afiles_depset = depset(
+            order=dsorder,
+            # direct=codep_astructs_primary,
+            transitive=codep_afiles_secondary)
+        codep_astructs_depset = depset(
+            order=dsorder,
+            # direct=codep_astructs_primary,
+            transitive=codep_astructs_secondary)
+
         ppxCodepsProvider = PpxCodepsProvider(
             # ppx_codeps = ppx_codeps_depset,
-            # paths        = depset(
-            #     order = dsorder,
-            #     transitive = indirect_codeps_path_depsets
-            # )
+            sigs    = depset(order=dsorder,
+                             # direct=codep_sigs_primary,
+                             transitive=codep_sigs_secondary),
+            structs    = depset(order=dsorder,
+                                # direct=codep_structs_primary,
+                                transitive=codep_structs_secondary),
+            ofiles    = depset(order=dsorder,
+                               # direct=codep_ofiles_primary,
+                               transitive=codep_ofiles_secondary),
+            archives  = codep_archives_depset,
+            afiles    = codep_afiles_depset,
+            astructs  = codep_astructs_depset,
+            paths     = depset(order = dsorder,
+                               # direct = codep_paths_primary,
+                               transitive = codep_paths_secondary),
+            # cclibs    = depset(order=dsorder,
+            #                    # direct=codep_cclibs_primary,
+            #                    transitive=codep_cclibs_secondary),
         )
         providers.append(ppxCodepsProvider)
     else:

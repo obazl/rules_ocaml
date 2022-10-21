@@ -63,8 +63,9 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     ),
     # cfg = executable_in_transition,
     test = True,
-    toolchains = [
-        "@rules_ocaml//toolchain/type:std",
-        # "@bazel_tools//tools/cpp:toolchain_type"
-    ],
+    fragments = ["platform", "cpp"],
+    host_fragments = ["platform",  "cpp"],
+    toolchains = ["@rules_ocaml//toolchain/type:std",
+                  "@rules_ocaml//toolchain/type:profile",
+                  "@bazel_tools//tools/cpp:toolchain_type"]
 )

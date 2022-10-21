@@ -61,13 +61,13 @@ def impl_ppx_transform(rule, ctx, src, to):
     if tmpdir == "":
         args.add("-o", outfile.path)
     else:
-        args.add("-o", "../" + outfile.path)
+        args.add("-o", outfile.path) # "../" + outfile.path)
     if src.path.endswith(".mli"):
         args.add("-intf", src.path)
     elif src.path.endswith(".ml"):
         args.add("-impl", src.path)
 
-    dep_graph = [src]
+    action_inputs = [src]
 
     # if deps contains inline-tests add "-inline-test-lib {{ctx.attr.ppx_tags}}"
     ## FIXME: this makes rules_ocaml dependent on a particular ocaml
@@ -84,7 +84,7 @@ def impl_ppx_transform(rule, ctx, src, to):
     if hasattr(ctx.attr, "ppx_data"):
         if len(ctx.attr.ppx_data) > 0:
             for f in ctx.files.ppx_data:
-                dep_graph.append(f)
+                action_inputs.append(f)
                 fname_len = len(f.basename)
                 datafile_parent = f.short_path[:-fname_len]
                 RUNTIME_FILES = RUNTIME_FILES + "\n".join([
@@ -118,6 +118,12 @@ def impl_ppx_transform(rule, ctx, src, to):
     # ppx attrib may be: 1) built by ppx_executable; or 2) imported precompiled exe file
     if ctx.executable.ppx:
         ppx_exe = ctx.executable.ppx
+        action_inputs.extend(ctx.attr.ppx[DefaultInfo].default_runfiles.files.to_list())
+        # print("PPX data_runfiles: %s" % ctx.attr.ppx[DefaultInfo].data_runfiles.files)
+        # print("PPX default_runfiles: %s" % ctx.attr.ppx[DefaultInfo].default_runfiles.files)
+        # for f in ctx.attr.ppx[DefaultInfo].default_runfiles.files.to_list():
+        #     print("rf: %s" % f.path)
+        # fail("xxxxxxxxxxxxxxxx")
     else:
         ppx_exe = ctx.file.ppx
 
@@ -144,34 +150,48 @@ def impl_ppx_transform(rule, ctx, src, to):
 
     ##FIXME: use same sh script for both files, when module has both
     ##sig and struct files
-    runner = ctx.actions.declare_file(ctx.attr.name + ".{}_ppx.sh".format(
-        "mli" if src.path.endswith(".mli") else "ml"
-    ))
+    # runner = ctx.actions.declare_file(ctx.attr.name + ".{}_ppx.sh".format(
+    #     "mli" if src.path.endswith(".mli") else "ml"
+    # ))
 
-    if debug:
-        print("Writing RUNNER file: %s" % runner)
-        print("\n%s" % command)
-
-    ctx.actions.write(
-        output  = runner,
-        content = command,
-        is_executable = True,
-    )
+    # if debug:
+    #     print("Writing RUNNER file: %s" % runner)
+    #     print("\n%s" % command)
 
     ctx.actions.run(
-        # env = env,
-        executable = runner,
-        arguments = [args],
-        inputs = dep_graph,
+        executable = ppx_exe,
+        arguments  = [args],
+        inputs = action_inputs,
         outputs = [outfile],
-        tools = [ppx_exe], # [ctx.executable.ppx],
-        mnemonic = "OCamlPpxTransform",
+        tools = [ppx_exe],
+        mnemonic = "OcamlPpxTransform",
         progress_message = "ppx_transform {rule}: {ws}//{pkg}:{tgt}".format(
-            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
+            ws  = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "", ## ctx.workspace_name,
             pkg = ctx.label.package,
             rule=ctx.attr._rule,
             tgt=ctx.label.name,
         )
     )
+    # ctx.actions.write(
+    #     output  = runner,
+    #     content = command,
+    #     is_executable = True,
+    # )
+
+    # ctx.actions.run(
+    #     # env = env,
+    #     executable = runner,
+    #     arguments = [args],
+    #     inputs = action_inputs,
+    #     outputs = [outfile],
+    #     tools = [ppx_exe], # [ctx.executable.ppx],
+    #     mnemonic = "OCamlPpxTransform",
+    #     progress_message = "ppx_transform {rule}: {ws}//{pkg}:{tgt}".format(
+    #         ws  = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "", ## ctx.workspace_name,
+    #         pkg = ctx.label.package,
+    #         rule=ctx.attr._rule,
+    #         tgt=ctx.label.name,
+    #     )
+    # )
 
     return outfile

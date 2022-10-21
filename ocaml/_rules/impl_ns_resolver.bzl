@@ -429,12 +429,14 @@ def impl_ns_resolver(ctx):
         outputs = action_outputs,
         tools = [tc.compiler],
         mnemonic = "CompileOCamlNsResolver",
-        progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
-            mode = tc.host + "->" + tc.target,
-            rule=ctx.attr._rule,
-            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
-            pkg = ctx.label.package,
-            tgt=ctx.label.name,
+        progress_message = "{mode} compiling ns resolver: {impl}".format(
+            # to {ws}//{pkg}:{tgt}".format(
+            mode = tc.host + ">" + tc.target,
+            impl = resolver_src_file.basename,
+            # rule=ctx.attr._rule,
+            # ws  = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "", ## ctx.workspace_name,
+            # pkg = ctx.label.package,
+            # tgt=ctx.label.name,
         )
     )
 

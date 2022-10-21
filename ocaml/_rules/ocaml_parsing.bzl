@@ -38,9 +38,9 @@ def _ocamllex_impl(ctx):
       outputs = [lexer],
       tools = [tc.ocamllex],
       mnemonic = "OcamlLex",
-      progress_message = "{mode} ocamllex: @{ws}//{pkg}:{tgt}".format(
-          mode = tc.target,
-          ws  = ctx.label.workspace_name,
+      progress_message = "ocamllex: {ws}//{pkg}:{tgt}".format(
+          # mode = tc.target,
+          ws  = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "", ## ctx.workspace_name,
           pkg = ctx.label.package,
           tgt=ctx.label.name
       )

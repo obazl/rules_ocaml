@@ -257,6 +257,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                     print("ppx_codep has OcamlProvider: %s" % codep)
 
                 coprovider = codep[OcamlProvider];
+                codep_sigs_primary.append(coprovider.sigs)
+                codep_structs_primary.append(coprovider.structs)
+                codep_ofiles_primary.append(coprovider.ofiles)
+                codep_archives_primary.append(coprovider.archives)
+                codep_astructs_primary.append(coprovider.astructs)
+                codep_afiles_primary.append(coprovider.afiles)
+                codep_paths_primary.append(coprovider.paths)
+
                 codep_sigs_secondary.append(coprovider.sigs)
                 codep_structs_secondary.append(coprovider.structs)
                 codep_ofiles_secondary.append(coprovider.ofiles)
@@ -307,6 +315,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
         if PpxCodepsProvider in main:
             if debug_ppx: print("main module has PpxCodepsProvider")
+            # fail("ZZZZZZZZZZZZZZZZ")
             coprovider = main[PpxCodepsProvider]
             codep_sigs_secondary.append(coprovider.sigs)
             codep_structs_secondary.append(coprovider.structs)
@@ -403,18 +412,24 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ## for std (non-custom) linking use -dllib
 
     runfiles_root = out_exe.path + ".runfiles"
-    print("runfiles_root: %s" % runfiles_root)
+    # print("runfiles_root: %s" % runfiles_root)
     ws_name = ctx.workspace_name
-    print("ws name: %s" % ws_name)
+    # print("ws name: %s" % ws_name)
 
     if tc.target == "vm":
         # vmlibs =  lib/stublibs/dll*.so, set by toolchain
         # only needed for bytecode mode, else we get errors like:
         # Error: I/O error: dllbase_internalhash_types_stubs.so: No such
         # file or directory
+
+        # may also get e.g.
+        # Fatal error: cannot load shared library dllbase_internalhash_types_stubs
+        # Reason: dlopen(dllbase_internalhash_types_stubs.so, 0x000A): tried: 'dllbase_internalhash_types_stubs.so' (no such file) ... etc.
+
         vmlibs = tc.vmlibs
 
         ## WARNING: both -dllpath and -I are required!
+        # args.add("-ccopt", "-L" + tc.vmlibs[0].dirname)
         args.add("-dllpath", tc.vmlibs[0].dirname)
         args.add("-I", tc.vmlibs[0].dirname)
 
@@ -432,10 +447,16 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
         # args.add("-custom")
 
+        for cclib in dynamic_cc_deps:
+            args.add("-dllpath", cclib.dirname)
+            cc_runfiles.append(cclib)
+            # args.add("-ccopt", "-L" + cclib.dirname)
+            # args.add("-cclib", "-l" + cclib.basename)
+
         if ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "dynamic":
             for cclib in dynamic_cc_deps:
-                print("cclib.short_path: %s" % cclib.short_path)
-                print("cclib.dirname: %s" % cclib.dirname)
+                # print("cclib.short_path: %s" % cclib.short_path)
+                # print("cclib.dirname: %s" % cclib.dirname)
 
                 linkpath = "%s/%s/%s" % (
                     runfiles_root, ws_name, cclib.short_path)
@@ -444,17 +465,17 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 includes.append(cclib.dirname)
                 # and this is for run-time:
                 includes.append(paths.dirname(linkpath))
-                # args.add("-dllpath", "-L" + cclib.dirname)
+                args.add("-dllpath", cclib.dirname)
                 args.add("-dllpath", paths.dirname(cclib.short_path))
                 # as is this:
                 cc_runfiles.append(cclib)
 
                 bn = cclib.basename[3:]
                 bn = bn[:-3]
-                args.add("-dllib", "-l" + bn)
+                # args.add("-dllib", "-l" + bn)
 
                 # args.add("-cclib", "-l" + bn)
-                cclib_linkpaths.append("-L" + cclib.dirname)
+                # cclib_linkpaths.append("-L" + cclib.dirname)
                 # cclib_linkpaths.append("-L" + paths.dirname(cclib.short_path))
                 # includes.append(paths.dirname(linkpath))
                 # includes.append(paths.dirname(cclib.short_path))
@@ -492,19 +513,58 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # args.add_all(paths_depset.to_list(), before_each="-I")
     includes.extend(paths_depset.to_list())
 
+    # codeps_depset = depset(
+    #     order = dsorder,
+    #     transitive = codep_archives_secondary
+    # )
+    # for codep in codeps_depset.to_list():
+    #     args.add(codep)
+
     astructs_depset = depset(order=dsorder,
                             # direct=astructs_primary,
                             transitive=astructs_secondary)
 
     ## Archives and structs must be on the command line:
-    archives_depset = depset(order=dsorder,
-                             direct=archives_primary,
-                             transitive=archives_secondary)
+    if ctx.attr._rule == "ocaml_binary":
+        bin_codeps = codep_archives_secondary
+    else:
+        bin_codeps = []
+
+    archives_depset = depset(
+        order=dsorder,
+        direct=archives_primary,
+        transitive= archives_secondary + bin_codeps)
 
     for archive in archives_depset.to_list():
         if debug:
             print("ADDING ARCHIVE %s" % archive)
-        args.add(archive)
+
+        ## ppx processing may result in different toolchains to be
+        ## used to build a ppx executable (e.g. sys>sys) and to
+        ## compile the result of a ppx transform (e.g. sys>vm). this
+        ## is not a problem if bazel builds all deps, but if we import
+        ## precompiled resources (e.g. using opam_import), then we run
+        ## into a problem with ppx_codeps. They are not needed to link
+        ## the ppx_executable, but we need to propagate them so they
+        ## can be used later to compile/link ppx-transformed files.
+        ## The problem is that linkage of the ppx executable may
+        ## select one (e.g. cmxa, due to sys>sys toolchain) when later
+        ## compilation of the ppx transform result may need the other
+        ## (e.g. cma, due to sys>vm toolchain).
+
+        ## To accomodate this, opam_import puts both cma and cmxa in
+        ## the archive field of the OcmlProvider, and here we need to
+        ## select one by checking the extension.
+
+        ## There may be a better way of doing this, but this seems to
+        ## work so far.
+
+        if tc.target == "vm":
+            if archive.extension == "cma":
+                args.add(archive)
+        else:
+            if archive.extension == "cmxa":
+                args.add(archive)
 
     structs_depset = depset(order=dsorder,
                             direct=structs_primary,
@@ -518,6 +578,11 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # args.add(ctx.file.main)
 
     args.add("-o", out_exe)
+
+    # if tc.target == "vm":
+    #     # FIXME: requires that runtime and stubs files be added to cmd line
+    #     # e.g. -lbase_stubs
+    #     args.add("-output-complete-exe")
 
     data_inputs = []
     if ctx.attr.data:
@@ -586,7 +651,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         + codep_structs_primary
         + codep_ofiles_primary
         + codep_sigs_primary
-        # + codep_cc_deps_primary
+        + codep_cc_deps_primary
         ,
         transitive =
           sigs_secondary
@@ -596,12 +661,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         + ofiles_secondary  ## .o files for .cmx files on cmd line
         + astructs_secondary
 
-        + codep_afiles_secondary
-        + codep_astructs_secondary
-        + codep_archives_secondary
-        + codep_structs_secondary
-        + codep_ofiles_secondary
-        + codep_sigs_secondary
+        # + codep_afiles_secondary
+        # + codep_astructs_secondary
+        # + codep_archives_secondary
+        # + codep_structs_secondary
+        # + codep_ofiles_secondary
+        # + codep_sigs_secondary
         # + codep_cc_deps_secondary
 
         # + cc_deps_secondary
@@ -620,7 +685,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         mnemonic = "LinkOCamlExecutable"
     elif "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
     # elif ctx.attr._rule == "ppx_executable":
-        mnemonic = "LinkOCamlPpxExecutable"
+        mnemonic = "LinkPpxExecutable"
     elif ctx.attr._rule == "ocaml_test":
         mnemonic = "LinkOCamlTest"
     else:
@@ -644,10 +709,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             # cctc.static_runtime_lib()
         ], ## + tool_args,  # [tc.ocamlopt],
         mnemonic = mnemonic,
-        progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
+        progress_message = "{mode} linking {rule}: {ws}//{pkg}:{tgt}".format(
             mode = tc.host + ">" + tc.target,
             rule = ctx.attr._rule,
-            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
+            ws  = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "", ## ctx.workspace_name,
             pkg = ctx.label.package,
             tgt = ctx.label.name,
         )

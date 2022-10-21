@@ -425,11 +425,11 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # env = {"PATH": get_sdkpath(ctx)}
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
+    # print("target platform: {p} (lbl: {l})".format(
+    #     p= tc.target, l=ctx.label))
 
     tc_options = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
     # print("tc_options: %s" % tc_options)
-
-    print("target platform: %s" % tc.target)
 
     ext  = ".cmo" if  tc.target == "vm" else ".cmx"
 
@@ -769,8 +769,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     codep_paths_secondary    = []
     codep_cc_deps_secondary   = []
 
-    the_deps = ctx.attr.deps + ctx.attr.open
-
     dep_is_xmo = True
 
     ns_enabled = False
@@ -863,8 +861,11 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ################################################################
     if debug: print("iterating deps")
 
+    the_deps = ctx.attr.deps + ctx.attr.open
     for dep in the_deps:
-        if debug_deps: print("DEP: %s" % dep)
+        ## if debug_deps:
+        print("module lbl: %s" % ctx.label)
+        print("module DEP: %s" % dep)
         ## OCaml deps first
 
         ## module deps have xmo flag
@@ -874,6 +875,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         if OcamlProvider in dep:
             provider = dep[OcamlProvider]
             if debug_deps: print("OcamlProvider: %s" % dep)
+
+            if hasattr(provider, "ppx_codeps"):
+                print("Dep ppx_codeps: %s" % provider.ppx_codeps)
+
+            # if hasattr(provider, "ws"):
+            #     print("OcamlProvider WS: %s" % provider.ws)
             if hasattr(provider, "xmo"):
                 if debug_xmo:
                     print("DEP XMO: %s" % provider)
@@ -934,18 +941,18 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # indirect_linkargs_depsets.append(dep[DefaultInfo].files)
         if PpxCodepsProvider in dep:
             codep = dep[PpxCodepsProvider]
+            if debug_ppx:
+                print("processing ppx_codeps")
+                print("ppx_codeps provider: %s" % codep)
+                # print("  sigs: %s" % codep.sigs)
+                # print("codep.paths: %s" % codep.paths)
+                # print("codep.: %s" % codep.sigs)
+
+            # if ctx.label.name == "Inline_test_runner":
+            #     fail("ZZZZZZZZZZZZZZZZ2")
+
             ## aggregates may provide an empty PpxCodepsProvider
             if hasattr(codep, "sigs"):
-
-                if debug_ppx:
-                    print("processing ppx_codeps from ppx executable")
-                    print("ppx_codeps provider: %s" % codep)
-                    print("  sigs: %s" % codep.sigs)
-                    print("ppx_codeps provider: %s" % codep)
-                    print("ppx_codeps provider: %s" % codep)
-                    print("ppx_codeps provider: %s" % codep)
-                    # print("codep.paths: %s" % codep.paths)
-                    # print("codep.: %s" % codep.sigs)
 
                 # print("ppx dep: %s" % dep)
                 # for fld in dir(codep):
@@ -1049,8 +1056,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ## to ppx a module:
         ## 1. ppx tranform src - done above
         ## 2. extract ppx_codeps from the ppx.exe
-        ## 3. add them to the module's depsets
+        ## 3. add them to the module's dependencies
         ## 4. compile transformed src, with ppx_codeps
+        ## 5. provide them, for later linking (e.g. ppx_expect)
         if debug_ppx:
             print("ppx for: %s" % ctx.label)
             print("processing deps of ppx: %s" % ctx.attr.ppx)
@@ -1059,11 +1067,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             codep = ctx.attr.ppx[PpxCodepsProvider]
 
             if debug_ppx:
-                print("processing ppx_codeps from ppx executable")
+                print("processing ppx_codeps from ppx executable: %s" % ctx.attr.ppx)
                 print("ppx_codeps provider: %s" % codep)
                 # print("codep.paths: %s" % codep.paths)
                 # print("codep.: %s" % codep.sigs)
-
+            # append to deps, for compiling,
+            # append to codeps, for propagating (later, linking)
             sigs_secondary.append(codep.sigs)
             structs_secondary.append(codep.structs)
             archives_secondary.append(codep.archives)
@@ -1071,6 +1080,16 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             afiles_secondary.append(codep.afiles)
             astructs_secondary.append(codep.astructs)
             paths_secondary.append(codep.paths)
+
+            codep_sigs_secondary.append(codep.sigs)
+            codep_structs_secondary.append(codep.structs)
+            codep_archives_secondary.append(codep.archives)
+            codep_ofiles_secondary.append(codep.ofiles)
+            codep_afiles_secondary.append(codep.afiles)
+            codep_astructs_secondary.append(codep.astructs)
+            codep_paths_secondary.append(codep.paths)
+            if hasattr(codep, "ccdeps"):
+                codep_cc_deps_secondary.append(codep.ccdeps)
 
         if CcInfo in ctx.attr.ppx:
             cc_deps_secondary.append(ctx.attr.ppx[CcInfo])
@@ -1197,6 +1216,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         + maybe_cmi
         ## omit direct deps, they're outputs of this action
         # + sigs_primary + structs_primary + ofiles_primary
+
         + archives_primary
 
         ## NB: we don't need cmx/cmo deps to _compile_ a module
@@ -1214,10 +1234,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
          # ns_deps
         xmo_deps
         + archives_secondary
-        ## including archived cmx/cmo prevents warning 58
+        ## including archived cmx prevents warning 58
+        ## do NOT include cmx if target == vm
         ## WARNING: only for module compilation; do not include for linking
         ## TODO: reconcile archive processing with xmo
-        + astructs_secondary
+
+        + astructs_secondary ## cmx files archived in cmxa
+
         ## non-archived structs:
         + structs_secondary
         # + afiles_secondary
@@ -1273,12 +1296,27 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if debug:
         print("COMPILE OUTPUTS: %s" % action_outputs)
 
+    # strings for progress msg
     if hasattr(ctx.attr, "ppx_codeps"):
         mnemonic = "CompileOCamlPpxModule"
         rule     = "ppx_module"
-    else:
+    elif ctx.attr._rule == "ocaml_module":
         mnemonic = "CompileOCamlModule"
         rule     = "ocaml_module"
+    else:
+        mnemonic = "CompileOCamlExecModule"
+        rule     = "ocaml_exec_module"
+
+    if ctx.label.workspace_name != "":
+        print("CTX.LABEL.WORKSPACE_NAME: %s" % ctx.label.workspace_name)
+
+    if ctx.workspace_name != "js_of_ocaml_dev":
+        print("CTX.WORKSPACE_NAME: %s" % ctx.workspace_name)
+
+    if ctx.label.workspace_name == ctx.workspace_name:
+        ws_name = ""
+    else:
+        ws_name = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "" # "@" + ctx.workspace_name
 
     ################
     ctx.actions.run(
@@ -1292,7 +1330,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         progress_message = "{mode} compiling {rule}: {ws}//{pkg}:{tgt}".format(
             mode = tc.host + ">" + tc.target,
             rule = rule,
-            ws  = ctx.label.workspace_name if ctx.label.workspace_name else ctx.workspace_name,
+            ws = ws_name,
             pkg = ctx.label.package,
             tgt=ctx.label.name,
         )
@@ -1378,6 +1416,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #                          transitive=cclibs_secondary)
 
     ocamlProvider = OcamlProvider(
+        ws        = ctx.workspace_name,
         submodule = normalize_module_name(ctx.label.name),
         # files = outputGroup_all_depset,
         # cmi      = depset(direct = [out_cmi]),
@@ -1448,7 +1487,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## must be passed to any ppx_executable that depends on it.
     ## FIXME: make this conditional:
     ## if module has direct or indirect ppx_codeps:
-    if ctx.attr.ppx:
+    # if ctx.attr.ppx:
+    if len(codep_sigs_secondary) > 0:
         if debug_ppx:
             print("Constructing PpxCodepsProvider: %s" % ctx.label)
 
@@ -1486,6 +1526,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             #                    # direct=codep_cclibs_primary,
             #                    transitive=codep_cclibs_secondary),
         )
+        if debug_ppx:
+            print("appending PpxCodepsProvider: %s" %ppxCodepsProvider)
         providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
@@ -1508,6 +1550,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # cmi       = sig_depset,
         sig       = depset(direct = [out_cmi]),
         struct    = depset(direct = [out_struct]),
+
+        ml = depset(direct = [work_ml]),
 
         sigs      = new_sigs_depset,
         structs   = new_structs_depset,
