@@ -15,6 +15,65 @@
 OcamlProvider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
     fields = {
+        "ws"  : "Workspace ID for provided artifacts (not fully implemented)",
+        "cmi" : "Cmi file provided",
+        "sig" : "Cmi file provided",
+        "struct" : "Structure file (.cmo or .cmx) provided",
+
+        "submodule": "name of module without ns prefix",
+        "sigs":      "depset of .cmi files",
+        # NB: structs should exclude archive_deps. Its for freestanding
+        # deps of <this> target (?)
+        "structs":   "depset of .cmo or .cmx files depending on mode",
+        "ofiles":    "depset of the .o files that go with .cmx files",
+        "archives":  "depset of .cmxa or .cma files",
+        "afiles":    "depset of the .a files that go with .cmxa files",
+        "astructs":  "depset of archived structs, added to link depgraph but not command line.",
+        "cmts":      "depset of cmt/cmti files",
+        "srcs":      "depset of src files after renaming/symlinking, so tools can inspect",
+
+        "jsoo_runtimes": "depset of runtime.js files",
+        # "archive_deps": "deps of archives, that must be listed before the archives in cmd line to link executable. cmx/cmo only, for cmd line",
+
+        # NB: resolvers is just for cmdline args, so we can control where
+        # they are listed relative to the ns archive/library on the cli
+        "resolvers":   "depset of .cmo or .cmx files depending on mode; CLI protocol",
+
+        "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
+
+        ## OBSOLETE: cc deps passed in separate CcInfo
+        # "cc_libs" : "list of files",
+        # "ccinfo"  : "a single CcInfo provider, merged",
+        # "cc_deps"           : "dictionary depset",
+
+        ## everything below is DEPRECATED
+
+        # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
+
+        # "closure"             : "File depset of transitive closure of deps",
+        # "inputs"             : "file depset",
+        # "cdeps"              : "file depset of compile deps",
+        # "ldeps"              : "file depset of link deps",
+        # "ldeps_n"            : "file depset of native link deps",
+        # "ldeps_bc"           : "file depset of bytecode link deps",
+        # "linkargs"           : "file depset",
+        "paths"             : "string depset",
+
+        # "files"             : "DEPRECATED",
+        # "archives"          : "file depset",
+        # "archive_deps"       : "file depset of archive deps",
+
+        # OBSOLETE: codeps passed separately by PpxCodepsProvider
+        "ppx_codeps"      : "file depset",
+        "ppx_codep_paths" : "string depset",
+        # "ns_resolver"       : "single target",
+    }
+)
+
+## for version 3:
+OcamlExternalInfo = provider(
+    doc = "OCaml build provider containing external resources",
+    fields = {
         "cmi" : "Cmi file provided",
         "sig" : "Cmi file provided",
         "struct" : "Structure file (.cmo or .cmx) provided",
@@ -64,6 +123,7 @@ OcamlProvider = provider(
         # "ns_resolver"       : "single target",
     }
 )
+
 
 OcamlVmRuntimeProvider = provider(
     doc = "OCaml VM Runtime provider",

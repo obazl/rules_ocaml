@@ -19,6 +19,8 @@ PpxCodepsProvider = provider(
         "paths":     "depset of path strings, for efficiency",
 
         "ccdeps":    "depset of cc libs (static or shared)",
+        "ccinfo"  : "a single CcInfo provider, merged",
+        "jsoo_runtimes": "depset of runtime.js files",
     }
 )
 

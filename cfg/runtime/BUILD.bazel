@@ -7,7 +7,7 @@ label_setting(name="runtime", build_setting_default = ":dynamic")
 ocaml_vm_runtime(name = "dynamic")
 ocaml_vm_runtime(name = "static")
 
-## user-defined runtimes, using ocamlc -make-runtime
+## user-defined runtimes, using ocamlc -make-runtime, e.g.
 ocaml_vm_runtime(
     name = "foo",
     deps = [

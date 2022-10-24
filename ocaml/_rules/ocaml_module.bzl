@@ -110,6 +110,8 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     """,
     attrs = dict(
         rule_options,
+        _rule = attr.string( default  = "ocaml_module" ),
+        _tags = attr.string_list( default  = ["ocaml"] ),
     ),
 
     fragments = ["platform", "cpp"],

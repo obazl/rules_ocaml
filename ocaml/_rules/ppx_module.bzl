@@ -157,6 +157,13 @@ NOTE: These do not support `:enable`, `:disable` syntax.
             # cfg = "target"
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
+
+        _rule = attr.string( default  = "ppx_module" ),
+        _tags = attr.string_list( default  = [
+            "ppx",
+            "exec" # all ppx_modules are 'exec' modules
+        ] ),
+
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),

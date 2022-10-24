@@ -94,8 +94,8 @@ ppx_executable = rule(
         # initializer = attr.label(),
         main = attr.label(
             doc = "A module to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
-            # mandatory = True,
-            # allow_single_file = True,
+            mandatory = True,
+            allow_single_file = True,
             providers = [[OcamlModuleMarker], [PpxExecutableMarker]],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
@@ -157,6 +157,8 @@ ppx_executable = rule(
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             mandatory = False,
+            # FIXME: for jsoo, codeps must pass on js files. :(
+            # otherwise the link action would have to transpile them
             cfg = "target"
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
@@ -188,9 +190,8 @@ ppx_executable = rule(
         ),
 
         _rule = attr.string( default = "ppx_executable" ),
-        # _sdkpath = attr.label(
-        #     default = Label("@rules_ocaml//cfg:sdkpath")
-        # ),
+        _tags = attr.string_list( default  = ["ppx", "executable"] ),
+
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"

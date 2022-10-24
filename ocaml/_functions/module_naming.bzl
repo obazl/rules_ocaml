@@ -190,33 +190,34 @@ def derive_module_name_from_file_name(ctx, src): # src: string
     ns_resolver = False
     bottomup = False
     ## bottom-up submodules have explicit ns_resolver attribute
-    # if hasattr(ctx.attr, "ns_resolver"):
-    if ctx.attr.ns_resolver:
-        if debug: print("BOTTOMUP renaming")
-        # print("BOTTOMUP: ctx.attr.ns_resolver %s" % ctx.attr.ns_resolver)
-        bottomup = True
-        ns_resolver = ctx.attr.ns_resolver
-        # resolver either ocaml_ns_resolver or ocaml_module
-        if hasattr(ctx.attr.ns_resolver[OcamlNsResolverProvider],
-                   "ns_name"):
-            prefix = ctx.attr.ns_resolver[OcamlNsResolverProvider].ns_name
+
+    # if ctx.attr._rule == "ppx_transform":
+    #     # no ns resolver attrs?
+    if ctx.attr._rule != "ppx_transform":
+        if ctx.attr.ns_resolver:
+            if debug: print("BOTTOMUP renaming")
+            bottomup = True
+            ns_resolver = ctx.attr.ns_resolver
+            # resolver either ocaml_ns_resolver or ocaml_module
+            if hasattr(ns_resolver[OcamlNsResolverProvider], "ns_name"):
+                prefix = ctx.attr.ns_resolver[OcamlNsResolverProvider].ns_name
+            else:
+                (prefix, extension) = paths.split_extension(
+                    ctx.file.ns_resolver.basename)
+                # print("prefix xxxx %s" % prefix)
         else:
-            (prefix, extension) = paths.split_extension(
-                ctx.file.ns_resolver.basename)
-            # print("prefix xxxx %s" % prefix)
-    else:
-        if debug: print("TOPDOWN renaming")
-        if type(ctx.attr._ns_resolver) == "list":
-            ns_resolver = ctx.attr._ns_resolver[0]
-            if debug: print("ctx.attr._ns_resolver[0]: %s" % ns_resolver)
-        else:
-            ns_resolver = ctx.attr._ns_resolver
-            if debug: print("ctx.attr._ns_resolver: %s" % ns_resolver)
-        if OcamlNsResolverProvider in ns_resolver:
-            ns_resolver = ns_resolver[OcamlNsResolverProvider]
-            if debug: print("OcamlNsResolverProvider: %s" % ns_resolver)
-        else:
-            print("{c}MISSING OcamlNsResolverProvider{r}".format(c=CCRED,r=CCRESET))
+            if debug: print("TOPDOWN renaming")
+            if type(ctx.attr._ns_resolver) == "list":
+                ns_resolver = ctx.attr._ns_resolver[0]
+                if debug: print("ctx.attr._ns_resolver[0]: %s" % ns_resolver)
+            else:
+                ns_resolver = ctx.attr._ns_resolver
+                if debug: print("ctx.attr._ns_resolver: %s" % ns_resolver)
+            if OcamlNsResolverProvider in ns_resolver:
+                ns_resolver = ns_resolver[OcamlNsResolverProvider]
+                if debug: print("OcamlNsResolverProvider: %s" % ns_resolver)
+            else:
+                print("{c}MISSING OcamlNsResolverProvider{r}".format(c=CCRED,r=CCRESET))
 
     if debug: print("ns_resolver: %s" % ns_resolver)
 

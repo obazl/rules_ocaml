@@ -107,7 +107,7 @@ def impl_ns_resolver(ctx):
     # env = {"PATH": get_sdkpath(ctx)}
 
     ################
-    default_outputs = [] ## .cmx only
+    default_outputs = [] ## .cmi, .cmo or .cmx, .o
     action_outputs = []  ## .cmx, .cmi, .o
     rule_outputs = [] # excludes .cmi
 
@@ -373,12 +373,14 @@ def impl_ns_resolver(ctx):
         out_ofile_fname = resolver_module_name + ".o"
         out_ofile = ctx.actions.declare_file(workdir + out_ofile_fname)
         action_outputs.append(out_ofile)
+        default_outputs.append(out_ofile)
         # rule_outputs.append(out_ofile)
         out_struct_fname = resolver_module_name + ".cmx"
 
     out_struct = ctx.actions.declare_file(workdir + out_struct_fname)
     action_outputs.append(out_struct)
-    default_outputs.append(out_struct)
+    # default_outputs.append(out_struct)
+    default_outputs.extend([out_cmi, out_struct])
     # rule_outputs.append(out_struct)
 
     ################################

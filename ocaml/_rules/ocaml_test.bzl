@@ -52,6 +52,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     attrs = dict(
         rule_options,
         _rule = attr.string( default = "ocaml_test" ),
+        _tags = attr.string_list( default  = ["ocaml", "test"] ),
 
         cc_libs = attr.label_list(),
 

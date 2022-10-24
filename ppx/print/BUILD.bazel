@@ -5,5 +5,14 @@ package(default_visibility = ["//visibility:public"])
 
 string_flag( name = "print", build_setting_default = "binary")
 
-string_setting( name = "binary", build_setting_default = "binary")
-string_setting( name = "text", build_setting_default = "text")
+string_setting( name = "binary!", build_setting_default = "binary")
+string_setting( name = "text!", build_setting_default = "text")
+
+config_setting(
+    name = "binary?",
+    flag_values = {":print": "binary"}
+)
+config_setting(
+    name = "text?",
+    flag_values = {":print": "text"}
+)

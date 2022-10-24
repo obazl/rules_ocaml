@@ -41,6 +41,8 @@ ocaml_exec_module = rule(
     """,
     attrs = dict(
         rule_options,
+        _rule = attr.string( default  = "ocaml_exec_module" ),
+        _tags = attr.string_list( default  = ["ocaml", "exec"] ),
     ),
 
     fragments = ["platform", "cpp"],

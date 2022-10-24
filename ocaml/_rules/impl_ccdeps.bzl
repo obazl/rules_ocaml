@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl",
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 load("@rules_ocaml//ocaml/_debug:colors.bzl",
-     "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCYEL", "CCRESET")
+     "CCRED", "CCGRN", "CCBLU", "CCBLURED", "CCMAG", "CCYEL", "CCRESET")
 
 ## see: https://github.com/bazelbuild/bazel/blob/master/src/main/starlark/builtins_bzl/common/cc/cc_import.bzl
 
@@ -52,7 +52,8 @@ def dump_library_to_link(ctx, idx, lib):
 
 #########################
 def dump_CcInfo(ctx, cc_info): # dep):
-    print("DUMP_CCINFO for %s" % ctx.label)
+    print("{c}dump_CcInfo for {lbl}{r}".format(c=CCBLURED,lbl=ctx.label,r=CCRESET))
+    # print("DUMP_CCINFO for %s" % ctx.label)
     # print("CcInfo dep: {d}".format(d = dep))
 
     # dfiles = dep[DefaultInfo].files.to_list()
@@ -91,7 +92,7 @@ def dump_CcInfo(ctx, cc_info): # dep):
 
 ################################################################
 def lib_to_string(ctx, i, j, lib):
-    text = ""
+    text = "\n"
     # flds = ["static_library",
     #         "pic_static_library",
     #         "interface_library",
@@ -145,12 +146,12 @@ def ccinfo_to_string(ctx, cc_info):
 ## Extract all cc libs from merged CcInfo provider
 ## to be called from {ocaml,ppx}_executable
 ## tasks:
-##     - construct args
+##     - construct args  (OBSOLETE?)
 ##     - construct inputs_depset
 ##     - extract runfiles
 def extract_cclibs(ctx,
-                   default_linkmode, # platform default
-                   args,
+                   # default_linkmode, # platform default
+                   # args,
                    ccInfo):
     # print("link_ccdeps %s" % ctx.label)
 
@@ -558,11 +559,15 @@ def get_libname(linker_input):
 
 ##########################
 def filter_ccinfo(target):
-    print("{c}filter_ccinfo{r}: {t}".format(c=CCRED,t=target,r=CCRESET))
+
+    debug = False
+
+    if debug: print("{c}filter_ccinfo{r}: {t}".format(c=CCRED,t=target,r=CCRESET))
 
 
     # task: if target is produced by a cc_* rule, then filter out the
-    # OCaml CSDK libs.
+    # OCaml CSDK libs. (huh? this is a remnant from a discarded
+    # previous strategy?)
 
     default_files = target[DefaultInfo].files.to_list()
 
@@ -578,13 +583,13 @@ def filter_ccinfo(target):
     ## Then create a new CcInfo containing just the retained libs.
 
     cc_info = target[CcInfo]
-    print("cc_info: %s" % cc_info)
+    if debug: print("cc_info: %s" % cc_info)
     # dump_compilation_context(cc_info)
 
     # compilation_ctx = cc_info.compilation_context
 
     linking_ctx     = cc_info.linking_context
-    print("LINKING_CTX: %s" % linking_ctx.linker_inputs)
+    if debug: print("LINKING_CTX: %s" % linking_ctx.linker_inputs)
     linker_inputs = linking_ctx.linker_inputs.to_list()
 
     if linker_inputs:
@@ -604,8 +609,9 @@ def filter_ccinfo(target):
         return (None, None)
 
 ##########################
-def dso_to_ccinfo(ctx, ccinfo, ccfile):
-    print("{c}dso_to_ccinfo{r}: {t}".format(c=CCRED,t=ccinfo,r=CCRESET))
+def cc_shared_lib_to_ccinfo(ctx, ccinfo, ccfile):
+    print("{c}cc_shared_lib_to_ccinfo{r}: {t}".format(
+        c=CCRED,t=ccinfo,r=CCRESET))
 
     ## Create a new CcInfo containing just the ccfile
 
@@ -631,6 +637,69 @@ def dso_to_ccinfo(ctx, ccinfo, ccfile):
     linker_input = cc_common.create_linker_input(
         owner = ctx.label,
         libraries = depset(direct=[lib_to_link])
+    )
+
+    linking_ctx     = cc_common.create_linking_context(
+        linker_inputs = depset(direct=[linker_input])
+    )
+
+    cc_info = CcInfo(
+        compilation_context = cc_common.create_compilation_context(),
+        linking_context = linking_ctx
+    )
+
+    return cc_info
+
+
+################################################################
+## target may contain shared libs in DefaultInfo, as we as a CcInfo
+## provider.  Merge them.
+def normalize_ccinfo(ctx, target):
+    print("{c}normalize_ccinfo{r}: {t}".format(
+        c=CCRED,t=target,r=CCRESET))
+
+    ccInfo = target[CcInfo]
+
+    files = target[DefaultInfo].files.to_list()
+    ccfiles = []
+    for f in files:
+        if f.extension in ["so", "dylib"]:
+            print("found dso: %s" % f)
+            ccfiles.append(f)
+
+    if len(ccfiles) == 0:
+        return ccInfo
+
+    ## Create a new CcInfo containing just the ccfiles
+
+    ## FIXME: here we've assumed that the CcInfo is empty if
+    ## DefaultInfo contains a shared lib.
+
+    cc_toolchain = find_cpp_toolchain(ctx)
+    # cc_toolchain = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
+
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        requested_features = ctx.features,
+        unsupported_features = ctx.disabled_features,
+    )
+
+    libs_to_link = []
+    for ccfile in ccfiles:
+        lib_to_link = cc_common.create_library_to_link(
+            actions = ctx.actions,
+            feature_configuration = feature_configuration,
+            dynamic_library = ccfile,
+            dynamic_library_symlink_path = ccfile.path,
+            cc_toolchain = cc_toolchain
+        )
+        print("lib_to_link: %s" % lib_to_link)
+        libs_to_link.append(lib_to_link)
+
+    linker_input = cc_common.create_linker_input(
+        owner = ctx.label,
+        libraries = depset(direct=libs_to_link) #[lib_to_link])
     )
 
     linking_ctx     = cc_common.create_linking_context(

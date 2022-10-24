@@ -35,9 +35,10 @@ load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_name")
 
 load(":impl_ccdeps.bzl",
-     "dso_to_ccinfo",
+     "cc_shared_lib_to_ccinfo",
      "filter_ccinfo",
-     "extract_cclibs", "dump_CcInfo",
+     # "extract_cclibs",
+     "dump_CcInfo",
      "ccinfo_to_string"
      )
 
@@ -309,7 +310,7 @@ def _handle_source_sig(ctx, modname, ext):
 
 ########################
 def _resolve_modname(ctx):
-    debug = False
+    debug = True
 
     if debug: print("_resolve_modname")
 
@@ -442,6 +443,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     includes   = []
     target_outputs    = [] # just the cmx/cmo files, for DefaultInfo
     action_outputs   = [] # .cmx, .cmi, .o
+    default_outputs  = []
     # target outputs excludes .cmx if sig was compiled with -opaque
     # direct_linkargs = []
     old_cmi = None
@@ -508,6 +510,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     afiles_secondary   = []
     archives_primary   = []
     archives_secondary = []
+    jsoo_runtimes_primary   = []
+    jsoo_runtimes_secondary = []
     paths_primary   = []
     paths_secondary = []
 
@@ -699,12 +703,15 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if out_cmi and not cmi_precompiled:
         # we're compiling mli, so cmi is action output
         action_outputs.append(out_cmi)
+        if "exec" not in ctx.attr._tags:
+            default_outputs.append(out_cmi)
         sigs_primary.append(out_cmi)
 
     ## out_struct (.cmo or .cmx) must go in action_outputs; it will
     ## also be delivered as a target output, but via a custom
     ## provider, not directly in the DefaultInfo provider.
     action_outputs.append(out_struct)
+    default_outputs.append(out_struct)
     structs_primary.append(out_struct)
 
     if tc.target != "vm":
@@ -713,6 +720,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         )
         ofiles_primary.append(out_ofile)
         action_outputs.append(out_ofile)
+        if "exec" not in ctx.attr._tags:
+            default_outputs.append(out_ofile)
     else: out_ofile = []
 
     ################################################################
@@ -757,6 +766,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # codep_archives_primary   = []
     # codep_afiles_primary     = []
     # codep_astructs_primary   = []
+    # codep_jsoo_runtimes_primary   = []
     # codep_cc_deps_primary   = []
     # codep_paths_primary   = []
 
@@ -766,6 +776,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     codep_archives_secondary = []
     codep_afiles_secondary   = []
     codep_astructs_secondary = []
+    codep_jsoo_runtimes_secondary = []
     codep_paths_secondary    = []
     codep_cc_deps_secondary   = []
 
@@ -863,9 +874,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     the_deps = ctx.attr.deps + ctx.attr.open
     for dep in the_deps:
-        ## if debug_deps:
-        print("module lbl: %s" % ctx.label)
-        print("module DEP: %s" % dep)
+        if debug_deps:
+            print("module lbl: %s" % ctx.label)
+            print("module DEP: %s" % dep)
         ## OCaml deps first
 
         ## module deps have xmo flag
@@ -923,6 +934,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             structs_secondary.append(provider.structs)
             ofiles_secondary.append(provider.ofiles)
             archives_secondary.append(provider.archives)
+            if hasattr(provider, "jsoo_runtimes"):
+                jsoo_runtimes_secondary.append(provider.jsoo_runtimes)
 
             if ns_enabled:
                 if OcamlArchiveMarker in dep:
@@ -965,6 +978,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 #FIXME
                 codep_afiles_secondary.append(codep.afiles)
                 codep_astructs_secondary.append(codep.astructs)
+                if hasattr(codep, "jsoo_runtimes"):
+                    codep_jsoo_runtimes_secondary.append(codep.astructs)
                 codep_paths_secondary.append(codep.paths)
 
         ## Finally CcInfo deps
@@ -1004,7 +1019,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                     ## infer it was delivered by cc_binary
                     ## must be a shared lib
                     ccfile = dep[DefaultInfo].files.to_list()[0]
-                    cc_info = dso_to_ccinfo(ctx, dep[CcInfo], ccfile)
+                    cc_info = cc_shared_lib_to_ccinfo(ctx, dep[CcInfo], ccfile)
                     cc_deps_secondary.append(cc_info)
 
     if debug_deps:
@@ -1034,12 +1049,16 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #         path_depsets.append(sig_paths)
 
     ############ PPX EXECUTABLE DEPENDENCIES ################
-    ## ppx_codeps of the ppx executable are material deps of this
-    ## module. They thus become elements in the depgraph of anything
-    ## that depends on this module, so they are passed on just like
-    ## regular deps.
 
-    ## Can a ppx_executable also have deps listed in OcamlProvider?
+    # ppx_codeps are material deps of this module. They thus become
+    # elements in the depgraph of anything that depends on this
+    # module, so they are passed on just like regular deps.
+
+    # ppx_codeps are provided either by ctx.attr.ppx or by
+    # ctx.attr.struct (or ctx.attr.sig) if those are ppx_transform
+    # targets.
+
+    ## Can a ppx_executable also have ordinary deps listed in OcamlProvider?
     ## Don't think so.
 
     ## But it can carry CcInfo
@@ -1079,6 +1098,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             ofiles_secondary.append(codep.ofiles)
             afiles_secondary.append(codep.afiles)
             astructs_secondary.append(codep.astructs)
+            if hasattr(codep, "jsoo_runtimes"):
+                jsoo_runtimes_secondary.append(codep.jsoo_runtimes)
             paths_secondary.append(codep.paths)
 
             codep_sigs_secondary.append(codep.sigs)
@@ -1087,12 +1108,53 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             codep_ofiles_secondary.append(codep.ofiles)
             codep_afiles_secondary.append(codep.afiles)
             codep_astructs_secondary.append(codep.astructs)
+            if hasattr(codep, "jsoo_runtimes"):
+                codep_jsoo_runtimes_secondary.append(codep.jsoo_runtimes)
             codep_paths_secondary.append(codep.paths)
             if hasattr(codep, "ccdeps"):
                 codep_cc_deps_secondary.append(codep.ccdeps)
 
         if CcInfo in ctx.attr.ppx:
             cc_deps_secondary.append(ctx.attr.ppx[CcInfo])
+
+    else:
+        # if struct/sig contains ppx_codeps
+        if PpxCodepsProvider in ctx.attr.struct:
+            codep = ctx.attr.struct[PpxCodepsProvider]
+
+            if debug_ppx:
+                print("processing ppx_codeps from ppx executable: %s" % ctx.attr.ppx)
+                print("ppx_codeps provider: %s" % codep)
+                print("lbl: %s" % ctx.label)
+                # print("codep.paths: %s" % codep.paths)
+                # print("codep.: %s" % codep.sigs)
+            # append to deps, for compiling,
+            # append to codeps, for propagating (later, linking)
+            sigs_secondary.append(codep.sigs)
+            structs_secondary.append(codep.structs)
+            archives_secondary.append(codep.archives)
+            ofiles_secondary.append(codep.ofiles)
+            afiles_secondary.append(codep.afiles)
+            astructs_secondary.append(codep.astructs)
+            if hasattr(codep, "jsoo_runtimes"):
+                jsoo_runtimes_secondary.append(codep.jsoo_runtimes)
+            paths_secondary.append(codep.paths)
+
+            codep_sigs_secondary.append(codep.sigs)
+            codep_structs_secondary.append(codep.structs)
+            codep_archives_secondary.append(codep.archives)
+            codep_ofiles_secondary.append(codep.ofiles)
+            codep_afiles_secondary.append(codep.afiles)
+            codep_astructs_secondary.append(codep.astructs)
+            if hasattr(codep, "jsoo_runtimes"):
+                codep_jsoo_runtimes_secondary.append(codep.jsoo_runtimes)
+            codep_paths_secondary.append(codep.paths)
+            if hasattr(codep, "ccdeps"):
+                codep_cc_deps_secondary.append(codep.ccdeps)
+
+        # if CcInfo in ctx.attr.struct:
+        #     cc_deps_secondary.append(ctx.attr.ppx[CcInfo])
+
 
     ################ PRIMARY CCLIB DEPENDENCIES ################
     # FIXME: remove cc_deps attrib
@@ -1268,20 +1330,27 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # if ctx.attr.ns_resolver:
     #     args.add("-open", bottomup_ns_name)
 
-    args.add("-c")
+    # args.add("-c")
 
     # args.add("-FOO", work_ml)
     # args.add("-BAR", work_ml.short_path)
 
     if work_mli and not cmi_precompiled: # sig_src:
         args.add("-I", work_mli.dirname) # sig_src.dirname)
+
+        args.add("-c")
+        ## WARNING: cannot use both -c and -o with multiple input files
+        # args.add("-o", out_struct)
+
         # args.add("-intf", sig_src)
+
         args.add(work_mli) # sig_src)
 
         # args.add("-impl", structfile)
         # args.add(in_structfile) # structfile)
         args.add(work_ml) # structfile)
     else:
+        args.add("-c")
         args.add("-impl", work_ml) # in_structfile) # structfile)
         args.add("-o", out_struct)
 
@@ -1338,20 +1407,25 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ################
     ## only the structfile is default output; that way consumers can
     ## put default output on cmd line
-    if tc.target != "vm":
-        default_depset = depset(
-            order = dsorder,
-            direct = [out_cmi, out_struct, out_ofile]  ## target_outputs,
-            # transitive = bottomup_ns_files
-        )
-    else:
-        default_depset = depset(
-            order = dsorder,
-            direct = [out_cmi, out_struct]
-            # transitive = bottomup_ns_files
-        )
+    # if tc.target != "vm":
+    #     default_depset = depset(
+    #         order = dsorder,
+    #         direct = [out_cmi, out_struct, out_ofile]  ## target_outputs,
+    #         # transitive = bottomup_ns_files
+    #     )
+    # else:
+    #     default_depset = depset(
+    #         order = dsorder,
+    #         direct = [out_cmi, out_struct]
+    #         # transitive = bottomup_ns_files
+    #     )
 
 
+    default_depset = depset(
+        order = dsorder,
+        # direct = [out_struct]
+        direct = default_outputs
+    )
     defaultInfo = DefaultInfo(
         files = default_depset
     )
@@ -1438,6 +1512,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                            transitive=afiles_secondary),
         astructs = astructs_depset,
         # cclibs = cclibs_depset,
+        jsoo_runtimes = depset(order=dsorder,
+                               # direct=codep_sigs_primary,
+                               transitive=jsoo_runtimes_secondary),
 
         # linkargs = linkset,
         paths    = paths_depset,
@@ -1446,7 +1523,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                            direct=[resolver_struct],
                            transitive=resolvers_secondary),
 
-        cc_libs = cc_libs,
+        # cc_libs = cc_libs,
 
         srcs = depset(direct=[work_ml])
     )
@@ -1522,9 +1599,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             paths     = depset(order = dsorder,
                                # direct = codep_paths_primary,
                                transitive = codep_paths_secondary),
-            # cclibs    = depset(order=dsorder,
+            # ccdeps    = depset(order=dsorder,
             #                    # direct=codep_cclibs_primary,
             #                    transitive=codep_cclibs_secondary),
+            jsoo_runtimes = depset(order=dsorder,
+                                   # direct=codep_sigs_primary,
+                                   transitive=codep_jsoo_runtimes_secondary),
         )
         if debug_ppx:
             print("appending PpxCodepsProvider: %s" %ppxCodepsProvider)

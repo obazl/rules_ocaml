@@ -152,7 +152,8 @@ def options_binary():
         ),
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
-            # allow_single_file = True,
+            mandatory = True,
+            allow_single_file = True,
             providers = [[OcamlProvider,OcamlModuleMarker]],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
@@ -212,9 +213,17 @@ def options_binary():
 
         ),
 
+        # vm_runtime = attr.string(
+        #     doc = """
+        #     Static or dynamic. Overrides --@rules_ocaml//cfg/runtime.
+
+        #     """
+        #     # default = "static"
+        # ),
+
         vm_runtime = attr.label(
-            doc = "@ocaml_rules//cfg/runtime:dynamic (default), @ocaml_rules//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
-            default = "@rules_ocaml//cfg/runtime"
+            doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
+            default = "@rules_ocaml//cfg/runtime:dynamic"
         ),
 
         # mode = attr.label(
@@ -252,7 +261,7 @@ def options_aggregators():
                          ],
         ),
         cc_deps = attr.label_list(
-            doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
+            doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must deliver a CcInfo provider. Since ocaml rules may deliver CcInfo providers, we cannnot assume these deps are produced directly by rules_cc.",
             providers = [CcInfo],
         ),
 

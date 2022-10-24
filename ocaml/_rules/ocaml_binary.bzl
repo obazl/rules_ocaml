@@ -70,6 +70,7 @@ the difference between '/' and ':' in such labels):
         ),
 
         _rule = attr.string( default  = "ocaml_binary" ),
+        _tags = attr.string_list( default  = ["ocaml", "binary"] ),
 
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
