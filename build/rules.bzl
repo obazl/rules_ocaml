@@ -46,6 +46,7 @@ load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
 load("//ocaml/_rules:ocaml_vm_runtime.bzl", _ocaml_vm_runtime = "ocaml_vm_runtime")
 
 load("//ocaml/_rules:ppx_module.bzl", _ppx_module = "ppx_module")
+load("//ocaml/_rules:ppx_transform.bzl", _ppx_transform = "ppx_transform")
 
 load("//ocaml/_rules:ppx_executable.bzl" ,
      _ppx_executable = "ppx_executable")
@@ -87,6 +88,7 @@ ocamlyacc        = _ocamlyacc
 
 ppx_executable   = _ppx_executable
 ppx_module       = _ppx_module
+ppx_transform    = _ppx_transform
 # ppx_expect_test  = _ppx_expect_test
 # ppx_test         = _ppx_test
 
