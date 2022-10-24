@@ -136,7 +136,10 @@ def impl_ns_resolver(ctx):
     # cclibs_primary = []
     # cclibs_secondary = []
 
-    no_main_alias = False
+    if subnames_ct == 0:
+        no_main_alias = True
+    else:
+        no_main_alias = False
     user_ns_resolver = None
 
     if debug_submodules: print("iterating submodules")
@@ -169,21 +172,23 @@ def impl_ns_resolver(ctx):
                     print("submodule: %s" % submodule)
                 ## this is the top-level nslib - do not use fs_prefix
                 if submodule == ns_prefixes[0]:
-                    if subnames_ct == 1:
-                        # print("SUBMODULE %s" % submodule)
-                        # print("SUBMOD_LABEL %s" % submod_label)
-                        fail("Disallowed: ns of one submodule whose name matches ns name ({n}). Use ocaml_module with ocaml_library or ocaml_archive; or change  the name of either the ns or the submodule.".format(n=submodule))
-                    no_main_alias = True
                     if debug_submodules:
-                        print("submodule == ns_prefixes[0]: %s" % submodule)
+                        print("submod == ns pfx[0]")
+                    # if subnames_ct == 1:
+                    #     # print("SUBMODULE %s" % submodule)
+                    #     # print("SUBMOD_LABEL %s" % submod_label)
+                    #     fail("Disallowed: ns of one submodule whose name matches ns name ({n}). Use ocaml_module with ocaml_library or ocaml_archive; or change  the name of either the ns or the submodule.".format(n=submodule))
+                    no_main_alias = True
+                    # if debug_submodules:
+                    #     print("submodule == ns_prefixes[0]: %s" % submodule)
 
-                    # ctx.attr.manifest can only be explicitly set
-                    # in bottom-up ns using ocaml_ns_resolver target
+                    # # ctx.attr.manifest can only be explicitly set
+                    # # in bottom-up ns using ocaml_ns_resolver target
                     if ctx.attr.manifest:
                         user_ns_resolver = submod_label
-                    if debug_submodules:
-                        print("USER_NS_RESOLVER: %s" % user_ns_resolver)
-                    continue ## no alias for main module
+                    # if debug_submodules:
+                    #     print("USER_NS_RESOLVER: %s" % user_ns_resolver)
+                    # continue ## no alias for main module
                 else:
                     if debug_submodules:
                         print("submodule != ns_prefixes[0]: %s" % submodule)

@@ -244,8 +244,19 @@ def derive_module_name_from_file_name(ctx, src): # src: string
         if len(ns_prefixes) == 0:
             out_module = this_module
         elif this_module == ns_prefixes[-1]:
-            # print("this is a main ns module: %s" % this_module)
-            out_module = this_module
+            # print("this module matches ns resolver name: %s" % this_module)
+            if _src_module_in_submod_list(ctx,
+                                          src,
+                                          ns_resolver.submodules):
+                # print("%s in submod list" % this_module)
+                # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
+                #     fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
+                # else:
+                fs_prefix = module_sep.join(ns_prefixes) + "__"
+                out_module = fs_prefix + this_module
+            else:
+                out_module = this_module
+            # out_module = this_module
         else:
             if len(ns_resolver.submodules) > 0:
                 if bottomup:
