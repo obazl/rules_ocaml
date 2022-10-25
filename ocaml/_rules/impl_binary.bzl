@@ -553,12 +553,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     #     # e.g. -lbase_stubs
     #     args.add("-output-complete-exe")
 
-    data_inputs = []
-    if ctx.attr.data:
-        data_inputs = [depset(direct = ctx.files.data)]
-        for f in ctx.files.data:
-            # print("DATAFILE: %s" % f.path)
-            args.add("-I", f.dirname)
+    # data_inputs = []
+    # if ctx.attr.data:
+    #     data_inputs = [depset(direct = ctx.files.data)]
+    #     for f in ctx.files.data:
+    #         # print("DATAFILE: %s" % f.path)
+    #         args.add("-I", f.dirname)
 
     if hasattr(ctx.files, "main"):
         mainfile = ctx.files.main
@@ -639,10 +639,25 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     #### RUNFILE DEPS ####
     rfiles = ctx.files.data + tc.vmlibs + cc_runfiles
-    if ctx.attr.strip_data_prefixes:
+
+    rfsymlinks = {}
+    # map prefixes
+    for f in ctx.files.data:
+        added = False
+        for (k,v) in ctx.attr.data_prefix_map.items():
+            if f.path.startswith(k):
+                rf = v + f.path.removeprefix(k)
+                rfsymlinks.update({rf: f})
+                added = True
+                break
+        if not added:
+            rfsymlinks.update({f: f})
+
+    if ctx.attr.data_prefix_map:
         myrunfiles = ctx.runfiles(
             files = rfiles,
-            symlinks = {dfile.basename : dfile for dfile in ctx.files.data}
+            symlinks = rfsymlinks,
+            root_symlinks = rfsymlinks
         )
     else:
         myrunfiles = ctx.runfiles(

@@ -184,10 +184,13 @@ def options_binary():
             allow_files = True,
             doc = "Runtime dependencies: list of labels of data files needed by this executable at runtime."
         ),
-        strip_data_prefixes = attr.bool(
-            doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
-            default = False
+        data_prefix_map = attr.string_dict(
+            doc = "Map for replacing path prefixes of data files"
         ),
+        # strip_data_prefixes = attr.bool(
+        #     doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
+        #     default = False
+        # ),
 
         ## FIXME: add cc_linkopts?
         ## FIXME: no need, cc deps can be added to deps
