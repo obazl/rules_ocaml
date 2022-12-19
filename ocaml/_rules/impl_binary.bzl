@@ -481,7 +481,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
         ,
         transitive =
-        [depset(direct = [ctx.file.main])]
+        [depset(direct = [ctx.file.main])] if ctx.file.main else []
         # data_inputs
         + sigs_secondary
         + structs_secondary
