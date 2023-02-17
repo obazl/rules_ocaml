@@ -1,3 +1,4 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//ocaml:providers.bzl",
@@ -12,10 +13,10 @@ load(":impl_common.bzl", "tmpdir")
 # tmpdir = "_obazl_/"
 
 ################################################################
-def impl_ppx_transform(rule, ctx, src, dst):
+def impl_ppx_transform(rule, ctx, srcfile, dst):
     """Apply a PPX to source file.
 
-    Inputs: rule, context, src
+    Inputs: rule, context, srcfile
     Outputs: struct(intf :: declared File, maybe impl :: declared File)
     """
 
@@ -26,7 +27,18 @@ def impl_ppx_transform(rule, ctx, src, dst):
         print("impl_ppx_transform: {src} to {dst}".format(
             src = src, dst = dst))
 
-    # scope = tmpdir
+    # To deal with generated runtime data files (ppx_data) we need
+    # both the src file and the runtime files in the same dir, so we
+    # must symlink both to the workdir. Since the output file will
+    # have the same name as the (orignal) input file, we link the
+    # latter into the workdir, inserting '.pp.'. Below we will symlink
+    # the ppx_data files to the same workdir. (Evidently ppx_optcomp
+    # will always look for data files relative to the src file dir.)
+
+    (srcname, srcext) = paths.split_extension(srcfile.basename)
+
+    src = ctx.actions.declare_file(tmpdir + srcname + ".ppx" + srcext)
+    ctx.actions.symlink(output = src, target_file = srcfile)
 
     outfile = ctx.actions.declare_file(tmpdir + dst)
     outputs = {"impl": outfile}
@@ -83,6 +95,9 @@ def impl_ppx_transform(rule, ctx, src, dst):
             cli_args.remove("-no-dump-ast")
         args.add_all(cli_args)
 
+    ## ppx does not accept -I
+    # args.add("-I", "bazel-out/darwin-fastbuild/bin")
+
     args.add("-o", outfile.path)
 
     if src.path.endswith(".mli"):
@@ -106,10 +121,25 @@ def impl_ppx_transform(rule, ctx, src, dst):
     ## construct shell command
     # parent = src.dirname
     # RUNTIME_FILES = ""
-    # if hasattr(ctx.attr, "ppx_data"):
-    #     if len(ctx.attr.ppx_data) > 0:
-    #         for f in ctx.files.ppx_data:
-    #             action_inputs.append(f)
+
+    ## If file is generated, the ppx won't find it since its in a
+    ## bazel subdir, e.g. bazel-out/darwin-fastbuild/bin/... Ppx exe's
+    ## do not support -I, so we need to find a way. One way is to
+    ## revert to using a shell script to run the ppx, so we can set
+    ## its runfiles. To use ctx.actions.run, we need to put the
+    ## structfile and the runtime data files in the same dir. Above we
+    ## symlinnked structfile foo.ml to __obazl/foo.pp.ml; here, we
+    ## symlink the ppx_data files to the same workdir.
+
+
+    if hasattr(ctx.attr, "ppx_data"):
+        if len(ctx.attr.ppx_data) > 0:
+            for f in ctx.files.ppx_data:
+                tmpfile = ctx.actions.declare_file(tmpdir + f.basename)
+                ctx.actions.symlink(output = tmpfile, target_file = f)
+                # print("TMPF: %s" % tmpfile.path)
+                # fail()
+                action_inputs.append(tmpfile) #(f)
     #             fname_len = len(f.basename)
     #             datafile_parent = f.short_path[:-fname_len]
     #             RUNTIME_FILES = RUNTIME_FILES + "\n".join([
