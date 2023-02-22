@@ -53,8 +53,9 @@ _ppx_codeps_transition = transition(
 ###############################
 def _ppx_module(ctx):
 
-    print("{c}ppx_module: {m}{r}".format(
-        c=CCBLUBG,m=ctx.label,r=CCRESET))
+    # print("{c}ppx_module: {m}{r}".format(
+    #     c=CCBLUBG,m=ctx.label,r=CCRESET))
+
     # if True:  # debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
@@ -108,7 +109,7 @@ based on the `struct`, `sig`, `name`, and `module` attributes:
   structfile name, unless the `module` attribute is specified, in
   which case it overrides.
 
-**CONFIGURABLE DEFAULTS** for rule `ocaml_module`:
+**CONFIGURABLE DEFAULTS** for rule `ppx_module`:
 
 In addition to the <<Configurable defaults>> that apply to all
 `ocaml_*` rules, the following apply to this rule:
@@ -151,11 +152,58 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     attrs = dict(
         rule_options,
 
+        struct = attr.label(
+            doc = "A single module (struct) source file label.",
+            mandatory = True,
+            allow_single_file = True # no constraints on extension
+        ),
+
+        ## we have both a public and a hidden ns resolver attribute.
+        ## this one is for bottom-up namespacing:
+        ns_resolver = attr.label(
+            doc = """
+NS resolver module for bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
+            """,
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            mandatory = False
+        ),
+
+        ## this one is for topdown-up namespacing:
+        _ns_resolver = attr.label(
+            doc = "NS resolver module for top-down namespacing",
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            ## @rules_ocaml//cfg/ns is a 'label_setting' whose value is an
+            ## `ocaml_ns_resolver` rule. so this institutes a
+            ## dependency on a resolver whose build params will be set
+            ## dynamically using transition functions.
+            default = "@rules_ocaml//cfg/ns:resolver",
+
+            ## TRICKY BIT: if our struct is generated (e.g. by
+            ## ocaml_lex), this transition will prevent ns renaming:
+            # cfg = ocaml_module_deps_out_transition
+        ),
+
+        _manifest = attr.label(
+            doc = "Hidden attribute set by transition function. Value is string list.",
+            default = "@rules_ocaml//cfg/manifest"
+        ),
+
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             mandatory = False,
             # cfg = "target"
             # providers = [[DefaultInfo], [PpxModuleMarker]]
+        ),
+
+        ppx_compile_codeps = attr.label_list(
+            doc = """List labels of compile-time dependencies. These are required to compile any file transformed by this ppx.""",
+            mandatory = False,
+        ),
+        ppx_link_codeps = attr.label_list(
+            doc = """List labels of link-time dependencies. These are required to link any file transformed by this ppx.""",
+            mandatory = False,
         ),
 
         _rule = attr.string( default  = "ppx_module" ),

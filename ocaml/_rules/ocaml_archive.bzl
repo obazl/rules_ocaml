@@ -12,7 +12,8 @@ load(":options.bzl", "options", "options_aggregators")
 
 load("impl_archive.bzl", "impl_archive")
 
-load("//ocaml/_transitions:in_transitions.bzl", "nslib_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl",
+     "nslib_in_transition", "reset_in_transition")
 
 load("//ocaml/_debug:colors.bzl", "CCUYEL", "CCRESET")
 
@@ -43,21 +44,22 @@ ocaml_archive = rule(
         archive_name = attr.string(
             doc = "Name of generated archive file, without extension. If not provided, name will be derived from target 'name' attribute."
         ),
-        ## CONFIGURABLE DEFAULTS
-        _linkall     = attr.label(default = "@rules_ocaml//cfg/archive/linkall"),
-        # _threads     = attr.label(default = "@rules_ocaml//cfg/archive/threads"),
-        _warnings  = attr.label(default = "@rules_ocaml//cfg/archive:warnings"),
-        #### end options ####
 
-        shared = attr.bool(
-            doc = "True: build a shared lib (.cmxs)",
-            default = False
-        ),
+        # shared = attr.bool(
+        #     doc = "True: build a shared lib (.cmxs)",
+        #     default = False
+        # ),
 
-        standalone = attr.bool(
-            doc = "True: link total depgraph. False: link only direct deps.",
-            default = False
-        ),
+        # ## FIXME: wtf?
+        # standalone = attr.bool(
+        #     doc = "True: link total depgraph. False: link only direct deps.",
+        #     default = False
+        # ),
+
+        # _manifest = attr.label(
+        #     doc = "Hidden attribute set by transition function",
+        #     default = "@rules_ocaml//cfg/manifest"
+        # ),
 
         # ## FIXME: do archive rules need to support cc_deps?
         # ## They should be attached to members of the archive.
@@ -99,6 +101,10 @@ ocaml_archive = rule(
     ## but we need to reset the ConfigState anyway, so the deps are
     ## not affected if this is a dependency of an ns aggregator.
     # cfg     = nsarchive_in_transition,
+    # cfg     = reset_in_transition,
+
+    #NB: reset wipes configs, not good if this needs to pass on ns
+    #deps to its deps
     cfg     = nslib_in_transition,
     provides = [OcamlArchiveMarker, OcamlProvider],
     executable = False,

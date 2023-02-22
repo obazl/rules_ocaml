@@ -14,6 +14,8 @@ load("@rules_ocaml//ocaml/_debug:colors.bzl",
      "CCWHTBG"
      )
 
+XDEBUG = False
+
 #######################################
 def print_config_state(settings, attr):
     print("CONFIG State:")
@@ -28,11 +30,22 @@ def print_config_state(settings, attr):
     if hasattr(attr, "resolver"):
         print("  attr.resolver: %s" % attr.resolver)
 
-    print("@rules_ocaml//cfg/ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
-    print("@rules_ocaml//cfg/ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+    if "@rules_ocaml//cfg/ns:prefixes" in settings:
+        print("@rules_ocaml//cfg/ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+
+    if "@rules_ocaml//cfg/ns:submodules" in settings:
+        print("@rules_ocaml//cfg/ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
     print("/CONFIG State")
 
 ################################################################
+# nslib out transition: sets the following, all string lists:
+##  @rules_ocaml//cfg/ns:submodules
+##  @rules_ocaml//cfg/ns:prefixes
+##  @rules_ocaml//cfg/ns:manifest
+## WARNING: lib manifest target labels may not match module names.
+## This will happen when a submodule uses the 'module_name' attr.
+## or when a precompiled sig dep forces a module name.
+## So submod names must be derived accordingly.
 def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     # print("_ocaml_nslib_out_transition_impl %s" % attr.name)
     debug = False
@@ -44,13 +57,25 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         print("{c}>>> {t}{r}".format(
             c=CCWHTBG,t=transition,r=CCRESET))
         # print(">>> " + transition)
-        # print("attr.name: %s" % attr.name)
+        print("attr.name: %s" % attr.name)
+        print("attr.ns_name: %s" % attr.ns_name)
+        print("attr.manifest: %s" % attr.manifest)
+        print("attr.aliases: %s" % attr.aliases)
         print_config_state(settings, attr)
         # print("submodules: %s" % attr.manifest)
         # for submod in attr.manifest:
         #     print("submod: %s" % submod)
 
-    nslib_name = normalize_module_name(attr.name)
+    # if attr.name == "libGreek":
+    #     fail()
+
+    if hasattr(attr, "ns_name"):
+        if attr.ns_name:
+            nslib_name = normalize_module_name(attr.ns_name)
+        else:
+            nslib_name = normalize_module_name(attr.name)
+    else:
+        nslib_name = normalize_module_name(attr.name)
     if debug: print("nslib_name: %s" % nslib_name)
     # ns attribute overrides default derived from rule name
     if hasattr(attr, "ns"):
@@ -60,6 +85,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     ns_prefixes = []
     ns_prefixes.extend(settings["@rules_ocaml//cfg/ns:prefixes"])
+    if debug: print("nslib prefixes: %s" % ns_prefixes)
     ns_submodules = settings["@rules_ocaml//cfg/ns:submodules"]
 
     ## convert submodules label list to module name list
@@ -67,11 +93,12 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     attr_submodule_labels = []
 
     ## submodules is a label list of targets, but since the targets
-    ## have not yet been build the vals are labels not targets
+    ## have not yet been built the vals are labels not targets
     for submod_label in attr.manifest:
         submod = normalize_module_name(submod_label.name)
         attr_submodules.append(submod)
         attr_submodule_labels.append(str(submod_label))
+    if debug: print("attr_submodules: %s" % attr_submodules)
 
     nslib_module = capitalize_initial_char(nslib_name) # not needed?
     if debug: print("nslib_module: %s" % nslib_module)
@@ -109,6 +136,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     return {
         "@rules_ocaml//cfg/ns:prefixes": ns_prefixes,
         "@rules_ocaml//cfg/ns:submodules": attr_submodule_labels,
+        "@rules_ocaml//cfg/manifest": attr_submodule_labels,
     }
 
 ################################################################
@@ -116,7 +144,8 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
 ################
 def _ocaml_nslib_main_out_transition_impl(settings, attr):
-    # print("_ocaml_nslib_main_out_transition_impl %s" % attr.name)
+    if XDEBUG:
+        print("_ocaml_nslib_main_out_transition_impl %s" % attr.name)
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_main_out_transition", settings, attr)
 
 ocaml_nslib_main_out_transition = transition(
@@ -128,13 +157,15 @@ ocaml_nslib_main_out_transition = transition(
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        "@rules_ocaml//cfg/manifest"
     ]
 )
 
 ################
 def _ocaml_nslib_submodules_out_transition_impl(settings, attr):
-    # print("{color}_ocaml_nslib_submodules_out_transition_impl{reset}: {s}".format(
-    #     color=CCRED, reset=CCRESET, s = attr.name))
+    if XDEBUG:
+        print("{color}_ocaml_nslib_submodules_out_transition_impl{reset}: {s}".format(
+        color=CCRED, reset=CCRESET, s = attr.name))
 
     ## NB: not affected by user-defined resolver in attr.resolver
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_submodules_out_transition", settings, attr)
@@ -146,7 +177,7 @@ ocaml_nslib_submodules_out_transition = transition(
         "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        # "@rules_ocaml//cfg/ns:name",
+        "@rules_ocaml//cfg/manifest",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]
@@ -155,8 +186,9 @@ ocaml_nslib_submodules_out_transition = transition(
 ################
 ## called on HIDDEN nslib._ns_resolver
 def _ocaml_nslib_resolver_out_transition_impl(settings, attr):
-    # print("{c}_ocaml_nslib_resolver_out_transition_impl{r}: {s}".format(
-    #     c=CCRED, r = CCRESET, s = attr.name))
+    if XDEBUG:
+        print("{c}_ocaml_nslib_resolver_out_transition_impl{r}: {s}".format(
+            c=CCRED, r = CCRESET, s = attr.name))
 
     ## if user explicitly provides 'resolver' attrib then cancel this;
     ## renaming of submodules not affected.
@@ -182,6 +214,7 @@ ocaml_nslib_resolver_out_transition = transition(
         # "@rules_ocaml//cfg/ns:name",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        "@rules_ocaml//cfg/manifest"
     ]
 )
 
@@ -274,7 +307,8 @@ ocaml_nslib_resolver_out_transition = transition(
 
 ################
 def _ocaml_nslib_ns_out_transition_impl(settings, attr):
-    # print("_ocaml_nslib_ns_out_transition_impl %s" % attr.name)
+    if XDEBUG:
+        print("_ocaml_nslib_ns_out_transition_impl %s" % attr.name)
     return _ocaml_nslib_out_transition_impl("ocaml_nslib_ns_out_transition", settings, attr)
 
 ocaml_nslib_ns_out_transition = transition(
@@ -286,6 +320,7 @@ ocaml_nslib_ns_out_transition = transition(
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        "@rules_ocaml//cfg/manifest"
     ]
 )
 
@@ -513,6 +548,30 @@ ocaml_subsignature_deps_out_transition = transition(
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+    ]
+)
+
+###########################################################
+def _manifest_out_transition_impl(settings, attr):
+    debug = False
+    # if attr.name == ":_Plexing.cmi":
+    #     debug = True
+
+    if debug:
+        print(">>> manifest_out_transition")
+        print_config_state(settings, attr)
+
+    manifest = [str(lbl) for lbl in attr.manifest]
+    return {
+        "@rules_ocaml//cfg/manifest"  : manifest
+    }
+
+################
+manifest_out_transition = transition(
+    implementation = _manifest_out_transition_impl,
+    inputs = [],
+    outputs = [
+        "@rules_ocaml//cfg/manifest",
     ]
 )
 

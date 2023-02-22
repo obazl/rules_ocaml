@@ -3,7 +3,7 @@ tmpdir = "__obazl/"
 
 dsorder = "postorder"
 
-opam_lib_prefix = "external/ocaml/_lib"
+opam_lib_prefix = "external/ocaml/lib"
 
 module_sep = "__"
 

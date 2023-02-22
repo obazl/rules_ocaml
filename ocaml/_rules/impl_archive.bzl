@@ -1,16 +1,21 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
+load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
+
+load("@rules_ocaml//ocaml:ocamlinfo.bzl", "OCamlInfo")
+
 load("//ocaml:providers.bzl",
      "OcamlProvider",
      "OcamlNsResolverProvider",
 
      "OcamlArchiveMarker",
+     "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
 )
 
 load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
+     "PpxCodepsInfo",
 )
 
 load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
@@ -36,12 +41,14 @@ CCBLUCYN="\033[44m\033[36m"
 ######################
 def impl_archive(ctx):
 
-    print("{c}impl_archive: {a}{r}".format(
-        c=CCBLUCYN,a=ctx.label,r=CCRESET))
-
     debug     = False
     debug_lib = False
-    debug_cc  = True
+    debug_cc  = False
+
+    if debug:
+        print("{c}impl_archive: {a}{r}".format(
+            c=CCBLUCYN,a=ctx.label,r=CCRESET))
+
 
     # if ctx.label.name == "Bare_structs":
     #     debug = True #False
@@ -52,24 +59,28 @@ def impl_archive(ctx):
     ns_resolver = ctx.files._ns_resolver if ctx.attr._rule.startswith("ocaml_ns") else []
 
     if debug:
+        print("ns resolver: %s" % ns_resolver)
         for f in ns_resolver:
             print("_ns_resolver f: %s" % f.path)
-
+        if ns_resolver:
+            print("XXXXXXXXXXXXXXXX")
+            # if ctx.label.name == "libColor":
+            #     fail()
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     # sigs_direct   = []
     # sigs_indirect = []
-    structs_primary   = []
-    structs_secondary = []
-    astructs_primary   = []
-    astructs_secondary = []
+    # structs_primary   = []
+    # structs_secondary = []
+    # astructs_primary   = []
+    # astructs_secondary = []
 
     # ofiles_direct   = [] # never? ofiles only come from deps
     # ofiles_indirect = []
     # afiles_direct   = []
     # afiles_indirect = []
     # archives_direct = []
-    archives_secondary = []
+    # archives_secondary = []
 
     ################################
     ####  call impl_library  ####
@@ -145,8 +156,10 @@ def impl_archive(ctx):
     #### declare output files ####
     ## same for plain and ns archives
     if ctx.attr._rule.startswith("ocaml_ns"):
-        if ctx.attr.ns:
-            archive_name = ctx.attr.ns ## normalize_module_name(ctx.attr.ns)
+        if ctx.attr.ns_name:
+            archive_name = ctx.attr.ns_name ## normalize_module_name(ctx.attr.ns_name)
+        elif ctx.attr.archive_name:
+            archive_name = ctx.attr.archive_name
         else:
             archive_name = ctx.label.name ## normalize_module_name(ctx.label.name)
     else:
@@ -171,6 +184,8 @@ def impl_archive(ctx):
     #########################
     args = ctx.actions.args()
 
+    args.add("-a")
+
     args.add_all(_options)
 
     ## Submodules can be listed in ctx.files.manifest in any order,
@@ -186,8 +201,13 @@ def impl_archive(ctx):
     submod_arglist = [] # direct deps
 
     ## ns_archives have submodules, plain archives have modules
-    direct_submodule_deps = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
-    # direct_submodule_deps = ctx.files.manifest
+    # direct_submodule_deps = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
+    direct_submodule_deps = ctx.files.manifest
+    # for dep in ctx.attr.manifest:
+    #     if OCamlModuleInfo in dep:
+    #         print("DIRDEP %s" % dep[OCamlModuleInfo])
+        # print("ODEP %s" % dep[OCamlInfo])
+        # print("ODEP %s" % dep[OcamlProvider])
 
     # if OcamlProvider in ns_resolver:
     #     ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
@@ -210,57 +230,8 @@ def impl_archive(ctx):
         submod_arglist.append(f)
 
     for dep in libDefaultInfo.files.to_list():
-        # print("linkarg: %s" % dep)
-        if dep in direct_submodule_deps: # add direct deps to cmd line...
+        if dep in direct_submodule_deps: # = manifest
             submod_arglist.append(dep)
-        # elif ctx.attr._rule.startswith("ocaml_ns"):
-        #     if dep in ns_resolver_files:
-        #         submod_arglist.append(dep)
-        #     else:
-        #         ## nslib linkargs should only contain what's needed to
-        #         ## link and executable or build and archive.
-        #         # linkargs_list.append(dep)
-        #         ## ns resolver?
-        #         submod_arglist.append(dep)
-        #         # fail("ns lib contains extra linkarg: %s" % dep)
-        # else:
-        #     # linkargs should match direct deps list?
-        #     fail("lib contains extra linkarg: %s" % dep)
-        #     # submod_arglist.append(dep)
-
-    # if ctx.attr.cc_deps:
-    #     # includes = []
-    #     # sincludes = []
-    #     # cc_deps_primary         = []
-    #     # for dep in ctx.attr.cc_deps:
-    #     #     print("cc_dep: %s" % dep)
-    #     #     cc_deps_primary.append(dep[CcInfo])
-    #     #     if debug_cc: dump_CcInfo(ctx, dep[CcInfo])
-    #     # ccInfo_direct = cc_common.merge_cc_infos(
-    #     #     cc_infos = cc_deps_primary)
-    #     # if debug_cc: print("Merged CcInfo: %s" % lib_CcInfo)
-    #     ## extract cc_deps from merged CcInfo provider:
-    #     [
-    #         static_cc_deps, dynamic_cc_deps
-    #     ] = extract_cclibs(ctx, lib_CcInfo) # tc.linkmode, args, lib_CcInfo)
-    #     for dep in static_cc_deps:
-    #         if debug_cc: print("STATIC DEP: %s" % dep)
-    #         args.add("-absname")
-    #         # args.add(dep.path)
-    #         args.add(dep)
-    #         # includes.append(dep.dirname)
-    #         # sincludes.append("-L" + dep.dirname)
-    #     for dep in dynamic_cc_deps:
-    #         print("DYNAMIC DEP: %s" % dep)
-    #         # args.add(dep.path)
-    #         args.add("-dllpath", dep.dirname)
-    #         if dep.basename.startswith("dll"):
-    #             args.add("-dllib", "-l" + dep.basename[3:-3])
-    #         else:
-    #             args.add("-ccopt", "-l" + dep.basename[:-3])
-
-        # args.add_all(includes, before_each="-I", uniquify=True)
-        # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
 
     if debug_cc:
         dump_CcInfo(ctx, lib_CcInfo)
@@ -273,7 +244,9 @@ def impl_archive(ctx):
     for dep in static_cc_deps:
         if debug_cc: print("STATIC DEP: %s" % dep)
         # args.add(dep.path)
-        args.add(dep)
+        # args.add(dep)
+        # args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + dep.basename[3:-2])
         # includes.append(dep.dirname)
         # sincludes.append("-L" + dep.dirname)
     for dep in dynamic_cc_deps:
@@ -306,17 +279,18 @@ def impl_archive(ctx):
     #         args.add(dep)
 
     ## structs: free-standing struct deps (not archived)
-    for dep in libOcamlProvider.structs.to_list():
-        # print("inputs dep: %s" % dep)
-        # print("ns_resolver: %s" % ns_resolver)
-        if dep in submod_arglist:
-            # print("adding to args: %s" % dep)
-            args.add(dep)
-            astructs_primary.append(dep)
-        else:
-            # ensure this dep will go on link cmd line
-            astructs_secondary.append(dep)
-            # structs_primary.append(dep)
+    # for dep in libOcamlProvider.structs.to_list():
+    #     # print("inputs dep: %s" % dep)
+    #     # print("ns_resolver: %s" % ns_resolver)
+    #     if dep in submod_arglist:
+    #         print("adding struct to args: %s" % dep)
+    #         args.add(dep)
+
+            # astructs_primary.append(dep)
+        # else:
+        #     # ensure this dep will go on link cmd line
+        #     # astructs_secondary.append(dep)
+        #     structs_primary.append(dep)
         # elif dep == ns_resolver:
         #     args.add(dep)
 
@@ -331,9 +305,18 @@ def impl_archive(ctx):
 
     ## astructs are in dep order, but includes entire depgraph, so we
     ## filter against manifest list:
-    for dep in  libOcamlProvider.astructs.to_list():
+    # for dep in  libOcamlProvider.astructs.to_list():
+    archive_link_deps = [] # excluding direct (manifest) deps
+    for dep in libOcamlProvider.cli_link_deps.to_list():
         if dep in submod_arglist:
+            if debug:
+                print("adding link dep to args: %s" % dep)
             args.add(dep)
+        else:
+            archive_link_deps.append(dep)
+
+    # for dep in libOcamlProvider.cli_link_deps.to_list():
+    #     args.add(dep)
 
     ##FIXME: cc deps same as for ocaml_binary, all indirect cc_deps in
     ## manifest should be added to cmd line of archive, plus direct cc
@@ -342,8 +325,6 @@ def impl_archive(ctx):
     ##FIXME: what if deps include resolvers?
     # if ns_resolver:
     #     args.add_all(ns_resolver)
-
-    args.add("-a")
 
     args.add("-o", archive_file)
 
@@ -361,9 +342,13 @@ def impl_archive(ctx):
     )
 
     if ctx.attr._rule == "ocaml_ns_archive":
-        mnemonic = "CompileOcamlNsArchive"
+        mnemonic = "ArchiveOCamlNsLibrary"
     elif ctx.attr._rule == "ocaml_archive":
-        mnemonic = "CompileOcamlArchive"
+        mnemonic = "ArchiveOCamlArchive"
+    elif ctx.attr._rule == "ocaml_ns_library":
+        mnemonic = "ArchiveOCamlNsLibrary"
+    elif ctx.attr._rule == "ocaml_library":
+        mnemonic = "ArchiveOCamlLibrary"
     else:
         fail("Unexpected rule type for impl_archive: %s" % ctx.attr._rule)
 
@@ -417,11 +402,15 @@ def impl_archive(ctx):
     )
 
     structs_depset = depset(order=dsorder,
-                            direct=structs_primary,
+                            # direct=structs_primary,
                             transitive = [libOcamlProvider.structs])
 
+    # if ctx.label.name == "ppx_sexp_conv_expander":
+    #     print("astructs: %s" % libOcamlProvider.astructs)
+    #     fail()
+
     astructs_depset = depset(order=dsorder,
-                             direct=astructs_primary,
+                             # direct=astructs_primary,
                              transitive =[libOcamlProvider.astructs])
     # transitive = [libOcamlProvider.structs]),
     # transitive=structs_indirect),
@@ -429,6 +418,16 @@ def impl_archive(ctx):
     ## FIXME: move direct submodules from libOcamlProvider.structs to
     ## astructs
     ## FIXME: just deliver libOcamlProvider directly?
+
+    # if not hasattr(libOcamlProvider, "cli_link_deps"):
+
+    cli_link_depset = depset(
+        order=dsorder,
+        direct = [archive_file],
+        transitive = [depset(archive_link_deps)]
+        # transitive = [libOcamlProvider.cli_link_deps]
+    )
+
     ocamlProvider = OcamlProvider(
         # files   = libOcamlProvider.files,
         # fileset = libOcamlProvider.fileset,
@@ -436,6 +435,8 @@ def impl_archive(ctx):
         # linkargs = linkargs_depset,
         # cdeps    = libOcamlProvider.cdeps,
         # ldeps    = libOcamlProvider.ldeps,
+
+        cli_link_deps = cli_link_depset,
 
         sigs   = depset(order=dsorder,
                         transitive = [libOcamlProvider.sigs]),
@@ -452,9 +453,8 @@ def impl_archive(ctx):
                           # direct=ofiles_direct,
                           # transitive=ofiles_indirect),
         archives   = depset(order=dsorder,
-                            ## FIXME: add unarchived module deps of archive
-                            direct = archives_secondary + [archive_file],
-                           transitive = [libOcamlProvider.archives]),
+                            direct = [archive_file],
+                            transitive = [libOcamlProvider.archives]),
                           # direct=archives_direct,
                           # transitive=archives_indirect),
         afiles   = depset(order=dsorder,
@@ -469,6 +469,7 @@ def impl_archive(ctx):
     providers = [
         newDefaultInfo,
         ocamlProvider,
+        OcamlLibraryMarker(),
         OcamlArchiveMarker(marker = "OcamlArchive"),
     ]
 

@@ -65,10 +65,10 @@ def normalize_module_label(lbl):
     return result
 
 ###############################
-def normalize_module_name(s):
+def normalize_module_name(lbl_name):
     """Normalize module name: remove leading path segs, extension and prefixed underscores, capitalize first char."""
 
-    (segs, sep, basename) = s.rpartition("/")
+    (segs, sep, basename) = lbl_name.rpartition("/")
     (basename, ext) = paths.split_extension(basename)
 
     basename = basename.lstrip("_")
@@ -241,22 +241,24 @@ def derive_module_name_from_file_name(ctx, src): # src: string
     elif hasattr(ns_resolver, "prefixes"): # "prefix"):
         if debug: print("hasattr prefixes: %s" % ns_resolver.prefixes)
         ns_prefixes = ns_resolver.prefixes # .prefix
+        if debug:
+            print("ns_prefixes: %s" % ns_prefixes)
+            print("this: %s" % this_module)
+        # if ctx.label.name == "AlphaModule":
+        #     fail()
         if len(ns_prefixes) == 0:
             out_module = this_module
         elif this_module == ns_prefixes[-1]:
             # print("this module matches ns resolver name: %s" % this_module)
-            if _src_module_in_submod_list(ctx,
-                                          src,
-                                          ns_resolver.submodules):
-                # print("%s in submod list" % this_module)
-                # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
-                #     fs_prefix = get_fs_prefix(str(ctx.label)) + "__"
-                # else:
-                fs_prefix = module_sep.join(ns_prefixes) + "__"
-                out_module = fs_prefix + this_module
-            else:
-                out_module = this_module
-            # out_module = this_module
+            # if _src_module_in_submod_list(ctx,
+            #                               src,
+            #                               ns_resolver.submodules):
+            #     fs_prefix = module_sep.join(ns_prefixes) + "__"
+            #     out_module = fs_prefix + this_module
+            # else:
+            #     out_module = this_module
+            ## case: alcotest_engine ns contains Alcotest_engine
+            out_module = this_module
         else:
             if len(ns_resolver.submodules) > 0:
                 if bottomup:

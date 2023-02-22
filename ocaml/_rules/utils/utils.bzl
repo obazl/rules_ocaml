@@ -50,10 +50,12 @@ def get_options(rule, ctx):
 
     if hasattr(ctx.attr, "_xmo"):
         # print("XMO: %s" % ctx.attr._xmo[BuildSettingInfo].value)
-        if not "-no-opaque" in options:
-            if "-opaque" in options:
-                options.append("-opaque")
-            else:
+        if "-no-opaque" in options:
+            options.remove("-no-opaque")
+        else:
+            if not "-opaque" in options:
+            #     options.append("-opaque")
+            # else:
                 if not ctx.attr._xmo[BuildSettingInfo].value:
                     options.append("-opaque")
 
@@ -64,12 +66,20 @@ def get_options(rule, ctx):
                     options.append("-short-paths")
 
     if hasattr(ctx.attr, "_strict_formats"):
+        # if "-no-strict-formats" in options:
+        #     if "-strict-formats" in options:
+        #         options.remove("-strict-formats")
+
         if ctx.attr._strict_formats[BuildSettingInfo].value:
             if not "-no-strict-formats" in options:
                 if not "-strict-formats" in options:
                     options.append("-strict-formats")
 
     if hasattr(ctx.attr, "_strict_sequence"):
+        # if "-no-strict-sequence" in options:
+        #     if "-strict-sequence" in options:
+        #         options.remove("-strict-sequence")
+
         if ctx.attr._strict_sequence[BuildSettingInfo].value:
             if not "-no-strict-sequence" in options:
                 if not "-strict-sequence" in options:

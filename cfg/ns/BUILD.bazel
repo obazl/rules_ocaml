@@ -3,7 +3,9 @@ load("@bazel_skylib//rules:common_settings.bzl",
      "string_flag", "string_setting",
      "string_list_flag", "string_list_setting")
 load("@rules_ocaml//ocaml/_config:settings.bzl", "ocaml_verbose_flag")
+
 load("@rules_ocaml//build:rules.bzl", "ocaml_ns_resolver")
+load("@rules_ocaml//build:rules.bzl", "ocaml_topdown_ns_resolver")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -15,10 +17,17 @@ string_list_flag( name = "warnings",
                   ]
 )
 
-string_list_setting(name = "prefixes", build_setting_default = [])
-string_list_setting(name = "submodules", build_setting_default = [])
+string_list_flag(name = "prefixes", build_setting_default = [])
+
+## FIXME: use @rules_ocaml//cfg/archive:manifest instead?
+## or @rules_ocaml//cfg/manifest?
+string_list_flag(name = "submodules", build_setting_default = [])
+
 label_setting(name="resolver", build_setting_default = ":_resolver")
-ocaml_ns_resolver(name    = "_resolver")
+# used by every module/sig rule. namespacing sets unique config.
+# no namespacing: only built once as null resolver
+ocaml_topdown_ns_resolver(name    = "_resolver")
+# ocaml_ns_resolver(name    = "_resolver")
 
 string_flag(name="nonce", build_setting_default = "")
 

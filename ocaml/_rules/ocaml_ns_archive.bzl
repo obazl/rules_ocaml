@@ -23,8 +23,9 @@ CCBLUCYN="\033[44m\033[36m"
 #######################
 def _ocaml_ns_archive_impl(ctx):
 
-    print("{c}ocaml_ns_archive: {m}{r}".format(
-        c=CCBLUCYN,m=ctx.label,r=CCRESET))
+    # print("{c}ocaml_ns_archive: {m}{r}".format(
+    #     c=CCBLUCYN,m=ctx.label,r=CCRESET))
+
     # if True: #  debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
@@ -53,13 +54,15 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     """,
     attrs = dict(
         rule_options,
-
         shared = attr.bool(
             doc = "True: build a shared lib (.cmxs)",
             default = False
         ),
 
-        _rule = attr.string(default = "ocaml_ns_archive")
+        _rule = attr.string(default = "ocaml_ns_archive"),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
     # cfg     = nsarchive_in_transition,
     cfg     = nslib_in_transition,

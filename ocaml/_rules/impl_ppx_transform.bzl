@@ -12,6 +12,8 @@ load(":impl_common.bzl", "tmpdir")
 
 # tmpdir = "_obazl_/"
 
+ppxdir = "__ppx/"
+
 ################################################################
 def impl_ppx_transform(rule, ctx, srcfile, dst):
     """Apply a PPX to source file.
@@ -31,14 +33,25 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
     # both the src file and the runtime files in the same dir, so we
     # must symlink both to the workdir. Since the output file will
     # have the same name as the (orignal) input file, we link the
-    # latter into the workdir, inserting '.pp.'. Below we will symlink
+    # latter into the workdir, inserting '.pp.'.
+
+    ## NO - that won't work because some tests will write the name of
+    ## the source file into their output, and the expected output
+    ## will not have the '.pp.' infix.
+
+    ## So instead ...?
+
+    # Below we will symlink
     # the ppx_data files to the same workdir. (Evidently ppx_optcomp
     # will always look for data files relative to the src file dir.)
 
     (srcname, srcext) = paths.split_extension(srcfile.basename)
 
-    src = ctx.actions.declare_file(tmpdir + srcname + ".ppx" + srcext)
+    # src = ctx.actions.declare_file(tmpdir + srcname + ".ppx" + srcext)
+    src = ctx.actions.declare_file(ppxdir + srcfile.basename)
     ctx.actions.symlink(output = src, target_file = srcfile)
+
+    # src = srcfile
 
     outfile = ctx.actions.declare_file(tmpdir + dst)
     outputs = {"impl": outfile}
@@ -128,14 +141,14 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
     ## revert to using a shell script to run the ppx, so we can set
     ## its runfiles. To use ctx.actions.run, we need to put the
     ## structfile and the runtime data files in the same dir. Above we
-    ## symlinnked structfile foo.ml to __obazl/foo.pp.ml; here, we
+    ## symlinnked structfile foo.ml to __ppx/foo.ml; here, we
     ## symlink the ppx_data files to the same workdir.
 
 
     if hasattr(ctx.attr, "ppx_data"):
         if len(ctx.attr.ppx_data) > 0:
             for f in ctx.files.ppx_data:
-                tmpfile = ctx.actions.declare_file(tmpdir + f.basename)
+                tmpfile = ctx.actions.declare_file(ppxdir + f.basename)
                 ctx.actions.symlink(output = tmpfile, target_file = f)
                 # print("TMPF: %s" % tmpfile.path)
                 # fail()

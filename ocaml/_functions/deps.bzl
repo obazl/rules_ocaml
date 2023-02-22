@@ -1,10 +1,11 @@
 load("@rules_ocaml//ocaml:providers.bzl",
      "OcamlModuleMarker",
+     "OcamlNsResolverProvider",
      "OcamlProvider",
      "OcamlVmRuntimeProvider")
 
 load("@rules_ocaml//ppx:providers.bzl",
-     "PpxCodepsProvider",
+     "PpxCodepsInfo",
      "PpxModuleMarker",
 )
 
@@ -13,7 +14,35 @@ load("@rules_ocaml//ocaml/_rules:impl_ccdeps.bzl",
      "normalize_ccinfo",
      "extract_cclibs", "dump_CcInfo")
 
+COMPILE      = 0
+LINK         = 1
+COMPILE_LINK = 2
+
+def _OCamlInfo_init(*,
+                    sigs = [],
+                    structs = [],
+                    ofiles = [],
+                    archives = [],
+                    afiles = [],
+                    astructs = [],
+                    cmts = [],
+                    paths = [],
+                    jsoo_runtimes = []
+                    ):
+    return {
+        "sigs"          :  sigs,
+        "structs"       :  structs,
+        "ofiles"        :  ofiles,
+        "archives"      :  archives,
+        "afiles"        :  afiles,
+        "astructs"      :  astructs,
+        "cmts"          :  cmts,
+        "paths"         :  paths,
+        "jsoo_runtimes" :  jsoo_runtimes
+    }
+
 OCamlInfo = provider(
+    doc = "foo",
     fields = {
         "sigs":      "depset of .cmi files",
         "structs":   "depset of .cmo or .cmx files depending on mode",
@@ -26,14 +55,21 @@ OCamlInfo = provider(
         "cmts":      "depset of cmt/cmti files",
         "paths"             : "string depset",
         "jsoo_runtimes": "depset of runtime.js files",
-    }
+
+        "cli_link_deps": "depset of files to be added to link cmd line"
+    },
+    # init = _OCamlInfo_init
 )
+
+# export OCamlInfo
 
 DepsAggregator = provider(
     fields = {
-        "deps":   "an OCamlInfo provider",
-        "codeps": "an OCamlInfo provider",
-        "ccinfos": "list of CcInfo providers",
+        "deps"           : "an OCamlInfo provider",
+        "codeps"         : "an OCamlInfo provider",
+        "compile_codeps" : "an OCamlInfo provider",
+        "link_codeps"    : "an OCamlInfo provider",
+        "ccinfos"        : "list of CcInfo providers",
     }
 )
 
@@ -41,22 +77,45 @@ DepsAggregator = provider(
 def aggregate_deps(ctx,
                    target, # a Target
                    depsets, # a struct
-                   for_archive = False): # target will be added to archive
+                   archive_manifest = []): # target will be added to archive
 
     debug = False
+    debug_archives = False
+    # if target.label.name == "Ppxlib_driver":
+    #     debug = True
     if debug:
         print("aggregate_deps: %s" % target)
+        print("depsets: %s" % depsets)
 
     if OcamlProvider in target:
         provider = target[OcamlProvider]
+
+        if target not in archive_manifest:
+            if hasattr(provider, "cli_link_deps"):
+                # if target.label.name == "Simple":
+                #     fail("CLI LINKDEPS: %s" % provider.cli_link_deps)
+                depsets.deps.cli_link_deps.append(provider.cli_link_deps)
+
         depsets.deps.sigs.append(provider.sigs)
         depsets.deps.archives.append(provider.archives)
         depsets.deps.afiles.append(provider.afiles)
         depsets.deps.astructs.append(provider.astructs)
-        if for_archive:
-            depsets.deps.astructs.append(provider.structs)
+        if archive_manifest:
+            if debug_archives:
+                print("archive manifest: %s" % archive_manifest)
+            if target in archive_manifest:
+                if debug_archives:
+                    print("TARGET IN MANIFEST: %s" % target)
+                    if target.label.name == "Red":
+                        print("RED structs: %s" % provider.structs)
+                    # fail("testagddg")
+                depsets.deps.astructs.append(provider.structs)
+            else:
+                depsets.deps.structs.append(provider.structs)
         else:
             depsets.deps.structs.append(provider.structs)
+            # if target.label.name == "Ppx_color":
+                # fail("color: %s" % provider)
         depsets.deps.ofiles.append(provider.ofiles)
         if hasattr(provider, "cmts"):
             depsets.deps.cmts.append(provider.cmts)
@@ -64,8 +123,24 @@ def aggregate_deps(ctx,
         if hasattr(provider, "jsoo_runtimes"):
             depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
-    if PpxCodepsProvider in target:
-        provider = target[PpxCodepsProvider]
+    if type(target) == "list":
+        if OcamlNsResolverProvider in target[0]:
+            provider = target[0][OcamlNsResolverProvider]
+            depsets.deps.sigs.append(depset([provider.cmi]))
+            # depsets.deps.archives.append(provider.archives)
+            # depsets.deps.astructs.append(provider.astructs)
+            depsets.deps.structs.append(depset([provider.struct]))
+            # if archive_manifest:
+            #     depsets.deps.astructs.append(provider.structs)
+            # else:
+            #     depsets.deps.structs.append(provider.structs)
+            depsets.deps.ofiles.append(depset([provider.ofile]))
+            # if hasattr(provider, "cmts"):
+            #     depsets.deps.cmts.append(provider.cmts)
+            # depsets.deps.paths.append(provider.paths)
+
+    if PpxCodepsInfo in target:
+        provider = target[PpxCodepsInfo]
         depsets.codeps.sigs.append(provider.sigs)
         depsets.codeps.structs.append(provider.structs)
         depsets.codeps.ofiles.append(provider.ofiles)
@@ -113,24 +188,42 @@ def aggregate_deps(ctx,
 
         depsets.ccinfos.append(ccInfo)
 
+    # if target.label.name == "Ppxlib_driver":
+    #     # print("manifest: %s" % manifest)
+    #     # print("target: %s" % target)
+    #     print("target structs: %s" % provider.structs)
+    #     print("depsets.deps.structs: %s" % depsets.deps.structs)
+    #     # print("target astructs: %s" % provider.astructs)
+    #     fail("deps")
     return depsets
 
 ################################################################
+## puts everthing into codeps providers
 def aggregate_codeps(ctx,
+                     kind,   # Compile or Link
                      target, # a Target
                      depsets, # a struct
-                     for_archive = False): # target will be added to archive
+                     manifest = False): # target will be added to archive
 
     debug = False
     if debug:
         print("aggregate_codeps: %s" % target)
+
+    if kind == COMPILE:
+        dset = depsets.compile_codeps
+    elif kind == LINK:
+        dset = depsets.link_codeps
+    elif kind == COMPILE_LINK:
+        dset = depsets.codeps
+    else:
+        fail("Invalid kind: {}; must be COMPILE (0), LINK (1), or COMPILE_LINK (2)")
 
     if OcamlProvider in target:
         provider = target[OcamlProvider]
         depsets.codeps.sigs.append(provider.sigs)
         depsets.codeps.archives.append(provider.archives)
         depsets.codeps.afiles.append(provider.afiles)
-        if for_archive:
+        if manifest:
             depsets.codeps.astructs.append(provider.astructs)
         else:
             depsets.codeps.structs.append(provider.structs)
@@ -141,8 +234,8 @@ def aggregate_codeps(ctx,
         if hasattr(provider, "jsoo_runtimes"):
             depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
-    if PpxCodepsProvider in target:
-        provider = target[PpxCodepsProvider]
+    if PpxCodepsInfo in target:
+        provider = target[PpxCodepsInfo]
         depsets.codeps.sigs.append(provider.sigs)
         depsets.codeps.structs.append(provider.structs)
         depsets.codeps.ofiles.append(provider.ofiles)
@@ -159,3 +252,10 @@ def aggregate_codeps(ctx,
             depsets.ccinfos.append(target[CcInfo])
 
     return depsets
+
+def merge_depsets(depsets, fld):
+    print("unmerged fld: %s" % getattr(depsets.deps, fld))
+    merged = depset(transitive = getattr(depsets.deps, fld))
+    print("merged fld {f}: {m}".format(f=fld, m=merged))
+
+    return merged

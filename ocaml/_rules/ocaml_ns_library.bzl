@@ -11,6 +11,7 @@ load("//ocaml/_transitions:in_transitions.bzl",
 load("//ocaml/_transitions:out_transitions.bzl",
      "ocaml_nslib_submodules_out_transition")
 
+load(":impl_archive.bzl", "impl_archive")
 load(":impl_library.bzl", "impl_library")
 
 load(":options.bzl",
@@ -21,7 +22,12 @@ load(":options.bzl",
 ###############################
 def _ocaml_ns_library(ctx):
 
-    return impl_library(ctx)
+    if ctx.attr.archived:
+        return impl_archive(ctx)
+    else:
+        return impl_library(ctx)
+
+    # return impl_library(ctx)
 
 ################################
 rule_options = options("ocaml")
@@ -40,10 +46,18 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
     """,
     attrs = dict(
         rule_options,
-        _rule = attr.string(default = "ocaml_ns_library")
+        archived = attr.bool(),
+        _rule = attr.string(default = "ocaml_ns_library"),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
     ),
     cfg     = nslib_in_transition,
     provides = [OcamlNsMarker, OcamlLibraryMarker, OcamlProvider],
     executable = False,
-    toolchains = ["@rules_ocaml//toolchain/type:std"],
+    fragments = ["platform", "cpp"],
+    host_fragments = ["platform",  "cpp"],
+    toolchains = ["@rules_ocaml//toolchain/type:std",
+                  "@rules_ocaml//toolchain/type:profile",
+                  "@bazel_tools//tools/cpp:toolchain_type"]
 )

@@ -1,3 +1,73 @@
+################################################################
+def _ModuleInfo_init(*,
+                     name = None,
+                     sig = None,
+                     sig_src = None,
+                     cmti = None,
+                     struct = None,
+                     struct_src = None,
+                     structfile = None,  #original basename, unnormalized
+                     cmt = None,
+                     ofile = None,
+                     files = None):
+    return {
+        "name": name,           # normalized module name
+        "sig" : sig,            # .cmi
+        "sig_src": sig_src,
+        "cmti": cmti,
+        "struct": struct,         # .cmo or .cmx
+        "struct_src": struct_src, # original src
+        "structfile": structfile, # symlinked src
+        "cmt": cmt,
+        "ofile": ofile,
+        "files": files
+    }
+
+ModuleInfo, _new_moduleinfo = provider(
+    doc = "foo",
+    fields = {
+        "name": "Normalized module name",
+        "sig"   : "One .cmi file",
+        "sig_src"   : "One .mli file",
+        "cmti"  : "One .cmti file",
+        "struct": "One .cmo or .cmx file",
+        "struct_src": "One .ml file, normalized, in workdir",
+        "structfile": "Original .ml file basename, non-normalized",
+        "cmt"  : "One .cmt file",
+        "ofile" : "One .o file if struct is .cmx",
+        "files": "Depset of the above"
+    },
+    init = _ModuleInfo_init
+)
+
+################################################################
+def _OCamlSigInfo_init(*,
+                       cmi  = None,
+                       cmti = None,
+                       ##FIXME: rename sig_src,
+                       ##for consistency with ModuleInfo
+                       mli  = None,
+                       xmo  = False):
+    return {
+        "cmi"  : cmi,
+        "cmti" : cmti,
+        "mli"  : mli,
+        "xmo"  : xmo
+    }
+
+OCamlSigInfo, _new_ocamlsiginfo = provider(
+    doc = "OCaml signature provider",
+    fields = {
+        "cmi"  : "One .cmi file",
+        "cmti" : "One .cmti file",
+        "mli"  : "One .mli file",
+        "xmo"  : "Boolean, false if compiled with -opaque"
+    },
+    init = _OCamlSigInfo_init
+)
+
+################################################################
+
 # An Ocaml "fileset" is the set of files emitted by the Ocaml
 # compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi.
 
@@ -20,6 +90,17 @@ OcamlProvider = provider(
         "sig" : "Cmi file provided",
         "struct" : "Structure file (.cmo or .cmx) provided",
 
+        ## cli link deps: the other fields are not sufficient, since
+        ## they are strictly typed (archives v. structs), but actual
+        ## deps may be mixed. E.g. a module A in archive foo may
+        ## depend on a free-standing module B that depends on an
+        ## archive bar. In that case dep order is bar B foo. Using
+        ## only the archives, structs, and astructs fields we would
+        ## not be able to express this. We would get either bar foo B
+        ## or B bar foo.
+
+        "cli_link_deps": "depset of files (targets?) to be added to link cmd line",
+
         "submodule": "name of module without ns prefix",
         "sigs":      "depset of .cmi files",
         # NB: structs should exclude archive_deps. Its for freestanding
@@ -29,7 +110,8 @@ OcamlProvider = provider(
         "archives":  "depset of .cmxa or .cma files",
         "afiles":    "depset of the .a files that go with .cmxa files",
         "astructs":  "depset of archived structs, added to link depgraph but not command line.",
-        "cmts":      "depset of cmt/cmti files",
+        "cmts":      "depset of cmt files",
+        "cmtis":      "depset of cmti files",
         "srcs":      "depset of src files after renaming/symlinking, so tools can inspect",
 
         "jsoo_runtimes": "depset of runtime.js files",
@@ -63,7 +145,7 @@ OcamlProvider = provider(
         # "archives"          : "file depset",
         # "archive_deps"       : "file depset of archive deps",
 
-        # OBSOLETE: codeps passed separately by PpxCodepsProvider
+        # OBSOLETE: codeps passed separately by PpxCodepsInfo
         "ppx_codeps"      : "file depset",
         "ppx_codep_paths" : "string depset",
         # "ns_resolver"       : "single target",
@@ -151,11 +233,38 @@ OcamlNsSubmoduleMarker = provider(
 )
 
 # OcamlNsResolverMarker = provider(doc = "OCaml NsResolver Marker provider.")
-OcamlNsResolverProvider = provider(
+################################################################
+def _OCamlNsResolverProvider_init(*,
+                                  tag    =  None,
+                                  files = [],
+                                  paths = [],
+                                  submodules = [],
+                                  prefixes = [],
+                                  resolver_src = None,
+                                  module_name  = None,
+                                  ns_name = None,
+                                  cmi = None,
+                                  struct = None,
+                                  ofile = None,
+                                  ):
+    return {
+        "tag": tag,
+        "files"   : files,
+        "paths": paths,
+        "submodules": submodules,
+        "prefixes": prefixes,
+        "resolver_src": resolver_src,
+        "module_name": module_name,
+        "ns_name": ns_name,
+        "cmi"    : cmi,
+        "struct" : struct,
+        "ofile"  : ofile
+    }
+
+OcamlNsResolverProvider, _new_OcamlNsResolverProvider = provider(
     doc = "OCaml NS Resolver provider.",
     fields = {
         "tag": "For testing",
-
         "files"   : "Depset, instead of DefaultInfo.files",
         "paths":    "Depset of paths for -I params",
         "submodules": "String list of submodules in this ns",
@@ -167,9 +276,11 @@ OcamlNsResolverProvider = provider(
         "cmi"    : "file",
         "struct" : "file",
         "ofile"  : "file"
-    }
+    },
+    init = _OCamlNsResolverProvider_init
 )
 
+################################################################
 OcamlSignatureProvider = provider(
     doc = "OCaml interface provider.",
     fields = {

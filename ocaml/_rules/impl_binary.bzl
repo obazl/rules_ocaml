@@ -11,7 +11,7 @@ load("//ocaml:providers.bzl",
 )
 
 load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
+     "PpxCodepsInfo",
      "PpxExecutableMarker",
 )
 
@@ -19,11 +19,21 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
 
-load("//ocaml/_functions:deps.bzl",
+load("@rules_ocaml//ocaml:ocamlinfo.bzl",
      "aggregate_deps",
      "aggregate_codeps",
+     "new_deps_aggregator",
+     "DepsAggregator",
      "OCamlInfo",
-     "DepsAggregator")
+     "COMPILE", "LINK", "COMPILE_LINK")
+
+# load("//ocaml/_functions:deps.bzl",
+#      "aggregate_deps",
+#      "aggregate_codeps",
+#      "merge_depsets",
+#      "OCamlInfo",
+#      "DepsAggregator",
+#      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
@@ -33,7 +43,9 @@ load(":impl_common.bzl", "dsorder", "opam_lib_prefix",
      "tmpdir"
      )
 
-load("//ocaml/_debug:colors.bzl", "CCRED", "CCGRN", "CCMAG", "CCRESET")
+load("//ocaml/_debug:colors.bzl",
+     "CCBLU", "CCRED", "CCGRN", "CCMAG", "CCRESET")
+load("//ocaml/_debug:pprint.bzl", "pprint_ocamlinfo")
 
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 
@@ -75,10 +87,11 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     debug     = False
     debug_deps= False
-    debug_cc  = True
+    debug_cc  = False
     debug_ppx = False
+    debug_runfiles = False
     debug_tc  = False
-    debug_vm  = True
+    debug_vm  = False
 
     if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -100,40 +113,30 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         struct_extensions = ["cmxa", "cmx"]
 
     # * merge deps  ###############################
-    depsets = DepsAggregator(
-        deps = OCamlInfo(
-            sigs = [],
-            structs = [],
-            ofiles  = [],
-            archives = [],
-            afiles = [],
-            astructs = [], # archived cmx structs, for linking
-            cmts = [],
-            paths  = [],
-            jsoo_runtimes = [], # runtime.js files
-        ),
-        codeps = OCamlInfo(
-            sigs = [],
-            structs = [],
-            ofiles = [],
-            archives = [],
-            afiles = [],
-            astructs = [],
-            cmts = [],
-            paths = [],
-            jsoo_runtimes = [],
-        ),
-        ccinfos = []
-    )
 
-    print("ctx.attr.deps: %s" % ctx.attr.deps)
-    for dep in ctx.attr.deps:
-        depsets = aggregate_deps(ctx, dep, depsets)
+    depsets = new_deps_aggregator()
 
-    # print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
+    if hasattr(ctx.attr, "prologue"):
+        if debug_deps: print("ctx.attr.prologue: %s" % ctx.attr.prologue)
+        for dep in ctx.attr.prologue:
+            depsets = aggregate_deps(ctx, dep, depsets)
+            if PpxCodepsInfo in dep:
+                depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
+
+    ##FIXME: only for ppx_executable
     if hasattr(ctx.attr, "ppx_codeps"):
+    # print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
         for codep in ctx.attr.ppx_codeps:
-            depsets = aggregate_codeps(ctx, codep, depsets)
+            depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets)
+        # print("codepsets: %s" % depsets.codeps)
+
+    if hasattr(ctx.attr, "ppx_compile_codeps"):
+        for codep in ctx.attr.ppx_compile_codeps:
+            depsets = aggregate_codeps(ctx, COMPILE, codep, depsets)
+
+    if hasattr(ctx.attr, "ppx_link_codeps"):
+        for codep in ctx.attr.ppx_link_codeps:
+            depsets = aggregate_codeps(ctx, LINK, codep, depsets)
 
     #### MAIN ####
     ## NB: 'main' only takes a target, not a file, so it counts as a
@@ -144,10 +147,22 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     if debug: print("processing 'main' attribute")
     # if ctx.label.name == "ppx_1.exe":
     #     print("main op: %s" % ctx.attr.main[OcamlProvider])
-    #     print("main codep: %s" % ctx.attr.main[PpxCodepsProvider])
+    #     print("main codep: %s" % ctx.attr.main[PpxCodepsInfo])
         # fail("x")
 
     depsets = aggregate_deps(ctx, ctx.attr.main, depsets)
+    # if ctx.label.name == "test":
+    #     print("CLILINK %s" % depsets.deps.cli_link_deps)
+    #     fail()
+
+    if hasattr(ctx.attr, "epilogue"):
+        if debug_deps: print("ctx.attr.epilogue: %s" % ctx.attr.epilogue)
+        for dep in ctx.attr.epilogue:
+            depsets = aggregate_deps(ctx, dep, depsets)
+
+    # pprint_ocamlinfo(ctx.label, depsets.deps)
+
+    ##FIXME: cc_deps?
 
     ################
     #FIXME: executable name
@@ -160,7 +175,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     else:
         out_exe = ctx.actions.declare_file(ctx.label.name)
 
-    #########################
+    ################################################################
+    ##  construct command line ##
+    #############################
     includes   = []
     args = ctx.actions.args()
 
@@ -176,147 +193,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         if "-g" in _options:
             args.add("-runtime-variant", "d") # FIXME: verify compile built for debugging
 
-    ################################################################
-                   ####    DEPENDENCIES    ####
-    ################################################################
-
-    ################ SECONDARY DEPENDENCIES ################
-    if debug: print("iterating deps")
-    # for dep in ctx.attr.deps:
-    #     if debug:
-    #         print("DEP: %s" % dep)
-    #         if OcamlProvider in dep:
-    #             print("dep[OcamlProvider] %s" % dep[OcamlProvider])
-    #         if OcamlImportMarker in dep:
-    #             print("dep[OcamlImportMarker] %s" % dep[OcamlImportMarker])
-
-    #     if OcamlProvider in dep:
-    #         provider = dep[OcamlProvider]
-    #         sigs_secondary.append(provider.sigs)
-    #         structs_secondary.append(provider.structs)
-    #         ofiles_secondary.append(provider.ofiles)
-    #         archives_secondary.append(provider.archives)
-    #         afiles_secondary.append(provider.afiles)
-    #         astructs_secondary.append(provider.astructs)
-
-    #         # if hasattr(provider, "cc_libs"):
-    #         #     cc_libs.extend(provider.cc_libs)
-
-    #         paths_secondary.append(provider.paths)
-
-    #     ################ PpxCodepsProvider ################
-    #     ## only for ocaml_imports listed in deps, not ppx_codeps
-    #     if PpxCodepsProvider in dep:
-    #         provider = dep[PpxCodepsProvider]
-    #         ## aggregates may provide an empty PpxCodepsProvider
-    #         if hasattr(provider, "sigs"):
-
-    #             if debug_ppx:
-    #                 print("PpxCodepsProvider in std dep: %s" % dep)
-    #                 print(" provides archives: %s" % provider.archives)
-    #             # if hasattr(ppxcdp, "ppx_codeps"):
-    #             #     if ppxcdp.ppx_codeps:
-    #             #         indirect_ppx_codep_depsets.append(ppxcdp.ppx_codeps)
-
-    #             codep_sigs_secondary.append(provider.sigs)
-    #             codep_structs_secondary.append(provider.structs)
-    #             codep_ofiles_secondary.append(provider.ofiles)
-    #             codep_archives_secondary.append(provider.archives)
-    #             codep_afiles_secondary.append(provider.afiles)
-    #             codep_astructs_secondary.append(provider.astructs)
-    #             codep_paths_secondary.append(provider.paths)
-
-    #             # cc_deps_secondary.append(provider.cc_deps)
-
-    #         # if hasattr(provider, "paths"):
-    #         #     if provider.paths:
-    #         #         path_depsets.append(provider.paths)
-    #         #         indirect_ppx_codep_depsets_paths.append(provider.paths)
-    #         # if hasattr(ppxcdp, "cdeps"):
-    #         #     if ppxcdp.cdeps:
-    #         #         ppx_codep_cdeps.append(ppxcdp.cdeps)
-    #         # if hasattr(ppxcdp, "ldeps"):
-    #         #     if ppxcdp.ldeps:
-    #         #         ppx_codep_ldeps.append(ppxcdp.ldeps)
-
-    #     if CcInfo in dep:
-    #         # print("CcInfo dep: %s" % dep)
-    #         cc_deps_primary.append(dep[CcInfo])
-
-    # if debug:
-    #     print("finished deps iteration")
-    #     print("sigs_primary: %s" % sigs_primary)
-    #     print("sigs_secondary: %s" % sigs_secondary)
-    #     print("structs_primary: %s" % structs_primary)
-    #     print("structs_secondary: %s" % structs_secondary)
-    #     print("ofiles_primary: %s" % ofiles_primary)
-    #     print("ofiles_secondary: %s" % ofiles_secondary)
-    #     ## archives cannot be direct deps
-    #     print("archives_primary: %s" % archives_primary)
-    #     print("archives_secondary: %s" % archives_secondary)
-    #     print("afiles_primary: %s" % afiles_primary)
-    #     print("afiles_secondary: %s" % afiles_secondary)
-    #     print("astructs_primary: %s" % astructs_primary)
-    #     print("astructs_secondary: %s" % astructs_secondary)
-    #     print("cc_deps_primary: %s" % astructs_primary)
-    #     print("cc_deps_secondary: %s" % astructs_secondary)
-
-    ## FIXME: a ppx_executable just links modules - it should not have
-    ## ppx_codeps?  they should be on the modules
-    # if hasattr(ctx.attr, "ppx_codeps"):
-    #     if debug_ppx: print("has ppx_codeps attrib")
-    #     for codep in ctx.attr.ppx_codeps:
-    #         # if OcamlImportMarker in codep:
-    #         #     print("ppx_codep is import: %s" % codep)
-
-    #         if OcamlProvider in codep:
-    #             if debug_ppx:
-    #                 print("ppx_codep has OcamlProvider: %s" % codep)
-
-    #             coprovider = codep[OcamlProvider];
-    #             # codep_sigs_primary.append(coprovider.sigs)
-    #             # codep_structs_primary.append(coprovider.structs)
-    #             # codep_ofiles_primary.append(coprovider.ofiles)
-    #             # codep_archives_primary.append(coprovider.archives)
-    #             # codep_astructs_primary.append(coprovider.astructs)
-    #             # codep_afiles_primary.append(coprovider.afiles)
-    #             # codep_paths_primary.append(coprovider.paths)
-
-    #             codep_sigs_secondary.append(coprovider.sigs)
-    #             codep_structs_secondary.append(coprovider.structs)
-    #             codep_ofiles_secondary.append(coprovider.ofiles)
-    #             codep_archives_secondary.append(coprovider.archives)
-    #             codep_astructs_secondary.append(coprovider.astructs)
-    #             codep_afiles_secondary.append(coprovider.afiles)
-    #             codep_paths_secondary.append(coprovider.paths)
-
-    #         ## a codep could carry its own codeps if it depends on a
-    #         ## ppx_module with codeps
-    #         if PpxCodepsProvider in codep:
-    #             if debug_ppx: print("ppx_codep has PpxCodepsProvider")
-    #             coprovider = codep[PpxCodepsProvider]
-    #             codep_sigs_secondary.append(coprovider.sigs)
-    #             codep_structs_secondary.append(coprovider.structs)
-    #             codep_ofiles_secondary.append(coprovider.ofiles)
-    #             codep_archives_secondary.append(coprovider.archives)
-    #             codep_astructs_secondary.append(coprovider.astructs)
-    #             codep_afiles_secondary.append(coprovider.afiles)
-    #             codep_paths_secondary.append(coprovider.paths)
-
-    #         if CcInfo in codep:
-    #             codep_cc_deps_secondary.append(codep[CcInfo])
-
-    #             # NB: codep[OcamlProvider]linkargs insufficient, it only
-    #             # contains archive files, for linking executables.
-    #             # We will need to list all modules as inputs
-
-
-    # print("LDEPS: %s" % ppx_codep_ldeps)
-
     ################
     paths_depset  = depset(
         order = dsorder,
-        direct = depsets.deps.paths + depsets.codeps.paths # paths_secondary
+        transitive = depsets.deps.paths + depsets.codeps.paths # paths_secondary
     )
 
     ############ CC DEPS ################
@@ -471,6 +351,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     #     fail("x")
 
     #### /end cc deps processing
+    ################################################################
+    includes.extend(paths_depset.to_list())
 
     args.add_all(includes, before_each="-I", uniquify=True)
 
@@ -478,7 +360,6 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     #     args.add(lib.path)
 
     # args.add_all(paths_depset.to_list(), before_each="-I")
-    includes.extend(paths_depset.to_list())
 
     # codeps_depset = depset(
     #     order = dsorder,
@@ -487,11 +368,19 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # for codep in codeps_depset.to_list():
     #     args.add(codep)
 
+    ################################################################
     ## Archives and structs must be on the command line:
     if ctx.attr._rule == "ocaml_binary":
         bin_codeps = depsets.codeps.archives # codep_archives_secondary
     else:
         bin_codeps = []
+
+    cli_depset = depset(
+        order=dsorder,
+        transitive= depsets.deps.structs
+    )
+    # for dep in cli_depset.to_list():
+    #     args.add(dep)
 
     archives_depset = depset(
         order=dsorder,
@@ -524,12 +413,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         ## There may be a better way of doing this, but this seems to
         ## work so far.
 
-        if tc.target == "vm":
-            if archive.extension == "cma":
-                args.add(archive)
-        else:
-            if archive.extension == "cmxa":
-                args.add(archive)
+        # if tc.target == "vm":
+        #     if archive.extension == "cma":
+        #         args.add(archive)
+        # else:
+        #     if archive.extension == "cmxa":
+        #         args.add(archive)
 
     ## free-standing struct deps (structs not archived)
     structs_depset = depset(order=dsorder,
@@ -538,13 +427,22 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                             # direct=structs_primary,
                             # transitive=structs_secondary)
 
-    for struct in structs_depset.to_list():
-        args.add(struct)
-        if debug:
-            print("ADDING STRUCT %s" % struct)
+    # for struct in structs_depset.to_list():
+    #     args.add(struct)
 
     # if hasattr(ctx.attr, "main"):
-    #     args.add(ctx.file.main)
+    #     for f in ctx.attr.main[DefaultInfo].files.to_list():
+    #         args.add(f)
+
+    ## cli_link_deps should include prologue, main, epilogue, in order
+    cli_link_depset = depset(
+        order=dsorder,
+        transitive= depsets.deps.cli_link_deps
+    )
+    for dep in cli_link_depset.to_list():
+        args.add(dep)
+
+    # args.add(ctx.file.main)
 
     args.add("-o", out_exe)
 
@@ -568,18 +466,19 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     action_inputs_depset = depset(
         order=dsorder,
         direct = []
-        # mainfile
         + vmlibs
         + static_cc_deps
         + dynamic_cc_deps
         ,
         transitive =
-        depsets.deps.sigs
+        [ctx.attr.main.files]
+        + depsets.deps.sigs
         + depsets.deps.structs
         + depsets.deps.ofiles
         + depsets.deps.archives
         + depsets.deps.afiles
         + depsets.deps.astructs
+        + depsets.deps.cli_link_deps
 
         + depsets.codeps.sigs
         + depsets.codeps.structs
@@ -638,20 +537,37 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ################
 
     #### RUNFILE DEPS ####
-    rfiles = ctx.files.data + tc.vmlibs + cc_runfiles
+    if debug_runfiles:
+        print("runfiles attr: %s" % ctx.attr.data)
+        print("runfiles files: %s" % ctx.files.data)
+        # for item in ctx.attr.data_prefix_map.items:
+        #     print("runfiles item: %s" % item)
+
+    rfiles = tc.vmlibs + cc_runfiles
 
     rfsymlinks = {}
     # map prefixes
     for f in ctx.files.data:
+        if debug_runfiles:
+            print("runfile: %s" % f)
         added = False
         for (k,v) in ctx.attr.data_prefix_map.items():
+            if debug_runfiles:
+                print("k, v: {}, {}".format(k, v))
             if f.path.startswith(k):
+                if debug_runfiles:
+                    print("item path: %s" % f.path)
                 rf = v + f.path.removeprefix(k)
                 rfsymlinks.update({rf: f})
                 added = True
                 break
         if not added:
             rfsymlinks.update({f: f})
+
+    if debug_runfiles:
+        print("rfsymlinks: %s" % rfsymlinks)
+        # if ctx.label.name == "test.exe":
+        #     fail()
 
     if ctx.attr.data_prefix_map:
         myrunfiles = ctx.runfiles(
@@ -661,7 +577,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         )
     else:
         myrunfiles = ctx.runfiles(
-            files = rfiles
+            files = rfiles + ctx.files.data
         )
 
     ##########################
@@ -736,11 +652,13 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                                # direct=jsoo_runtimes_primary,
                                transitive = depsets.deps.jsoo_runtimes),
     )
-    # providers.append(_ocamlProvider)
+    providers.append(_ocamlProvider)
 
-    ppxCodepsProvider = PpxCodepsProvider(
+    ppxCodepsInfo = PpxCodepsInfo(
         sigs       = depset(order=dsorder,
                             transitive = depsets.codeps.sigs),
+        cli_link_deps = depset(order=dsorder,
+                               transitive = depsets.codeps.cli_link_deps),
         structs    = depset(order=dsorder,
                             transitive = depsets.codeps.structs),
         ofiles     = depset(order=dsorder,
@@ -756,7 +674,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         jsoo_runtimes = depset(order="postorder",
                                transitive = depsets.codeps.jsoo_runtimes),
     )
-    providers.append(ppxCodepsProvider)
+    providers.append(ppxCodepsInfo)
 
     providers.append(ccInfo)
 

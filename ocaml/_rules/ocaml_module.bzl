@@ -18,8 +18,8 @@ load("@rules_ocaml//ocaml/_debug:colors.bzl",
 ###############################
 def _ocaml_module(ctx):
 
-    print("{c}ocaml_module: {m}{r}".format(
-        c=CCBLUBG,m=ctx.label,r=CCRESET))
+    # print("{c}ocaml_module: {m}{r}".format(
+    #     c=CCBLUBG,m=ctx.label,r=CCRESET))
 
     # tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     # print("BUILD TGT: {color}{lbl}{reset}".format(
@@ -110,8 +110,51 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     """,
     attrs = dict(
         rule_options,
+        struct = attr.label(
+            doc = "A single module (struct) source file label.",
+            mandatory = True,
+            allow_single_file = True # no constraints on extension
+        ),
+
+        ## we have both a public and a hidden ns resolver attribute.
+        ## this one is for bottom-up namespacing:
+        ns_resolver = attr.label(
+            doc = """
+NS resolver module for bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
+            """,
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            mandatory = False
+        ),
+
+        ## this one is for topdown-up namespacing:
+        _ns_resolver = attr.label(
+            doc = "NS resolver module for top-down namespacing",
+            # allow_single_file = True,
+            providers = [OcamlNsResolverProvider],
+            ## @rules_ocaml//cfg/ns is a 'label_setting' whose value is an
+            ## `ocaml_ns_resolver` rule. so this institutes a
+            ## dependency on a resolver whose build params will be set
+            ## dynamically using transition functions.
+            default = "@rules_ocaml//cfg/ns:resolver",
+
+            ## TRICKY BIT: if our struct is generated (e.g. by
+            ## ocaml_lex), this transition will prevent ns renaming:
+            # cfg = ocaml_module_deps_out_transition
+        ),
+
+        _manifest = attr.label( ## Why?
+            doc = "Hidden attribute set by transition function. Value is string list.",
+            default = "@rules_ocaml//cfg/manifest"
+        ),
+
         _rule = attr.string( default  = "ocaml_module" ),
         _tags = attr.string_list( default  = ["ocaml"] ),
+        _allowlist_function_transition = attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        ),
+
+        _cmd_line_option = attr.label(default = "@rules_ocaml//cfg/option"),
     ),
 
     fragments = ["platform", "cpp"],

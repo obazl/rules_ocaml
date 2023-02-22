@@ -24,7 +24,7 @@ load("//ocaml:providers.bzl",
      "OcamlSignatureProvider")
 
 load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
+     "PpxCodepsInfo",
      "PpxModuleMarker",
 )
 
@@ -464,11 +464,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     resolvers = []
 
-    # cc_deps_primary             = []  ## list of CcInfo
-    # cc_deps_secondary           = []  ## list of depsets (of CcInfo)
-
-    # cc_libs = [] # ccinfo dep libnames, so later we can emit -lfoo
-
     ################
     depsets = new_deps_aggregator()
     ## FIXME: handle non-namespaced lib/archive manifests
@@ -479,6 +474,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if ctx.file.sig:
         depsets = aggregate_deps(ctx, ctx.attr.sig, depsets, manifest)
 
+    if hasattr(ctx.attr, "sig_deps"):
+        for dep in ctx.attr.sig_deps:
+            depsets = aggregate_deps(ctx, dep, depsets, manifest)
+
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
         depsets = aggregate_deps(ctx, dep, depsets, manifest)
@@ -488,6 +487,45 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     for ccdep in ctx.attr.cc_deps:
         depsets = aggregate_deps(ctx, ccdep, depsets, manifest)
+
+    ############ PPX EXECUTABLE DEPENDENCIES ################
+    # ppx_codeps are material deps of this module. They thus become
+    # elements in the depgraph of anything that depends on this
+    # module, so they are passed on just like regular deps.
+
+    # ppx_codeps are provided either by ctx.attr.ppx or by
+    # ctx.attr.struct (or ctx.attr.sig) if those are ppx_transform
+    # targets.
+
+    if ctx.label.name == "Test":
+        print("AST: %s" % depsets.deps.astructs)
+
+    if ctx.attr.ppx:
+        # if ctx.label.name == "Test":
+        #     print("ppx deps: %s" % ctx.attr.ppx[PpxCodepsInfo])
+        depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
+
+    if ctx.label.name == "Test":
+        print("AST2: %s" % depsets.deps.astructs)
+
+    ## Can a ppx_executable also have ordinary deps listed in OcamlProvider?
+    ## Don't think so.
+
+    ## But it can carry CcInfo
+
+    ## ppx_modules, that do ppx processing, may have a ppx_codeps
+    ## attribute, for the deps they inject into the files they
+    ## preprocess. They are _NOT_ material deps of the module itself.
+    ## It follows that they are passed on in a PpxCodepsInfo, not
+    ## in OcamlProvider.
+
+
+    #     ## to ppx a module:
+    #     ## 1. ppx tranform src - done above
+    #     ## 2. extract ppx_codeps from the ppx.exe
+    #     ## 3. add them to the module's dependencies
+    #     ## 4. compile transformed src, with ppx_codeps
+    #     ## 5. provide them, for later linking (e.g. ppx_expect)
 
     if debug_codeps: print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
     if hasattr(ctx.attr, "ppx_codeps"):
@@ -761,60 +799,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 #     sigs_depsets.append(provider.sigs)
                 #     structs_depsets.append(provider.structs)
 
-    ############ PPX EXECUTABLE DEPENDENCIES ################
-
-    # ppx_codeps are material deps of this module. They thus become
-    # elements in the depgraph of anything that depends on this
-    # module, so they are passed on just like regular deps.
-
-    # ppx_codeps are provided either by ctx.attr.ppx or by
-    # ctx.attr.struct (or ctx.attr.sig) if those are ppx_transform
-    # targets.
-
-    ## Can a ppx_executable also have ordinary deps listed in OcamlProvider?
-    ## Don't think so.
-
-    ## But it can carry CcInfo
-
-    ## ppx_modules, that do ppx processing, may have a ppx_codeps
-    ## attribute, for the deps they inject into the files they
-    ## preprocess. They are _NOT_ material deps of the module itself.
-    ## It follows that they are passed on in a PpxCodepsProvider, not
-    ## in OcamlProvider.
-
-    ppx_codeps_list = []
-
-    if ctx.attr.ppx:
-
-        ##FIXME: call aggregate_codeps
-
-        ## to ppx a module:
-        ## 1. ppx tranform src - done above
-        ## 2. extract ppx_codeps from the ppx.exe
-        ## 3. add them to the module's dependencies
-        ## 4. compile transformed src, with ppx_codeps
-        ## 5. provide them, for later linking (e.g. ppx_expect)
-        if debug_ppx:
-            print("ppx for: %s" % ctx.label)
-            print("processing deps of ppx: %s" % ctx.attr.ppx)
-
-        if PpxCodepsProvider in ctx.attr.ppx:
-            codep = ctx.attr.ppx[PpxCodepsProvider]
-
-            if debug_ppx:
-                print("processing ppx_codeps from ppx executable: %s" % ctx.attr.ppx)
-                print("ppx_codeps provider: %s" % codep)
-                # print("codep.paths: %s" % codep.paths)
-                # print("codep.: %s" % codep.sigs)
-
-        # if CcInfo in ctx.attr.ppx:
-        #     cc_deps_secondary.append(ctx.attr.ppx[CcInfo])
-
-    sigs_depset = depset(order=dsorder,
-                         direct = [out_cmi], # sigs_primary,
-                         transitive = depsets.deps.sigs) # sigs_secondary)
-    if debug_deps: print("SIGS_depset: %s" % sigs_depset)
-
     structs_depset = depset(
         order=dsorder,
         # FIXME: out_struct only if not archived
@@ -848,10 +832,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # for arch in archives_depset.to_list():
     #         args.add(arch.path)
     #         includes.append(arch.dirname)
-
-    # for cdep in sigs_depsets:
-    #     for cd in cdep.to_list():
-    #         args.add("-I", cd.dirname)
 
     paths_depset  = depset(
         order = dsorder,
@@ -889,6 +869,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     else:
         xmo_deps = []
     if debug_xmo: print("XMO DEPS: %s" % xmo_deps)
+
+    if ctx.label.name in ["Test"]:
+        print("ACTION INPUTS: %s" % ctx.label)
+        x = depset(transitive = depsets.deps.astructs)
+        for dep in x.to_list():
+            print("ADEP: %s" % dep.basename)
 
     action_inputs_depset = depset(
         order = dsorder,
@@ -936,14 +922,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ## module compilation never depends on cclibs
         # + cclibs_secondary
         # + bottomup_ns_inputs
+        + depsets.codeps.sigs ## sigs_secondary
+        + depsets.codeps.cli_link_deps
+        + depsets.codeps.structs
+        + depsets.codeps.ofiles
+        + depsets.codeps.astructs
+        + depsets.codeps.archives ## FIXME: redundant (cli_link_deps)
+        + depsets.codeps.afiles
     )
-    if ctx.label.name in ["nsHello"]:
-        print("ACTION INPUTS: %s" % ctx.label)
-        for dep in action_inputs_depset.to_list():
-            print("IDEP: %s" % dep)
-
-    # if ctx.label.name == "Misc":
-    #     print("action_inputs_depset: %s" % action_inputs_depset)
 
     if ctx.attr.open:
         for dep in ctx.files.open:
@@ -988,7 +974,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     ################
     ctx.actions.run(
-        # env = env,
+        env = {"MACOSX_DEPLOYMENT_TARGET": "13.1"},
         executable = tc.compiler,
         arguments = [args],
         inputs    = action_inputs_depset,
@@ -1021,6 +1007,11 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         order  = dsorder,
         direct = action_outputs + [out_cmi] #cmi_out ## + mli_out,
     )
+
+    sigs_depset = depset(order=dsorder,
+                         direct = [out_cmi], # sigs_primary,
+                         transitive = depsets.deps.sigs) # sigs_secondary)
+    if debug_deps: print("SIGS_depset: %s" % sigs_depset)
 
     new_sigs_depset = depset(
         order = dsorder,
@@ -1181,55 +1172,45 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## must be passed to any ppx_executable that depends on it.
     ## FIXME: make this conditional:
     ## if module has direct or indirect ppx_codeps:
-    if ctx.attr.ppx:
+
+    if (ctx.attr.ppx or
+        (hasattr(ctx.attr,"ppx_codeps") and ctx.attr.ppx_codeps)):
+        ## ppx_module may have attr ppx_codeps
+
     # if len(codep_sigs_secondary) > 0:
         # print("codep_sigs_secondary: %s" % codep_sigs_secondary)
         # fail("AAAA")
         if debug_ppx:
-            print("Constructing PpxCodepsProvider: %s" % ctx.label)
+            print("Constructing PpxCodepsInfo: %s" % ctx.label)
 
-        ##FIXME:  use depsets.codeps
-
-        # codep_archives_depset = depset(
-        #     order=dsorder,
-        #     # direct=codep_archives_primary,
-        #     transitive=codep_archives_secondary)
-        # codep_afiles_depset = depset(
-        #     order=dsorder,
-        #     # direct=codep_astructs_primary,
-        #     transitive=codep_afiles_secondary)
-        # codep_astructs_depset = depset(
-        #     order=dsorder,
-        #     # direct=codep_astructs_primary,
-        #     transitive=codep_astructs_secondary)
-
-        # ppxCodepsProvider = PpxCodepsProvider(
-        #     # ppx_codeps = ppx_codeps_depset,
-        #     sigs    = depset(order=dsorder,
-        #                      # direct=codep_sigs_primary,
-        #                      transitive=codep_sigs_secondary),
-        #     structs    = depset(order=dsorder,
-        #                         # direct=codep_structs_primary,
-        #                         transitive=codep_structs_secondary),
-        #     ofiles    = depset(order=dsorder,
-        #                        # direct=codep_ofiles_primary,
-        #                        transitive=codep_ofiles_secondary),
-        #     archives  = codep_archives_depset,
-        #     afiles    = codep_afiles_depset,
-        #     astructs  = codep_astructs_depset,
-        #     paths     = depset(order = dsorder,
-        #                        # direct = codep_paths_primary,
-        #                        transitive = codep_paths_secondary),
-        #     # ccdeps    = depset(order=dsorder,
-        #     #                    # direct=codep_cclibs_primary,
-        #     #                    transitive=codep_cclibs_secondary),
-        #     jsoo_runtimes = depset(order=dsorder,
-        #                            # direct=codep_sigs_primary,
-        #                            transitive=codep_jsoo_runtimes_secondary),
-        # )
-        # if debug_ppx:
-        #     print("appending PpxCodepsProvider: %s" %ppxCodepsProvider)
-        # providers.append(ppxCodepsProvider)
+        ppxCodepsProvider = PpxCodepsInfo(
+            # ppx_codeps = ppx_codeps_depset,
+            sigs    = depset(order=dsorder,
+                             transitive=depsets.codeps.sigs),
+            cli_link_deps = depset(order=dsorder,
+                                   transitive = depsets.codeps.cli_link_deps),
+            structs    = depset(order=dsorder,
+                                transitive=depsets.codeps.structs),
+            ofiles    = depset(order=dsorder,
+                               transitive=depsets.codeps.ofiles),
+            archives    = depset(order=dsorder,
+                                 transitive=depsets.codeps.archives),
+            afiles    = depset(order=dsorder,
+                               transitive=depsets.codeps.afiles),
+            astructs    = depset(order=dsorder,
+                                 transitive=depsets.codeps.astructs),
+            paths    = depset(order=dsorder,
+                                 transitive=depsets.codeps.paths),
+            # # ccdeps    = depset(order=dsorder,
+            # #                    # direct=codep_cclibs_primary,
+            # #                    transitive=codep_cclibs_secondary),
+            # jsoo_runtimes = depset(order=dsorder,
+            #                        # direct=codep_sigs_primary,
+            #                        transitive=codep_jsoo_runtimes_secondary),
+        )
+        if debug_ppx:
+            print("appending PpxCodepsInfo: %s" %ppxCodepsProvider)
+        providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
     #FIXME: use depsets.ccinfos
@@ -1243,8 +1224,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #         dump_CcInfo(ctx, ccInfo)
     #         print("x: %s" % ccinfo_to_string(ctx, ccInfo))
     #         print("Module provides: %s" % ccInfo)
+    ccInfo = cc_common.merge_cc_infos(
+        # direct_cc_infos = ccinfos_primary,
+        cc_infos = depsets.ccinfos
+    )
+    providers.append(ccInfo)
 
-    if hasattr(ctx.attr, "ppx_codeps"):
+    if ctx.attr._rule == "ppx_module":
         providers.append(PpxModuleMarker())
 
     ################
@@ -1262,7 +1248,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         archives  = archives_depset,
         afiles    = afiles_depset,
         astructs = astructs_depset,
-        ## put these in PpxCodepsProvider?
+        ## put these in PpxCodepsInfo?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         closure = structs_depset,  #new_structs_depset,

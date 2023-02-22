@@ -8,8 +8,12 @@ load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAGBG", "CCRESET")
 
 ###############################
 def _ocaml_vm_runtime(ctx):
-    print("{c}ocaml_vm_runtime:{r} {lbl}".format(
-        c=CCMAGBG,r=CCRESET, lbl=ctx.label))
+
+    debug = False
+
+    if debug:
+        print("{c}ocaml_vm_runtime:{r} {lbl}".format(
+            c=CCMAGBG,r=CCRESET, lbl=ctx.label))
 
     if ctx.label == Label("@rules_ocaml//cfg/runtime:dynamic"):
         kind = "dynamic"

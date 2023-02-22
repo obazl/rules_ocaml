@@ -25,9 +25,9 @@ CCBLURED="\033[44m\033[31m"
 
 ################################################
 def _ppx_deps_out_transition_impl(settings, attr):
-    print("{c}_ppx_deps_out_transition{r}: {lbl}".format(
-        c=CCDER, r = CCRESET, lbl = attr.name
-    ))
+    # print("{c}_ppx_deps_out_transition{r}: {lbl}".format(
+    #     c=CCDER, r = CCRESET, lbl = attr.name
+    # ))
 
     return {
         "@rules_ocaml//cfg/ns:prefixes":   [],
@@ -50,8 +50,9 @@ _ppx_deps_out_transition = transition(
 ###########################
 def _ppx_executable(ctx):
 
-    print("{c}ppx_executable: {m}{r}".format(
-        c=CCBLURED,m=ctx.label,r=CCRESET))
+    # print("{c}ppx_executable: {m}{r}".format(
+    #     c=CCBLURED,m=ctx.label,r=CCRESET))
+
     # if True: #  debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(
@@ -91,16 +92,30 @@ ppx_executable = rule(
             allow_single_file = True,
         ),
 
-        # initializer = attr.label(),
+        prologue = attr.label_list(
+            doc = "List of OCaml dependencies.",
+            providers = [[OcamlArchiveMarker],
+                         [OcamlImportMarker],
+                         [OcamlLibraryMarker],
+                         [OcamlModuleMarker],
+                         [OcamlNsMarker],
+                         [CcInfo]],
+            cfg = _ppx_deps_out_transition
+            # cfg = ocaml_binary_deps_out_transition
+        ),
+
         main = attr.label(
-            doc = "A module to be listed last in the list of dependencies. For more information see [Main Module](../ug/ppx.md#main_module).",
+            doc = "A module to be listed after those in 'initial' and after those in 'final'. For more information see [Main Module](../ug/ppx.md#main_module).",
             mandatory = True,
-            allow_single_file = True,
-            providers = [[OcamlModuleMarker], [PpxExecutableMarker]],
+            # allow_single_file = True,
+            # providers = [
+            #     [OcamlModuleMarker], [PpxExecutableMarker]
+            #     # or @ppxlib//lib/runner"
+            # ],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
         ),
-        deps = attr.label_list(
+        epilogue = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
@@ -137,10 +152,14 @@ ppx_executable = rule(
             allow_files = True,
         ),
 
-        strip_data_prefixes = attr.bool(
-            doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
-            default = False
+        data_prefix_map = attr.string_dict(
+            doc = "Map for replacing path prefixes of data files"
         ),
+
+        # strip_data_prefixes = attr.bool(
+        #     doc = "Symlink each data file to the basename part in the runfiles root directory. E.g. test/foo.data -> foo.data.",
+        #     default = False
+        # ),
 
         # manifest = attr.label_list(
         #     doc = "Mereological deps to be directly linked into ppx executable. Modular deps should be listed in ocaml_module, ppx_module rules.",

@@ -655,8 +655,12 @@ def cc_shared_lib_to_ccinfo(ctx, ccinfo, ccfile):
 ## target may contain shared libs in DefaultInfo, as we as a CcInfo
 ## provider.  Merge them.
 def normalize_ccinfo(ctx, target):
-    print("{c}normalize_ccinfo{r}: {t}".format(
-        c=CCRED,t=target,r=CCRESET))
+
+    debug = False
+
+    if debug:
+        print("{c}normalize_ccinfo{r}: {t}".format(
+            c=CCRED,t=target,r=CCRESET))
 
     ccInfo = target[CcInfo]
 
@@ -664,7 +668,7 @@ def normalize_ccinfo(ctx, target):
     ccfiles = []
     for f in files:
         if f.extension in ["so", "dylib"]:
-            print("found dso: %s" % f)
+            if debug: print("found dso: %s" % f)
             ccfiles.append(f)
 
     if len(ccfiles) == 0:
@@ -694,7 +698,7 @@ def normalize_ccinfo(ctx, target):
             dynamic_library_symlink_path = ccfile.path,
             cc_toolchain = cc_toolchain
         )
-        print("lib_to_link: %s" % lib_to_link)
+        if debug: print("lib_to_link: %s" % lib_to_link)
         libs_to_link.append(lib_to_link)
 
     linker_input = cc_common.create_linker_input(

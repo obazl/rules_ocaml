@@ -3,14 +3,19 @@ load("//ocaml:providers.bzl",
 
 load(":options.bzl", "options", "options_aggregators")
 
+load(":impl_archive.bzl", "impl_archive")
 load(":impl_library.bzl", "impl_library")
 
-load("//ocaml/_transitions:in_transitions.bzl", "reset_in_transition")
+load("//ocaml/_transitions:in_transitions.bzl",
+     "nslib_in_transition", "reset_in_transition")
 
 ###############################
 def _ocaml_library(ctx):
 
-    return impl_library(ctx)
+    if ctx.attr.archived:
+        return impl_archive(ctx)
+    else:
+        return impl_library(ctx)
 
 ###############################
 rule_options = options("ocaml")
@@ -38,6 +43,10 @@ Packages](../ug/collections.md).
     """,
     attrs = dict(
         rule_options,
+        archived = attr.bool(),
+        archive_name = attr.string(
+            doc = "Name of generated archive file, without extension. If not provided, name will be derived from target 'name' attribute.  Ignored if archived == False."
+        ),
         _rule = attr.string( default = "ocaml_library" ),
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -46,7 +55,10 @@ Packages](../ug/collections.md).
     ## this is not an ns library, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are not affected.
     # cfg     = module_in_transition,
-    cfg     = reset_in_transition,
+    # cfg     = reset_in_transition,
+    #NB: reset wipes configs, not good if this needs to pass on ns
+    #deps to its deps
+    cfg     = nslib_in_transition,
     provides = [OcamlLibraryMarker],
     executable = False,
     fragments = ["platform", "cpp"],

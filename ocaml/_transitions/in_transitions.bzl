@@ -132,19 +132,33 @@ ocaml_executable_in_transition = transition(
     #     set config from this's attributes
 
 def _nslib_in_transition_impl(settings, attr):
-    # print("_nslib_in_transition_impl %s" % attr.name)
     debug = False
-    # if attr.name in ["ppx_optcomp_light"]:
+    # if attr.name in ["alcotest_stdlib_ext"]:
     #     debug = True
 
     if debug:
         print("")
         print("{c}>>> nslib_in_transition{r}".format(
             c=CCYELBG,r=CCRESET))
-        print_config_state(settings, attr)
+        print("attr.name: %s" % attr.name)
+        print("ns prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("ns submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+        print("attr.manifest: %s" % attr.manifest)
+        # print_config_state(settings, attr)
 
         # print("{c}attrs:{r}".format(c=CCBLU,r=CCRESET))
         # print("  %s" % attr)
+
+    if settings["@rules_ocaml//cfg/ns:submodules"] == []:
+        if debug: print("null submodules: resetting config")
+        # print("nonce: %s" % settings["@rules_ocaml//cfg/ns:nonce"])
+        # print("pfxs:  %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        # print("submodules:  %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+        return {}
+        #     "@rules_ocaml//cfg/ns:nonce": "",
+        #     "@rules_ocaml//cfg/ns:prefixes": [],
+        #     "@rules_ocaml//cfg/ns:submodules": [],
+        # }
 
     nslib_name = normalize_module_name(attr.name)
     # ns attribute overrides default derived from rule name
@@ -177,15 +191,18 @@ def _nslib_in_transition_impl(settings, attr):
         submodules.append(submodule)
 
     if nslib_name in settings["@rules_ocaml//cfg/ns:prefixes"]:
+        nonce = attr.name
         prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
         submodules = settings["@rules_ocaml//cfg/ns:submodules"]
     elif nslib_name in submodules:
+        nonce = attr.name
         prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
         submodules = settings["@rules_ocaml//cfg/ns:submodules"]
     else:
         # reset to default values
         # prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
         # submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+        nonce      = ""
         prefixes   = []
         submodules = []
 
@@ -194,8 +211,11 @@ def _nslib_in_transition_impl(settings, attr):
         print("  ns:prefixes: %s" % prefixes)
         print("  ns:submodules: %s" % submodules)
 
+    if attr.name == "color":
+        fail("bbbbbbbbbbbbbbbb")
+
     return {
-        "@rules_ocaml//cfg/ns:nonce"   : attr.name,
+        "@rules_ocaml//cfg/ns:nonce"      : nonce,
         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
         "@rules_ocaml//cfg/ns:submodules" : submodules,
     }
@@ -204,6 +224,7 @@ def _nslib_in_transition_impl(settings, attr):
 nslib_in_transition = transition(
     implementation = _nslib_in_transition_impl,
     inputs = [
+        "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ],
@@ -234,18 +255,38 @@ reset_in_transition = transition(
 )
 
 ###############################################
+## module_in_transition
+## called once per ocaml_module
+## Checks for an ns submodules manifest
+## If found, checks to see if "this" module is in the submodules list.
+## If it is, adds ns prefix to this module name.
+## Checks to see if this module is in prefix list
+
+##  - The prefix list is for "chained" namespaces, e.g. when on ns lib
+##  - contains another ns lib. Then the submodules in the latter will
+##  - be named with both prefixes, e.g. A__B__C, not B__C.
+
+## If this module not in prefix list and not in submodules list,
+## then reset:
+##     "@rules_ocaml//cfg/ns:prefixes",
+##     "@rules_ocaml//cfg/ns:submodules",
+
 def _module_in_transition_impl(settings, attr):
     debug = False
 
-    # if attr.name in ["Source_map_io"]:
-    #     # debug = True
+    # if attr.name in [""]:
+    #     debug = True
     #     print("_module_in_transition_impl")
     #     print("target:{c}{t}{r}".format(c=CCRED,t=attr.name,r=CCRESET))
 
     if debug:
         print("{c}>>> module_in_transition{r}".format(
             c=CCYELBG,r=CCRESET))
+        print("module: %s" % attr.name)
+        print("prefixes cfg: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("submodules cfg: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
         print_config_state(settings, attr)
+
 
     module = None
 
@@ -253,17 +294,18 @@ def _module_in_transition_impl(settings, attr):
 
     # 1. derive this module name w/o ns prefix
 
-    if hasattr(attr, "sig"):
+    # if hasattr(attr, "sig"):
+    if attr.sig:
         if debug: print("SIG: %s" % attr.sig)
-        if attr.module:
-            module = attr.module[:1].capitalize() + attr.module[1:]
+        if attr.module_name:
+            module = attr.module_name[:1].capitalize() + attr.module_name[1:]
         else:
             ## FIXME: label_to_module_name?
             module = attr.name[:1].capitalize() + attr.name[1:]
     else: ## singleton, no sig attribute
-        if attr.module:
+        if attr.module_name:
             ## must be a legal ocaml module name, so we can just upcase the first char
-            module = attr.module[:1].capitalize() + attr.module[1:]
+            module = attr.module_name[:1].capitalize() + attr.module_name[1:]
         else:
             if debug:
                 print("{c} struct:{r} {m}".format(c=CCBLU,r=CCRESET,m=attr.struct))
@@ -310,10 +352,10 @@ def _module_in_transition_impl(settings, attr):
     #     print("\n\n{c}NULL PFXS: {n}{r}  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n".format(
     #         c=CCRED,r=CCRESET,n=attr.name))
     if debug:
-        print("IN STATE:")
+        print("module IN STATE:")
         print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
         print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
-        print("OUT STATE:")
+        print("module OUT STATE:")
         print("  ns:prefixes: %s" % prefixes)
         print("  ns:submodules: %s" % submodules)
 

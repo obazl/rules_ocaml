@@ -15,8 +15,9 @@ CCBLURED="\033[44m\033[31m"
 ###############################
 def _ocaml_binary(ctx):
 
-    print("{c}ocaml_binary: {m}{r}".format(
-        c=CCBLURED,m=ctx.label,r=CCRESET))
+    # print("{c}ocaml_binary: {m}{r}".format(
+    #     c=CCBLURED,m=ctx.label,r=CCRESET))
+
     # if True: #  debug_tc:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     #     print("BUILD TGT: {color}{lbl}{reset}".format(

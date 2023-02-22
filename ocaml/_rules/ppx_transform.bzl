@@ -6,7 +6,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider")
 
 load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
+     "PpxCodepsInfo",
      "PpxExecutableMarker",
 )
 # load("//ppx:providers.bzl", "PpxModuleMarker")
@@ -133,7 +133,7 @@ def _ppx_transform(ctx):
     # )
     # providers.append(_ocamlProvider)
 
-    # ppxCodepsProvider = PpxCodepsProvider(
+    # ppxCodepsProvider = PpxCodepsInfo(
     #     sigs       = depset(order=dsorder,
     #                         transitive = depsets.codeps.sigs),
     #     structs    = depset(order=dsorder,
@@ -153,8 +153,8 @@ def _ppx_transform(ctx):
     # )
     # providers.append(ppxCodepsProvider)
 
-    # coprovider = ctx.attr.ppx[PpxCodepsProvider]
-    # ppxCodepsProvider = PpxCodepsProvider(
+    # coprovider = ctx.attr.ppx[PpxCodepsInfo]
+    # ppxCodepsProvider = PpxCodepsInfo(
     #     sigs       = coprovider.sigs,
     #     structs       = coprovider.structs,
     #     ofiles       = coprovider.ofiles,
@@ -184,8 +184,8 @@ def _ppx_transform(ctx):
 
     if OcamlProvider in ctx.attr.ppx:
         providers.append(ctx.attr.ppx[OcamlProvider])
-    if PpxCodepsProvider in ctx.attr.ppx:
-        providers.append(ctx.attr.ppx[PpxCodepsProvider])
+    if PpxCodepsInfo in ctx.attr.ppx:
+        providers.append(ctx.attr.ppx[PpxCodepsInfo])
     if CcInfo in ctx.attr.ppx:
         providers.append(ctx.attr.ppx[CcInfo])
 

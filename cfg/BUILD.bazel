@@ -10,12 +10,20 @@ bool_flag( name = "cmt", build_setting_default = False )
 bool_flag( name = "debug", build_setting_default = False )
 bool_flag( name = "keep-locs", build_setting_default = False )
 bool_flag( name = "noassert", build_setting_default = False )
-bool_flag( name = "opaque", build_setting_default = False)
+
 bool_flag( name = "short-paths", build_setting_default = False )
 bool_flag( name = "strict-formats", build_setting_default = False )
 bool_flag( name = "strict-sequence", build_setting_default = False )
+
 bool_flag( name = "verbose", build_setting_default = False )
-bool_flag( name = "xmo", build_setting_default = True)
+config_setting(name = "verbose?", flag_values = {":verbose": "True"})
+
+## XMO defaults depend on config profile
+## For dev: disabled, for fastest builds (cue on -c fastbuild?)
+## For prod, enabled.
+bool_flag( name = "opaque", build_setting_default = True)
+bool_flag( name = "xmo", build_setting_default = False)
+config_setting(name = "xmo?", flag_values = {":xmo": "True"})
 
 ocaml_null_module(name="null")
 

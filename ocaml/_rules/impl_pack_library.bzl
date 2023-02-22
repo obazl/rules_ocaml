@@ -11,7 +11,7 @@ load("//ocaml:providers.bzl",
 )
 
 load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
+     "PpxCodepsInfo",
      "PpxExecutableMarker",
 )
 
@@ -401,7 +401,7 @@ def impl_pack_library(ctx):
     #         ),
     #     )
 
-    adjunctsMarker = PpxCodepsProvider(
+    adjunctsMarker = PpxCodepsInfo(
         ppx_codeps = depset(transitive = indirect_adjunct_depsets),
         paths = depset(transitive = indirect_adjunct_path_depsets)
     )

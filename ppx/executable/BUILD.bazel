@@ -9,7 +9,7 @@ package(default_visibility = ["//visibility:public"])
 # label_flag( name = "cc_deps",
 #             build_setting_default = "@rules_ocaml//cfg:null" )
 
-bool_flag( name = "linkall", build_setting_default = True )
+bool_flag( name = "linkall", build_setting_default = False )
 
 string_list_flag( name = "opts", build_setting_default = []) ## "-predicates", "ppx_driver"])
 

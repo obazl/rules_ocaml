@@ -15,6 +15,7 @@ load("//ocaml/_providers:ocaml.bzl",
      _OcamlNsMarker         = "OcamlNsMarker",
      _OcamlNsSubmoduleMarker = "OcamlNsSubmoduleMarker",
      ## FIXME: choose one:
+     _OCamlSigInfo          = "OCamlSigInfo",
      _OcamlSignatureMarker  = "OcamlSignatureMarker",
      _OcamlSignatureProvider = "OcamlSignatureProvider",
      _OcamlTestMarker        = "OcamlTestMarker",
@@ -22,7 +23,7 @@ load("//ocaml/_providers:ocaml.bzl",
      )
 
 load("//ppx:providers.bzl", # FIXME: //ppx/_providers.bzl?
-     # _PpxCodepsProvider     = "PpxCodepsProvider",
+     # _PpxCodepsInfo     = "PpxCodepsInfo",
      _PpxExecutableMarker = "PpxExecutableMarker"
      )
 
@@ -30,7 +31,7 @@ OcamlProvider                      = _OcamlProvider
 OcamlArchiveMarker                 = _OcamlArchiveMarker
 # OcamlArchiveProvider               = _OcamlArchiveProvider
 OcamlNsResolverProvider            = _OcamlNsResolverProvider
-# PpxCodepsProvider                = _PpxCodepsProvider
+# PpxCodepsInfo                = _PpxCodepsInfo
 
 OcamlExecutableMarker                 = _OcamlExecutableMarker
 OcamlImportMarker                  = _OcamlImportMarker
@@ -38,6 +39,7 @@ OcamlLibraryMarker                 = _OcamlLibraryMarker
 OcamlModuleMarker                  = _OcamlModuleMarker
 OcamlNsMarker                      = _OcamlNsMarker
 OcamlNsSubmoduleMarker             = _OcamlNsSubmoduleMarker
+OCamlSigInfo                       = _OCamlSigInfo
 OcamlSignatureMarker               = _OcamlSignatureMarker
 OcamlSignatureProvider             = _OcamlSignatureProvider
 OcamlTestMarker                    = _OcamlTestMarker
@@ -45,6 +47,92 @@ OcamlVmRuntimeProvider             = _OcamlVmRuntimeProvider
 
 PpxExecutableMarker = _PpxExecutableMarker
 
+################################################################
+##########################
+## MAYBE: add stdlib list, so we can easily add stdlib deps to
+## runfiles when needed?
+def _OCamlInfo_init(*,
+                   sigs          = [],
+                   structs       = [],
+                   cli_link_deps = [],
+                   afiles        = [],
+                   ofiles        = [],
+                   archived_cmx  = [],
+                   mli           = [],
+                   paths         = [],
+                   # ofiles      = [],
+                   # archives    = [],
+                   # astructs    = [],
+                   # cmts        = [],
+                        ):
+    return {
+        "sigs"          : sigs,
+        "structs"       : structs,
+        "cli_link_deps" : cli_link_deps,
+        "afiles"        : afiles,
+        "ofiles"        : ofiles,
+        "archived_cmx"  : archived_cmx,
+        "mli"           : mli,
+        "paths"         : paths,
+    }
+
+OCamlInfo, _new_ocamlocamlinfo = provider(
+    doc = "foo",
+    fields = {
+        "sigs"          : "Depset of .cmi files. always added to inputs, never to cmd line.",
+        "structs"       : "Depset of unarchived .cmo or .cmx files.",
+        "cli_link_deps" : "Depset of cm[x]a and cm[x|o] files to be added to inputs and link cmd line (executables and archives).",
+        "afiles"        : "Depset of the .a files that go with .cmxa files",
+        "ofiles"        : "Depset of the .o files that go with .cmx files",
+        "archived_cmx"  : "Depset of archived .cmx and .o files. always added to inputs, never to cmd line.",
+        "mli"           : ".mli files needed for .ml compilation",
+        "paths"         : "string depset, for efficiency",
+        # "ofiles"        :    "depset of the .o files that go with .cmx files",
+        # "archives"      :  "depset of .cmxa and .cma files",
+        # "cma"           :       "depset of .cma files",
+        # "cmxa"          :       "depset of .cmxa files",
+        # "astructs"      :  "depset of archived structs, added to link depgraph but not command line.",
+        # "cmts"          :      "depset of cmt/cmti files",
+    },
+    init = _OCamlInfo_init
+)
+
+def dump_ocamlinfo(bi):
+    print("sigs: %s" % bi.sigs)
+    print("structs: %s" % bi.structs)
+    print("linkdeps: %s" % bi.cli_link_deps)
+
+##########################
+DepsAggregator = provider(
+    fields = {
+        "deps"    : "struct of OCamlInfo providers",
+        "ccinfos" : "list of CcInfo providers",
+        "ccinfos_archived" : "list of ccinfos whose metadata is archived",
+    }
+)
+
+def new_deps_aggregator():
+    return DepsAggregator(
+        deps = OCamlInfo(
+            sigs          = [],
+            structs       = [],
+            cli_link_deps = [],
+            afiles        = [],
+            ofiles        = [],
+            archived_cmx  = [],
+            mli           = [],
+            paths         = [],
+            # ofiles      = [],
+            # archives    = [],
+            # astructs    = [], # archived cmx structs, for linking
+            # cmts        = [],
+        ),
+        ccinfos           = [],
+        ccinfos_archived  = []
+    )
+
+################################################################
+## LEGACY
 ################
 OcamlVerboseFlagProvider = provider(
     doc = "Raw value of ocaml_verbose_flag",
