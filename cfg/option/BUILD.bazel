@@ -1,0 +1,5 @@
+config_setting(
+    name = "option",
+    values = {"cpu": "foo"}
+    #flag_values = {"@//command_line_option:output_groups": "foo"}
+)
