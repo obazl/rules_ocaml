@@ -1,0 +1,11 @@
+def pprint_ocamlinfo(name, provider):
+    print("OCamlInfo: %s" % name)
+    # print("  sigs:    %s" % provider.sigs)
+    print("  structs: %s" % provider.structs)
+    # print("  ofiles:  %s" % provider.ofiles)
+    print("  archives: %s" % provider.archives)
+    # print("  afiles:  %s" % provider.afiles)
+    print("  astructs: %s" % provider.astructs)
+    print("  paths:    %s" % provider.paths)
+    print("  jsoo_runtimes: %s" % provider.jsoo_runtimes)
+    print("")
