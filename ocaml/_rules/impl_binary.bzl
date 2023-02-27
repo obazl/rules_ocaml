@@ -519,8 +519,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     for i in ctx.attr.env.items():
         env[i[0]] = i[1]
 
-    print("ENV: %s" % env)
-    print("CTX VAR: %s" % ctx.var)
+    # print("ENV: %s" % env)
+    # print("CTX VAR: %s" % ctx.var)
     ################
     ctx.actions.run(
         env = env,
