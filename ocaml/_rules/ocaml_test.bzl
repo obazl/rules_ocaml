@@ -51,6 +51,12 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     """,
     attrs = dict(
         rule_options,
+
+        diff_cmd = attr.label(
+            allow_single_file = True
+            # e.g. diff_cmd = "@patdiff//bin:patdiff"
+        ),
+
         _rule = attr.string( default = "ocaml_test" ),
         _tags = attr.string_list( default  = ["ocaml", "test"] ),
 

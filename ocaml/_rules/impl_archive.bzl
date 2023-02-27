@@ -252,7 +252,10 @@ def impl_archive(ctx):
     for dep in dynamic_cc_deps:
         print("DYNAMIC DEP: %s" % dep)
         # args.add(dep.path)
-        args.add("-dllpath", dep.dirname)
+
+        # -dllpath is for ocamlc only
+        # args.add("-dllpath", dep.dirname)
+
         if dep.basename.startswith("dll"):
             args.add("-dllib", "-l" + dep.basename[3:-3])
         else:

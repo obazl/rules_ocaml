@@ -62,12 +62,12 @@ def ocaml_selection_proxy(name, selectors, no_match_error_msg):
 
 ################################################################
 def _cc_selection_proxy_impl(ctx):
-    print(ctx.attr.selection)
-    print("ct: %s" % len(ctx.attr.selection))
+    # print(ctx.attr.selection)
+    # print("ct: %s" % len(ctx.attr.selection))
 
     cc_infos = []
     for s in ctx.attr.selection:
-        print("DefaultInfo: %s" % s[DefaultInfo])
+        # print("DefaultInfo: %s" % s[DefaultInfo])
         # print("CcInfo: %s" % s[CcInfo])
         cc_infos.append(s[CcInfo])
 

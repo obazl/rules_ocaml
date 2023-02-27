@@ -1,0 +1,28 @@
+package(default_visibility = ["//visibility:public"])
+
+config_setting(
+    name = "std?",
+    flag_values = {"@rules_ocaml//cfg/runtime": "std"},
+    constraint_values = ["@ocaml//platforms/target:sys?"])
+
+config_setting(
+    name = "pic?",
+    flag_values = {"@rules_ocaml//cfg/runtime": "pic"},
+    constraint_values = ["@ocaml//platforms/target:sys?"])
+
+config_setting(
+    name = "dbg?",
+    flag_values = {"@rules_ocaml//cfg/runtime": "dbg"},
+    constraint_values = ["@ocaml//platforms/target:sys?"])
+    # constraint_values = ["@ocaml//platforms/target:sys?"]
+# )
+
+config_setting(
+    name = "instrumented?",
+    flag_values = {"//cfg/runtime": "instrumented"},
+    constraint_values = ["@ocaml//platforms/target:sys?"])
+
+config_setting(
+    name = "shared?",
+    flag_values = {"//cfg/runtime": "shared"},
+    constraint_values = ["@ocaml//platforms/target:sys?"])

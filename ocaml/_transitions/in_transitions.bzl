@@ -81,6 +81,8 @@ def _executable_in_transition_impl(transition, settings, attr):
 
 
     return {
+        "@rules_ocaml//cfg/manifest"   : [],
+        "@rules_ocaml//cfg/ns:nonce"      : "",
         "@rules_ocaml//cfg/ns:prefixes"   : [],
         "@rules_ocaml//cfg/ns:submodules" : [],
     }
@@ -98,8 +100,8 @@ ppx_executable_in_transition = transition(
         "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        # "@rules_ocaml//cfg/mode",
-        # "@ppx//mode",
+        "@rules_ocaml//cfg/manifest",
+        "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]
@@ -120,6 +122,8 @@ ocaml_executable_in_transition = transition(
     outputs = [
         # "@rules_ocaml//cfg/mode",
         # "@ppx//mode",
+        "@rules_ocaml//cfg/manifest",
+        "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]

@@ -250,7 +250,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ## for std (non-custom) linking use -dllib
 
     runfiles_root = out_exe.path + ".runfiles"
-    # print("runfiles_root: %s" % runfiles_root)
+    if debug_runfiles:
+        print("runfiles_root: %s" % runfiles_root)
     ws_name = ctx.workspace_name
     # print("ws name: %s" % ws_name)
 
@@ -508,12 +509,18 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         print("WARNING: unknown rule for executable: %s" % ctx.attr._rule)
         mnemonic = ctx.attr._rule
 
-    env = {"PATH": "/usr/bin:/usr"}
+    path = "/usr/bin:/usr"
+    if hasattr(ctx.attr, "diff_cmd"):
+        if ctx.attr.diff_cmd:
+            path = path + ":" + ctx.file.diff_cmd.dirname
+    env = {"PATH": path}
     ## sweet jeebus. this is the only way I could find to merge two
     ## dicts. sheesh.
     for i in ctx.attr.env.items():
         env[i[0]] = i[1]
-    # print("ENV: %s" % env)
+
+    print("ENV: %s" % env)
+    print("CTX VAR: %s" % ctx.var)
     ################
     ctx.actions.run(
         env = env,
@@ -540,6 +547,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     if debug_runfiles:
         print("runfiles attr: %s" % ctx.attr.data)
         print("runfiles files: %s" % ctx.files.data)
+        print("depsets.deps.runfiles:")
+        for rf in depsets.deps.runfiles:
+            print("rf: %s" % rf.files)
         # for item in ctx.attr.data_prefix_map.items:
         #     print("runfiles item: %s" % item)
 
@@ -583,7 +593,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ##########################
     defaultInfo = DefaultInfo(
         executable=out_exe,
-        runfiles = myrunfiles
+        runfiles = myrunfiles.merge_all(depsets.deps.runfiles)
     )
 
     exe_provider = None

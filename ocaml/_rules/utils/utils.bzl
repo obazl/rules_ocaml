@@ -116,9 +116,9 @@ def get_options(rule, ctx):
 
     ################################################################
     ## MUST COME LAST - instance opts override configurable defaults
-    # for arg in ctx.attr.opts:
-    #     if arg not in NEGATION_OPTS:
-    #         options.append(arg)
+    for arg in ctx.attr.opts:
+        if arg not in NEGATION_OPTS:
+            options.append(arg)
 
     return options
 

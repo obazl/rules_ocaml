@@ -348,7 +348,7 @@ def _ocaml_signature_impl(ctx):
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig")
         ## work_mli output is generated output of ppx processing
-        work_mli = impl_ppx_transform("ocaml_signature", ctx,
+        ppx_src_mli, work_mli = impl_ppx_transform("ocaml_signature", ctx,
                                       ctx.file.src, ## sig_src,
                                       modname + ".mli")
                                       # module_name + ".mli")

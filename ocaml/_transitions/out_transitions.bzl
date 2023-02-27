@@ -575,3 +575,32 @@ manifest_out_transition = transition(
     ]
 )
 
+###########################################################
+## cc_deps out transition: reset config to initial state
+## so cc_* targets will only be built once.
+def _cc_deps_out_transition_impl(settings, attr):
+    debug = True
+
+    if debug:
+        print(">>> cc_deps_out_transition")
+        # print_config_state(settings, attr)
+
+    return {
+        "//command_line_option:compilation_mode": "opt",
+        # "//command_line_option:host_platform": "",
+        # "//command_line_option:platforms": [],
+        # "@rules_ocaml//cfg/runtime": "std",
+    }
+
+################
+cc_deps_out_transition = transition(
+    implementation = _cc_deps_out_transition_impl,
+    inputs = [],
+    outputs = [
+        "//command_line_option:compilation_mode",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms",
+        # "@rules_ocaml//cfg/runtime",
+    ]
+)
+

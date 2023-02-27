@@ -182,6 +182,13 @@ ppx_executable = rule(
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
 
+        ppx_runner = attr.label_list(
+            doc = """Modules to be linked last when the transformed module is linked into an executable.""",
+            mandatory = False,
+            cfg = "target"
+            # providers = [[DefaultInfo], [PpxModuleMarker]]
+        ),
+
         ################
         cc_deps = attr.label_keyed_string_dict(
             doc = "C/C++ library dependencies",

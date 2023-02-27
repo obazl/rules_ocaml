@@ -17,6 +17,7 @@ load("//ppx:providers.bzl",
 # load("//ocaml/_transitions:in_transitions.bzl")
 
 load("//ocaml/_transitions:out_transitions.bzl",
+     "cc_deps_out_transition",
      "manifest_out_transition",
      "ocaml_module_sig_out_transition",
      "ocaml_binary_deps_out_transition",
@@ -308,6 +309,7 @@ def options_aggregators():
         cc_deps = attr.label_list(
             doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must deliver a CcInfo provider. Since ocaml rules may deliver CcInfo providers, we cannnot assume these deps are produced directly by rules_cc.",
             providers = [CcInfo],
+            cfg = cc_deps_out_transition
         ),
 
         _cc_deps = attr.label(

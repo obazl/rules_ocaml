@@ -196,7 +196,8 @@ def _handle_precompiled_sig(ctx, modname, ext):
         print("sig_pkgdir: %s" % sig_pkgdir)
 
     # if struct_pkgdir == sig_pkgdir:
-    if tgt_pkgdir == sig_pkgdir:
+    # if tgt_pkgdir == sig_pkgdir:
+    if sig_pkgdir.find(scope): # already in __obazl workdir
         ## already in same dir
         if debug: print("NOT SYMLINKING mli/cmi")
         work_mli = sigProvider.mli
@@ -222,9 +223,10 @@ def _handle_precompiled_sig(ctx, modname, ext):
             )
         )
 
+    ppx_src_ml = False
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig:")
-        work_ml = impl_ppx_transform(
+        ppx_src_ml, work_ml = impl_ppx_transform(
             ctx.attr._rule, ctx,
             ctx.file.struct, modname + ".ml"
         )
@@ -244,7 +246,8 @@ def _handle_precompiled_sig(ctx, modname, ext):
     )
     ## no symlink, cmox output by compile action
 
-    return(work_ml, work_struct,
+    return(ppx_src_ml, work_ml,
+           work_struct,
            work_mli, work_cmi,
            xmo)
 
@@ -263,7 +266,7 @@ def _handle_source_sig(ctx, modname, ext):
     if debug: print("sigattr is src: %s" % ctx.file.sig)
 
     if ctx.attr.ppx: ## no sig, plus ppx
-        work_mli = impl_ppx_transform(
+        ppx_src_ml, work_mli = impl_ppx_transform(
             ctx.attr._rule, ctx,
             ctx.file.sig, modname + ".mli"
         )
@@ -280,7 +283,7 @@ def _handle_source_sig(ctx, modname, ext):
 
     if ctx.attr.ppx: ## no sig, plus ppx
         if debug: print("ppxing module:")
-        work_ml = impl_ppx_transform(
+        ppx_src_ml, work_ml = impl_ppx_transform(
             ctx.attr._rule, ctx,
             ctx.file.struct, modname + ".ml"
         )
@@ -295,7 +298,8 @@ def _handle_source_sig(ctx, modname, ext):
     )
     ## no symlink, cmox output by compile action
 
-    return(work_ml, out_struct,
+    return(ppx_src_ml, work_ml,
+           out_struct,
            work_mli, work_cmi,
            False) # xmo determined by opt
 
@@ -603,6 +607,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     sig_is_xmo = True
 
+    ppx_src_ml = False
+
     if ctx.attr.sig:
         ##FIXME: make this a fn
         if debug: print("dyadic module, with sig: %s" % ctx.attr.sig)
@@ -619,7 +625,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 print("sigattr is precompiled .cmi")
                 print("ctx.attr.sig: %s" % ctx.attr.sig)
             cmi_precompiled = True
-            (work_ml, out_struct,
+            (ppx_src_ml, work_ml,
+             out_struct,
              work_mli,
              out_cmi,   ## precompiled, possibly symlinked to __obazl
              sig_is_xmo) = _handle_precompiled_sig(ctx, modname, ext)
@@ -647,7 +654,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             print("module name: %s" % modname)
         if ctx.attr.ppx: ## no sig, plus ppx
             if debug_ppx: print("ppxing module:")
-            work_ml = impl_ppx_transform(
+            ppx_src_ml, work_ml = impl_ppx_transform(
                 ctx.attr._rule, ctx,
                 ctx.file.struct, modname + ".ml"
             )
@@ -974,7 +981,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     ################
     ctx.actions.run(
-        env = {"MACOSX_DEPLOYMENT_TARGET": "13.1"},
+        # env = {"MACOSX_DEPLOYMENT_TARGET": "13.1"},
         executable = tc.compiler,
         arguments = [args],
         inputs    = action_inputs_depset,
@@ -994,13 +1001,30 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ##  construct providers
     #########################
 
+    ## PPX: if this module transformed by ppx_expect or ppx_inline:
+    if "-inline-test-lib" in ctx.attr.ppx_args:
+        # fail("work_ml: %s" % work_ml)
+        ppx_runfiles = ctx.runfiles(
+            files = [ppx_src_ml] if ppx_src_ml else [],
+            # for ppx_expect, which embeds the path in srcs:
+            symlinks = {ppx_src_ml.path: ppx_src_ml},
+            # just in case?
+            root_symlinks = {ppx_src_ml.path: ppx_src_ml}
+        )
+    else:
+        ppx_runfiles = ctx.runfiles()
+
+    ## FIXME: also handle ctx.attr.data, ctx.attr.ppx_data runfiles
+
     default_depset = depset(
         order = dsorder,
         direct = [out_struct]
         # direct = default_outputs
     )
+
     defaultInfo = DefaultInfo(
-        files = default_depset
+        files = default_depset,
+        runfiles = ppx_runfiles.merge_all(depsets.deps.runfiles)
     )
 
     outputGroup_all_depset = depset(
@@ -1127,7 +1151,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         # cc_libs = cc_libs,
 
-        srcs = depset(direct=[work_ml])
+        srcs = depset(direct=[work_ml]),
     )
     # print("MPRovider: %s" % ocamlProvider)
 

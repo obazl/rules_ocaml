@@ -68,6 +68,8 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
     ################################################################
     args = ctx.actions.args()
 
+    # args.add("-loc-filename", src.short_path, format = "%s")
+
     # if ctx.attr.ppx: # isn't this always true here?
       # args.add_all(ctx.attr.ppx[PpxExecutableMarker].args)
       # args.add_all(ctx.attr.ppx[OcamlExecutableMarker].args)
@@ -102,6 +104,7 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
         # rule == ocaml_module, ocaml_signature
         args.add_all(ctx.attr.ppx_args)
     elif hasattr(ctx.attr, "args"):
+        # rule: ppx_executable
         cli_args = []
         cli_args.extend(ctx.attr.args)
         if "-no-dump-ast" in ctx.attr.args:
@@ -110,6 +113,8 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
 
     ## ppx does not accept -I
     # args.add("-I", "bazel-out/darwin-fastbuild/bin")
+
+    lfilename = "\"" + src.short_path + "\""
 
     args.add("-o", outfile.path)
 
@@ -264,4 +269,4 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
     #     )
     # )
 
-    return outfile
+    return src, outfile

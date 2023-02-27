@@ -173,6 +173,7 @@ def aggregate_deps(ctx,
 
     debug = False
     debug_archives = False
+    debug_runfiles = False
     # if target.label.name == "Ppxlib_driver":
     #     debug = True
     # if debug:
@@ -210,7 +211,8 @@ def aggregate_deps(ctx,
             ## FIXME: won't work for topdown namespaced libs/archives
             ## since mInfo.name will have ns prefix, e.g. Color__Red, not Red
 
-            print("module runfiles: %s" % target[DefaultInfo].default_runfiles.files)
+            if debug_runfiles:
+                print("module runfiles: %s" % target[DefaultInfo].default_runfiles.files)
             depsets.deps.runfiles.append(target[DefaultInfo].default_runfiles)
 
             mInfo = target[OCamlModuleInfo]

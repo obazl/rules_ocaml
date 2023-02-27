@@ -1,8 +1,24 @@
 package(default_visibility = ["//visibility:public"])
 
+load("@bazel_skylib//rules:common_settings.bzl",
+        "string_flag", "string_setting")
+
 load("@rules_ocaml//build:rules.bzl", "ocaml_vm_runtime")
 
-label_setting(name="runtime", build_setting_default = ":dynamic")
+## Runtime variants: standard, debug, and instrumented.
+
+## Runtime linking controls how user code is linked with the runtime.
+
+string_flag(name = "runtime",
+            values = ["std", "pic", "dbg", "instrumented", "shared"],
+            build_setting_default = "std")
+config_setting(name = "std?", flag_values = {":runtime": "std"})
+config_setting(name = "pic?", flag_values = {":runtime": "pic"})
+config_setting(name = "dbg?", flag_values = {":runtime": "dbg"})
+config_setting(name = "instrumented?", flag_values = {":runtime": "instrumented"})
+config_setting(name = "shared?", flag_values = {":runtime": "shared"})
+
+label_setting(name="linkage", build_setting_default = ":dynamic")
 
 ocaml_vm_runtime(name = "dynamic")
 ocaml_vm_runtime(name = "static")
