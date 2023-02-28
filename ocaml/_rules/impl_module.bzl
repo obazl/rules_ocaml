@@ -851,10 +851,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     includes.extend(paths_depset.to_list()) # , before_each="-I")
     # args.add("-absname")
 
-    for a in archives_depset.to_list():
-        includes.append(a.dirname)
+    # for a in archives_depset.to_list():
+    #     includes.append(a.dirname)
 
     args.add_all(includes, before_each="-I", uniquify = True)
+
+    # for i in includes:
+    #     if  not i == "external/sexplib0/lib/sexplib0":
+    #         args.add("-I", i)
 
     # FIXME: -no-alias-deps and -open only required for sibling deps.
     # in case of udr, they break the build?
@@ -921,8 +925,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         + depsets.deps.sigs ## sigs_secondary
         + depsets.deps.cli_link_deps
-        + depsets.deps.structs
-        + depsets.deps.ofiles
+        # + depsets.deps.structs
+        # + depsets.deps.ofiles
         + depsets.deps.astructs
         + depsets.deps.archives ## FIXME: redundant (cli_link_deps)
         + depsets.deps.afiles

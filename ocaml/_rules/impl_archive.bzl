@@ -408,10 +408,6 @@ def impl_archive(ctx):
                             # direct=structs_primary,
                             transitive = [libOcamlProvider.structs])
 
-    # if ctx.label.name == "ppx_sexp_conv_expander":
-    #     print("astructs: %s" % libOcamlProvider.astructs)
-    #     fail()
-
     astructs_depset = depset(order=dsorder,
                              # direct=astructs_primary,
                              transitive =[libOcamlProvider.astructs])

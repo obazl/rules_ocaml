@@ -697,7 +697,11 @@ options_ppx = dict(
         allow_files = True,
     ),
     ppx_verbose = attr.bool(default = False),
-    ppx_print = attr.label(
+    ppx_print = attr.label(  ##FIXME: make this a string attr.
+        doc = "Format of output of PPX transform: binary (default) or text.",
+        default = "@rules_ocaml//ppx/print"
+    ),
+    _ppx_print = attr.label(
         doc = "Format of output of PPX transform. Value must be one of `@rules_ocaml//ppx/print:binary`, `@rules_ocaml//ppx/print:text`.  See link:../ug/ppx.md#ppx_print[PPX Support] for more information",
         default = "@rules_ocaml//ppx/print"
     ),
