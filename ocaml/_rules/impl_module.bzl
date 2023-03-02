@@ -881,11 +881,11 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         xmo_deps = []
     if debug_xmo: print("XMO DEPS: %s" % xmo_deps)
 
-    if ctx.label.name in ["Test"]:
-        print("ACTION INPUTS: %s" % ctx.label)
-        x = depset(transitive = depsets.deps.astructs)
-        for dep in x.to_list():
-            print("ADEP: %s" % dep.basename)
+    # if ctx.label.name in ["Test"]:
+    #     print("ACTION INPUTS: %s" % ctx.label)
+    #     x = depset(transitive = depsets.deps.astructs)
+    #     for dep in x.to_list():
+    #         print("ADEP: %s" % dep.basename)
 
     action_inputs_depset = depset(
         order = dsorder,
