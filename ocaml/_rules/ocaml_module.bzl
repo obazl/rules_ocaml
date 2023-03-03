@@ -143,10 +143,10 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
             # cfg = ocaml_module_deps_out_transition
         ),
 
-        _manifest = attr.label( ## Why?
-            doc = "Hidden attribute set by transition function. Value is string list.",
-            default = "@rules_ocaml//cfg/manifest"
-        ),
+        # _manifest = attr.label( ## Why?
+        #     doc = "Hidden attribute set by transition function. Value is string list.",
+        #     default = "@rules_ocaml//cfg/manifest"
+        # ),
 
         _rule = attr.string( default  = "ocaml_module" ),
         _tags = attr.string_list( default  = ["ocaml"] ),

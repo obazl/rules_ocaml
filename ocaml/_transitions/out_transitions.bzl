@@ -136,7 +136,7 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
     return {
         "@rules_ocaml//cfg/ns:prefixes": ns_prefixes,
         "@rules_ocaml//cfg/ns:submodules": attr_submodule_labels,
-        "@rules_ocaml//cfg/manifest": attr_submodule_labels,
+        # "@rules_ocaml//cfg/manifest": attr_submodule_labels,
     }
 
 ################################################################
@@ -157,7 +157,7 @@ ocaml_nslib_main_out_transition = transition(
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        "@rules_ocaml//cfg/manifest"
+        # "@rules_ocaml//cfg/manifest"
     ]
 )
 
@@ -177,7 +177,7 @@ ocaml_nslib_submodules_out_transition = transition(
         "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@rules_ocaml//cfg/manifest",
+        # "@rules_ocaml//cfg/manifest",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]
@@ -214,7 +214,7 @@ ocaml_nslib_resolver_out_transition = transition(
         # "@rules_ocaml//cfg/ns:name",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        "@rules_ocaml//cfg/manifest"
+        # "@rules_ocaml//cfg/manifest"
     ]
 )
 
@@ -320,7 +320,7 @@ ocaml_nslib_ns_out_transition = transition(
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        "@rules_ocaml//cfg/manifest"
+        # "@rules_ocaml//cfg/manifest"
     ]
 )
 
@@ -552,28 +552,28 @@ ocaml_subsignature_deps_out_transition = transition(
 )
 
 ###########################################################
-def _manifest_out_transition_impl(settings, attr):
-    debug = False
-    # if attr.name == ":_Plexing.cmi":
-    #     debug = True
+# def _manifest_out_transition_impl(settings, attr):
+#     debug = False
+#     # if attr.name == ":_Plexing.cmi":
+#     #     debug = True
 
-    if debug:
-        print(">>> manifest_out_transition")
-        print_config_state(settings, attr)
+#     if debug:
+#         print(">>> manifest_out_transition")
+#         print_config_state(settings, attr)
 
-    manifest = [str(lbl) for lbl in attr.manifest]
-    return {
-        "@rules_ocaml//cfg/manifest"  : manifest
-    }
+#     manifest = [str(lbl) for lbl in attr.manifest]
+#     return {
+#         "@rules_ocaml//cfg/manifest"  : manifest
+#     }
 
-################
-manifest_out_transition = transition(
-    implementation = _manifest_out_transition_impl,
-    inputs = [],
-    outputs = [
-        "@rules_ocaml//cfg/manifest",
-    ]
-)
+# ################
+# manifest_out_transition = transition(
+#     implementation = _manifest_out_transition_impl,
+#     inputs = [],
+#     outputs = [
+#         "@rules_ocaml//cfg/manifest",
+#     ]
+# )
 
 ###########################################################
 ## cc_deps out transition: reset config to initial state

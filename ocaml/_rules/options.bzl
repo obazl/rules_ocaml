@@ -18,7 +18,7 @@ load("//ppx:providers.bzl",
 
 load("//ocaml/_transitions:out_transitions.bzl",
      "cc_deps_out_transition",
-     "manifest_out_transition",
+     # "manifest_out_transition",
      "ocaml_module_sig_out_transition",
      "ocaml_binary_deps_out_transition",
      "ocaml_module_deps_out_transition",
@@ -174,8 +174,8 @@ def options_binary():
         main = attr.label(
             doc = "Label of module containing entry point of executable. This module will be placed last in the list of dependencies.",
             mandatory = True,
-            allow_single_file = True,
-            providers = [[OcamlProvider,OcamlModuleMarker]],
+            # allow_single_file = True,
+            # providers = [[OcamlProvider,OcamlModuleMarker]],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
         ),
@@ -283,7 +283,7 @@ def options_aggregators():
                          ## sigs are ok in libraries, not archives
                          # [OcamlSignatureMarker]
                          ],
-            cfg = manifest_out_transition
+            # cfg = manifest_out_transition
         ),
         aliases = attr.label_keyed_string_dict(),
 

@@ -19,34 +19,35 @@ load("@rules_ocaml//ocaml/_debug:colors.bzl",
 
 
 ################################################
-def _ppx_codeps_transition_impl(settings, attr):
-    print("{color}_ppx_codeps_transition{reset}: {lbl}".format(
-        color=CCDER, reset = CCRESET, lbl = attr.name
-    ))
+## ppx codeps should not inheret namespace of ppx module.
+## this transition resets the config.
+def _ppx_codeps_out_transition_impl(settings, attr):
+    # print("{color}_ppx_codeps_out_transition{reset}: {lbl}".format(
+    #     color=CCDER, reset = CCRESET, lbl = attr.name
+    # ))
 
-    print("host_platform: %s" % settings["//command_line_option:host_platform"])
-    print("platforms: %s" % settings["//command_line_option:platforms"])
-    print("build-host: %s" % settings["@rules_ocaml//cfg/toolchain:build-host"])
-    print("target-host: %s" % settings["@rules_ocaml//cfg/toolchain:target-host"])
+    ## WARNING: returning [] evidently means no change rather than reset?
 
+    ## Case: ppx_compare, where two module targets have same runtime
+    ## codep. One is namespaced, so we get two copies and an error:
+    ## Files foo and bar both define a module Ppx_compare_lib. If we
+    ## return [] here we still get that error. But if we return "" (or
+    ## a nonsense string), then both get the same config so the build
+    ## only happens once.
     return {
-        # "@rules_ocaml//cfg/toolchain:build-host": "foo",
-        # "@rules_ocaml//cfg/toolchain:target-host": "bar"
+        # "@rules_ocaml//cfg/manifest"      : [],
+        "@rules_ocaml//cfg/ns:prefixes"   : [""],
+        "@rules_ocaml//cfg/ns:submodules" : [""]
     }
 
 ################
-_ppx_codeps_transition = transition(
-    implementation = _ppx_codeps_transition_impl,
-    inputs = [
-        "@rules_ocaml//cfg/toolchain:build-host",
-        "@rules_ocaml//cfg/toolchain:target-host",
-        # special labels for Bazel native command line args:
-        "//command_line_option:host_platform",
-        "//command_line_option:platforms",
-    ],
+_ppx_codeps_out_transition = transition(
+    implementation = _ppx_codeps_out_transition_impl,
+    inputs = [],
     outputs = [
-        # "@rules_ocaml//cfg/toolchain:build-host",
-        # "@rules_ocaml//cfg/toolchain:target-host"
+        # "@rules_ocaml//cfg/manifest",
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -185,25 +186,28 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
             # cfg = ocaml_module_deps_out_transition
         ),
 
-        _manifest = attr.label(
-            doc = "Hidden attribute set by transition function. Value is string list.",
-            default = "@rules_ocaml//cfg/manifest"
-        ),
+        # _manifest = attr.label(
+        #     doc = "Hidden attribute set by transition function. Value is string list.",
+        #     default = "@rules_ocaml//cfg/manifest"
+        # ),
 
         ppx_codeps = attr.label_list(
             doc = """List of non-opam adjunct dependencies (labels).""",
             mandatory = False,
             # cfg = "target"
             # providers = [[DefaultInfo], [PpxModuleMarker]]
+            cfg = _ppx_codeps_out_transition
         ),
 
         ppx_compile_codeps = attr.label_list(
             doc = """List labels of compile-time dependencies. These are required to compile any file transformed by this ppx.""",
             mandatory = False,
+            cfg = _ppx_codeps_out_transition
         ),
         ppx_link_codeps = attr.label_list(
             doc = """List labels of link-time dependencies. These are required to link any file transformed by this ppx.""",
             mandatory = False,
+            cfg = _ppx_codeps_out_transition
         ),
 
         _rule = attr.string( default  = "ppx_module" ),

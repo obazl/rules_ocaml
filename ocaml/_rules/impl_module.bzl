@@ -223,6 +223,14 @@ def _handle_precompiled_sig(ctx, modname, ext):
             )
         )
 
+    # we need to keep track of the original file when we ppx, because
+    # some ppxes may write its path into the transformed outputs, and
+    # tools may want to access it.
+
+    # The transform of x/foo.ml generates x/__ppx/foo.ml, which
+    # compiles to x/__obazl/foo.cmo. Maybe it would be better to
+    # generate x/__obazl/foo.ml.ppx or the like.
+
     ppx_src_ml = False
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig:")
@@ -265,6 +273,7 @@ def _handle_source_sig(ctx, modname, ext):
 
     if debug: print("sigattr is src: %s" % ctx.file.sig)
 
+    ppx_src_ml = None
     if ctx.attr.ppx: ## no sig, plus ppx
         ppx_src_ml, work_mli = impl_ppx_transform(
             ctx.attr._rule, ctx,
@@ -486,6 +495,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     for dep in ctx.attr.deps:
         depsets = aggregate_deps(ctx, dep, depsets, manifest)
 
+    if ctx.attr.ppx:
+        depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
+
     if ns_enabled:
         depsets = aggregate_deps(ctx, ns_resolver, depsets, manifest)
 
@@ -501,16 +513,16 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # ctx.attr.struct (or ctx.attr.sig) if those are ppx_transform
     # targets.
 
-    if ctx.label.name == "Test":
-        print("AST: %s" % depsets.deps.astructs)
+    # if ctx.label.name == "Test":
+    #     print("AST: %s" % depsets.deps.astructs)
 
-    if ctx.attr.ppx:
-        # if ctx.label.name == "Test":
-        #     print("ppx deps: %s" % ctx.attr.ppx[PpxCodepsInfo])
-        depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
+    # if ctx.attr.ppx:
+    #     # if ctx.label.name == "Test":
+    #     #     print("ppx deps: %s" % ctx.attr.ppx[PpxCodepsInfo])
+    #     depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
-    if ctx.label.name == "Test":
-        print("AST2: %s" % depsets.deps.astructs)
+    # if ctx.label.name == "Test":
+    #     print("AST2: %s" % depsets.deps.astructs)
 
     ## Can a ppx_executable also have ordinary deps listed in OcamlProvider?
     ## Don't think so.
@@ -636,11 +648,18 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 print("sigattr is source file")
 
             cmi_precompiled = False
-            (work_ml, out_struct,
+            (ppx_src_ml, work_ml,
+             out_struct,
              work_mli,
              out_cmi,  ## declared output file
              # cmi_precompiled,
              sig_is_xmo) = _handle_source_sig(ctx, modname, ext)
+
+    # returns:  (ppx_src_ml, work_ml,
+    #        out_struct,
+    #        work_mli, work_cmi,
+    #        False) # xmo determined by opt
+
 
         if debug:
             print("WORK ml: %s" % work_ml)
@@ -826,6 +845,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         order=dsorder,
         # direct = archives_primary,
         transitive = depsets.deps.archives # archives_secondary
+        # + depsets.codeps.archives
     )
     if debug_deps: print("ARCHIVES_depset: %s" % archives_depset)
 
@@ -848,13 +868,17 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
     # paths_primary = [out_struct.dirname, out_cmi.dirname]
 
+    codep_paths_depset = depset(
+        order = dsorder,
+        transitive = depsets.codeps.paths
+    )
+    includes.extend(codep_paths_depset.to_list())
+
     includes.extend(paths_depset.to_list()) # , before_each="-I")
     # args.add("-absname")
 
-    # for a in archives_depset.to_list():
-    #     includes.append(a.dirname)
-
-    args.add_all(includes, before_each="-I", uniquify = True)
+    for a in archives_depset.to_list():
+        includes.append(a.dirname)
 
     # for i in includes:
     #     if  not i == "external/sexplib0/lib/sexplib0":
@@ -886,6 +910,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     x = depset(transitive = depsets.deps.astructs)
     #     for dep in x.to_list():
     #         print("ADEP: %s" % dep.basename)
+
 
     action_inputs_depset = depset(
         order = dsorder,
@@ -941,6 +966,11 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         + depsets.codeps.archives ## FIXME: redundant (cli_link_deps)
         + depsets.codeps.afiles
     )
+
+    for dep in action_inputs_depset.to_list():
+        includes.append(dep.dirname)
+
+    args.add_all(includes, before_each="-I", uniquify = True)
 
     if ctx.attr.open:
         for dep in ctx.files.open:
@@ -1210,6 +1240,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # fail("AAAA")
         if debug_ppx:
             print("Constructing PpxCodepsInfo: %s" % ctx.label)
+
+        # if ctx.attr.ppx:
+        #     if PpxCodepsInfo in ctx.attr.ppx:
+        #         depsets = aggregate_codeps(ctx, COMPILE_LINK, ctx.attr.ppx, depsets, manifest)
 
         ppxCodepsProvider = PpxCodepsInfo(
             # ppx_codeps = ppx_codeps_depset,

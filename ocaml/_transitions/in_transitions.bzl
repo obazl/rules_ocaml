@@ -81,8 +81,8 @@ def _executable_in_transition_impl(transition, settings, attr):
 
 
     return {
-        "@rules_ocaml//cfg/manifest"   : [],
-        "@rules_ocaml//cfg/ns:nonce"      : "",
+        # "@rules_ocaml//cfg/manifest"   : [],
+        # "@rules_ocaml//cfg/ns:nonce"      : "",
         "@rules_ocaml//cfg/ns:prefixes"   : [],
         "@rules_ocaml//cfg/ns:submodules" : [],
     }
@@ -100,8 +100,8 @@ ppx_executable_in_transition = transition(
         "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@rules_ocaml//cfg/manifest",
-        "@rules_ocaml//cfg/ns:nonce",
+        # "@rules_ocaml//cfg/manifest",
+        # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]
@@ -122,8 +122,8 @@ ocaml_executable_in_transition = transition(
     outputs = [
         # "@rules_ocaml//cfg/mode",
         # "@ppx//mode",
-        "@rules_ocaml//cfg/manifest",
-        "@rules_ocaml//cfg/ns:nonce",
+        # "@rules_ocaml//cfg/manifest",
+        # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]
@@ -195,18 +195,18 @@ def _nslib_in_transition_impl(settings, attr):
         submodules.append(submodule)
 
     if nslib_name in settings["@rules_ocaml//cfg/ns:prefixes"]:
-        nonce = attr.name
+        # nonce = attr.name
         prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
         submodules = settings["@rules_ocaml//cfg/ns:submodules"]
     elif nslib_name in submodules:
-        nonce = attr.name
+        # nonce = attr.name
         prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
         submodules = settings["@rules_ocaml//cfg/ns:submodules"]
     else:
         # reset to default values
         # prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
         # submodules = settings["@rules_ocaml//cfg/ns:submodules"]
-        nonce      = ""
+        # nonce      = ""
         prefixes   = []
         submodules = []
 
@@ -219,7 +219,7 @@ def _nslib_in_transition_impl(settings, attr):
         fail("bbbbbbbbbbbbbbbb")
 
     return {
-        "@rules_ocaml//cfg/ns:nonce"      : nonce,
+        # "@rules_ocaml//cfg/ns:nonce"      : nonce,
         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
         "@rules_ocaml//cfg/ns:submodules" : submodules,
     }
@@ -228,12 +228,12 @@ def _nslib_in_transition_impl(settings, attr):
 nslib_in_transition = transition(
     implementation = _nslib_in_transition_impl,
     inputs = [
-        "@rules_ocaml//cfg/ns:nonce",
+        # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@rules_ocaml//cfg/ns:nonce",
+        # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
     ]
@@ -342,15 +342,18 @@ def _module_in_transition_impl(settings, attr):
     ## capitalized-ident ::=	 (A…Z) { letter ∣ 0…9 ∣ _ ∣ ' } 
 
     if module in settings["@rules_ocaml//cfg/ns:prefixes"]:
-        prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
+        prefixes   = settings["@rules_ocaml//cfg/ns:prefixes"]
         submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+        # manifest   = settings["@rules_ocaml//cfg/manifest"]
     elif module in submodules:
-        prefixes     = settings["@rules_ocaml//cfg/ns:prefixes"]
+        prefixes   = settings["@rules_ocaml//cfg/ns:prefixes"]
         submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+        # manifest   = settings["@rules_ocaml//cfg/manifest"]
     else:
         # reset to default values
         prefixes   = []
         submodules = []
+        # manifest   = []
 
     # if prefixes == []:
     #     print("\n\n{c}NULL PFXS: {n}{r}  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n".format(
@@ -368,6 +371,7 @@ def _module_in_transition_impl(settings, attr):
     return {
         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
         "@rules_ocaml//cfg/ns:submodules" : submodules,
+        # "@rules_ocaml//cfg/manifest"      : manifest
     }
 
 
@@ -377,10 +381,12 @@ module_in_transition = transition(
     inputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//cfg/manifest"
     ],
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//cfg/manifest"
     ]
 )
 

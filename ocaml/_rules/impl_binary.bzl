@@ -120,8 +120,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         if debug_deps: print("ctx.attr.prologue: %s" % ctx.attr.prologue)
         for dep in ctx.attr.prologue:
             depsets = aggregate_deps(ctx, dep, depsets)
-            if PpxCodepsInfo in dep:
-                depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
+            ## codeps already handled by aggregate_deps
+            ## aggregate_codeps is just for ppx_codeps
+            # if PpxCodepsInfo in dep:
+            #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
 
     ##FIXME: only for ppx_executable
     if hasattr(ctx.attr, "ppx_codeps"):
@@ -150,6 +152,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     #     print("main codep: %s" % ctx.attr.main[PpxCodepsInfo])
         # fail("x")
 
+    ## WARNING: we do not want ctx.attr.main to go in output codeps provider
     depsets = aggregate_deps(ctx, ctx.attr.main, depsets)
     # if ctx.label.name == "test":
     #     print("CLILINK %s" % depsets.deps.cli_link_deps)
@@ -634,6 +637,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     _ocamlProvider = OcamlProvider(
         # struct = depset(direct = [outfile]),
+        cli_link_deps = depset(order=dsorder,
+                               transitive = depsets.deps.cli_link_deps),
         sigs    = depset(order="postorder",
                          # direct=sigs_primary,
                          transitive = depsets.deps.sigs),
@@ -662,7 +667,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                                # direct=jsoo_runtimes_primary,
                                transitive = depsets.deps.jsoo_runtimes),
     )
-    providers.append(_ocamlProvider)
+    # providers.append(_ocamlProvider)
 
     ppxCodepsInfo = PpxCodepsInfo(
         sigs       = depset(order=dsorder,
