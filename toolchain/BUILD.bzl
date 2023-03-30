@@ -204,6 +204,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
         host                   = ctx.attr.host,
         target                 = ctx.attr.target,
         compiler               = ctx.file.compiler,
+        version                = ctx.attr.version,
         vmruntime              = ctx.file.vmruntime,
         vmruntime_debug        = ctx.file.vmruntime_debug,
         vmruntime_instrumented = ctx.file.vmruntime_instrumented,
@@ -284,6 +285,11 @@ ocaml_toolchain_adapter = rule(
             # providers = [["OcamlArchiveMarker"]],
             allow_single_file = True,
             cfg = "exec",
+        ),
+
+        "version": attr.string(
+            doc = "Version string of compiler",
+            # default = "9.9.9"
         ),
 
         "profiling_compiler": attr.label(
