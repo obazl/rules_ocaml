@@ -75,6 +75,7 @@ def options(ws):
         opts             = attr.string_list(
             doc          = "List of compile options; overrides configurable default options. Supports `+-no-+` prefix for each option; for example, `-no-linkall`."
         ),
+        ## use opts with select to specify compiler-specific options
         # opts_ocamlc      = attr.string_list(
         #     doc          = "Compile options for toolchains targetting the VM."
         # ),

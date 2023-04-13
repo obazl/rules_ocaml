@@ -79,6 +79,8 @@ def impl_ns_resolver(ctx):
     ## RULE: do not allow mixing bottomup and topdown namespaces.
     # but what happens if a selected submodule also elects?
 
+    bottomup = False
+
     if ctx.attr.ns:
         bottomup = True
         if debug: print("has ns attr: %s" % ctx.attr.ns)
