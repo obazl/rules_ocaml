@@ -32,7 +32,7 @@ load("//ocaml/_functions:module_naming.bzl",
 load(":impl_common.bzl",
      "dsorder",
      "module_sep",
-     "opam_lib_prefix",
+     # "opam_lib_prefix",
      "resolver_suffix",
      "tmpdir"
      )

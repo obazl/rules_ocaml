@@ -39,7 +39,7 @@ load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
 load(":options.bzl", "options")
 
-load(":impl_common.bzl", "dsorder", "opam_lib_prefix",
+load(":impl_common.bzl", "dsorder", # "opam_lib_prefix",
      "tmpdir"
      )
 

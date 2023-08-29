@@ -54,7 +54,7 @@ load(":impl_ccdeps.bzl",
 
 load(":impl_common.bzl",
      "dsorder",
-     "opam_lib_prefix",
+     # "opam_lib_prefix",
      "tmpdir"
      )
 

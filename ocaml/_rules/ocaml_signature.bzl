@@ -58,7 +58,7 @@ load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
 load(":impl_common.bzl",
      "dsorder",
-     "opam_lib_prefix",
+     # "opam_lib_prefix",
      "tmpdir")
 
 workdir = tmpdir

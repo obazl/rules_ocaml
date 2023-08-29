@@ -17,7 +17,8 @@ load("//ocaml/_rules:ocaml_binary.bzl"  , _ocaml_binary = "ocaml_binary")
 
 # load("//ocaml/_rules:ocaml_genrule.bzl"      , _ocaml_genrule = "ocaml_genrule")
 
-# load("//ocaml/_rules:ocaml_import.bzl"      , _ocaml_import = "ocaml_import")
+load("//ocaml/_rules:ocaml_import.bzl"      , _ocaml_import = "ocaml_import")
+
 # load("//ocaml/_rules:ocaml_lex.bzl"         , _ocaml_lex = "ocaml_lex")
 # load("//ocaml/_rules:ocaml_yacc.bzl"        , _ocaml_yacc = "ocaml_yacc")
 
@@ -69,7 +70,7 @@ ocaml_null = _ocaml_null
 ocaml_binary = _ocaml_binary
 ocaml_archive    = _ocaml_archive
 # ocaml_genrule    = _ocaml_genrule
-# ocaml_import     = _ocaml_import
+ocaml_import     = _ocaml_import
 ocaml_library    = _ocaml_library
 # ocaml_pack_library    = _ocaml_pack_library
 ocaml_exec_module     = _ocaml_exec_module
