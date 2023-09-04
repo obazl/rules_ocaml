@@ -28,6 +28,8 @@ def _ocamllex_impl(ctx):
 
   args.add("-o", lexer)
 
+  args.add("-q")
+
   args.add(ctx.file.src)
 
   ctx.actions.run(
