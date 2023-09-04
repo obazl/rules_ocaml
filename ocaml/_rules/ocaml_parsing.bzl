@@ -87,6 +87,10 @@ def _ocamlyacc_impl(ctx):
 
   tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
+  ext = ctx.file.src.extension
+  trunc = len(ext)
+  stem = ctx.file.src.basename[:-(trunc+1)]
+
   yaccer_fname = paths.replace_extension(ctx.file.src.basename, ".ml")
   yacceri_fname = paths.replace_extension(ctx.file.src.basename, ".mli")
   yaccer = ctx.outputs.outs
@@ -95,22 +99,20 @@ def _ocamlyacc_impl(ctx):
       inputs  = [ctx.file.src],
       outputs = yaccer, # yacceri],
       tools   = [tc.ocamlyacc],
-      command = "\n".join([
+      command = " ".join([
           ## ocamlyacc is inflexible, it writes to cwd, that's it.
           ## we cannot tell it to write the output to another dir,
           ## so we have to either copy the src to our wd, or
           ## ocamlyacc in place and cp/mv the outputs
-          ## 1. copy src to output dir (symlinking doesn't seem to work)
-          ## 2. cd to output dir
-          ## 3. run ocamlyacc
 
-          "cp -v {src} {dst};".format(src = ctx.file.src.path, dst = yaccer[0].dirname),
-          "cd {dst};".format(dst=yaccer[0].dirname), # ctx.file.src.dirname),
-          "{tool} {src}".format(
-              # dest=ctx.file.src.dirname,
-              tool = tc.ocamlyacc.basename,
-              src=ctx.file.src.basename,
+          "{tool} {src};".format(
+              tool = tc.ocamlyacc.path,
+              src=ctx.file.src.path,
           ),
+          # "ls -l {};".format(ctx.file.src.dirname),
+          "cp {src}/{stem}.ml {dst};".format(src = ctx.file.src.dirname, stem=stem, dst = yaccer[0].dirname),
+          "cp {src}/{stem}.mli {dst};".format(src = ctx.file.src.dirname, stem=stem, dst = yaccer[0].dirname),
+          # "echo {dst};".format(dst=yaccer[0].dirname), # ctx.file.src.dirname),
       ])
   )
 
