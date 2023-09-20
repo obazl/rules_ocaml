@@ -1,7 +1,11 @@
+.bazelignore
+.bazeliskrc
+.bazelversion
 .bazel
 bazel-*
-user.bazelrc
+*.gz
 obsolete
+log.*
 *.log
 
 *.annot

@@ -212,7 +212,7 @@ ppx_executable = rule(
 
         vm_runtime = attr.label(
             doc = "@ocaml_rules//cfg/runtime:dynamic (default), @ocaml_rules//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
-            default = "@rules_ocaml//cfg/runtime"
+            default = "@rules_ocaml//cfg/runtime:dynamic"
         ),
 
         _rule = attr.string( default = "ppx_executable" ),

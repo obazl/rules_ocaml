@@ -268,7 +268,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # Fatal error: cannot load shared library dllbase_internalhash_types_stubs
         # Reason: dlopen(dllbase_internalhash_types_stubs.so, 0x000A): tried: 'dllbase_internalhash_types_stubs.so' (no such file) ... etc.
 
-        print("vmruntime: %s" % ctx.attr.vm_runtime)
+        # print("vmruntime: %s" % ctx.attr.vm_runtime)
         # if ctx.label.name == "inline_test_runner.exe":
         #     fail("asdfsfd")
 

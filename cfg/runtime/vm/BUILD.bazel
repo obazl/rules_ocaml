@@ -3,24 +3,24 @@ package(default_visibility = ["//visibility:public"])
 config_setting(
     name = "std?",
     flag_values = {"//cfg/runtime": "std"},
-    constraint_values = ["@ocaml//platforms/target:vm?"])
+    constraint_values = ["@ocaml//platform/target/executor:vm"])
 
 config_setting(
     name = "pic?",
     flag_values = {"//cfg/runtime": "pic"},
-    constraint_values = ["@ocaml//platforms/target:vm?"])
+    constraint_values = ["@ocaml//platform/target/executor:vm"])
 
 config_setting(
     name = "dbg?",
     flag_values = {"//cfg/runtime": "dbg"},
-    constraint_values = ["@ocaml//platforms/target:vm?"])
+    constraint_values = ["@ocaml//platform/target/executor:vm"])
 
 config_setting(
     name = "instrumented?",
     flag_values = {"//cfg/runtime": "instrumented"},
-    constraint_values = ["@ocaml//platforms/target:vm?"])
+    constraint_values = ["@ocaml//platform/target/executor:vm"])
 
 config_setting(
     name = "shared?",
     flag_values = {"//cfg/runtime": "shared"},
-    constraint_values = ["@ocaml//platforms/target:vm?"])
+    constraint_values = ["@ocaml//platform/target/executor:vm"])
