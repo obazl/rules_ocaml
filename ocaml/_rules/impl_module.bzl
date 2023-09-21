@@ -411,6 +411,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #   * else > structs
 
 
+    # True if ctx.label.name == "Hello" else False
+
     debug        = False
     debug_modname = False
     debug_ccdeps = False
@@ -543,7 +545,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     ## 4. compile transformed src, with ppx_codeps
     #     ## 5. provide them, for later linking (e.g. ppx_expect)
 
-    if debug_codeps: print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
     if hasattr(ctx.attr, "ppx_codeps"):
         for codep in ctx.attr.ppx_codeps:
             depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets, manifest)
@@ -788,9 +789,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     the_deps = ctx.attr.deps + ctx.attr.open
     for dep in the_deps:
-        if debug_deps:
-            print("module lbl: %s" % ctx.label)
-            print("module DEP: %s" % dep)
+        # if ctx.label.name == "Hello":
+        # if debug_deps:
+            # print("module lbl: %s" % ctx.label)
+            # print("module DEP: %s" % dep)
         ## OCaml deps first
 
         ## module deps have xmo flag
@@ -831,7 +833,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         direct = [out_struct], #structs_primary,
         transitive = depsets.deps.structs #structs_secondary
     )
-    if debug_deps: print("STRUCTS_depset: %s" % structs_depset)
+    # if debug_deps: print("STRUCTS_depset: %s" % structs_depset)
 
     ofiles_depset = depset(
         order = dsorder,
@@ -1280,7 +1282,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             #                        transitive=codep_jsoo_runtimes_secondary),
         )
         if debug_ppx:
-            print("appending PpxCodepsProvider: %s" %ppxCodepsProvider)
+            print("appending PpxCodepsProvider: %s" % ppxCodepsProvider)
         providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list

@@ -88,7 +88,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     debug     = False
     debug_deps= False
     debug_cc  = False
-    debug_ppx = True
+    debug_ppx = False
     debug_runfiles = False
     debug_tc  = False
     debug_vm  = False
@@ -120,11 +120,13 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         ##FIXME: only for ppx_executable, do not pass on to consumers
         if debug_deps: print("ctx.attr.prologue: %s" % ctx.attr.prologue)
         for dep in ctx.attr.prologue:
+            # print("PROLOG DEP: %s" % dep)
             depsets = aggregate_deps(ctx, dep, depsets)
             ## codeps already handled by aggregate_deps
             ## aggregate_codeps is just for ppx_codeps
             # if PpxCodepsProvider in dep:
             #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
+        # print("PROLOGUE depsets: %s" % depsets)
 
     if hasattr(ctx.attr, "ppx_codeps"):
         # print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
@@ -675,6 +677,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     )
     # providers.append(_ocamlProvider)
 
+    # print("CODEPSETS: %s" % depsets.codeps)
+
     ppxCodepsInfo = PpxCodepsProvider(
         sigs       = depset(order=dsorder,
                             transitive = depsets.codeps.sigs),
@@ -710,5 +714,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # providers.append(outputGroupInfo)
 
         ## no OcamlProvider?
+
+    # print("PROVIDERS: %s" % providers)
 
     return providers

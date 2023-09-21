@@ -391,47 +391,76 @@ def aggregate_deps(ctx,
             # depsets.deps.paths.append(provider.paths)
 
     ## if target is ctx.attr.ppx, then we want to put codeps in deps
-    ## elif target is e.g. prologue, put them in codeps
+    ## elif target is e.g. prologue of ppx_executable, put them in codeps
     if PpxCodepsProvider in target:
         provider = target[PpxCodepsProvider]
-        depsets.deps.sigs.append(provider.sigs)
-        depsets.codeps.sigs.append(provider.sigs)
+        # if ctx.label.name == "ppx.exe":
+        #     print("AGGREGATING PPXCODEPS FOR")
+        #     print("Target: %s" % target)
+        #     print("ARCHIVES: %s" % provider.archives)
+
+        #if "ppx" in ctx.attr._tags:
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.sigs.append(provider.sigs)
+        else:
+            depsets.deps.sigs.append(provider.sigs)
 
         if provider.cli_link_deps != []:
-            depsets.deps.cli_link_deps.append(provider.cli_link_deps)
-            depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
+            if ctx.attr._rule == "ppx_executable":
+                depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
+            else:
+                depsets.deps.cli_link_deps.append(provider.cli_link_deps)
 
-        depsets.deps.structs.append(provider.structs)
-        depsets.codeps.structs.append(provider.structs)
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.structs.append(provider.structs)
+        else:
+            depsets.deps.structs.append(provider.structs)
 
-        depsets.deps.ofiles.append(provider.ofiles)
-        depsets.codeps.ofiles.append(provider.ofiles)
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.ofiles.append(provider.ofiles)
+        else:
+            depsets.deps.ofiles.append(provider.ofiles)
 
-        depsets.deps.archives.append(provider.archives)
-        depsets.codeps.archives.append(provider.archives)
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.archives.append(provider.archives)
+        else:
+            depsets.deps.archives.append(provider.archives)
 
-        depsets.deps.afiles.append(provider.afiles)
-        depsets.codeps.afiles.append(provider.afiles)
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.afiles.append(provider.afiles)
+        else:
+            depsets.deps.afiles.append(provider.afiles)
 
-        depsets.deps.astructs.append(provider.astructs)
-        depsets.codeps.astructs.append(provider.astructs)
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.astructs.append(provider.astructs)
+        else:
+            depsets.deps.astructs.append(provider.astructs)
 
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
-                depsets.deps.cmts.append(provider.cmts)
-                depsets.codeps.cmts.append(provider.cmts)
+                if ctx.attr._rule == "ppx_executable":
+                    depsets.codeps.cmts.append(provider.cmts)
+                else:
+                    depsets.deps.cmts.append(provider.cmts)
 
         if hasattr(provider, "cmtis"):
             if provider.cmtis != []:
-                depsets.deps.cmtis.append(provider.cmtis)
-                depsets.codeps.cmtis.append(provider.cmtis)
+                if ctx.attr._rule == "ppx_executable":
+                    depsets.codeps.cmtis.append(provider.cmtis)
+                else:
+                    depsets.deps.cmtis.append(provider.cmtis)
 
-        depsets.deps.paths.append(provider.paths)
-        depsets.codeps.paths.append(provider.paths)
+        if ctx.attr._rule == "ppx_executable":
+            depsets.codeps.paths.append(provider.paths)
+        else:
+            depsets.deps.paths.append(provider.paths)
+
         if hasattr(provider, "jsoo_runtimes"):
             if provider.jsoo_runtimes != []:
-                depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
-                depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
+                if ctx.attr._rule == "ppx_executable":
+                    depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
+                else:
+                    depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
     if CcInfo in target:
         ## if target == vm, and vmruntime = dynamic, then cc_binary
