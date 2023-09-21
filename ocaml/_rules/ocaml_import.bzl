@@ -5,7 +5,7 @@ load("@rules_ocaml//ocaml:ocamlinfo.bzl",
      "aggregate_codeps",
      "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlInfo",
+     "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("@rules_ocaml//ocaml:providers.bzl",
@@ -212,7 +212,7 @@ def _ocaml_import_impl(ctx):
     #     print("deps.astructs: %s" % depsets.deps.astructs)
     #     fail()
 
-    ## To produce an OCamlInfo provider, we merge the direct deps of
+    ## To produce an OCamlProvider provider, we merge the direct deps of
     ## this import with the depsets from ctx.attr.deps.
     ocamlProvider = OcamlProvider(
         sigs    = depset(order=dsorder,

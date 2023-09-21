@@ -15,7 +15,7 @@ load("//ppx:providers.bzl",
 
 load("//ocaml/_functions:deps.bzl",
      "aggregate_deps",
-     "OCamlInfo",
+     "OCamlProvider",
      "DepsAggregator")
 
 load("//ocaml/_functions:module_naming.bzl", "derive_module_name_from_file_name")
@@ -61,7 +61,7 @@ def _ppx_transform(ctx):
     if debug: print("derived module name: %s" % modname)
 
     # depsets = DepsAggregator(
-    #     deps = OCamlInfo(
+    #     deps = OCamlProvider(
     #         sigs = [],
     #         structs = [],
     #         ofiles  = [],
@@ -72,7 +72,7 @@ def _ppx_transform(ctx):
     #         paths  = [],
     #         jsoo_runtimes = [], # runtime.js files
     #     ),
-    #     codeps = OCamlInfo(
+    #     codeps = OCamlProvider(
     #         sigs = [],
     #         structs = [],
     #         ofiles = [],

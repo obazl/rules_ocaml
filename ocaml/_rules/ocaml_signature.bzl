@@ -30,7 +30,7 @@ load("@rules_ocaml//ocaml:ocamlinfo.bzl",
      "aggregate_codeps",
      "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlInfo",
+     "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//ocaml/_functions:module_naming.bzl",
@@ -636,7 +636,7 @@ def _ocaml_signature_impl(ctx):
     #                          transitive=cclibs_secondary)
 
     ## FIXME: what about depsets.codeps etc.?
-    ocamlInfo = OCamlInfo(
+    ocamlInfo = OCamlProvider(
         sigs  = depset(
             order = dsorder,
             direct = [out_cmi],

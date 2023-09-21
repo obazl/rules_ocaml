@@ -24,14 +24,14 @@ load("@rules_ocaml//ocaml:ocamlinfo.bzl",
      "aggregate_codeps",
      "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlInfo",
+     "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 # load("//ocaml/_functions:deps.bzl",
 #      "aggregate_deps",
 #      "aggregate_codeps",
 #      "merge_depsets",
-#      "OCamlInfo",
+#      "OCamlProvider",
 #      "DepsAggregator",
 #      "COMPILE", "LINK", "COMPILE_LINK")
 

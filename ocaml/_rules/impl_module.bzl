@@ -8,7 +8,7 @@ load("@rules_ocaml//ocaml:ocamlinfo.bzl",
      "aggregate_codeps",
      "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlInfo",
+     "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//ocaml:providers.bzl",
@@ -61,7 +61,7 @@ load(":impl_common.bzl",
 # load("//ocaml/_functions:deps.bzl",
 #      "aggregate_deps",
 #      "aggregate_codeps",
-#      "OCamlInfo",
+#      "OCamlProvider",
 #      "DepsAggregator",
 #      "COMPILE", "LINK", "COMPILE_LINK")
 
@@ -1146,7 +1146,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # files = #FIXME
     )
 
-    ocamlInfo = OCamlInfo(
+    ocamlInfo = OCamlProvider(
     )
 
     ocamlProvider = OcamlProvider(

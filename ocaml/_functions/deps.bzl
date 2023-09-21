@@ -18,7 +18,7 @@ COMPILE      = 0
 LINK         = 1
 COMPILE_LINK = 2
 
-def _OCamlInfo_init(*,
+def _OCamlProvider_init(*,
                     sigs = [],
                     structs = [],
                     ofiles = [],
@@ -41,7 +41,7 @@ def _OCamlInfo_init(*,
         "jsoo_runtimes" :  jsoo_runtimes
     }
 
-OCamlInfo = provider(
+OCamlProvider = provider(
     doc = "foo",
     fields = {
         "sigs":      "depset of .cmi files",
@@ -58,17 +58,17 @@ OCamlInfo = provider(
 
         "cli_link_deps": "depset of files to be added to link cmd line"
     },
-    # init = _OCamlInfo_init
+    # init = _OCamlProvider_init
 )
 
-# export OCamlInfo
+# export OCamlProvider
 
 DepsAggregator = provider(
     fields = {
-        "deps"           : "an OCamlInfo provider",
-        "codeps"         : "an OCamlInfo provider",
-        "compile_codeps" : "an OCamlInfo provider",
-        "link_codeps"    : "an OCamlInfo provider",
+        "deps"           : "an OCamlProvider provider",
+        "codeps"         : "an OCamlProvider provider",
+        "compile_codeps" : "an OCamlProvider provider",
+        "link_codeps"    : "an OCamlProvider provider",
         "ccinfos"        : "list of CcInfo providers",
     }
 )

@@ -51,7 +51,7 @@ PpxExecutableMarker = _PpxExecutableMarker
 ##########################
 ## MAYBE: add stdlib list, so we can easily add stdlib deps to
 ## runfiles when needed?
-def _OCamlInfo_init(*,
+def _OCamlProvider_init(*,
                    sigs          = [],
                    structs       = [],
                    cli_link_deps = [],
@@ -76,7 +76,7 @@ def _OCamlInfo_init(*,
         "paths"         : paths,
     }
 
-OCamlInfo, _new_ocamlocamlinfo = provider(
+OCamlProvider, _new_ocamlocamlinfo = provider(
     doc = "foo",
     fields = {
         "sigs"          : "Depset of .cmi files. always added to inputs, never to cmd line.",
@@ -94,7 +94,7 @@ OCamlInfo, _new_ocamlocamlinfo = provider(
         # "astructs"      :  "depset of archived structs, added to link depgraph but not command line.",
         # "cmts"          :      "depset of cmt/cmti files",
     },
-    init = _OCamlInfo_init
+    init = _OCamlProvider_init
 )
 
 def dump_ocamlinfo(bi):
@@ -105,7 +105,7 @@ def dump_ocamlinfo(bi):
 ##########################
 DepsAggregator = provider(
     fields = {
-        "deps"    : "struct of OCamlInfo providers",
+        "deps"    : "struct of OCamlProvider providers",
         "ccinfos" : "list of CcInfo providers",
         "ccinfos_archived" : "list of ccinfos whose metadata is archived",
     }
@@ -113,7 +113,7 @@ DepsAggregator = provider(
 
 def new_deps_aggregator():
     return DepsAggregator(
-        deps = OCamlInfo(
+        deps = OCamlProvider(
             sigs          = [],
             structs       = [],
             cli_link_deps = [],

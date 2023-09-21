@@ -7,7 +7,7 @@ load("@rules_ocaml//ocaml:ocamlinfo.bzl",
      "aggregate_codeps",
      "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlInfo",
+     "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//ocaml:providers.bzl",

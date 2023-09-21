@@ -23,7 +23,7 @@ LINK         = 1
 COMPILE_LINK = 2
 
 ################################################################
-def _OCamlInfo_init(*,
+def _OCamlProvider_init(*,
                     sigs          = [],
                     cli_link_deps = [],
                     archives      = [],
@@ -54,7 +54,7 @@ def _OCamlInfo_init(*,
         "runfiles"      : runfiles
     }
 
-OCamlInfo, _new_ocamlocamlinfo = provider(
+OCamlProvider, _new_ocamlocamlinfo = provider(
     doc = "foo",
     fields = {
         "sigs"          : "Depset of .cmi files. always added to inputs, never to cmd line.",
@@ -71,7 +71,7 @@ OCamlInfo, _new_ocamlocamlinfo = provider(
         "jsoo_runtimes" : "depset of runtime.js files",
         "runfiles"      : "one merged Runfiles object"
     },
-    init = _OCamlInfo_init
+    init = _OCamlProvider_init
 )
 
 def dump_ocamlinfo(bi):
@@ -82,10 +82,10 @@ def dump_ocamlinfo(bi):
 ##########################
 DepsAggregator = provider(
     fields = {
-        "deps"             : "struct of OCamlInfo providers",
-        "codeps"           : "an OCamlInfo provider",
-        "compile_codeps"   : "an OCamlInfo provider",
-        "link_codeps"      : "an OCamlInfo provider",
+        "deps"             : "struct of OCamlProvider providers",
+        "codeps"           : "an OCamlProvider provider",
+        "compile_codeps"   : "an OCamlProvider provider",
+        "link_codeps"      : "an OCamlProvider provider",
         "ccinfos"          : "list of CcInfo providers",
         "ccinfos_archived" : "list of ccinfos whose metadata is archived",
     }
@@ -93,7 +93,7 @@ DepsAggregator = provider(
 
 def new_deps_aggregator():
     return DepsAggregator(
-        deps = OCamlInfo(
+        deps = OCamlProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -108,7 +108,7 @@ def new_deps_aggregator():
             jsoo_runtimes = [],
             runfiles      = []
         ),
-        codeps = OCamlInfo(
+        codeps = OCamlProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -123,7 +123,7 @@ def new_deps_aggregator():
             jsoo_runtimes = [],
             runfiles      = []
         ),
-        compile_codeps = OCamlInfo(
+        compile_codeps = OCamlProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -138,7 +138,7 @@ def new_deps_aggregator():
             jsoo_runtimes = [],
             runfiles      = []
         ),
-        link_codeps = OCamlInfo(
+        link_codeps = OCamlProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -190,7 +190,7 @@ def aggregate_deps(ctx,
     #         if mInfo.name == item.label.name:
     #             module_archived = True
 
-    if OcamlProvider in target: # FIXME: OCamlInfo
+    if OcamlProvider in target: # FIXME: OCamlProvider
         provider = target[OcamlProvider]
 
         # if ctx.label.name == "Expansion":
@@ -201,7 +201,7 @@ def aggregate_deps(ctx,
 
         ##TMP HACK:
         ## for 'main'dep of executable:
-        ## OCamlInfo deps of 'main' must go first,
+        ## OCamlProvider deps of 'main' must go first,
         ## before OCamlMainInfo of main module itself,
         ## to preserve correct link ordering
         if ctx.attr._rule == "ocaml_test": ##FIXME
