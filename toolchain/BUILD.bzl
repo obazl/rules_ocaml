@@ -1,3 +1,5 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
 
@@ -197,6 +199,11 @@ def _ocaml_toolchain_adapter_impl(ctx):
     #     )
     #          )
 
+    version = ctx.attr.version[BuildSettingInfo].value
+    segs = version.split(".")
+    v = struct(version = version,
+               major = int(segs[0]))
+
     return [platform_common.ToolchainInfo(
         # Public fields
         name                   = ctx.label.name,
@@ -204,7 +211,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
         host                   = ctx.attr.host,
         target                 = ctx.attr.target,
         compiler               = ctx.file.compiler,
-        version                = ctx.attr.version,
+        version                = v, # ctx.attr.version,
         vmruntime              = ctx.file.vmruntime,
         vmruntime_debug        = ctx.file.vmruntime_debug,
         vmruntime_instrumented = ctx.file.vmruntime_instrumented,
@@ -287,9 +294,9 @@ ocaml_toolchain_adapter = rule(
             cfg = "exec",
         ),
 
-        "version": attr.string(
+        "version": attr.label(
             doc = "Version string of compiler",
-            # default = "9.9.9"
+            # default = "@ocaml//version"
         ),
 
         "profiling_compiler": attr.label(
