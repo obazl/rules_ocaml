@@ -5,7 +5,7 @@ load("@rules_ocaml//ocaml:providers.bzl",
      "OcamlVmRuntimeProvider")
 
 load("@rules_ocaml//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
      "PpxModuleMarker",
 )
 
@@ -139,8 +139,8 @@ def aggregate_deps(ctx,
             #     depsets.deps.cmts.append(provider.cmts)
             # depsets.deps.paths.append(provider.paths)
 
-    if PpxCodepsInfo in target:
-        provider = target[PpxCodepsInfo]
+    if PpxCodepsProvider in target:
+        provider = target[PpxCodepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
         depsets.codeps.structs.append(provider.structs)
         depsets.codeps.ofiles.append(provider.ofiles)
@@ -234,8 +234,8 @@ def aggregate_codeps(ctx,
         if hasattr(provider, "jsoo_runtimes"):
             depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
-    if PpxCodepsInfo in target:
-        provider = target[PpxCodepsInfo]
+    if PpxCodepsProvider in target:
+        provider = target[PpxCodepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
         depsets.codeps.structs.append(provider.structs)
         depsets.codeps.ofiles.append(provider.ofiles)

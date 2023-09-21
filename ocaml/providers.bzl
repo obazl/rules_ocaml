@@ -23,7 +23,7 @@ load("//ocaml/_providers:ocaml.bzl",
      )
 
 load("//ppx:providers.bzl", # FIXME: //ppx/_providers.bzl?
-     # _PpxCodepsInfo     = "PpxCodepsInfo",
+     # _PpxCodepsProvider     = "PpxCodepsProvider",
      _PpxExecutableMarker = "PpxExecutableMarker"
      )
 
@@ -31,7 +31,7 @@ OcamlProvider                      = _OcamlProvider
 OcamlArchiveMarker                 = _OcamlArchiveMarker
 # OcamlArchiveProvider               = _OcamlArchiveProvider
 OcamlNsResolverProvider            = _OcamlNsResolverProvider
-# PpxCodepsInfo                = _PpxCodepsInfo
+# PpxCodepsProvider                = _PpxCodepsProvider
 
 OcamlExecutableMarker                 = _OcamlExecutableMarker
 OcamlImportMarker                  = _OcamlImportMarker

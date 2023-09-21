@@ -13,7 +13,7 @@ load("@rules_ocaml//ocaml:providers.bzl",
      "OcamlImportMarker")
 
 load("@rules_ocaml//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
      "PpxExecutableMarker",
 )
 
@@ -89,9 +89,9 @@ def _ocaml_import_impl(ctx):
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
         depsets = aggregate_deps(ctx, dep, depsets)
-        # if PpxCodepsInfo in dep:
+        # if PpxCodepsProvider in dep:
         #     # print("this: %s" % ctx.label)
-        #     # print("UX: %s" % dep[PpxCodepsInfo])
+        #     # print("UX: %s" % dep[PpxCodepsProvider])
         #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
 
     for dep in ctx.attr.cc_deps:
@@ -123,7 +123,7 @@ def _ocaml_import_impl(ctx):
     # secondary ppx_codep. And so on, so we could have tertiary etc.
     # ppx_codeps.
 
-    # Task: deliver PpxCodepsInfo merging all ppx_codeps for this
+    # Task: deliver PpxCodepsProvider merging all ppx_codeps for this
     # import, both primary (listed in ppx_codeps) and secondary
     # (found as a dependency listed in deps).
 
@@ -131,7 +131,7 @@ def _ocaml_import_impl(ctx):
     # @ppx_sexp_conv//runtime-lib. But it also lists @ppx_log//kernel
     # as a primary dep, and @ppx_log//kernel in turn has its own
     # ppx_codep, @ppx_log//types. So in this case we would list both
-    # ppx_codeps in the PpxCodepsInfo for @ppx_log//:ppx_log.
+    # ppx_codeps in the PpxCodepsProvider for @ppx_log//:ppx_log.
 
     # Only ppx modules and execs can have ppx_codeps, which will be
     # injected when the ppx executable runs.
@@ -160,9 +160,9 @@ def _ocaml_import_impl(ctx):
     )
 
     ##################
-    ## We will have PpxCodepsInfo if:
+    ## We will have PpxCodepsProvider if:
     ## a. we have ctx.attr.ppx_codeps; or
-    ## b. at least on of ctx.attr.deps has a PpxCodepsInfo provider
+    ## b. at least on of ctx.attr.deps has a PpxCodepsProvider provider
 
     ## Case b will be handled by aggregating ctx.attr.deps - since
     ## every dep has at least one sig, we can use that to test.
@@ -175,7 +175,7 @@ def _ocaml_import_impl(ctx):
 
     if (ctx.attr.ppx_codeps or depsets.codeps.sigs != []):
 
-        ppxCodepsInfo = PpxCodepsInfo(
+        ppxCodepsInfo = PpxCodepsProvider(
             sigs       = depset(order=dsorder,
                                 transitive = depsets.codeps.sigs),
             cli_link_deps = depset(order=dsorder,
@@ -202,7 +202,7 @@ def _ocaml_import_impl(ctx):
             #                        transitive = depsets.codeps.jsoo_runtimes),
         )
     # if ctx.label.name == "ppx_inline_test":
-    #     print("PpxCodepsInfo.astructs: %s" % ppxCodepsInfo.astructs)
+    #     print("PpxCodepsProvider.astructs: %s" % ppxCodepsInfo.astructs)
         # fail()
 
         providers.append(ppxCodepsInfo)

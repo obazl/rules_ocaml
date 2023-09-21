@@ -9,7 +9,7 @@ load("@rules_ocaml//ocaml:providers.bzl",
      "OcamlVmRuntimeProvider")
 
 load("@rules_ocaml//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
      "PpxModuleMarker",
 )
 
@@ -392,8 +392,8 @@ def aggregate_deps(ctx,
 
     ## if target is ctx.attr.ppx, then we want to put codeps in deps
     ## elif target is e.g. prologue, put them in codeps
-    if PpxCodepsInfo in target:
-        provider = target[PpxCodepsInfo]
+    if PpxCodepsProvider in target:
+        provider = target[PpxCodepsProvider]
         depsets.deps.sigs.append(provider.sigs)
         depsets.codeps.sigs.append(provider.sigs)
 
@@ -494,8 +494,8 @@ def aggregate_codeps(ctx,
     # if target.label.name == "runtime-lib":
     #     print("codep archives: %s" % target[OcamlProvider].archives)
     #     print("codep astructs: %s" % target[OcamlProvider].astructs)
-    #     if PpxCodepsInfo in target:
-    #         print("ppx: %s" % target[PpxCodepsInfo])
+    #     if PpxCodepsProvider in target:
+    #         print("ppx: %s" % target[PpxCodepsProvider])
     #     fail(target)
 
     if kind == COMPILE:
@@ -528,8 +528,8 @@ def aggregate_codeps(ctx,
             if provider.jsoo_runtimes != []:
                 depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
-    if PpxCodepsInfo in target:
-        provider = target[PpxCodepsInfo]
+    if PpxCodepsProvider in target:
+        provider = target[PpxCodepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
         if provider.cli_link_deps != []:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)

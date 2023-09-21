@@ -15,7 +15,7 @@ load("//ocaml:providers.bzl",
 )
 
 load("//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
 )
 
 load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")

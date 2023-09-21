@@ -11,7 +11,7 @@ load("//ocaml:providers.bzl",
 )
 
 load("//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
      "PpxExecutableMarker",
 )
 
@@ -88,7 +88,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     debug     = False
     debug_deps= False
     debug_cc  = False
-    debug_ppx = False
+    debug_ppx = True
     debug_runfiles = False
     debug_tc  = False
     debug_vm  = False
@@ -117,17 +117,17 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     depsets = new_deps_aggregator()
 
     if hasattr(ctx.attr, "prologue"):
+        ##FIXME: only for ppx_executable, do not pass on to consumers
         if debug_deps: print("ctx.attr.prologue: %s" % ctx.attr.prologue)
         for dep in ctx.attr.prologue:
             depsets = aggregate_deps(ctx, dep, depsets)
             ## codeps already handled by aggregate_deps
             ## aggregate_codeps is just for ppx_codeps
-            # if PpxCodepsInfo in dep:
+            # if PpxCodepsProvider in dep:
             #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
 
-    ##FIXME: only for ppx_executable
     if hasattr(ctx.attr, "ppx_codeps"):
-    # print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
+        # print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
         for codep in ctx.attr.ppx_codeps:
             depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets)
         # print("codepsets: %s" % depsets.codeps)
@@ -142,23 +142,26 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     #### MAIN ####
     ## NB: 'main' only takes a target, not a file, so it counts as a
-    ## 'secondary' dep. It providers deliver depsets, not files.
+    ## 'secondary' dep. Its providers deliver depsets, not files.
     ## Process it AFTER processing ctx.attr.deps
     ## (ctx.attr.initializers). (?)
 
     if debug: print("processing 'main' attribute")
     # if ctx.label.name == "ppx_1.exe":
     #     print("main op: %s" % ctx.attr.main[OcamlProvider])
-    #     print("main codep: %s" % ctx.attr.main[PpxCodepsInfo])
+    #     print("main codep: %s" % ctx.attr.main[PpxCodepsProvider])
         # fail("x")
 
     ## WARNING: we do not want ctx.attr.main to go in output codeps provider
+    ## i.e. these deps are just for compiling the binary and should
+    ## not be passed on (like codeps) to users of the (ppx) binary
     depsets = aggregate_deps(ctx, ctx.attr.main, depsets)
     # if ctx.label.name == "test":
     #     print("CLILINK %s" % depsets.deps.cli_link_deps)
     #     fail()
 
     if hasattr(ctx.attr, "epilogue"):
+        ## as above, for the binary only, not to be passed on
         if debug_deps: print("ctx.attr.epilogue: %s" % ctx.attr.epilogue)
         for dep in ctx.attr.epilogue:
             depsets = aggregate_deps(ctx, dep, depsets)
@@ -375,6 +378,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ################################################################
     ## Archives and structs must be on the command line:
     if ctx.attr._rule == "ocaml_binary":
+        ## FIXME: why? codeps only for ppx_executables?
         bin_codeps = depsets.codeps.archives # codep_archives_secondary
     else:
         bin_codeps = []
@@ -512,7 +516,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         print("WARNING: unknown rule for executable: %s" % ctx.attr._rule)
         mnemonic = ctx.attr._rule
 
-    path = "/usr/bin:/usr"
+    path = "/usr/bin:/usr"  ## FIXME
     if hasattr(ctx.attr, "diff_cmd"):
         if ctx.attr.diff_cmd:
             path = path + ":" + ctx.file.diff_cmd.dirname
@@ -638,7 +642,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     _ocamlProvider = OcamlProvider(
         # struct = depset(direct = [outfile]),
         cli_link_deps = depset(order=dsorder,
-                               transitive = depsets.deps.cli_link_deps),
+                               # transitive = depsets.deps.cli_link_deps
+                               ),
         sigs    = depset(order="postorder",
                          # direct=sigs_primary,
                          transitive = depsets.deps.sigs),
@@ -650,7 +655,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                           transitive = depsets.deps.ofiles),
         archives = depset(order="postorder",
                           # direct=archives_primary,
-                          transitive = depsets.deps.archives),
+                          # transitive = depsets.deps.archives
+                          ),
         afiles   = depset(order="postorder",
                           # direct=afiles_primary,
                           transitive = depsets.deps.afiles),
@@ -669,7 +675,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     )
     # providers.append(_ocamlProvider)
 
-    ppxCodepsInfo = PpxCodepsInfo(
+    ppxCodepsInfo = PpxCodepsProvider(
         sigs       = depset(order=dsorder,
                             transitive = depsets.codeps.sigs),
         cli_link_deps = depset(order=dsorder,
@@ -693,15 +699,15 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     providers.append(ccInfo)
 
-        # outputGroupInfo = OutputGroupInfo(
-        #     ppx_codeps = ppx_sigs_depset,
-        #     # linkset = ppx_codeps_linkset,
-        #     inputs = action_inputs_depset,
-        #     all = depset(transitive=[
-        #         ppx_codeps_depset,
-        #     ])
-        # )
-        # providers.append(outputGroupInfo)
+    # outputGroupInfo = OutputGroupInfo(
+    #     # ppx_codeps = ppx_sigs_depset,
+    #     # linkset = ppx_codeps_linkset,
+    #         inputs = action_inputs_depset,
+    #     all = depset(transitive=[
+    #         ppx_codeps_depset,
+    #     ])
+    # )
+    # providers.append(outputGroupInfo)
 
         ## no OcamlProvider?
 

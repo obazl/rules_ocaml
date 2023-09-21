@@ -37,7 +37,7 @@ load("@rules_ocaml//ocaml:ocamlinfo.bzl",
 #      "DepsAggregator")
 
 load("//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
 )
 
 load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
@@ -353,7 +353,7 @@ def impl_library(ctx, for_archive = True):
         OcamlLibraryMarker(marker = "OcamlLibraryMarker")
     )
 
-    ## Provider 4: possibly empty PpxCodepsInfo
+    ## Provider 4: possibly empty PpxCodepsProvider
     ################ ppx codeps ################
     # if ppx:
     codep_archives_depset = depset(
@@ -371,7 +371,7 @@ def impl_library(ctx, for_archive = True):
             # direct=codep_astructs_primary,
             # transitive=codep_astructs_secondary)
 
-    ppxCodepsProvider = PpxCodepsInfo(
+    ppxCodepsProvider = PpxCodepsProvider(
         # ppx_codeps = ppx_codeps_depset,
         sigs    = depset(order=dsorder,
                          transitive = depsets.codeps.sigs),
@@ -391,7 +391,7 @@ def impl_library(ctx, for_archive = True):
     )
     providers.append(ppxCodepsProvider)
     # else:
-    #     providers.append(PpxCodepsInfo(
+    #     providers.append(PpxCodepsProvider(
     #         sigs = depset(), structs = depset(),  ofiles = depset(),
     #         archives = depset(), afiles = depset(), astructs = depset(),
     #         paths = depset()

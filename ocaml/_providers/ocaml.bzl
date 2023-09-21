@@ -145,7 +145,7 @@ OcamlProvider = provider(
         # "archives"          : "file depset",
         # "archive_deps"       : "file depset of archive deps",
 
-        # OBSOLETE: codeps passed separately by PpxCodepsInfo
+        # OBSOLETE: codeps passed separately by PpxCodepsProvider
         "ppx_codeps"      : "file depset",
         "ppx_codep_paths" : "string depset",
         # "ns_resolver"       : "single target",

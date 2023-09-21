@@ -24,7 +24,7 @@ load("//ocaml:providers.bzl",
      "OcamlSignatureProvider")
 
 load("//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
      "PpxModuleMarker",
 )
 
@@ -316,7 +316,7 @@ def _handle_source_sig(ctx, modname, ext):
 def _resolve_modname(ctx):
     debug = False
 
-    # If ctx.attr.sig is precompile, derive module name from it
+    # If ctx.attr.sig is precompiled, derive module name from it
     # Else if ctx.attr.module_name not null derive modname from it
     # Else derive module name from ctx.attr.struct
 
@@ -518,7 +518,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     # if ctx.attr.ppx:
     #     # if ctx.label.name == "Test":
-    #     #     print("ppx deps: %s" % ctx.attr.ppx[PpxCodepsInfo])
+    #     #     print("ppx deps: %s" % ctx.attr.ppx[PpxCodepsProvider])
     #     depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     # if ctx.label.name == "Test":
@@ -532,7 +532,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## ppx_modules, that do ppx processing, may have a ppx_codeps
     ## attribute, for the deps they inject into the files they
     ## preprocess. They are _NOT_ material deps of the module itself.
-    ## It follows that they are passed on in a PpxCodepsInfo, not
+    ## It follows that they are passed on in a PpxCodepsProvider, not
     ## in OcamlProvider.
 
 
@@ -893,7 +893,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         args.add("-no-alias-deps")
         args.add("-open", nsrp.module_name)
 
-    ## WARNING: inlined if else breaks something in the input depset
     if cmi_precompiled:
         maybe_cmi = [out_cmi]
     else:
@@ -911,6 +910,16 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     for dep in x.to_list():
     #         print("ADEP: %s" % dep.basename)
 
+    ## WARNING: pre-5.0.0, cmi file must be in same dir as source
+    ## file. >=5 has -cmi-file option.
+
+    if cmi_precompiled:
+        # print("VERSION: %s" % tc.version.version)
+        # print("MAJOR version: %s" % tc.version.major)
+        if (tc.version.major < 5):
+            None # print("TODO")
+        else:
+            args.add("-cmi-file", out_cmi.path)
 
     action_inputs_depset = depset(
         order = dsorder,
@@ -1239,13 +1248,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # print("codep_sigs_secondary: %s" % codep_sigs_secondary)
         # fail("AAAA")
         if debug_ppx:
-            print("Constructing PpxCodepsInfo: %s" % ctx.label)
+            print("Constructing PpxCodepsProvider: %s" % ctx.label)
 
         # if ctx.attr.ppx:
-        #     if PpxCodepsInfo in ctx.attr.ppx:
+        #     if PpxCodepsProvider in ctx.attr.ppx:
         #         depsets = aggregate_codeps(ctx, COMPILE_LINK, ctx.attr.ppx, depsets, manifest)
 
-        ppxCodepsProvider = PpxCodepsInfo(
+        ppxCodepsProvider = PpxCodepsProvider(
             # ppx_codeps = ppx_codeps_depset,
             sigs    = depset(order=dsorder,
                              transitive=depsets.codeps.sigs),
@@ -1271,7 +1280,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             #                        transitive=codep_jsoo_runtimes_secondary),
         )
         if debug_ppx:
-            print("appending PpxCodepsInfo: %s" %ppxCodepsProvider)
+            print("appending PpxCodepsProvider: %s" %ppxCodepsProvider)
         providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
@@ -1310,7 +1319,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         archives  = archives_depset,
         afiles    = afiles_depset,
         astructs = astructs_depset,
-        ## put these in PpxCodepsInfo?
+        ## put these in PpxCodepsProvider?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         closure = structs_depset,  #new_structs_depset,

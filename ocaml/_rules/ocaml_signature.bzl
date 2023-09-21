@@ -22,7 +22,7 @@ load("//ocaml:providers.bzl",
      "OcamlSignatureProvider")
 
 load("//ppx:providers.bzl",
-     "PpxCodepsInfo",
+     "PpxCodepsProvider",
 )
 
 load("@rules_ocaml//ocaml:ocamlinfo.bzl",
@@ -466,7 +466,7 @@ def _ocaml_signature_impl(ctx):
     ## ppx codeps in the dep graph are NOT compile deps of this sig.
     # ppx_codeps_inputs = []
     # if ctx.attr.ppx:
-    #     provider = ctx.attr.ppx[PpxCodepsInfo]
+    #     provider = ctx.attr.ppx[PpxCodepsProvider]
 
     #     for ppx_codep in provider.sigs.to_list():
     #         ppx_codeps_inputs.append(ppx_codep)
