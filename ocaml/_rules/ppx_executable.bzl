@@ -218,6 +218,15 @@ ppx_executable = rule(
         _rule = attr.string( default = "ppx_executable" ),
         _tags = attr.string_list( default  = ["ppx", "executable"] ),
 
+        ## required, so we can obtain the cc tc and inspect it
+        ## to determine if we need to -UDEBUG
+        _cc_toolchain = attr.label(
+            default = Label(
+                # "@bazel_tools//tools/cpp:current_cc_toolchain"
+                "@rules_cc//cc:current_cc_toolchain",
+            )
+        ),
+
         _allowlist_function_transition = attr.label(
             ## required for transition fn of attribute _mode
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -231,6 +240,6 @@ ppx_executable = rule(
     toolchains = [
         "@rules_ocaml//toolchain/type:std",
         "@rules_ocaml//toolchain/type:profile",
-        # "@bazel_tools//tools/cpp:toolchain_type"
+        "@bazel_tools//tools/cpp:toolchain_type"
     ],
 )

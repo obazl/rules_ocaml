@@ -2,7 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
-load("@rules_ocaml//ocaml:ocamlinfo.bzl",
+load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "new_deps_aggregator",

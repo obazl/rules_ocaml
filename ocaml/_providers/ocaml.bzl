@@ -152,60 +152,36 @@ OcamlProvider = provider(
     }
 )
 
-## for version 3:
-OcamlExternalInfo = provider(
-    doc = "OCaml build provider containing external resources",
-    fields = {
-        "cmi" : "Cmi file provided",
-        "sig" : "Cmi file provided",
-        "struct" : "Structure file (.cmo or .cmx) provided",
-
-        "submodule": "name of module without ns prefix",
-        "sigs":      "depset of .cmi files",
-        # NB: structs should exclude archive_deps. Its for freestanding
-        # deps of <this> target (?)
-        "structs":   "depset of .cmo or .cmx files depending on mode",
-        "ofiles":    "depset of the .o files that go with .cmx files",
-        "archives":  "depset of .cmxa or .cma files",
-        "afiles":    "depset of the .a files that go with .cmxa files",
-        "astructs":  "depset of archived structs, added to link depgraph but not command line.",
-        "cmts":      "depset of cmt/cmti files",
-        "srcs":      "depset of src files after renaming/symlinking, so tools can inspect",
-
-        # "archive_deps": "deps of archives, that must be listed before the archives in cmd line to link executable. cmx/cmo only, for cmd line",
-
-        # NB: resolvers is just for cmdline args, so we can control where
-        # they are listed relative to the ns archive/library on the cli
-        "resolvers":   "depset of .cmo or .cmx files depending on mode; CLI protocol",
-
-        "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
-
-        "cc_libs" : "list of files",
-        "ccinfo"  : "a single CcInfo provider",
-
-        ## everything below is DEPRECATED
-
-        # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
-
-        # "closure"             : "File depset of transitive closure of deps",
-        # "inputs"             : "file depset",
-        # "cdeps"              : "file depset of compile deps",
-        # "ldeps"              : "file depset of link deps",
-        # "ldeps_n"            : "file depset of native link deps",
-        # "ldeps_bc"           : "file depset of bytecode link deps",
-        # "linkargs"           : "file depset",
-        "paths"             : "string depset",
-
-        # "files"             : "DEPRECATED",
-        # "archives"          : "file depset",
-        # "archive_deps"       : "file depset of archive deps",
-        "ppx_codeps"      : "file depset",
-        "ppx_codep_paths" : "string depset",
-        "cc_deps"           : "dictionary depset",
-        # "ns_resolver"       : "single target",
+def _OpamInstallProvider_init(*,
+                              archives = None,
+                              sigs     = None,
+                              structs  = None,
+                              cmts     = None,
+                              srcs     = None,
+                              ccinfo   = None):
+    return {
+        "archives": archives,
+        "sigs": sigs,
+        "structs": structs,
+        "cmts": cmts,
+        "srcs": srcs,
+        "ccinfo": ccinfo
     }
-)
 
+OpamInstallProvider, _new_opaminstallprovider = provider(
+    doc = "Provides artifacts for OPAM pkg installation",
+    fields = {
+        "archives":  "depset of .cma or .cmxa files (plus .a)",
+        "sigs":      "depset of .cmi files",
+        "structs":   "depset of .cmo or .cmx files (plus .o)",
+
+        "cmts":      "depset of cmt/cmti files",
+        "srcs":      "depset of src files",
+
+        "ccinfo"  : "a single CcInfo provider",
+    },
+    init = _OpamInstallProvider_init
+)
 
 OcamlVmRuntimeProvider = provider(
     doc = "OCaml VM Runtime provider",
@@ -313,5 +289,14 @@ OcamlImportMarker    = provider(doc = "OCaml Import Marker provider.")
 OcamlLibraryMarker   = provider(doc = "OCaml Library Marker provider.")
 OcamlModuleMarker    = provider(doc = "OCaml Module Marker provider.")
 OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")
+
+OcamlRuntimeMarker = provider(
+    doc = "OCaml Runtime Variant Marker.",
+    fields = {
+        "variant": "d or i"
+    }
+)
+
+
 OcamlSignatureMarker = provider(doc = "OCaml Signature Marker provider.")
 OcamlTestMarker      = provider(doc = "OCaml Test Marker provider.")

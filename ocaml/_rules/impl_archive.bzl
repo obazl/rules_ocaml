@@ -2,16 +2,16 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
-load("@rules_ocaml//ocaml:ocamlinfo.bzl", "OCamlProvider")
+load("@rules_ocaml//ocaml:aggregators.bzl", "OCamlProvider")
 
 load("//ocaml:providers.bzl",
      "OcamlProvider",
      "OcamlNsResolverProvider",
-
      "OcamlArchiveMarker",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
+     "OpamInstallProvider"
 )
 
 load("//ppx:providers.bzl",
@@ -236,7 +236,7 @@ def impl_archive(ctx):
     if debug_cc:
         dump_CcInfo(ctx, lib_CcInfo)
 
-    [static_cc_deps, dynamic_cc_deps] = extract_cclibs(ctx, lib_CcInfo)
+    [static_cc_deps, dynamic_cc_deps, runtime_variant] = extract_cclibs(ctx, lib_CcInfo)
     if debug_cc:
         print("static_cc_deps:  %s" % static_cc_deps)
         print("dynamic_cc_deps: %s" % dynamic_cc_deps)
@@ -404,6 +404,11 @@ def impl_archive(ctx):
         transitive = [libOcamlProvider.paths]
     )
 
+    sigs_depset = depset(order=dsorder,
+                         transitive = [libOcamlProvider.sigs])
+                          # direct=sigs_direct,
+                          # transitive=sigs_indirect),
+
     structs_depset = depset(order=dsorder,
                             # direct=structs_primary,
                             transitive = [libOcamlProvider.structs])
@@ -419,6 +424,24 @@ def impl_archive(ctx):
     ## FIXME: just deliver libOcamlProvider directly?
 
     # if not hasattr(libOcamlProvider, "cli_link_deps"):
+
+    ofiles_depset = depset(order=dsorder,
+                           transitive = [libOcamlProvider.ofiles])
+    # direct=ofiles_direct,
+    # transitive=ofiles_indirect),
+
+    archives_depset = depset(order=dsorder,
+                             direct = [archive_file],
+                             transitive = [libOcamlProvider.archives])
+    # direct=archives_direct,
+    # transitive=archives_indirect),
+
+    afiles_depset   = depset(order=dsorder,
+                             direct = [archive_a_file] if archive_a_file else [],
+                             transitive = [libOcamlProvider.afiles])
+    # direct=afiles_direct,
+    # transitive=afiles_indirect),
+
 
     cli_link_depset = depset(
         order=dsorder,
@@ -437,37 +460,29 @@ def impl_archive(ctx):
 
         cli_link_deps = cli_link_depset,
 
-        sigs   = depset(order=dsorder,
-                        transitive = [libOcamlProvider.sigs]),
-                          # direct=sigs_direct,
-                          # transitive=sigs_indirect),
+        sigs   = sigs_depset,
         structs = structs_depset,
         astructs = astructs_depset,
         # astructs   = depset(order=dsorder,
         #                    direct=astructs_primary),
                            # transitive = [libOcamlProvider.astructs]),
                            # transitive=astructs_indirect),
-        ofiles   = depset(order=dsorder,
-                           transitive = [libOcamlProvider.ofiles]),
-                          # direct=ofiles_direct,
-                          # transitive=ofiles_indirect),
-        archives   = depset(order=dsorder,
-                            direct = [archive_file],
-                            transitive = [libOcamlProvider.archives]),
-                          # direct=archives_direct,
-                          # transitive=archives_indirect),
-        afiles   = depset(order=dsorder,
-                          direct = [archive_a_file] if archive_a_file else [],
-                           transitive = [libOcamlProvider.afiles]),
-                           # direct=afiles_direct,
-                           # transitive=afiles_indirect),
+        ofiles   = ofiles_depset,
+        archives = archives_depset,
+        afiles   = afiles_depset,
 
         paths    = libOcamlProvider.paths
+    )
+
+    installProvider = OpamInstallProvider(
+        archives = default_depset,
+        structs = ordered_submodules_depset
     )
 
     providers = [
         newDefaultInfo,
         ocamlProvider,
+        installProvider,
         OcamlLibraryMarker(),
         OcamlArchiveMarker(marker = "OcamlArchive"),
     ]
@@ -478,14 +493,26 @@ def impl_archive(ctx):
     # ppx_codeps_depset = ppxCodepsProvider.ppx_codeps
 
     outputGroupInfo = OutputGroupInfo(
+        cli_link = cli_link_depset,
+        sigs    = sigs_depset,
+        archives = archives_depset,
         structs = structs_depset,
+        ofiles   = ofiles_depset,
         astructs = astructs_depset,
+        afiles   = afiles_depset,
         # resolver = ns_resolver,
         # ppx_codeps = ppx_codeps_depset,
         # linkargs = linkargs_depset,
         # cdeps    = libOcamlProvider.cdeps,
         # ldeps    = libOcamlProvider.ldeps,
         all = depset(transitive=[
+            cli_link_depset,
+            sigs_depset,
+            archives_depset,
+            structs_depset,
+            astructs_depset,
+            ofiles_depset,
+            afiles_depset,
             # new_inputs_depset,
             # ppx_codeps_depset,
             # cclib_files_depset,

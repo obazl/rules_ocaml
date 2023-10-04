@@ -17,9 +17,11 @@ load("//ppx:providers.bzl",
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
-load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
+load(":impl_ccdeps.bzl", "extract_cclibs",
+     "dump_compilation_context",
+     "dump_CcInfo",)
 
-load("@rules_ocaml//ocaml:ocamlinfo.bzl",
+load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "new_deps_aggregator",
@@ -47,7 +49,15 @@ load("//ocaml/_debug:colors.bzl",
      "CCBLU", "CCRED", "CCGRN", "CCMAG", "CCRESET")
 load("//ocaml/_debug:pprint.bzl", "pprint_ocamlinfo")
 
-load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+# load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+
+load("@rules_cc//cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
+load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
+
+
+DISABLED_FEATURES = [
+#     "module_maps",  # copybara-comment-this-out-please
+]
 
 workdir = tmpdir
 
@@ -75,7 +85,7 @@ def _import_ppx_executable(ctx):
 
 #########################
 def impl_binary(ctx): # , mode, tc, tool, tool_args):
-
+    # print("impl_binary")
     # tasks
     # * merge deps
     # * construct action_inputs depset
@@ -85,13 +95,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # * run the link action
     # * construct and return providers
 
+    # True if ctx.label.name == "Alpha" else False
     debug     = False
     debug_deps= False
-    debug_cc  = False
+    debug_cc  = False # True if ctx.label.name == "Alpha" else False
     debug_ppx = False
     debug_runfiles = False
     debug_tc  = False
-    debug_vm  = False
+    debug_vm  = False #True if ctx.label.name == "Alpha" else False
 
     if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -106,6 +117,42 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             return _import_ppx_executable(ctx)
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
+
+    cc_tc = find_cc_toolchain(ctx)
+    # print("cc_tc: %s" % cc_tc)
+    # for e in dir(cc_tc):
+    #     print("tc fld: %s: %s" % (e, getattr(cc_tc, e)))
+
+    # if cc_tc.toolchain_id.startswith("darwin"):
+    #     print("DARWIN TC")
+    # print("CMODE: %s" % ctx.var["COMPILATION_MODE"])
+
+    # feature_configuration = cc_common.configure_features(
+    #     ctx = ctx,
+    #     cc_toolchain = cc_tc,
+    #     requested_features = ctx.features,
+    #     unsupported_features = DISABLED_FEATURES + ctx.disabled_features,
+    # )
+    # # print("fconfigs: %s" % feature_configuration)
+    # # print("fconfigs[]: %s" % getattr(feature_configuration, "cpu"))
+    # c_compile_variables = cc_common.create_compile_variables(
+    #     feature_configuration = feature_configuration,
+    #     cc_toolchain = cc_tc,
+    #     user_compile_flags = ctx.fragments.cpp.copts + ctx.fragments.cpp.conlyopts,
+    #     # source_file = source_file.path,
+    #     # output_file = output_file.path,
+    # )
+    # print("ccvars: %s" % c_compile_variables)
+    # command_line = cc_common.get_memory_inefficient_command_line(
+    #     feature_configuration = feature_configuration,
+    #     action_name = C_COMPILE_ACTION_NAME,
+    #     variables = c_compile_variables,
+    # )
+    # print("cl: %s" % command_line)
+
+    # print("ctx.features: %s" % ctx.features)
+
+    # print("cpp frag: %s" % ctx.fragments.cpp.copts)
 
     if tc.target == "vm":
         struct_extensions = ["cma", "cmo"]
@@ -189,7 +236,15 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     includes   = []
     args = ctx.actions.args()
 
-    # args.add_all(tool_args)
+    ## the bazel tc for macos, fastbuild, inserts -DDEBUG
+    ## that forces us to use the debug runtime
+    ## to avoid "ld: Undefined symbols:  _caml_failed_assert"
+    ## which is caused by using #if DEBUG instead of #if NDEBUG
+    ## in ocaml/runtime/caml/misc.h
+    # if cc_tc.toolchain_id.startswith("darwin"):
+    #     if ctx.var["COMPILATION_MODE"] == "fastbuild":
+    #         # assump that -DDEBUG implies we need dbg runtime
+    #         args.add("-runtime-variant", "d")
 
     _options = get_options(rule, ctx)
     # print("OPTIONS: %s" % _options)
@@ -235,8 +290,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # # + codep_cc_deps_primary
         # + codep_cc_deps_secondary
     )
-    # if debug_cc:
-    #     dump_CcInfo(ctx, ccInfo)
+    if debug_cc:
+        dump_CcInfo(ctx, ccInfo)
 
     # codeps_ccInfo = cc_common.merge_cc_infos(
     #     cc_infos = depsets.codeps_cc_deps_secondary)
@@ -245,18 +300,26 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     ## to construct cmd line we need to extract the cc files from
     ## merged CcInfo provider:
-    [static_cc_deps, dynamic_cc_deps] = extract_cclibs(ctx, ccInfo)
+    [static_cc_deps, dynamic_cc_deps, runtime_variant] = extract_cclibs(ctx, ccInfo)
     if debug_cc:
         print("static_cc_deps:  %s" % static_cc_deps)
         print("dynamic_cc_deps: %s" % dynamic_cc_deps)
 
+    # if host = macos and mode = fastbuild, then tc injects
+    # -DEBUG, which requires debug runtime
+
+    if runtime_variant:
+        args.add("-runtime-variant", runtime_variant)
+
     ## we put -lfoo before -Lpath/to/foo, to avoid iterating twice
     cclib_linkpaths = []
+    cclib_files = []
     cc_runfiles = []
 
     ## NB: -cclib -lfoo is just for -custom linking!
     ## for std (non-custom) linking use -dllib
 
+    runtime_input = []
     runfiles_root = out_exe.path + ".runfiles"
     if debug_runfiles:
         print("runfiles_root: %s" % runfiles_root)
@@ -277,7 +340,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # if ctx.label.name == "inline_test_runner.exe":
         #     fail("asdfsfd")
 
-        vmlibs = tc.vmlibs
+        # vmlibs = tc.vmlibs
 
         ## WARNING: both -dllpath and -I are required!
         # args.add("-ccopt", "-L" + tc.vmlibs[0].dirname)
@@ -337,7 +400,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             ## should not be any .so files???
             sincludes = []
             for dep in static_cc_deps:
-                print("STATIC DEP: %s" % dep)
+                # print("STATIC DEP: %s" % dep)
                 args.add("-custom")
                 args.add("-ccopt", dep.path)
                 includes.append(dep.dirname)
@@ -348,13 +411,28 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 # args.add(cclib.short_path)
     else: # tc.target == sys
         vmlibs = [] ## we never need vmlibs for native code
+
+        # print("default runtime: %s" % tc.default_runtime)
+        # print("path: %s" % tc.default_runtime.path)
+        # print("path: %s" % tc.default_runtime.short_path)
+        # fail("STOP")
+        ## NB: not enough to list as an input dep,
+        ## we also must tell ocaml where it is?
+        rt = tc.default_runtime.basename
+        # runtime_input.append(tc.default_runtime)
+        # args.add("-ccopt", "-L" + tc.default_runtime.dirname)
+        # args.add("-cclib", "-l" + rt[3:][:-2])
+        # cclib_files.append(tc.default_runtime.basename)
+
         ## this accomodates ml libs with cc deps
         ## e.g. 'base' depends on libbase_stubs.a
         for cclib in static_cc_deps:
-            # print("STATIC DEP: %s" % dep)
-            cclib_linkpaths.append("-L" + cclib.dirname)
+            # print("STATIC DEP: %s" % cclib)
+            cclib_files.append(cclib.path)
+            # cclib_linkpaths.append("-L" + cclib.dirname)
 
     args.add_all(cclib_linkpaths, before_each="-ccopt", uniquify=True)
+    args.add_all(cclib_files, before_each="-ccopt", uniquify=True)
 
     # if ctx.label.name == "inline_test_runner.exe":
     #     fail("x")
@@ -476,6 +554,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     action_inputs_depset = depset(
         order=dsorder,
         direct = []
+        + runtime_input
         + vmlibs
         + static_cc_deps
         + dynamic_cc_deps
@@ -562,7 +641,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # for item in ctx.attr.data_prefix_map.items:
         #     print("runfiles item: %s" % item)
 
-    rfiles = tc.vmlibs + cc_runfiles
+    rfiles = cc_runfiles # tc.vmlibs
 
     rfsymlinks = {}
     # map prefixes

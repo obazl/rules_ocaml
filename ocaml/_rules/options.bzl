@@ -234,16 +234,9 @@ def options_binary():
         ),
 
         # vm_runtime = attr.string(
-        #     doc = """
-        #     Static or dynamic. Overrides --@rules_ocaml//cfg/runtime.
-
-        #     """
-        #     # default = "static"
-        # ),
-
         vm_runtime = attr.label(
             doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
-            default = "@rules_ocaml//cfg/runtime:dynamic"
+            default = "@rules_ocaml//cfg/runtime:static"
         ),
 
         # mode = attr.label(

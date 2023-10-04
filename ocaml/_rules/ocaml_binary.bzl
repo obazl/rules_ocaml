@@ -73,6 +73,15 @@ the difference between '/' and ':' in such labels):
         _rule = attr.string( default  = "ocaml_binary" ),
         _tags = attr.string_list( default  = ["ocaml", "binary"] ),
 
+        ## required, so we can obtain the cc tc and inspect it
+        ## to determine if we need to -UDEBUG
+        _cc_toolchain = attr.label(
+            default = Label(
+                # "@bazel_tools//tools/cpp:current_cc_toolchain"
+                "@rules_cc//cc:current_cc_toolchain",
+            )
+        ),
+
         _allowlist_function_transition = attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
@@ -87,6 +96,7 @@ the difference between '/' and ':' in such labels):
     toolchains = [
         "@rules_ocaml//toolchain/type:std",
         "@rules_ocaml//toolchain/type:profile",
-        # "@bazel_tools//tools/cpp:toolchain_type"
+        "@bazel_tools//tools/cpp:toolchain_type"
     ],
+    fragments = ["cpp"],
 )

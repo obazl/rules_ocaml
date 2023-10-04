@@ -3,7 +3,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
-load("@rules_ocaml//ocaml:ocamlinfo.bzl",
+load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "new_deps_aggregator",
@@ -496,6 +496,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
         depsets = aggregate_deps(ctx, dep, depsets, manifest)
+    if debug_deps:
+        print("DEPSETS: %s" % depsets)
+    if debug_ccdeps:
+        print("CCINFOS")
+        for cc in depsets.ccinfos:
+            dump_CcInfo(ctx, cc)
+            print("x: %s" % ccinfo_to_string(ctx, cc))
+            print("Module provides: %s" % cc)
 
     if ctx.attr.ppx:
         depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)

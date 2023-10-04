@@ -117,7 +117,12 @@ def ccinfo_to_string(ctx, cc_info):
 
     text = ""
     compilation_ctx = cc_info.compilation_context
-    if debug: print(CCYEL + "compilation_ctx: %s" % compilation_ctx)
+    if debug:
+        print(CCYEL + "compilation_ctx: %s" % compilation_ctx)
+        print("direct hdrs: %s" % compilation_ctx.direct_headers)
+        # print("hdrs: %s" % compilation_ctx.headers)
+        print("defines: %s" % compilation_ctx.defines)
+        print("local defs: %s" % compilation_ctx.local_defines)
     linking_ctx     = cc_info.linking_context
     if debug: print(CCYEL + "linking_ctx: %s" % dir(linking_ctx))
     linker_inputs = linking_ctx.linker_inputs.to_list()
@@ -161,6 +166,14 @@ def extract_cclibs(ctx,
     # runfiles    = []
 
     compilation_ctx = ccInfo.compilation_context
+    runtime_variant = None
+    if compilation_ctx.defines:
+        defns = compilation_ctx.defines.to_list()
+        if "RUNTIME_VARIANT_DEBUG" in defns:
+            runtime_variant = "d"
+        elif "RUNTIME_VARIANT_INSTRUMENTED" in defns:
+            runtime_variant = "i"
+
     linking_ctx     = ccInfo.linking_context
     linker_inputs = linking_ctx.linker_inputs.to_list()
     # print("LINKER_INPUTS: %s" % linker_inputs)
@@ -198,7 +211,7 @@ def extract_cclibs(ctx,
                         dynamic_libs.append(lib.dynamic_library)
 
     # print("static_libs: %s" % static_libs)
-    return [static_libs, dynamic_libs]
+    return [static_libs, dynamic_libs, runtime_variant]
 
 ################################################################
 def x(ctx,
@@ -652,8 +665,8 @@ def cc_shared_lib_to_ccinfo(ctx, ccinfo, ccfile):
 
 
 ################################################################
-## target may contain shared libs in DefaultInfo, as we as a CcInfo
-## provider.  Merge them.
+## target may contain shared libs in DefaultInfo, as well as
+## a CcInfo provider.  Merge them.
 def normalize_ccinfo(ctx, target):
 
     debug = False
@@ -663,10 +676,14 @@ def normalize_ccinfo(ctx, target):
             c=CCRED,t=target,r=CCRESET))
 
     ccInfo = target[CcInfo]
+    if debug:
+        print("ccInfo: %s" % ccInfo)
 
     files = target[DefaultInfo].files.to_list()
     ccfiles = []
     for f in files:
+        if debug:
+            print("DefaultInfo file: %s" % f)
         if f.extension in ["so", "dylib"]:
             if debug: print("found dso: %s" % f)
             ccfiles.append(f)

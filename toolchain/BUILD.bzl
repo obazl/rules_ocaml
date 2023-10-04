@@ -206,15 +206,21 @@ def _ocaml_toolchain_adapter_impl(ctx):
 
     return [platform_common.ToolchainInfo(
         # Public fields
-        name                   = ctx.label.name,
+        name                 = ctx.label.name,
         ## fixme: rename build_host, target_host
-        host                   = ctx.attr.host,
-        target                 = ctx.attr.target,
-        compiler               = ctx.file.compiler,
-        version                = v, # ctx.attr.version,
-        vmruntime              = ctx.file.vmruntime,
-        vmruntime_debug        = ctx.file.vmruntime_debug,
-        vmruntime_instrumented = ctx.file.vmruntime_instrumented,
+        host                 = ctx.attr.host,
+        target               = ctx.attr.target,
+        compiler             = ctx.file.compiler,
+        version              = v, # ctx.attr.version,
+        default_runtime      = ctx.file.default_runtime,
+        std_runtime          = ctx.file.std_runtime,
+        dbg_runtime          = ctx.file.dbg_runtime,
+        instrumented_runtime = ctx.file.instrumented_runtime,
+        pic_runtime          = ctx.file.pic_runtime,
+        shared_runtime       = ctx.file.shared_runtime,
+
+        # vmruntime_debug        = ctx.file.vmruntime_debug,
+        # vmruntime_instrumented = ctx.file.vmruntime_instrumented,
         vmlibs                 = ctx.files.vmlibs,
 
         ocamllex               = ctx.file.ocamllex,
@@ -258,6 +264,21 @@ ocaml_toolchain_adapter = rule(
             doc     = "OCaml target platform: vm (bytecode) or an arch.",
             default = "local"
         ),
+        "default_runtime": attr.label(
+            doc = """
+Runtime emitted in linked executables. OCaml linkers are hardcoded to look for one of libasmrun.a, libasmrund.a, libcamlrun.a, etc. at runtime, which makes them runtime deps, so for Bazel we must list a runtime as an explicit dependency.
+            """,
+            allow_single_file = True,
+            executable = False,
+        ),
+        ## we include all runtimes, so that rules can override
+        ## the default, which is controlled
+        ## by --@ocaml//toolchain flags
+        "std_runtime": attr.label(allow_single_file = True),
+        "dbg_runtime": attr.label(allow_single_file = True),
+        "instrumented_runtime": attr.label(allow_single_file = True),
+        "pic_runtime": attr.label(allow_single_file = True),
+        "shared_runtime": attr.label(allow_single_file = True),
 
         "repl": attr.label(
             doc = "A/k/a 'toplevel': 'ocaml' command.",
@@ -266,9 +287,12 @@ ocaml_toolchain_adapter = rule(
             cfg = "exec",
         ),
 
+        #FIXME: rename "interpreter"
         "vmruntime": attr.label(
             doc = "ocamlrun, usually",
-            allow_single_file = True, executable = True, cfg = "exec"
+            allow_single_file = True,
+            executable = True,
+            cfg = "exec"
         ),
         "vmruntime_debug": attr.label(
             doc = "ocamlrund",
