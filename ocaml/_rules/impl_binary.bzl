@@ -340,12 +340,38 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # if ctx.label.name == "inline_test_runner.exe":
         #     fail("asdfsfd")
 
-        # vmlibs = tc.vmlibs
+        vmlibs = tc.vmlibs
 
         ## WARNING: both -dllpath and -I are required!
         # args.add("-ccopt", "-L" + tc.vmlibs[0].dirname)
-        args.add("-dllpath", tc.vmlibs[0].dirname)
+        # print("vmlibs[0]: %s" % tc.vmlibs[0])
+        # print("vmlibs[0] owner: %s" % tc.vmlibs[0].owner)
+        # print("vmlibs path 0: %s" % tc.vmlibs[0].path)
+        # print("vmlibs short 0: %s" % tc.vmlibs[0].short_path)
+        # print("ctx.bin_dir: %s" % ctx.bin_dir.path)
+
+        # print("@ocaml: %s" % Label("@@ocaml~0.0.0//version"))
+
+        ## WARNING: vm executables built "for tool"
+        ## need -custom so they can run w/o ocamlrun?
+        # args.add("-custom")
+
+        ## "At link-time, shared libraries are searched in the
+        ## standard search path (the one corresponding to the -I
+        ## option)."
         args.add("-I", tc.vmlibs[0].dirname)
+
+        ## "The -dllpath option simply stores dir in
+        ## the produced executable file, where ocamlrun
+        ## can find it."
+        ## WARNING: path must be absolute?
+        args.add("-dllpath",
+                 tc.vmlibs_path)
+                 # "/Users/gar/.opam/510a/lib")
+                 # ctx.bin_dir.path + "/" +
+                 # paths.dirname(tc.vmlibs[0].short_path))
+
+        # args.add("-dllpath", tc.vmlibs[0].dirname)
 
         if debug_vm:
             print("{c}vm_runtime:{r} {rt}".format(
@@ -379,6 +405,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 includes.append(cclib.dirname)
                 # and this is for run-time:
                 includes.append(paths.dirname(linkpath))
+                print("cclib path 1: %s" % cclib.path)
+                print("cclib short 1: %s" % cclib.short_path)
                 args.add("-dllpath", cclib.dirname)
                 args.add("-dllpath", paths.dirname(cclib.short_path))
                 # as is this:
@@ -550,6 +578,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         mainfile = ctx.files.main
     else:
         mainfile = []
+
+    # print("VMLIBS: %s" % vmlibs)
 
     action_inputs_depset = depset(
         order=dsorder,
