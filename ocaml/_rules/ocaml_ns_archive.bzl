@@ -47,6 +47,8 @@ ocaml_ns_archive = rule(
     implementation = _ocaml_ns_archive_impl,
     doc = """Generate a 'namespace' module. [User Guide](../ug/ocaml_ns.md).  Provides: [OcamlNsMarker](providers_ocaml.md#ocamlnsmoduleprovider).
 
+    Deprecated.  Use ocaml_ns_library with 'archived = True' instead.
+
 **NOTE** 'name' must be a legal OCaml module name string.  Leading underscore is illegal.
 
 See [Namespacing](../ug/namespacing.md) for more information on namespaces.

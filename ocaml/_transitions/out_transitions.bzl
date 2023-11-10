@@ -579,7 +579,7 @@ ocaml_subsignature_deps_out_transition = transition(
 ## cc_deps out transition: reset config to initial state
 ## so cc_* targets will only be built once.
 def _cc_deps_out_transition_impl(settings, attr):
-    debug = True
+    debug = False
 
     if debug:
         print(">>> cc_deps_out_transition")

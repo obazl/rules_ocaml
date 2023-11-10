@@ -400,7 +400,7 @@ def impl_library(ctx, for_archive = True):
     ## Provider 5: possibly empty CcInfo
     # ccInfo_merged = cc_common.merge_cc_infos(cc_infos = ccinfos)
     # # if ctx.label.name == "tezos-legacy-store":
-    # print("ccInfo_merged: %s" % ccInfo_merged)
+    # print("CCINFOS: %s" % depsets.ccinfos)
     # # dump_CcInfo(ctx, ccInfo_merged)
     # if ccinfos:
     #     providers.append(ccInfo_merged)

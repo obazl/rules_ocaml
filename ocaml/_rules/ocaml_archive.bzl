@@ -18,7 +18,7 @@ load("//ocaml/_transitions:in_transitions.bzl",
 load("//ocaml/_debug:colors.bzl", "CCUYEL", "CCRESET")
 
 ###############################
-def _ocaml_archive(ctx):
+def _ocaml_archive_impl(ctx):
 
     # if True:
     #     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
@@ -36,9 +36,12 @@ rule_options = options("ocaml")
 rule_options.update(options_aggregators())
 
 #####################
-ocaml_archive = rule(
-    implementation = _ocaml_archive,
-    doc = """Generates an OCaml archive file.""",
+_ocaml_archive = rule(
+    implementation = _ocaml_archive_impl,
+    doc = """DEPRECATED. Use ocaml_library with 'archived=True' instead.
+
+Generates an OCaml archive file.
+    """,
     attrs = dict(
         rule_options,
         archive_name = attr.string(
@@ -113,5 +116,15 @@ ocaml_archive = rule(
     # toolchains = ["@rules_ocaml//toolchain/type:std"],
     toolchains = ["@rules_ocaml//toolchain/type:std",
                   "@rules_ocaml//toolchain/type:profile",
-                  "@bazel_tools//tools/cpp:toolchain_type"]
+                  "@bazel_tools//tools/cpp:toolchain_type"],
 )
+
+def ocaml_archive(**kwargs):
+    """Deprecated. Use ocaml_binary with 'archived=True' instead.
+
+Generates an OCaml archive file.
+    """
+    _ocaml_archive(
+        deprecation = "Rule ocaml_archive is deprecated. Use ocaml_library(archived=True) instead.",
+        **kwargs)
+

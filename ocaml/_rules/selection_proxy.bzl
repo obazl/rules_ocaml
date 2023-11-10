@@ -86,7 +86,7 @@ cc_selection_proxy = rule(
     attrs = dict(
         selection = attr.label_list(
             allow_files = True,
-            providers = [CcInfo]
+            # providers = [CcInfo]
         ),
         ## https://bazel.build/docs/integrating-with-rules-cc
         ## hidden attr required to make find_cpp_toolchain work:

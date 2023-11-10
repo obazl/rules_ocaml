@@ -4,13 +4,19 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 exports_files(glob(["*.bzl"]))
 
+alias(name = "stardoc", actual = ":ocaml_rules",
+      visibility = ["//visibility:public"])
+
 bzl_library(
     name = "ocaml_rules",
     srcs = glob([
-        "ocam*.bzl", "ppx*.bzl", "impl*.bzl", "options.bzl"
+        "ocam*.bzl", "ppx*.bzl",
+        "impl*.bzl",
+        "options.bzl",
+        "selection_proxy.bzl"
     ]), # "x*bzl"]),
     visibility = ["//visibility:public"],
-    deps = [
+    deps = [ # bzl_library deps
         "@bazel_skylib//lib:collections",
         "@bazel_skylib//rules:common_settings",
         "@bazel_skylib//lib:paths",

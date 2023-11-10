@@ -37,7 +37,7 @@ rule_options.update(options_binary())
 ocaml_binary = rule(
     implementation = _ocaml_binary,
 
-    doc = """Generates an OCaml executable binary. Provides only standard DefaultInfo provider.
+    doc = """Generates an OCaml executable binary.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_binary`
 

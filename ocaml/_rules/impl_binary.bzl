@@ -249,6 +249,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     _options = get_options(rule, ctx)
     # print("OPTIONS: %s" % _options)
     # do not uniquify options, it collapses all -I
+    # (huh?)
     args.add_all(_options)
 
     ## FIXME: drive this with compilation_mode == dbg, not -g
@@ -326,7 +327,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ws_name = ctx.workspace_name
     # print("ws name: %s" % ws_name)
 
+    # print("VMRUNTIME: %s" % ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind)
+
     if tc.target == "vm":
+        # print("TC.TARGET: VM")
         # vmlibs =  lib/stublibs/dll*.so, set by toolchain
         # only needed for bytecode mode, else we get errors like:
         # Error: I/O error: dllbase_internalhash_types_stubs.so: No such
@@ -340,10 +344,17 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # if ctx.label.name == "inline_test_runner.exe":
         #     fail("asdfsfd")
 
+        ## vmlibs == "standard" stublibs, which is where
+        ## ocamlrun will look for dll<name>.so files,
+        ## which may be recorded in cma/cmxa files
+        ## so we always add it
+        ## ideally we would inspect the cma/cmxa files
+        ## and only add if needed
+
         vmlibs = tc.vmlibs
 
         ## WARNING: both -dllpath and -I are required!
-        # args.add("-ccopt", "-L" + tc.vmlibs[0].dirname)
+        args.add("-ccopt", "-L" + tc.vmlibs[0].dirname)
         # print("vmlibs[0]: %s" % tc.vmlibs[0])
         # print("vmlibs[0] owner: %s" % tc.vmlibs[0].owner)
         # print("vmlibs path 0: %s" % tc.vmlibs[0].path)
@@ -356,6 +367,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         ## need -custom so they can run w/o ocamlrun?
         # args.add("-custom")
 
+        ## FIXME: shared libs only if link strategy = dynamic
+
         ## "At link-time, shared libraries are searched in the
         ## standard search path (the one corresponding to the -I
         ## option)."
@@ -365,13 +378,16 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         ## the produced executable file, where ocamlrun
         ## can find it."
         ## WARNING: path must be absolute?
+        ## FIXME: only for dynamic link strategy?
+        ## no, it's determined by whether or not
+        ## archive files have registered clibs
         args.add("-dllpath",
                  tc.vmlibs_path)
                  # "/Users/gar/.opam/510a/lib")
                  # ctx.bin_dir.path + "/" +
                  # paths.dirname(tc.vmlibs[0].short_path))
 
-        # args.add("-dllpath", tc.vmlibs[0].dirname)
+        args.add("-dllpath", tc.vmlibs[0].dirname)
 
         if debug_vm:
             print("{c}vm_runtime:{r} {rt}".format(
@@ -387,13 +403,35 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
         # args.add("-custom")
 
+        ## IMPORTANT: we may depend on opam pkgs
+        ## that require -custom or dynamic linking
+        ## (i.e. their cma/cmxa lists -l<foo>)
         for cclib in dynamic_cc_deps:
             args.add("-dllpath", cclib.dirname)
             cc_runfiles.append(cclib)
-            # args.add("-ccopt", "-L" + cclib.dirname)
-            # args.add("-cclib", "-l" + cclib.basename)
+            args.add("-I", cclib.dirname)
+            args.add("-ccopt", "-L" + cclib.dirname)
+            args.add("-cclib", "-l" + cclib.basename[3:-3])
+            # args.add("-dllib", "-l" + cclib.basename[3:-3])
 
         if ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "dynamic":
+
+# LINKTIME: -custom build
+
+# LINKTIME: non -custom build
+# -dllib may be recorded in cma/cmxa files; then the linker will automatically add linktime -dllib args
+# ditto for -dllpath args???
+
+# RUNTIME (non -custom build):
+# names for these [dso] libraries are provided at link time as described in section 22.1.4), and recorded in the bytecode executable file; ocamlrun, then, locates these libraries and resolves references to their primitives when the bytecode executable program starts.
+
+# The ocamlrun command searches shared libraries in the following directories, in the order indicated:
+# 1. ocamlrun -I options
+# 2. CAML_LD_LIBRARY_PATH
+# 3. link-time -dllpaths (recorded in the bytecode executable)
+# 4. ld.conf file
+# 5. system dynamic loader paths
+
             for cclib in dynamic_cc_deps:
                 # print("cclib.short_path: %s" % cclib.short_path)
                 # print("cclib.dirname: %s" % cclib.dirname)
@@ -403,7 +441,11 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
                 # this is for build-time:
                 includes.append(cclib.dirname)
+
                 # and this is for run-time:
+# Under Unix and Windows, a library named dllname.so (respectively, .dll) residing in one of the standard library directories can also be specified as -dllib -lname.
+# i.e. only use -dllib for "installed" dsos
+
                 includes.append(paths.dirname(linkpath))
                 print("cclib path 1: %s" % cclib.path)
                 print("cclib short 1: %s" % cclib.short_path)
@@ -425,6 +467,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 # fail("xxxxxxxxxxxxxxxx")
 
         elif ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "static":
+            print("XXXXXXXXXXXXXXXX STATIC")
             ## should not be any .so files???
             sincludes = []
             for dep in static_cc_deps:
@@ -438,6 +481,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 # includes.append(cclib.dirname)
                 # args.add(cclib.short_path)
     else: # tc.target == sys
+        # print("TC.TARGET: sys")
         vmlibs = [] ## we never need vmlibs for native code
 
         # print("default runtime: %s" % tc.default_runtime)
@@ -586,6 +630,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         direct = []
         + runtime_input
         + vmlibs
+        + cc_runfiles
         + static_cc_deps
         + dynamic_cc_deps
         ,

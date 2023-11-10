@@ -110,33 +110,33 @@ def dump_ocamlinfo(bi):
     print("linkdeps: %s" % bi.cli_link_deps)
 
 ##########################
-DepsAggregator = provider(
-    fields = {
-        "deps"    : "struct of OCamlProvider providers",
-        "ccinfos" : "list of CcInfo providers",
-        "ccinfos_archived" : "list of ccinfos whose metadata is archived",
-    }
-)
+# DepsAggregator = provider(
+#     fields = {
+#         "deps"    : "struct of OCamlProvider providers",
+#         "ccinfos" : "list of CcInfo providers",
+#         "ccinfos_archived" : "list of ccinfos whose metadata is archived",
+#     }
+# )
 
-def new_deps_aggregator():
-    return DepsAggregator(
-        deps = OCamlProvider(
-            sigs          = [],
-            structs       = [],
-            cli_link_deps = [],
-            afiles        = [],
-            ofiles        = [],
-            archived_cmx  = [],
-            mli           = [],
-            paths         = [],
-            # ofiles      = [],
-            # archives    = [],
-            # astructs    = [], # archived cmx structs, for linking
-            # cmts        = [],
-        ),
-        ccinfos           = [],
-        ccinfos_archived  = []
-    )
+# def new_deps_aggregator():
+#     return DepsAggregator(
+#         deps = OCamlProvider(
+#             sigs          = [],
+#             structs       = [],
+#             cli_link_deps = [],
+#             afiles        = [],
+#             ofiles        = [],
+#             archived_cmx  = [],
+#             mli           = [],
+#             paths         = [],
+#             # ofiles      = [],
+#             # archives    = [],
+#             # astructs    = [], # archived cmx structs, for linking
+#             # cmts        = [],
+#         ),
+#         ccinfos           = [],
+#         ccinfos_archived  = []
+#     )
 
 ################################################################
 ## LEGACY

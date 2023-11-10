@@ -105,7 +105,7 @@ ppx_executable = rule(
         ),
 
         main = attr.label(
-            doc = "A module to be listed after those in 'initial' and after those in 'final'. For more information see [Main Module](../ug/ppx.md#main_module).",
+            doc = "A module to be listed after those in 'prologue' and before those in 'epilogue'. For more information see [Main Module](../ug/ppx.md#main_module).",
             mandatory = True,
             # allow_single_file = True,
             # providers = [
@@ -153,7 +153,8 @@ ppx_executable = rule(
         ),
 
         data_prefix_map = attr.string_dict(
-            doc = "Map for replacing path prefixes of data files"
+            doc = """Map for replacing path prefixes of data files.  May be used to strip a path prefix (set value to empty string "").
+            """
         ),
 
         # strip_data_prefixes = attr.bool(
@@ -182,12 +183,12 @@ ppx_executable = rule(
             # providers = [[DefaultInfo], [PpxModuleMarker]]
         ),
 
-        ppx_runner = attr.label_list(
-            doc = """Modules to be linked last when the transformed module is linked into an executable.""",
-            mandatory = False,
-            cfg = "target"
-            # providers = [[DefaultInfo], [PpxModuleMarker]]
-        ),
+        # ppx_runner = attr.label_list(
+        #     doc = """Modules to be linked last when the transformed module is linked into an executable.""",
+        #     mandatory = False,
+        #     cfg = "target"
+        #     # providers = [[DefaultInfo], [PpxModuleMarker]]
+        # ),
 
         ################
         cc_deps = attr.label_keyed_string_dict(

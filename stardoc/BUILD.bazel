@@ -18,14 +18,17 @@ bzl_library( # for stardoc
     name = "stardoc",
     visibility = ["//visibility:public"],
     srcs = [
-        "//ocaml:bootstrap.bzl",
+        "//ocaml:aggregators.bzl",
+        # "//ocaml:bootstrap.bzl",
         # ":macros.bzl",
         "//ocaml:providers.bzl",
         # "//build:rules.bzl",
     ],
-    deps = [
+    deps = [ # bzl_library deps of files listed in srcs
+        "//ocaml:stardoc",
+        "//ppx:stardoc",
         "//ocaml/_debug",
-        "//ocaml/_bootstrap:bootstrap",
+        "//providers:stardoc",
         "//ocaml/_providers:stardoc",
         # "//ocaml/_providers:providers",
         "//ocaml/_rules:ocaml_rules",

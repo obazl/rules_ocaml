@@ -3,7 +3,7 @@
 All public OCaml rules imported and re-exported in this file.
 
 Definitions outside this file are private unless otherwise noted, and
-may change without notice.
+may change without notice. Really.
 """
 
 # load("//ocaml/_repo_rules:new_local_pkg_repository.bzl",
@@ -48,8 +48,8 @@ load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
 
 load("//ocaml/_rules:ocaml_vm_runtime.bzl", _ocaml_vm_runtime = "ocaml_vm_runtime")
 
-load("//ocaml/_rules:opam_install.bzl",
-     _opam_install = "opam_install")
+# load("//ocaml/_rules:opam_install.bzl",
+#      _opam_install = "opam_install")
 
 load("//ocaml/_rules:ppx_module.bzl", _ppx_module = "ppx_module")
 load("//ocaml/_rules:ppx_transform.bzl", _ppx_transform = "ppx_transform")
@@ -93,7 +93,7 @@ ocaml_vm_runtime = _ocaml_vm_runtime
 ocamllex         = _ocamllex
 ocamlyacc        = _ocamlyacc
 
-opam_install     = _opam_install
+# opam_install     = _opam_install
 
 ppx_executable   = _ppx_executable
 ppx_module       = _ppx_module

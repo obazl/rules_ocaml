@@ -13,7 +13,8 @@ load("//ppx:providers.bzl",
 
 # load("//ocaml/_transitions:in_transitions.bzl", "module_in_transition")
 
-load("//ocaml/_functions:deps.bzl",
+# load("//ocaml/_functions:deps.bzl",
+load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "OCamlProvider",
      "DepsAggregator")

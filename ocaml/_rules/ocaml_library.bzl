@@ -26,8 +26,6 @@ ocaml_library = rule(
     implementation = _ocaml_library,
     doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OcamlLibraryMarker](providers_ocaml.md#ocamllibraryprovider).
 
-**WARNING** Not yet fully supported - subject to change. Use with caution.
-
 An `ocaml_library` is a collection of modules packaged into an OBazl
 target; it is not a single binary file. It is a OBazl convenience rule
 that allows a target to depend on a collection of deps under a single

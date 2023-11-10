@@ -1,5 +1,7 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
+exports_files(glob(["*.bzl"]))
+
 package(default_visibility = ["//visibility:public"])
 
 # toolchain_type(
@@ -7,11 +9,15 @@ package(default_visibility = ["//visibility:public"])
 #     visibility = ["//visibility:public"],
 # )
 
-# bzl_library( # for stardoc
-#     name = "rules",
-#     srcs = ["rules.bzl"],
-#     visibility = ["//visibility:public"],
-# )
+bzl_library(
+    name = "stardoc",
+    srcs = [
+        "aggregators.bzl",
+        # "bootstrap.bzl",
+        "providers.bzl"
+    ],
+    visibility = ["//visibility:public"],
+)
 
 # filegroup(
 #     name = "all_files",

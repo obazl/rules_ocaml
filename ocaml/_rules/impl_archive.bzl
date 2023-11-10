@@ -246,20 +246,30 @@ def impl_archive(ctx):
         # args.add(dep.path)
         # args.add(dep)
         # args.add("-ccopt", "-L" + dep.dirname)
-        args.add("-cclib", "-l" + dep.basename[3:-2])
+
+        # args.add("-cclib", "-l" + dep.basename[3:-2])
+
         # includes.append(dep.dirname)
         # sincludes.append("-L" + dep.dirname)
     for dep in dynamic_cc_deps:
-        print("DYNAMIC DEP: %s" % dep)
+        if debug_cc: print("DYNAMIC DEP: %s" % dep)
         # args.add(dep.path)
 
-        # -dllpath is for ocamlc only
+        # -dllpath and -dllib is for ocamlc only
         # args.add("-dllpath", dep.dirname)
 
         if dep.basename.startswith("dll"):
-            args.add("-dllib", "-l" + dep.basename[3:-3])
-        else:
-            args.add("-ccopt", "-l" + dep.basename[:-3])
+            if tc.target == "vm":
+                args.add("-dllib", "-l" + dep.basename[3:-3])
+            # args.add("-ccopt", "-L" + dep.dirname)
+            # else:
+                ## FIXME: do not add to inputs? dll<name>.so never
+                ## used for native targets?
+
+        # else:
+
+        #     args.add("-ccopt", "-L" + dep.dirname)
+        #     args.add("-ccopt", "-l" + dep.basename[:-3])
 
     # if ctx.label.name == "jsoo_runtime":
     #     fail("r")
