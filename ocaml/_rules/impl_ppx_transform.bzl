@@ -78,6 +78,8 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
 
     ## FIXME: add ctx.attr._ppx_print as build flag, ctx.attr.ppx_print as string override
     if hasattr(ctx.attr, "ppx_print"):
+        # fail(ctx.attr.ppx_print[BuildSettingInfo].value)
+
         # rule == ocaml_module, ocaml_signature
         if ctx.attr.ppx_print[BuildSettingInfo].value == "binary":
             if hasattr(ctx.attr, "args"):
