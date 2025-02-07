@@ -2,8 +2,8 @@ load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
-# load("//ocaml:providers.bzl", "CcDepsProvider")
-load("//ocaml:providers.bzl",
+# load("//providers:ocaml.bzl", "CcDepsProvider")
+load("//providers:ocaml.bzl",
      "OcamlVmRuntimeProvider",
 )
 

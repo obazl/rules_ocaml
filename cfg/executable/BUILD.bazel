@@ -1,7 +1,11 @@
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_list_flag")
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag", "bool_setting", "string_list_flag")
 load("@rules_ocaml//ocaml/_config:settings.bzl", "ocaml_verbose_flag")
 
 package(default_visibility = ["//visibility:public"])
+
+bool_flag( name = "linkall", build_setting_default = False)
+bool_setting( name = "linkall?", build_setting_default = True)
 
 label_flag( name = "deps", build_setting_default = "@rules_ocaml//cfg:null")
 

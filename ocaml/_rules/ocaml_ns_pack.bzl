@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl", "OcamlModuleMarker")
+load("//providers:ocaml.bzl", "OcamlModuleMarker")
 
 load("//ocaml/_transitions:in_transitions.bzl", "module_in_transition")
 

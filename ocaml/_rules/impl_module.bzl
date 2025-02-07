@@ -11,9 +11,8 @@ load("@rules_ocaml//ocaml:aggregators.bzl",
      "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlProvider",
-
      "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
@@ -22,11 +21,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider",
      "OcamlNsSubmoduleMarker",
      "OcamlSignatureProvider")
-
-load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
-     "PpxModuleMarker",
-)
+load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -232,6 +227,7 @@ def _handle_precompiled_sig(ctx, modname, ext):
     # generate x/__obazl/foo.ml.ppx or the like.
 
     ppx_src_ml = False
+    # FIXME: pass the ppx to the compiler using -ppx
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig:")
         ppx_src_ml, work_ml = impl_ppx_transform(
@@ -461,6 +457,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     # env = {"PATH": get_sdkpath(ctx)}
 
+    # tc = ctx.toolchains["@ocaml_toolchains//type:std"]
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
     # print("target platform: {p} (lbl: {l})".format(
     #     p= tc.target, l=ctx.label))
@@ -508,11 +505,22 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if ctx.attr.ppx:
         depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
+    # input files produced by preprocessor, with codeps
+    # (e.g. result of ppx transform)
+    if OcamlCodepsProvider in ctx.attr.struct:
+        depsets = aggregate_deps(ctx, ctx.attr.struct, depsets, manifest)
+
+    if ctx.attr.sig:
+        if OcamlCodepsProvider in ctx.attr.sig:
+            depsets = aggregate_deps(ctx, ctx.attr.sig, depsets, manifest)
+
+
     if ns_enabled:
         depsets = aggregate_deps(ctx, ns_resolver, depsets, manifest)
 
     for ccdep in ctx.attr.cc_deps:
         depsets = aggregate_deps(ctx, ccdep, depsets, manifest)
+
 
     ############ PPX EXECUTABLE DEPENDENCIES ################
     # ppx_codeps are material deps of this module. They thus become
@@ -528,7 +536,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     # if ctx.attr.ppx:
     #     # if ctx.label.name == "Test":
-    #     #     print("ppx deps: %s" % ctx.attr.ppx[PpxCodepsProvider])
+    #     #     print("ppx deps: %s" % ctx.attr.ppx[OcamlCodepsProvider])
     #     depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     # if ctx.label.name == "Test":
@@ -542,7 +550,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## ppx_modules, that do ppx processing, may have a ppx_codeps
     ## attribute, for the deps they inject into the files they
     ## preprocess. They are _NOT_ material deps of the module itself.
-    ## It follows that they are passed on in a PpxCodepsProvider, not
+    ## It follows that they are passed on in a OcamlCodepsProvider, not
     ## in OcamlProvider.
 
 
@@ -553,6 +561,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     ## 4. compile transformed src, with ppx_codeps
     #     ## 5. provide them, for later linking (e.g. ppx_expect)
 
+    ## ppx_codeps attr was for ppx_module...
     if hasattr(ctx.attr, "ppx_codeps"):
         for codep in ctx.attr.ppx_codeps:
             depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets, manifest)
@@ -926,6 +935,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if cmi_precompiled:
         # print("VERSION: %s" % tc.version.version)
         # print("MAJOR version: %s" % tc.version.major)
+
+        ## FIXME: version removed from toolchain adapter
         if (tc.version.major < 5):
             None # print("TODO")
         else:
@@ -1032,6 +1043,15 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     else:
         ws_name = "@" + ctx.label.workspace_name if ctx.label.workspace_name else "" # "@" + ctx.workspace_name
 
+
+    # if ctx.attr.dflag == "dlambda":
+    #     # run ocaml<> -dlambba
+    # elif:  ctx.attr.dflag == "dcmm":
+    #     # ocamlopt -dcmm
+    # elif:  ...
+    # else:
+    #     # compile
+
     ################
     ctx.actions.run(
         # env = {"MACOSX_DEPLOYMENT_TARGET": "13.1"},
@@ -1053,6 +1073,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ################################################################
     ##  construct providers
     #########################
+
+    ## RUNFILES
 
     ## PPX: if this module transformed by ppx_expect or ppx_inline:
     if "-inline-test-lib" in ctx.attr.ppx_args:
@@ -1258,13 +1280,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # print("codep_sigs_secondary: %s" % codep_sigs_secondary)
         # fail("AAAA")
         if debug_ppx:
-            print("Constructing PpxCodepsProvider: %s" % ctx.label)
+            print("Constructing OcamlCodepsProvider: %s" % ctx.label)
 
         # if ctx.attr.ppx:
-        #     if PpxCodepsProvider in ctx.attr.ppx:
+        #     if OcamlCodepsProvider in ctx.attr.ppx:
         #         depsets = aggregate_codeps(ctx, COMPILE_LINK, ctx.attr.ppx, depsets, manifest)
 
-        ppxCodepsProvider = PpxCodepsProvider(
+        ppxCodepsProvider = OcamlCodepsProvider(
             # ppx_codeps = ppx_codeps_depset,
             sigs    = depset(order=dsorder,
                              transitive=depsets.codeps.sigs),
@@ -1290,7 +1312,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             #                        transitive=codep_jsoo_runtimes_secondary),
         )
         if debug_ppx:
-            print("appending PpxCodepsProvider: %s" % ppxCodepsProvider)
+            print("appending OcamlCodepsProvider: %s" % ppxCodepsProvider)
         providers.append(ppxCodepsProvider)
 
     ## now merge ccInfo list
@@ -1311,8 +1333,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
     providers.append(ccInfo)
 
-    if ctx.attr._rule == "ppx_module":
-        providers.append(PpxModuleMarker())
+    # if ctx.attr._rule == "ppx_module":
+    #     providers.append(PpxModuleMarker())
 
     ################
     outputGroupInfo = OutputGroupInfo(
@@ -1321,7 +1343,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         sig       = depset(direct = [out_cmi]),
         struct    = depset(direct = [out_struct]),
 
-        ml = depset(direct = [work_ml]),
+        # ml = depset(direct = [work_ml]),
 
         sigs      = new_sigs_depset,
         structs   = structs_depset,  #new_structs_depset,
@@ -1329,7 +1351,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         archives  = archives_depset,
         afiles    = afiles_depset,
         astructs = astructs_depset,
-        ## put these in PpxCodepsProvider?
+        ## put these in OcamlCodepsProvider?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
         closure = structs_depset,  #new_structs_depset,

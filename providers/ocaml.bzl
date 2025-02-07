@@ -27,16 +27,16 @@ load("//ocaml/_providers:ocaml.bzl",
 
      )
 
-load("//ppx:providers.bzl", # FIXME: //ppx/_providers.bzl?
-     # _PpxCodepsProvider     = "PpxCodepsProvider",
-     _PpxExecutableMarker = "PpxExecutableMarker"
-     )
+# load("//providers:codeps.bzl", # FIXME: //ppx/_providers.bzl?
+#      # _OcamlCodepsProvider     = "OcamlCodepsProvider",
+#      _PpxExecutableMarker = "PpxExecutableMarker"
+#      )
 
 OcamlProvider                      = _OcamlProvider
 OcamlArchiveMarker                 = _OcamlArchiveMarker
 # OcamlArchiveProvider               = _OcamlArchiveProvider
 OcamlNsResolverProvider            = _OcamlNsResolverProvider
-# PpxCodepsProvider                = _PpxCodepsProvider
+# OcamlCodepsProvider                = _OcamlCodepsProvider
 
 OcamlExecutableMarker                 = _OcamlExecutableMarker
 OcamlImportMarker                  = _OcamlImportMarker
@@ -52,7 +52,7 @@ OcamlTestMarker                    = _OcamlTestMarker
 OcamlVmRuntimeProvider             = _OcamlVmRuntimeProvider
 OpamInstallProvider                = _OpamInstallProvider
 
-PpxExecutableMarker = _PpxExecutableMarker
+# PpxExecutableMarker = _PpxExecutableMarker
 
 ################################################################
 ##########################

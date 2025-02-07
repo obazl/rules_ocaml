@@ -4,7 +4,7 @@ load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
 load("@rules_ocaml//ocaml:aggregators.bzl", "OCamlProvider")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlProvider",
      "OcamlNsResolverProvider",
      "OcamlArchiveMarker",
@@ -13,10 +13,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsMarker",
      "OpamInstallProvider"
 )
-
-load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
-)
+load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load(":impl_ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
 
@@ -245,9 +242,9 @@ def impl_archive(ctx):
         if debug_cc: print("STATIC DEP: %s" % dep)
         # args.add(dep.path)
         # args.add(dep)
-        # args.add("-ccopt", "-L" + dep.dirname)
 
-        # args.add("-cclib", "-l" + dep.basename[3:-2])
+        args.add("-ccopt", "-L" + dep.dirname)
+        args.add("-cclib", "-l" + dep.basename[3:-2])
 
         # includes.append(dep.dirname)
         # sincludes.append("-L" + dep.dirname)

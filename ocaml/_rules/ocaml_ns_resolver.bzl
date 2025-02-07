@@ -1,6 +1,6 @@
 load(":options.bzl", "options", "options_module", "options_ppx")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlNsSubmoduleMarker",

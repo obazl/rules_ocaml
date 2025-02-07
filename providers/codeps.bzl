@@ -6,7 +6,7 @@ PpxModuleMarker = provider(
 )
 
 ###############################
-def _PpxCodepsProvider_init(*,
+def _OcamlCodepsProvider_init(*,
                         sigs          = [],
                         cli_link_deps = [],
                         archives      = [],
@@ -32,7 +32,7 @@ def _PpxCodepsProvider_init(*,
         "paths"         : paths,
         "jsoo_runtimes" : jsoo_runtimes
     }
-PpxCodepsProvider, _new_ppxcodepsinfo = provider(
+OcamlCodepsProvider, _new_ppxcodepsinfo = provider(
     doc = "foo",
     fields = {
         "sigs":      "depset of .cmi files",
@@ -50,11 +50,11 @@ PpxCodepsProvider, _new_ppxcodepsinfo = provider(
         "ccinfo"  : "a single CcInfo provider, merged",
         "jsoo_runtimes": "depset of runtime.js files",
     },
-    init = _PpxCodepsProvider_init
+    init = _OcamlCodepsProvider_init
 )
 
 ###############################
-# xPpxCodepsProvider = provider(
+# xOcamlCodepsProvider = provider(
 #     doc = "PPX Codeps provider.",
 #     fields = {
 #         "sigs":      "depset of .cmi files",

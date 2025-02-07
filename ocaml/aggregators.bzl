@@ -1,17 +1,13 @@
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
-load("@rules_ocaml//ocaml:providers.bzl",
+load("@rules_ocaml//providers:ocaml.bzl",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlProvider",
      "OcamlSignatureProvider",
      "OcamlVmRuntimeProvider")
-
-load("@rules_ocaml//ppx:providers.bzl",
-     "PpxCodepsProvider",
-     "PpxModuleMarker",
-)
+load("@rules_ocaml//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load("@rules_ocaml//ocaml/_rules:impl_ccdeps.bzl",
      "cc_shared_lib_to_ccinfo",
@@ -173,10 +169,15 @@ def aggregate_deps(ctx,
 
     debug = False
     debug_archives = False
+    debug_ccinfo   = False # True
     debug_runfiles = False
     # if target.label.name == "Ppxlib_driver":
     #     debug = True
     # if debug:
+
+    # print("XXXXXXXXXXXXXXXX")
+    # print(target)
+    # fail("A")
 
     archiving = len(manifest) > 0
 
@@ -392,8 +393,10 @@ def aggregate_deps(ctx,
 
     ## if target is ctx.attr.ppx, then we want to put codeps in deps
     ## elif target is e.g. prologue of ppx_executable, put them in codeps
-    if PpxCodepsProvider in target:
-        provider = target[PpxCodepsProvider]
+    if OcamlCodepsProvider in target:
+        # print("AGGREGATING CODEPS FOR")
+        # print("Target: %s" % target)
+        provider = target[OcamlCodepsProvider]
         # if ctx.label.name == "ppx.exe":
         #     print("AGGREGATING PPXCODEPS FOR")
         #     print("Target: %s" % target)
@@ -463,6 +466,8 @@ def aggregate_deps(ctx,
                     depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
     if CcInfo in target:
+        if debug_ccinfo:
+            print("CCCCCCCCCCCCCCCC")
         # if ctx.label.name == "Alpha":
         #     print("Agg CcInfo, tgt: %s" % target)
         ## if target == vm, and vmruntime = dynamic, then cc_binary
@@ -474,6 +479,10 @@ def aggregate_deps(ctx,
 
         ## to handle this anomlous case we need to detect it and then
         ## construct a CcInfo provider containing the shared lib.
+
+        # print(target[DefaultInfo].default_runfiles.files)
+        # print(target[DefaultInfo].files_to_run.runfiles_manifest)
+        # fail("X")
 
         # (libname, filtered_ccinfo) = filter_ccinfo(dep)
         # if debug_cc:
@@ -525,8 +534,8 @@ def aggregate_codeps(ctx,
     # if target.label.name == "runtime-lib":
     #     print("codep archives: %s" % target[OcamlProvider].archives)
     #     print("codep astructs: %s" % target[OcamlProvider].astructs)
-    #     if PpxCodepsProvider in target:
-    #         print("ppx: %s" % target[PpxCodepsProvider])
+    #     if OcamlCodepsProvider in target:
+    #         print("ppx: %s" % target[OcamlCodepsProvider])
     #     fail(target)
 
     if kind == COMPILE:
@@ -559,8 +568,8 @@ def aggregate_codeps(ctx,
             if provider.jsoo_runtimes != []:
                 depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
-    if PpxCodepsProvider in target:
-        provider = target[PpxCodepsProvider]
+    if OcamlCodepsProvider in target:
+        provider = target[OcamlCodepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
         if provider.cli_link_deps != []:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)

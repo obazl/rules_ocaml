@@ -1,7 +1,7 @@
 ## convenience rule. exact same as ocaml_module, just provided to
 ## allow users more expressivity w/r/t building executables
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider")
 

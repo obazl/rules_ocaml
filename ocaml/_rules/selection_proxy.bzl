@@ -1,4 +1,4 @@
-load("@rules_ocaml//ocaml:providers.bzl",
+load("@rules_ocaml//providers:ocaml.bzl",
      "OcamlModuleMarker",
      "OcamlProvider",
      "OcamlSignatureProvider",

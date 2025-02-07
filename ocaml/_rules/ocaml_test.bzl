@@ -1,8 +1,9 @@
 load(":impl_binary.bzl", "impl_binary")
 
-# load("//ocaml/_transitions:in_transitions.bzl", "executable_in_transition")
-
 load(":options.bzl", "options", "options_binary")
+
+load("//ocaml/_transitions:in_transitions.bzl",
+     "toolchain_in_transition")
 
 load("//ocaml/_debug:colors.bzl", "CCYEL", "CCRESET")
 
@@ -68,6 +69,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
         # ),
     ),
+    cfg = toolchain_in_transition,
     # cfg = executable_in_transition,
     test = True,
     fragments = ["platform", "cpp"],

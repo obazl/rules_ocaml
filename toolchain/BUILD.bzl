@@ -3,12 +3,12 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
 
-load("//ocaml:providers.bzl",
-     "OcamlArchiveMarker",
-     "OcamlExecutableMarker",
-     "OcamlImportMarker")
+# load("//providers:ocaml.bzl",
+#      "OcamlArchiveMarker",
+#      "OcamlExecutableMarker",
+#      "OcamlImportMarker")
 
-load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
+# load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAG", "CCRESET")
 
 def toolchain_selector(name, toolchain,
                        toolchain_type = "@rules_ocaml//toolchain/type:std",
@@ -27,7 +27,7 @@ def toolchain_selector(name, toolchain,
     )
 
 def _linker(ctx, cctc):
-    print(CCRED + "link experiment")
+    # print(CCRED + "link experiment")
     static_libs   = []
     dynamic_libs  = []
 
@@ -78,7 +78,7 @@ def _dump_cc_toolchain(ctx):
     print("cctc type: %s" % type(cctc))
     items = dir(cctc)
     for item in items:
-        print("{c}{item}".format(c=CCRED, item=item))
+        # print("{c}{item}".format(c=CCRED, item=item))
         val = getattr(cctc, item)
         print("  t: %s" % type(val))
         # if item == "dynamic_runtime_lib":
@@ -147,7 +147,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
     if debug_cctc:
         print("_cc_toolchain: %s" % ctx.attr._cc_toolchain)
         for d in dir(ctx.attr._cc_toolchain):
-            print(CCRED + "d %s" % d)
+            # print(CCRED + "d %s" % d)
             print("  %s" % getattr(ctx.attr._cc_toolchain, d))
 
     ## On Linux, this yields a ToolchainInfo provider.
@@ -204,6 +204,8 @@ def _ocaml_toolchain_adapter_impl(ctx):
     v = struct(version = version,
                major = int(segs[0]))
 
+    ## FIXME: this defines the public API of the tc model
+    ## move it to @ocaml_toolchains?
     return [platform_common.ToolchainInfo(
         # Public fields
         name                 = ctx.label.name,

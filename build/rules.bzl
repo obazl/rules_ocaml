@@ -51,11 +51,11 @@ load("//ocaml/_rules:ocaml_vm_runtime.bzl", _ocaml_vm_runtime = "ocaml_vm_runtim
 # load("//ocaml/_rules:opam_install.bzl",
 #      _opam_install = "opam_install")
 
-load("//ocaml/_rules:ppx_module.bzl", _ppx_module = "ppx_module")
-load("//ocaml/_rules:ppx_transform.bzl", _ppx_transform = "ppx_transform")
+# load("//ocaml/_rules:ppx_module.bzl", _ppx_module = "ppx_module")
+# load("//ocaml/_rules:ppx_transform.bzl", _ppx_transform = "ppx_transform")
 
-load("//ocaml/_rules:ppx_executable.bzl" ,
-     _ppx_executable = "ppx_executable")
+# load("//ocaml/_rules:ppx_executable.bzl" ,
+#      _ppx_executable = "ppx_executable")
 # load("//ocaml/_rules:ppx_test.bzl",
 #      _ppx_expect_test = "ppx_expect_test",
 #      _ppx_test = "ppx_test")
@@ -95,9 +95,9 @@ ocamlyacc        = _ocamlyacc
 
 # opam_install     = _opam_install
 
-ppx_executable   = _ppx_executable
-ppx_module       = _ppx_module
-ppx_transform    = _ppx_transform
+# ppx_executable   = _ppx_executable
+# ppx_module       = _ppx_module
+# ppx_transform    = _ppx_transform
 # ppx_expect_test  = _ppx_expect_test
 # ppx_test         = _ppx_test
 

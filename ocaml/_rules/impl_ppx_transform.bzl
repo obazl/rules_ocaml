@@ -1,10 +1,8 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//ocaml:providers.bzl",
-     "OcamlExecutableMarker",
-     )
-# load("//ocaml:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
+load("//providers:ocaml.bzl", "OcamlExecutableMarker")
+# load("//providers:ocaml.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
 # load("//ocaml/_functions:utils.bzl",
 #      "get_sdkpath")
 
@@ -77,7 +75,7 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
     ## FIXME: support -no-dump-ast flag
 
     ## FIXME: add ctx.attr._ppx_print as build flag, ctx.attr.ppx_print as string override
-    if hasattr(ctx.attr, "ppx_print"):
+    if hasattr(ctx.attr, "ppx_print") and ctx.attr.ppx_print:
         # fail(ctx.attr.ppx_print[BuildSettingInfo].value)
 
         # rule == ocaml_module, ocaml_signature
@@ -91,7 +89,8 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
             ## explicit binary option overrides ppx_print attrib
             if "-dump-ast" in ctx.attr.ppx_args:  #  opts:
                 args.add("-dump-ast")
-    else:
+
+    elif hasattr(ctx.attr, "print") and ctx.attr.print:
         # rule == ppx_transform, has attr 'print'
         if ctx.attr.print[BuildSettingInfo].value == "binary":
             if "-no-dump-ast" not in ctx.attr.args:

@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlProvider",
      "OcamlArchiveMarker",
      "OcamlImportMarker",

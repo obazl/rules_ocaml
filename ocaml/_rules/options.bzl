@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlArchiveMarker",
      "OcamlExecutableMarker",
      "OcamlImportMarker",
@@ -10,9 +10,7 @@ load("//ocaml:providers.bzl",
      "OcamlProvider",
      "OcamlSignatureProvider",
 )
-load("//ppx:providers.bzl",
-     "PpxExecutableMarker",
-)
+load("@rules_ocaml//providers:codeps.bzl", "OcamlCodepsProvider")
 
 # load("//ocaml/_transitions:in_transitions.bzl")
 
@@ -140,7 +138,7 @@ def options_binary():
     ws = "@rules_ocaml"
 
     attrs = dict(
-        _linkall     = attr.label(default = ws + "//cfg/executable/linkall"),
+        _linkall     = attr.label(default = ws + "//cfg/executable:linkall"),
         # _threads     = attr.label(default = ws + "//cfg/executable/threads"),
         _warnings  = attr.label(default   = ws + "//cfg/executable:warnings"),
         _opts = attr.label(
@@ -275,7 +273,7 @@ def options_aggregators():
                          [OcamlModuleMarker],
                          [OcamlNsMarker],
                          ## sigs are ok in libraries, not archives
-                         # [OcamlSignatureMarker]
+                         [OcamlSignatureProvider]
                          ],
             # cfg = manifest_out_transition
         ),
@@ -669,10 +667,10 @@ def options_ns_opts(ws):
 
 ###################
 options_ppx = dict(
-    _ppx_only = attr.label(
-        doc = "Stop processing after ppx xform action. Tools can use this to inspect the ppx xform output, e.g. @obazl//inspect:ppx",
-        default = "@rules_ocaml//ppx:stop" # default False
-        ),
+    # _ppx_only = attr.label(
+    #     doc = "Stop processing after ppx xform action. Tools can use this to inspect the ppx xform output, e.g. @obazl//inspect:ppx",
+    #     default = "@rules_ocaml//ppx:stop" # default False
+    #     ),
 
     ppx  = attr.label(
         doc = """
@@ -682,7 +680,7 @@ options_ppx = dict(
         cfg = "exec",
         # cfg = _ppx_transition,
         allow_single_file = True,
-        providers = [PpxExecutableMarker]
+        providers = [OcamlExecutableMarker]
     ),
     # _allowlist_function_transition = attr.label(
     #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -698,11 +696,11 @@ options_ppx = dict(
     ppx_verbose = attr.bool(default = False),
     ppx_print = attr.label(  ##FIXME: make this a string attr.
         doc = "Format of output of PPX transform: binary (default) or text. Value must be one of `@rules_ocaml//ppx/print:binary!` or `@rules_ocaml//ppx/print:text!`.",
-        default = "@rules_ocaml//ppx/print"
+        default = None #"@rules_ocaml//ppx/print"
     ),
     _ppx_print = attr.label(
         doc = "Format of output of PPX transform. Value must be one of `@rules_ocaml//ppx/print:binary!` or `@rules_ocaml//ppx/print:text!`.  See link:../ug/ppx.md#ppx_print[PPX Support] for more information",
-        default = "@rules_ocaml//ppx/print"
+        default = None # "@rules_ocaml//ppx/print"
     ),
     # ppx_tags  = attr.string_list(
     #     doc = "DEPRECATED. List of tags.  Used to set e.g. -inline-test-libs, --cookies. Currently only one tag allowed."
@@ -777,6 +775,7 @@ options_signature = dict(
 def options_module(ws):
 
     _providers = [[OcamlArchiveMarker],
+                  [OcamlCodepsProvider],
                   [OcamlImportMarker],
                   [OcamlLibraryMarker],
                   [OcamlModuleMarker],

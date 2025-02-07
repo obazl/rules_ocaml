@@ -3,7 +3,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//ocaml/_rules:impl_common.bzl", "tmpdir", "module_sep")
 
-load("//ocaml:providers.bzl", "OcamlNsResolverProvider")
+load("//providers:ocaml.bzl", "OcamlNsResolverProvider")
 
 load("@rules_ocaml//ocaml/_debug:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCBLUBG", "CCMAG", "CCCYN", "CCRESET")

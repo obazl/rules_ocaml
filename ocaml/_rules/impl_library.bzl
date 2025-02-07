@@ -3,13 +3,13 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlProvider",
      "OcamlNsResolverProvider",
-
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker")
+load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load("//ocaml/_functions:module_naming.bzl",
      "normalize_module_label",
@@ -35,10 +35,6 @@ load("@rules_ocaml//ocaml:aggregators.bzl",
 #      "aggregate_codeps",
 #      "OCamlProvider",
 #      "DepsAggregator")
-
-load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
-)
 
 load(":impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
 
@@ -353,7 +349,7 @@ def impl_library(ctx, for_archive = True):
         OcamlLibraryMarker(marker = "OcamlLibraryMarker")
     )
 
-    ## Provider 4: possibly empty PpxCodepsProvider
+    ## Provider 4: possibly empty OcamlCodepsProvider
     ################ ppx codeps ################
     # if ppx:
     codep_archives_depset = depset(
@@ -371,7 +367,7 @@ def impl_library(ctx, for_archive = True):
             # direct=codep_astructs_primary,
             # transitive=codep_astructs_secondary)
 
-    ppxCodepsProvider = PpxCodepsProvider(
+    ppxCodepsProvider = OcamlCodepsProvider(
         # ppx_codeps = ppx_codeps_depset,
         sigs    = depset(order=dsorder,
                          transitive = depsets.codeps.sigs),
@@ -391,7 +387,7 @@ def impl_library(ctx, for_archive = True):
     )
     providers.append(ppxCodepsProvider)
     # else:
-    #     providers.append(PpxCodepsProvider(
+    #     providers.append(OcamlCodepsProvider(
     #         sigs = depset(), structs = depset(),  ofiles = depset(),
     #         archives = depset(), afiles = depset(), astructs = depset(),
     #         paths = depset()

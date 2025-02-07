@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl", "OcamlExecutableMarker", "OcamlModuleMarker")
+load("//providers:ocaml.bzl", "OcamlExecutableMarker", "OcamlModuleMarker")
 
 load(":options.bzl", "options", "options_binary")
 

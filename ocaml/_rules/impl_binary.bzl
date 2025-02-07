@@ -1,7 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlProvider",
      "OcamlExecutableMarker",
      "OcamlImportMarker",
@@ -9,11 +9,7 @@ load("//ocaml:providers.bzl",
      "OcamlTestMarker",
      "OcamlVmRuntimeProvider",
 )
-
-load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
-     "PpxExecutableMarker",
-)
+load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -74,12 +70,12 @@ def _import_ppx_executable(ctx):
         executable=binout
     )
 
-    exe_provider = PpxExecutableMarker(
-        args = ctx.attr.args
-    )
+    # exe_provider = PpxExecutableMarker(
+    #     args = ctx.attr.args
+    # )
     providers = [
         defaultInfo,
-        exe_provider
+        # exe_provider
     ]
     return providers
 
@@ -102,7 +98,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     debug_ppx = False
     debug_runfiles = False
     debug_tc  = False
-    debug_vm  = False #True if ctx.label.name == "Alpha" else False
+    debug_vm  = False # True
+    # False #True if ctx.label.name == "Alpha" else False
 
     if debug or debug_ppx:
         print("EXECUTABLE TARGET: {kind}: {tgt}".format(
@@ -171,7 +168,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             depsets = aggregate_deps(ctx, dep, depsets)
             ## codeps already handled by aggregate_deps
             ## aggregate_codeps is just for ppx_codeps
-            # if PpxCodepsProvider in dep:
+            # if OcamlCodepsProvider in dep:
             #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
         # print("PROLOGUE depsets: %s" % depsets)
 
@@ -198,7 +195,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     if debug: print("processing 'main' attribute")
     # if ctx.label.name == "ppx_1.exe":
     #     print("main op: %s" % ctx.attr.main[OcamlProvider])
-    #     print("main codep: %s" % ctx.attr.main[PpxCodepsProvider])
+    #     print("main codep: %s" % ctx.attr.main[OcamlCodepsProvider])
         # fail("x")
 
     ## WARNING: we do not want ctx.attr.main to go in output codeps provider
@@ -327,7 +324,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ws_name = ctx.workspace_name
     # print("ws name: %s" % ws_name)
 
-    # print("VMRUNTIME: %s" % ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind)
+    if debug_vm:
+        print("VMRUNTIME: %s" % ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind)
 
     if tc.target == "vm":
         # print("TC.TARGET: VM")
@@ -403,18 +401,22 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
         # args.add("-custom")
 
-        ## IMPORTANT: we may depend on opam pkgs
-        ## that require -custom or dynamic linking
-        ## (i.e. their cma/cmxa lists -l<foo>)
-        for cclib in dynamic_cc_deps:
-            args.add("-dllpath", cclib.dirname)
-            cc_runfiles.append(cclib)
-            args.add("-I", cclib.dirname)
-            args.add("-ccopt", "-L" + cclib.dirname)
-            args.add("-cclib", "-l" + cclib.basename[3:-3])
-            # args.add("-dllib", "-l" + cclib.basename[3:-3])
+        # ## IMPORTANT: we may depend on opam pkgs
+        # ## that require -custom or dynamic linking
+        # ## (i.e. their cma/cmxa lists -l<foo>)
+        # for cclib in dynamic_cc_deps:
+        #     args.add("-dllpath", cclib.dirname)
+        #     cc_runfiles.append(cclib)
+        #     args.add("-I", cclib.dirname)
+        #     args.add("-ccopt", "-L" + cclib.dirname)
+        #     args.add("-cclib", "-l" + cclib.basename[3:-3])
+        #     # args.add("-dllib", "-l" + cclib.basename[3:-3])
 
-        if ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "dynamic":
+        # if ctx.attr.vm_runtime[OcamlVmRuntimeProvider].kind == "dynamic":
+        #     args.add("-dllib", "-lcamlrun")
+        #     args.add("-ccopt",
+        #              "-Lexternal/ocaml~0.0.0/runtime")
+                     # "-L`ocamlc -where`")
 
 # LINKTIME: -custom build
 
@@ -480,6 +482,33 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 # args.add_all(sincludes, before_each="-ccopt", uniquify=True)
                 # includes.append(cclib.dirname)
                 # args.add(cclib.short_path)
+
+        ## IMPORTANT: we may depend on opam pkgs
+        ## that require -custom or dynamic linking
+        ## (i.e. their cma/cmxa lists -l<foo>)
+        for cclib in dynamic_cc_deps:
+            cc_runfiles.append(cclib)
+            args.add("-I", cclib.dirname)
+            ## with -custom: -cclib -lfoo
+            ## otherwise, for bytecode dynlinking, shared lib
+            ## must be dllfoo.so, not libfoo.so (???)
+
+# -dllpath: Adds the directory dir to the run-time search path for shared C libraries. At link-time, shared libraries are searched in the standard search path (the one corresponding to the -I option). The -dllpath option simply stores dir in the produced executable file, where ocamlrun can find it and use it (via dlopen)
+
+# iow, OCaml dllpath corresponds to bazel runfiles dir
+
+            if cclib.basename.startswith("dll"):
+                args.add("-dllpath", cclib.dirname)
+                args.add("-dllib", "-l" + cclib.basename[3:-3])
+            else:
+                args.add("-ccopt", "-L" + cclib.dirname)
+                args.add("-cclib", "-l" + cclib.basename[3:-3])
+
+            ## TESTING
+            args.add("-ccopt", "-Lexternal/ocaml~0.0.0")
+            args.add("-dllpath", "ocaml~0.0.0")
+            ## /TESTING
+
     else: # tc.target == sys
         # print("TC.TARGET: sys")
         vmlibs = [] ## we never need vmlibs for native code
@@ -502,6 +531,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             # print("STATIC DEP: %s" % cclib)
             cclib_files.append(cclib.path)
             # cclib_linkpaths.append("-L" + cclib.dirname)
+
+        for cclib in dynamic_cc_deps:
+            # print("DYNAMIC DEP: %s" % cclib.basename)
+            # args.add("-cclib", "-l" + cclib.basename[:-3])
+            cclib_linkpaths.append("-L" + cclib.dirname)
+
 
     args.add_all(cclib_linkpaths, before_each="-ccopt", uniquify=True)
     args.add_all(cclib_files, before_each="-ccopt", uniquify=True)
@@ -760,16 +795,20 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     )
 
     exe_provider = None
-    if "ppx" in ctx.attr.tags or ctx.attr._rule in ["ppx_executable", "ppxlib_executable"]:
-        exe_provider = PpxExecutableMarker(
-            args = ctx.attr.args
-        )
-    elif ctx.attr._rule == "ocaml_binary":
+    # if "ppx" in ctx.attr.tags or ctx.attr._rule in ["ppx_executable", "ppxlib_executable"]:
+    #     exe_provider = PpxExecutableMarker(
+    #         args = ctx.attr.args
+    #     )
+
+    if ctx.attr._rule == "ocaml_binary":
         exe_provider = OcamlExecutableMarker()
     elif ctx.attr._rule == "ocaml_test":
         exe_provider = OcamlTestMarker()
     else:
-        fail("Wrong rule called impl_binary: %s" % ctx.attr._rule)
+        exe_provider = OcamlExecutableMarker()
+
+    # else:
+    #     fail("Wrong rule called impl_binary: %s" % ctx.attr._rule)
 
     providers = [
         defaultInfo,
@@ -833,7 +872,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     # print("CODEPSETS: %s" % depsets.codeps)
 
-    ppxCodepsInfo = PpxCodepsProvider(
+    ppxCodepsInfo = OcamlCodepsProvider(
         sigs       = depset(order=dsorder,
                             transitive = depsets.codeps.sigs),
         cli_link_deps = depset(order=dsorder,

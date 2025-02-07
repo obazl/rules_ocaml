@@ -1,6 +1,6 @@
 # load(":options.bzl", "options") # , "options_ns_resolver")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlVmRuntimeProvider"
 )
 

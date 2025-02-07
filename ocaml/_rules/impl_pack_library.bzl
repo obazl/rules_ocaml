@@ -2,18 +2,14 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
      "OcamlSignatureMarker",
      "OcamlSDK",
 )
-
-load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
-     "PpxExecutableMarker",
-)
+load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
@@ -401,7 +397,7 @@ def impl_pack_library(ctx):
     #         ),
     #     )
 
-    adjunctsMarker = PpxCodepsProvider(
+    adjunctsMarker = OcamlCodepsProvider(
         ppx_codeps = depset(transitive = indirect_adjunct_depsets),
         paths = depset(transitive = indirect_adjunct_path_depsets)
     )

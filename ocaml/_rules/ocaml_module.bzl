@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider")
 
@@ -159,7 +159,7 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
 
     fragments = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],
-    incompatible_use_toolchain_transition = True,
+    # incompatible_use_toolchain_transition = True,
     cfg     = module_in_transition,
     provides = [OcamlModuleMarker],
     executable = False,

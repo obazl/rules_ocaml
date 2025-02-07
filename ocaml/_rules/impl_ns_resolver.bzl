@@ -10,7 +10,7 @@ load("@rules_ocaml//ocaml:aggregators.bzl",
      "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlModuleMarker",
      "OcamlProvider",
      "OcamlNsResolverProvider",

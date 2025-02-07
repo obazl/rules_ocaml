@@ -1,0 +1,37 @@
+# generated file - DO NOT EDIT
+package(default_visibility = ["//visibility:public"])
+
+## endocompilers
+platform(name = "ocamlopt.opt",
+         parents = ["@local_config_platform//:host"],
+         constraint_values = [
+             "@rules_ocaml//platform/arch:sys",
+             "@rules_ocaml//platform/executor:sys",
+             "@rules_ocaml//platform/emitter:sys"
+         ])
+
+platform(name = "ocamlc.byte",
+         parents = ["@local_config_platform//:host"],
+         constraint_values = [
+             "@rules_ocaml//platform/arch:sys",
+             "@rules_ocaml//platform/executor:vm",
+             "@rules_ocaml//platform/emitter:vm"
+         ])
+
+## exocompilers
+platform(name = "ocamlc.opt",
+         parents = ["@local_config_platform//:host"],
+         constraint_values = [
+             "@rules_ocaml//platform/arch:sys",
+             "@rules_ocaml//platform/executor:sys",
+             "@rules_ocaml//platform/emitter:vm"
+         ])
+
+platform(name = "ocamlopt.byte",
+         parents = ["@local_config_platform//:host"],
+         constraint_values = [
+             "@rules_ocaml//platform/arch:sys",
+             "@rules_ocaml//platform/executor:vm",
+             "@rules_ocaml//platform/emitter:sys"
+         ])
+

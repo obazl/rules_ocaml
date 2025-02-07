@@ -21,7 +21,7 @@ bzl_library( # for stardoc
         "//ocaml:aggregators.bzl",
         # "//ocaml:bootstrap.bzl",
         # ":macros.bzl",
-        "//ocaml:providers.bzl",
+        "//providers:ocaml.bzl",
         # "//build:rules.bzl",
     ],
     deps = [ # bzl_library deps of files listed in srcs

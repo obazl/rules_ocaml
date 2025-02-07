@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlLibraryMarker")
 
 load(":options.bzl", "options", "options_aggregators")

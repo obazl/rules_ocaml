@@ -1,4 +1,4 @@
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlArchiveMarker",
      "OcamlExecutableMarker",
      "OcamlImportMarker",
@@ -10,7 +10,7 @@ load("//ocaml:providers.bzl",
      "OcamlProvider",
      "OcamlSignatureProvider",
 )
-load("//ppx:providers.bzl",
+load("//providers:codeps.bzl",
      "PpxExecutableMarker",
 )
 

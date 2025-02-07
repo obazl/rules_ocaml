@@ -2,16 +2,18 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
+load("//ocaml/_transitions:in_transitions.bzl",
+     "toolchain_in_transition")
+
 # load("//ocaml/_transitions:in_transitions.bzl",
 #      "nsarchive_in_transition")
 
 # load("//ocaml/_transitions:out_transitions.bzl",
 #      "ocaml_signature_deps_out_transition")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OCamlSigInfo",
      "OcamlProvider",
-
      "OcamlArchiveMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
@@ -20,10 +22,7 @@ load("//ocaml:providers.bzl",
      "OcamlNsResolverProvider",
      "OcamlSDK",
      "OcamlSignatureProvider")
-
-load("//ppx:providers.bzl",
-     "PpxCodepsProvider",
-)
+load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
@@ -109,6 +108,7 @@ def _handle_ns_stuff(ctx):
             print("nsrp: %s" % nsrp)
         if not nsrp.tag == "NULL": # hasattr(nsrp, "ns_name"):
             ns_enabled = True
+            # fail("XXXXXXXXXXXXXXXX")
             ns_name = nsrp.ns_name
             ns_module_name = nsrp.module_name
             ns_resolver = ctx.attr._ns_resolver ## [0] # index by int?
@@ -466,7 +466,7 @@ def _ocaml_signature_impl(ctx):
     ## ppx codeps in the dep graph are NOT compile deps of this sig.
     # ppx_codeps_inputs = []
     # if ctx.attr.ppx:
-    #     provider = ctx.attr.ppx[PpxCodepsProvider]
+    #     provider = ctx.attr.ppx[OcamlCodepsProvider]
 
     #     for ppx_codep in provider.sigs.to_list():
     #         ppx_codeps_inputs.append(ppx_codep)
@@ -771,7 +771,8 @@ the difference between '/' and ':' in such labels):
 
 
     """,
-    attrs = dict(
+    attrs = dict
+(
         rule_options,
         ## RULE DEFAULTS
         # _linkall     = attr.label(default = "@rules_ocaml//cfg/signature/linkall"), # FIXME: call it alwayslink?
@@ -850,10 +851,12 @@ the difference between '/' and ':' in such labels):
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
     ),
-    incompatible_use_toolchain_transition = True,
+    # cfg = toolchain_in_transition,
+    # incompatible_use_toolchain_transition = True,
     provides = [OcamlSignatureProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std",
                   "@rules_ocaml//toolchain/type:profile",
                   "@bazel_tools//tools/cpp:toolchain_type"]
 )
+

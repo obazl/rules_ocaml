@@ -2,7 +2,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:structs.bzl", "structs")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//ocaml:providers.bzl",
+load("//providers:ocaml.bzl",
      "OcamlModuleMarker",
      "OcamlSignatureProvider",
      "OcamlNsResolverProvider")
@@ -80,11 +80,22 @@ def _executable_in_transition_impl(transition, settings, attr):
         print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
 
 
+    # host, tgt = _get_tc(settings)
+    # if host == None:
+    #     return {
+    #         "@rules_ocaml//cfg/ns:prefixes"   : [],
+    #         "@rules_ocaml//cfg/ns:submodules" : [],
+    #         # "//command_line_option:host_platform": settings[
+    #         #     "//command_line_option:host_platform"],
+    #         # "//command_line_option:platforms": settings[
+    #         #     "//command_line_option:platforms"]
+    #     }
+    # else:
     return {
-        # "@rules_ocaml//cfg/manifest"   : [],
-        # "@rules_ocaml//cfg/ns:nonce"      : "",
         "@rules_ocaml//cfg/ns:prefixes"   : [],
         "@rules_ocaml//cfg/ns:submodules" : [],
+        # "//command_line_option:host_platform": host,
+        # "//command_line_option:platforms": tgt
     }
 
 #######################################################
@@ -94,16 +105,17 @@ def _ppx_executable_in_transition_impl(settings, attr):
 ppx_executable_in_transition = transition(
     implementation = _ppx_executable_in_transition_impl,
     inputs = [
-        # "@rules_ocaml//cfg/mode:mode",
-        # "@ppx//mode:mode",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//toolchain",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms"
     ],
     outputs = [
-        # "@rules_ocaml//cfg/manifest",
-        # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms"
     ]
 )
 
@@ -114,18 +126,17 @@ def _ocaml_executable_in_transition_impl(settings, attr):
 ocaml_executable_in_transition = transition(
     implementation = _ocaml_executable_in_transition_impl,
     inputs = [
-        # "@rules_ocaml//cfg/mode:mode",
-        # "@ppx//mode:mode",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//toolchain",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms"
     ],
     outputs = [
-        # "@rules_ocaml//cfg/mode",
-        # "@ppx//mode",
-        # "@rules_ocaml//cfg/manifest",
-        # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms"
     ]
 )
 
@@ -258,6 +269,38 @@ reset_in_transition = transition(
     ]
 )
 
+################
+def _get_tc(settings):
+    build_host  = settings["//command_line_option:host_platform"]
+    target_host = settings["//command_line_option:platforms"]
+
+    tc = settings["@rules_ocaml//toolchain"]
+
+    if build_host.name == tc:
+        if target_host[0].name == tc:
+            # endo-compiler, no change
+            return None, None
+        else:
+            ## exo-compiler, target should already be set
+            return None, None
+    else:
+        # print("Transition from %s to %s" % (
+        #     build_host.name, tc))
+        if tc == "ocamlopt.opt":
+            host = "@rules_ocaml//platform:ocamlopt.opt"
+            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+        elif  tc == "ocamlc.byte":
+            host = "@rules_ocaml//platform:ocamlc.byte"
+            tgt  = "@rules_ocaml//platform:ocamlc.byte"
+        elif  tc == "ocamlc.opt":
+            host = "@rules_ocaml//platform:ocamlc.opt"
+            tgt  = "@rules_ocaml//platform:ocamlc.byte"
+        elif  tc == "ocamlopt.byte":
+            host = "@rules_ocaml//platform:ocamlopt.byte"
+            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+
+        return host, tgt
+
 ###############################################
 ## module_in_transition
 ## called once per ocaml_module
@@ -368,12 +411,25 @@ def _module_in_transition_impl(settings, attr):
 
         # fail("xxxxxxxxxxxxxxxx")
 
+    # host, tgt = _get_tc(settings)
+    # if host == None:
+    #     # print("%s %s NULL TC TRANSITION" % (attr._rule,attr.name))
+    #     return {
+    #         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+    #         "@rules_ocaml//cfg/ns:submodules" : submodules,
+    #         "//command_line_option:host_platform": settings[
+    #             "//command_line_option:host_platform"],
+    #         "//command_line_option:platforms": settings[
+    #             "//command_line_option:platforms"]
+    #     }
+    # else:
+        # print("%s %s TC TRANSITION" % (attr._rule, attr.name))
     return {
         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
         "@rules_ocaml//cfg/ns:submodules" : submodules,
-        # "@rules_ocaml//cfg/manifest"      : manifest
+        # "//command_line_option:host_platform": host,
+        # "//command_line_option:platforms": tgt
     }
-
 
 ####################
 module_in_transition = transition(
@@ -381,12 +437,46 @@ module_in_transition = transition(
     inputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        # "@rules_ocaml//cfg/manifest"
+        # "@rules_ocaml//toolchain",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms"
     ],
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        # "@rules_ocaml//cfg/manifest"
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms"
+    ]
+)
+
+################################################################
+def _toolchain_in_transition_impl(settings, attr):
+    debug = False
+    # if attr.name in ["alcotest_stdlib_ext"]:
+    #     debug = True
+
+    host, tgt = _get_tc(settings)
+
+    if host == None:
+        # print("%s %s NULL TC TRANSITION" % (attr._rule, attr.name))
+        return {}
+    else:
+        # print("%s %s TC TRANSITION" % (attr._rule, attr.name))
+        return {
+            "//command_line_option:host_platform": host,
+            "//command_line_option:platforms": tgt
+    }
+
+###################
+toolchain_in_transition = transition(
+    implementation = _toolchain_in_transition_impl,
+    inputs = [
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"],
+    outputs = [
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"
     ]
 )
 
