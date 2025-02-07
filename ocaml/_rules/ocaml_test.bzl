@@ -69,7 +69,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
         #     default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
         # ),
     ),
-    cfg = toolchain_in_transition,
+    # cfg = toolchain_in_transition,
     # cfg = executable_in_transition,
     test = True,
     fragments = ["platform", "cpp"],
