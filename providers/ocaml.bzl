@@ -140,16 +140,6 @@ def dump_ocamlinfo(bi):
 
 ################################################################
 ## LEGACY
-################
-OcamlVerboseFlagProvider = provider(
-    doc = "Raw value of ocaml_verbose_flag",
-    fields = {
-        "value": "The value of the build setting in the current configuration. " +
-                 "This value may come from the command line or an upstream transition, " +
-                 "or else it will be the build setting's default.",
-    },
-)
-
 ################################################################
 OcamlSDK = provider(
     doc = "Contains information about the Ocaml SDK used in the toolchain",

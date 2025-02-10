@@ -1,11 +1,6 @@
-load("@rules_ocaml//ocaml/_config:settings.bzl",
-     "ocaml_verbose_flag",
-     "ocaml_verbose_setting")
-
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag", "bool_setting")
 package(default_visibility = ["//visibility:public"])
 
-ocaml_verbose_setting( name = "enable", build_setting_default = True)
-config_setting(name = "enabled", flag_values = {":verbose": str(True)})
-
-ocaml_verbose_setting( name = "disable", build_setting_default = False)
-config_setting(name = "disabled", flag_values = {":verbose": str(False)})
+bool_flag( name = "verbose", build_setting_default = False)
+bool_setting( name = "verbose?", build_setting_default = True)

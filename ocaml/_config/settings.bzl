@@ -1,6 +1,4 @@
-load("//providers:ocaml.bzl",
-     "OcamlVerboseFlagProvider",
-     "OcamlModuleMarker")
+load("//providers:ocaml.bzl", "OcamlModuleMarker")
 
 ################################################################
 def _ocaml_null_module_impl(ctx):
@@ -8,21 +6,6 @@ def _ocaml_null_module_impl(ctx):
 
 ocaml_null_module = rule(
   implementation = _ocaml_null_module_impl,
-)
-
-################################################################
-def _ocaml_verbose_impl(ctx):
-    return OcamlVerboseFlagProvider(value = ctx.build_setting_value)
-
-ocaml_verbose_flag = rule(
-    implementation = _ocaml_verbose_impl,
-    build_setting = config.bool(flag = True)
-)
-
-ocaml_verbose_setting = rule(
-    implementation = _ocaml_verbose_impl,
-    build_setting = config.bool(),
-    doc = "A string-typed build setting that cannot be set on the command line",
 )
 
 ################################################################

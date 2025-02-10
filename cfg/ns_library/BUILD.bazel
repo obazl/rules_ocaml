@@ -1,11 +1,11 @@
 load("@bazel_skylib//rules:common_settings.bzl", "string_list_flag")
-load("@rules_ocaml//ocaml/_config:settings.bzl", "ocaml_verbose_flag")
 
 package(default_visibility = ["//visibility:public"])
 
 label_flag( name = "deps", build_setting_default = "@opam//:null")
 
-ocaml_verbose_flag( name = "verbose", build_setting_default = False)
+bool_flag( name = "verbose", build_setting_default = False)
+bool_setting( name = "verbose?", build_setting_default = True)
 
 string_list_flag( name = "warnings",
                   build_setting_default = ["@1..3@5..28@30..39@43@46..47@50..57@61..62-40",
