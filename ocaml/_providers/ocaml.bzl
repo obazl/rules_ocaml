@@ -40,52 +40,56 @@ ModuleInfo, _new_moduleinfo = provider(
     init = _ModuleInfo_init
 )
 
-################################################################
-def _OCamlSigInfo_init(*,
-                       cmi  = None,
-                       cmti = None,
-                       ##FIXME: rename sig_src,
-                       ##for consistency with ModuleInfo
-                       mli  = None,
-                       xmo  = False):
+#######################
+def _OcamlProvider_init(*,
+                        cmi = None,
+                        sig = None,
+                        struct = None,
+                        cli_link_deps = None,
+                        submodule = None,
+                        sigs = None,
+                        structs = None,
+                        ofiles = None,
+                        archives = None,
+                        afiles = None,
+                        astructs = None,
+                        cmts = None,
+                        cmtis = None,
+                        srcs = None,
+                        jsoo_runtimes = None,
+                        resolvers = None,
+                        xmo = None,
+                        paths = None,
+                        ppx_codeps = None,
+                        ppx_codep_paths = None):
     return {
-        "cmi"  : cmi,
-        "cmti" : cmti,
-        "mli"  : mli,
-        "xmo"  : xmo
+        "cmi"             : cmi,
+        "sig"             : sig,
+        "struct"          : struct,
+        "cli_link_deps"   : cli_link_deps,
+        "submodule"       : submodule,
+        "sigs"            : sigs,
+        "structs"         : structs,
+        "ofiles"          : ofiles,
+        "archives"        : archives,
+        "afiles"          : afiles,
+        "astructs"        : astructs,
+        "cmts"            : cmts,
+        "cmtis"           : cmtis,
+        "srcs"            : srcs,
+        "jsoo_runtimes"   : jsoo_runtimes,
+        "resolvers"       : resolvers,
+        "xmo"             : xmo,
+        "paths"           : paths,
+        "ppx_codeps"      : ppx_codeps,
+        "ppx_codep_paths" : ppx_codep_paths
     }
 
-OCamlSigInfo, _new_ocamlsiginfo = provider(
-    doc = "OCaml signature provider",
-    fields = {
-        "cmi"  : "One .cmi file",
-        "cmti" : "One .cmti file",
-        "mli"  : "One .mli file",
-        "xmo"  : "Boolean, false if compiled with -opaque"
-    },
-    init = _OCamlSigInfo_init
-)
-
-################################################################
-
-# An Ocaml "fileset" is the set of files emitted by the Ocaml
-# compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi.
-
-# DefaultInfo.files == whatever is appropriate for the cmd line, e.g. .cmx for modules, .cmxa for archives, .cmi for sigs.
-
-# OcamlProvider.filesets == filesets appropriate for target type. E.g.
-# for ns archives, DefaultInfo.files contains the cmxa file, and
-# OcamlProvider.filesets contains the filesets for the resolver and
-# submodules. For libs, contains filesets for all modules, plus the
-# resolver fileset if the lib is namespaced.
-
-# Filesets allow us to extract elements (e.g. cmi files) from
-# namespaced libs and archives.
-
-OcamlProvider = provider(
+OcamlProvider, _new_ocamlprovider = provider(
     doc = "OCaml build provider; content depends on target rule type.",
+    init = _OcamlProvider_init,
     fields = {
-        "ws"  : "Workspace ID for provided artifacts (not fully implemented)",
+        # "ws"  : "Workspace ID for provided artifacts (not fully implemented)",
         "cmi" : "Cmi file provided",
         "sig" : "Cmi file provided",
         "struct" : "Structure file (.cmo or .cmx) provided",
@@ -115,40 +119,15 @@ OcamlProvider = provider(
         "srcs":      "depset of src files after renaming/symlinking, so tools can inspect",
 
         "jsoo_runtimes": "depset of runtime.js files",
-        # "archive_deps": "deps of archives, that must be listed before the archives in cmd line to link executable. cmx/cmo only, for cmd line",
-
         # NB: resolvers is just for cmdline args, so we can control where
         # they are listed relative to the ns archive/library on the cli
         "resolvers":   "depset of .cmo or .cmx files depending on mode; CLI protocol",
 
         "xmo":  "boolean; cross-module optimization. False means -opaque was used.",
 
-        ## OBSOLETE: cc deps passed in separate CcInfo
-        # "cc_libs" : "list of files",
-        # "ccinfo"  : "a single CcInfo provider, merged",
-        # "cc_deps"           : "dictionary depset",
-
-        ## everything below is DEPRECATED
-
-        # "fileset": "depset of files emitted by the Ocaml compiler. For modules: .cmx, .cmi, .o; for sigs, just .cmi; for libs and archives, filesets for submodules, plus resolver fileset if namespaced.",
-
-        # "closure"             : "File depset of transitive closure of deps",
-        # "inputs"             : "file depset",
-        # "cdeps"              : "file depset of compile deps",
-        # "ldeps"              : "file depset of link deps",
-        # "ldeps_n"            : "file depset of native link deps",
-        # "ldeps_bc"           : "file depset of bytecode link deps",
-        # "linkargs"           : "file depset",
         "paths"             : "string depset",
-
-        # "files"             : "DEPRECATED",
-        # "archives"          : "file depset",
-        # "archive_deps"       : "file depset of archive deps",
-
-        # OBSOLETE: codeps passed separately by OcamlCodepsProvider
         "ppx_codeps"      : "file depset",
         "ppx_codep_paths" : "string depset",
-        # "ns_resolver"       : "single target",
     }
 )
 
@@ -257,30 +236,14 @@ OcamlNsResolverProvider, _new_OcamlNsResolverProvider = provider(
 )
 
 ################################################################
-OcamlSignatureProvider = provider(
+OCamlSignatureProvider = provider(
     doc = "OCaml interface provider.",
     fields = {
-        # "deps": "sig deps",
-
-        "mli": ".mli input file",
         "cmi": ".cmi output file",
+        "cmti": ".cmti output file",
+        "mli": ".mli input file",
         "xmo": "boolean: cross-module optimization. False: compile with -opaque",
-        # "module_links":    "Depset of module files to be linked by executable or archive rules.",
-        # "archive_links":    "Depset of archive files to be linked by executable or archive rules.",
-        # "paths":    "Depset of paths for -I params",
-        # "depgraph": "Depset containing transitive closure of deps",
-        # "archived_modules": "Depset containing archive contents"
     }
-    # fields = module_fields
-    # {
-    #     # "ns_module": "Name of ns module (string)",
-    #     "paths"    : "Depset of search path strings",
-    #     "resolvers": "Depset of resolver module names",
-    #     "deps_opam" : "Depset of OPAM package names"
-
-    #     # "payload": "An [OcamlInterfacePayload](#ocamlinterfacepayload) structure.",
-    #     # "deps"   : "An [OcamlDepsetProvider](#ocamldepsetprovider)."
-    # }
 )
 
 OcamlArchiveMarker    = provider(doc = "OCaml Archive Marker provider.")
@@ -290,13 +253,11 @@ OcamlLibraryMarker   = provider(doc = "OCaml Library Marker provider.")
 OcamlModuleMarker    = provider(doc = "OCaml Module Marker provider.")
 OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")
 
-OcamlRuntimeMarker = provider(
-    doc = "OCaml Runtime Variant Marker.",
-    fields = {
-        "variant": "d or i"
-    }
-)
+# OcamlRuntimeMarker = provider(
+#     doc = "OCaml Runtime Variant Marker.",
+#     fields = {
+#         "variant": "d or i"
+#     }
+# )
 
-
-OcamlSignatureMarker = provider(doc = "OCaml Signature Marker provider.")
 OcamlTestMarker      = provider(doc = "OCaml Test Marker provider.")

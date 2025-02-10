@@ -11,7 +11,7 @@ may change without notice. Really.
 
 load("//ocaml/_rules:ocaml_null.bzl", _ocaml_null = "ocaml_null")
 
-load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
+# load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
 
 load("//ocaml/_rules:ocaml_binary.bzl"  , _ocaml_binary = "ocaml_binary")
 
@@ -31,7 +31,8 @@ load("//ocaml/_rules:ocaml_module.bzl"      , _ocaml_module = "ocaml_module")
 
 # load("//ocaml/_rules:ocaml_pack_library.bzl"      , _ocaml_pack_library = "ocaml_pack_library")
 
-load("//ocaml/_rules:ocaml_ns_archive.bzl"  , _ocaml_ns_archive = "ocaml_ns_archive")
+# load("//ocaml/_rules:ocaml_ns_archive.bzl"  , _ocaml_ns_archive = "ocaml_ns_archive")
+
 load("//ocaml/_rules:ocaml_ns_library.bzl"  , _ocaml_ns_library = "ocaml_ns_library")
 load("//ocaml/_rules:ocaml_ns_resolver.bzl"      , _ocaml_ns_resolver = "ocaml_ns_resolver")
 load("//ocaml/_rules:ocaml_ns_resolver_topdown.bzl",
@@ -71,14 +72,14 @@ load("//ocaml/_rules:selection_proxy.bzl",
 ocaml_null = _ocaml_null
 
 ocaml_binary = _ocaml_binary
-ocaml_archive    = _ocaml_archive
+# ocaml_archive    = _ocaml_archive
 # ocaml_genrule    = _ocaml_genrule
 ocaml_import     = _ocaml_import
 ocaml_library    = _ocaml_library
 # ocaml_pack_library    = _ocaml_pack_library
 ocaml_exec_module     = _ocaml_exec_module
 ocaml_module     = _ocaml_module
-ocaml_ns_archive = _ocaml_ns_archive
+# ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns_library = _ocaml_ns_library
 ocaml_ns_resolver = _ocaml_ns_resolver
 ocaml_topdown_ns_resolver = _ocaml_topdown_ns_resolver

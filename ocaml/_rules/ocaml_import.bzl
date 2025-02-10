@@ -3,9 +3,8 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
-     "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlProvider",
+     # "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("@rules_ocaml//providers:ocaml.bzl",
@@ -80,7 +79,7 @@ def _ocaml_import_impl(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
-    depsets = new_deps_aggregator()
+    depsets = DepsAggregator()
 
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
@@ -253,7 +252,7 @@ def _ocaml_import_impl(ctx):
         # transitive=jsoo_runtimes_secondary),
     )
     # if ctx.label.name == "ppx_inline_test":
-    #     print("OCamlProvider.astructs: %s" % ocamlProvider.astructs)
+    #     print("OcamlProvider.astructs: %s" % ocamlProvider.astructs)
     #     fail()
 
     providers.append(ocamlProvider)

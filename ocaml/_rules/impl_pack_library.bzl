@@ -6,7 +6,6 @@ load("//providers:ocaml.bzl",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
      "OcamlNsResolverProvider",
-     "OcamlSignatureMarker",
      "OcamlSDK",
 )
 load("//providers:codeps.bzl", "OcamlCodepsProvider")

@@ -2,8 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
-load("@rules_ocaml//ocaml:aggregators.bzl", "OCamlProvider")
-
 load("//providers:ocaml.bzl",
      "OcamlProvider",
      "OcamlNsResolverProvider",
@@ -203,7 +201,6 @@ def impl_archive(ctx):
     # for dep in ctx.attr.manifest:
     #     if OCamlModuleInfo in dep:
     #         print("DIRDEP %s" % dep[OCamlModuleInfo])
-        # print("ODEP %s" % dep[OCamlProvider])
         # print("ODEP %s" % dep[OcamlProvider])
 
     # if OcamlProvider in ns_resolver:

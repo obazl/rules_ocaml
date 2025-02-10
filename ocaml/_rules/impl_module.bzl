@@ -6,9 +6,9 @@ load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
-     "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlProvider",
+     # "DepsAggregator",
+     "MergedDepsProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//providers:ocaml.bzl",
@@ -20,7 +20,7 @@ load("//providers:ocaml.bzl",
      "OcamlNsMarker",
      "OcamlNsResolverProvider",
      "OcamlNsSubmoduleMarker",
-     "OcamlSignatureProvider")
+     "OCamlSignatureProvider")
 load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
@@ -143,7 +143,7 @@ def _handle_precompiled_sig(ctx, modname, ext):
     debug_ppx  = False
     debug_ns   = False
 
-    sigProvider = ctx.attr.sig[OcamlSignatureProvider]
+    sigProvider = ctx.attr.sig[OCamlSignatureProvider]
     # cmifile = sigProvider.cmi
     # cmi_workfile = cmifile
     # old_cmi = [cmifile]
@@ -336,7 +336,7 @@ def _resolve_modname(ctx):
                     ctx, ctx.label.name)
                 return modname
 
-        elif OcamlSignatureProvider in ctx.attr.sig:
+        elif OCamlSignatureProvider in ctx.attr.sig:
             # name of cmi always determines modname
             if debug: print("sig arg is cmi")
             if ctx.attr.module_name:
@@ -477,7 +477,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     resolvers = []
 
     ################
-    depsets = new_deps_aggregator()
+    depsets = DepsAggregator()
     ## FIXME: handle non-namespaced lib/archive manifests
     # if nsrp.submodules:
     #     manifest = nsrp.submodules
@@ -643,13 +643,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ##FIXME: make this a fn
         if debug: print("dyadic module, with sig: %s" % ctx.attr.sig)
         # if debug: print("sig default: %s" % ctx.attr.sig[DefaultInfo])
-        # if debug: print("sig in attr? %s" % (OcamlSignatureProvider in ctx.attr.sig))
-        # if debug: print("sig ocamlsig: %s" % ctx.attr.sig[OcamlSignatureProvider])
+        # if debug: print("sig in attr? %s" % (OCamlSignatureProvider in ctx.attr.sig))
+        # if debug: print("sig ocamlsig: %s" % ctx.attr.sig[OCamlSignatureProvider])
         # if debug: print("sigfile: %s" % ctx.file.sig)
 
         ## handlers to deal with ns renaming and ppx
 
-        if OcamlSignatureProvider in ctx.attr.sig:
+        if OCamlSignatureProvider in ctx.attr.sig:
         # or ctx.file.sig.extension == "cmi"):
             if debug:
                 print("sigattr is precompiled .cmi")
@@ -1178,12 +1178,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # files = #FIXME
     )
 
-    ocamlInfo = OCamlProvider(
+    ocamlInfo = MergedDepsProvider(
+        # why this?
     )
 
     ocamlProvider = OcamlProvider(
-        ws        = ctx.workspace_name,
-        submodule = normalize_module_name(ctx.label.name),
+        # ws        = ctx.workspace_name,
+        # submodule = normalize_module_name(ctx.label.name),
         # files = outputGroup_all_depset,
         # cmi      = depset(direct = [out_cmi]),
         cmi      = out_cmi,  ## no need for a depset for one file?
@@ -1198,11 +1199,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         #     do NOT add this module to cli_link_deps
         #     DO add merged link_deps of this module's deps
 
-        cli_link_deps = cli_link_depset,
-
         sigs     = new_sigs_depset,
-        structs  = structs_depset, # new_structs_depset,
-        ofiles   = ofiles_depset,
+        cli_link_deps = cli_link_depset,
         archives = archives_depset,
         afiles   = depset(
             order=dsorder,
@@ -1210,12 +1208,15 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             transitive = depsets.deps.afiles # afiles_secondary
         ),
         astructs = astructs_depset,
+        structs  = structs_depset, # new_structs_depset,
+        ofiles   = ofiles_depset,
         # cclibs = cclibs_depset,
-        jsoo_runtimes = depset(
-            order=dsorder,
-            # direct=codep_sigs_primary,
-            transitive = depsets.deps.jsoo_runtimes #jsoo_runtimes_secondary
-        ),
+        jsoo_runtimes = None if (len(depsets.deps.jsoo_runtimes) == 0) else depsets.deps.jsoo_runtimes,
+        # jsoo_runtimes = depset(
+        #     order=dsorder,
+        #     # direct=codep_sigs_primary,
+        #     direct = None if (len(depsets.deps.jsoo_runtimes) == 0) else depsets.deps.jsoo_runtimes
+        # ),
 
         # linkargs = linkset,
         paths    = paths_depset,

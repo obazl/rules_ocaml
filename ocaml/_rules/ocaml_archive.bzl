@@ -5,7 +5,7 @@ load("//providers:ocaml.bzl",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
-     "OcamlSignatureMarker"
+     # "OcamlSignatureMarker"
      )
 
 load(":options.bzl", "options", "options_aggregators")

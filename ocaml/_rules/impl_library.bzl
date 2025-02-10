@@ -25,9 +25,8 @@ load(":impl_ccdeps.bzl",
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
-     "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlProvider",
+     # "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 # load("//ocaml/_functions:deps.bzl",
@@ -151,7 +150,7 @@ def impl_library(ctx, for_archive = True):
     if debug:
         print("LIB MANIFEST: %s" % archive_manifest)
 
-    depsets = new_deps_aggregator()
+    depsets = DepsAggregator()
     for dep in ctx.attr.manifest:
         # if dep.label.name == "Red":
         #     print("red dep: %s" % dep[OcamlProvider])

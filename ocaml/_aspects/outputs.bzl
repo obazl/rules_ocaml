@@ -1,6 +1,6 @@
 # load("@rules_ocaml//providers:ocaml.bzl",
 #      # "OcamlDepsetProvider",
-#      "OcamlSignatureProvider",
+#      "OCamlSignatureProvider",
 #      "OcamlModuleMarker",
 #      "OcamlNsLibraryProvider",
 #      "OcamlNsResolverProvider",

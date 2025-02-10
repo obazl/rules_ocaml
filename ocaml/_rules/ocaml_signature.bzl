@@ -12,7 +12,7 @@ load("//ocaml/_transitions:in_transitions.bzl",
 #      "ocaml_signature_deps_out_transition")
 
 load("//providers:ocaml.bzl",
-     "OCamlSigInfo",
+     # "OCamlSigInfo",
      "OcamlProvider",
      "OcamlArchiveMarker",
      "OcamlImportMarker",
@@ -21,15 +21,14 @@ load("//providers:ocaml.bzl",
      "OcamlNsMarker",
      "OcamlNsResolverProvider",
      "OcamlSDK",
-     "OcamlSignatureProvider")
+     "OCamlSignatureProvider")
 load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
-     "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlProvider",
+     "MergedDepsProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//ocaml/_functions:module_naming.bzl",
@@ -48,8 +47,7 @@ load("//ocaml/_functions:module_naming.bzl",
 load(":options.bzl",
      "options",
      "options_ns_opts",
-     "options_ppx",
-     "options_signature")
+     "options_ppx")
 
 load("//ocaml/_rules/utils:utils.bzl", "get_options")
 
@@ -302,7 +300,7 @@ def _ocaml_signature_impl(ctx):
     #     if debug_ns:
     #         print("ns manifest: %s" % manifest)
 
-    depsets = new_deps_aggregator()
+    depsets = DepsAggregator()
 
     for dep in ctx.attr.deps:
         depsets = aggregate_deps(ctx, dep, depsets, manifest)
@@ -360,64 +358,13 @@ def _ocaml_signature_impl(ctx):
         ## later we can optimize, avoiding symlinks if src in pkg dir
         ## and no renaming
         if debug: print("no ppx")
-        # sp = ctx.file.src.short_path
-        # spdir = paths.dirname(sp)
-        # if paths.basename(spdir) + "/" == workdir:
-        #     pkgdir = paths.dirname(spdir)
-        # else:
-        #     pkgdir = spdir
-        # print("target spec pkg: %s" % ctx.label.package)
-        # print("sigfiles pkgdir: %s" % pkgdir)
-
-        # if ctx.label.package == pkgdir:
-        #     print("PKGDIR == sigfile dir")
-        #     sigsrc_modname = normalize_module_name(ctx.file.src.basename)
-        #     print("sigsrc modname %s" % sigsrc_modname)
-        #     if modname == sigsrc_modname:
-        #         work_mli = ctx.file.src
-        #         work_cmi = ctx.actions.declare_file(modname + ".cmi")
-        #     else:
-        #         work_mli = ctx.actions.declare_file(
-        #             workdir + modname + ".mli")
-        #         ctx.actions.symlink(output = work_mli,
-        #                             target_file = ctx.file.src)
-        #         work_cmi = ctx.actions.declare_file(
-        #             workdir + modname + ".cmi")
-
-        #     # work_cmi = sigProvider.cmi
-        # else:  ## mli src in different pkg dir
-        # if from_name == module_name:
-        #     if debug: print("no namespace renaming")
-        #     # work_mli = sig_src
         work_mli = ctx.actions.declare_file(
             workdir + modname + ".mli")
-            # workdir + ctx.file.mli.basename)
         ctx.actions.symlink(output = work_mli,
                             target_file = ctx.file.src)
-        # out_cmi = ctx.actions.declare_file(modname + ".cmi")
-        # work_cmi = ctx.actions.declare_file(
-        #     workdir + modname + ".cmi")
-
-        # else:
-        #     if debug: print("namespace renaming")
-        #     # namespaced w/o ppx: symlink sig_src to prefixed name, so
-        #     # that output dir will contain both renamed input mli and
-        #     # output cmi.
-        #     ns_sig_src = module_name + ".mli"
-        #     if debug:
-        #         print("ns_sig_src: %s" % ns_sig_src)
-        #     work_mli = ctx.actions.declare_file(workdir + ns_sig_src)
-        #     ctx.actions.symlink(output = work_mli,
-        #                         target_file = sig_src)
-        #     if debug:
-        #         print("work_mli %s" % work_mli)
-
     out_cmi = ctx.actions.declare_file(workdir + modname + ".cmi")
 
-    # out_cmi = ctx.actions.declare_file(workdir + modname + ".cmi")
-    # out_cmi = work_cmi
     action_outputs = [out_cmi]
-    # out_cmi = ctx.actions.declare_file(workdir + module_name + ".cmi")
     if debug: print("out_cmi %s" % out_cmi)
 
     #########################
@@ -589,16 +536,17 @@ def _ocaml_signature_impl(ctx):
         files = default_depset
     )
 
-    sigInfo = OCamlSigInfo(
-        cmi  = out_cmi,
-        cmti = out_cmti if out_cmti else None,
-        mli  = work_mli,
-        xmo  = True if xmo else False
-    )
+    # sigInfo = OCamlSigInfo(
+    #     cmi  = out_cmi,
+    #     cmti = out_cmti if out_cmti else None,
+    #     mli  = work_mli,
+    #     xmo  = True if xmo else False
+    # )
 
-    sigProvider = OcamlSignatureProvider( #FIXME: obsolete
-        mli = work_mli,
+    sigProvider = OCamlSignatureProvider( #FIXME: obsolete
         cmi = out_cmi,
+        cmti = out_cmti if out_cmti else None,
+        mli = work_mli,
         xmo = True if xmo else False
     )
 
@@ -636,60 +584,63 @@ def _ocaml_signature_impl(ctx):
     #                          transitive=cclibs_secondary)
 
     ## FIXME: what about depsets.codeps etc.?
-    ocamlInfo = OCamlProvider(
-        sigs  = depset(
-            order = dsorder,
-            direct = [out_cmi],
-            transitive = depsets.deps.sigs
-        ),
-        cli_link_deps = depset(
-            order = dsorder,
-            transitive = depsets.deps.cli_link_deps
-        ),
-        archives = depset(
-            order = dsorder,
-            transitive = depsets.deps.archives
-        ),
-        afiles   = depset(
-            order = dsorder,
-            transitive = depsets.deps.afiles
-        ),
-        astructs = depset(
-            order = dsorder,
-            transitive = depsets.deps.astructs
-        ),
-        structs = depset(
-            order = dsorder,
-            transitive = depsets.deps.structs
-        ),
-        ofiles = depset(
-            order=dsorder,
-            transitive=depsets.deps.ofiles
-        ),
-        # mli = depset( ## FIXME: not needed?
-        #     order=dsorder,
-        #     direct = [work_mli],
-        #     transitive=depsets.deps.mli
-        # ),
-        cmts = depset(
-            order=dsorder,
-            transitive=depsets.deps.cmts
-        ),
-        cmtis = depset(
-            order=dsorder,
-            direct = out_cmti,
-            transitive=depsets.deps.cmtis
-        ),
-        paths = depset(
-            order=dsorder,
-            transitive=depsets.deps.paths
-        ),
-        jsoo_runtimes = depset(
-            order=dsorder,
-            transitive=depsets.deps.jsoo_runtimes
-        ),
+    ## this is not used anywhere?
+    ocamlInfo = MergedDepsProvider( ## MergedDepsProvider
     )
+    #     sigs  = depset(
+    #         order = dsorder,
+    #         direct = [out_cmi],
+    #         transitive = depsets.deps.sigs
+    #     ),
+    #     cli_link_deps = depset(
+    #         order = dsorder,
+    #         transitive = depsets.deps.cli_link_deps
+    #     ),
+    #     archives = depset(
+    #         order = dsorder,
+    #         transitive = depsets.deps.archives
+    #     ),
+    #     afiles   = depset(
+    #         order = dsorder,
+    #         transitive = depsets.deps.afiles
+    #     ),
+    #     astructs = depset(
+    #         order = dsorder,
+    #         transitive = depsets.deps.astructs
+    #     ),
+    #     structs = depset(
+    #         order = dsorder,
+    #         transitive = depsets.deps.structs
+    #     ),
+    #     ofiles = depset(
+    #         order=dsorder,
+    #         transitive=depsets.deps.ofiles
+    #     ),
+    #     # mli = depset( ## FIXME: not needed?
+    #     #     order=dsorder,
+    #     #     direct = [work_mli],
+    #     #     transitive=depsets.deps.mli
+    #     # ),
+    #     cmts = depset(
+    #         order=dsorder,
+    #         transitive=depsets.deps.cmts
+    #     ),
+    #     cmtis = depset(
+    #         order=dsorder,
+    #         direct = out_cmti,
+    #         transitive=depsets.deps.cmtis
+    #     ),
+    #     paths = depset(
+    #         order=dsorder,
+    #         transitive=depsets.deps.paths
+    #     ),
+    #     jsoo_runtimes = depset(
+    #         order=dsorder,
+    #         transitive=depsets.deps.jsoo_runtimes
+    #     ),
+    # )
 
+    ## FIXME: use MergedDepsProvider?
     ocamlProvider  = OcamlProvider(
         # inputs   = new_inputs_depset,
         # linkargs = linkargs_depset,
@@ -741,14 +692,12 @@ def _ocaml_signature_impl(ctx):
 
 ################################
 rule_options = options("ocaml")
-rule_options.update(options_signature)
-# rule_options.update(options_ns_opts("ocaml"))
 rule_options.update(options_ppx)
 
 #######################
 ocaml_signature = rule(
     implementation = _ocaml_signature_impl,
-    doc = """Generates OCaml .cmi (inteface) file. [User Guide](../ug/ocaml_signature.md). Provides `OcamlSignatureProvider`.
+    doc = """Generates OCaml .cmi (inteface) file. [User Guide](../ug/ocaml_signature.md). Provides `OCamlSignatureProvider`.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_signature`
 
@@ -771,8 +720,7 @@ the difference between '/' and ':' in such labels):
 
 
     """,
-    attrs = dict
-(
+    attrs = dict (
         rule_options,
         ## RULE DEFAULTS
         # _linkall     = attr.label(default = "@rules_ocaml//cfg/signature/linkall"), # FIXME: call it alwayslink?
@@ -780,58 +728,59 @@ the difference between '/' and ':' in such labels):
         _warnings  = attr.label(default = "@rules_ocaml//cfg/signature:warnings"),
         #### end options ####
 
-        # src = attr.label(
-        #     doc = "A single .mli source file label",
-        #     allow_single_file = [".mli", ".ml"] #, ".cmi"]
-        # ),
+        deps = attr.label_list(
+            doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
+            providers = [
+                [OCamlSignatureProvider],
+                [OcamlProvider],
+                [OcamlArchiveMarker],
+                [OcamlImportMarker],
+                [OcamlLibraryMarker],
+                [OcamlModuleMarker],
+                [OcamlNsMarker],
+            ],
+            # cfg = ocaml_signature_deps_out_transition
+        ),
+        src = attr.label(
+            doc = "A single .mli source file label",
+            allow_single_file = [".mli", ".ml"] #, ".cmi"]
+        ),
 
-        # ns_submodule = attr.label_keyed_string_dict(
-        #     doc = "Extract cmi file from namespaced module",
-        #     providers = [
-        #         [OcamlNsMarker, OcamlArchiveMarker],
-        #     ]
-        # ),
+        pack = attr.string(
+            doc = "Experimental",
+        ),
 
-        # pack = attr.string(
-        #     doc = "Experimental",
-        # ),
+        open = attr.label_list(
+            doc = "List of OCaml dependencies to be passed with -open.",
+            providers = [
+                [OCamlSignatureProvider],
+                [OcamlProvider],
+                [OcamlArchiveMarker],
+                [OcamlImportMarker],
+                [OcamlLibraryMarker],
+                [OcamlModuleMarker],
+                [OcamlNsMarker],
+            ],
+            # cfg = ocaml_signature_deps_out_transition
+        ),
 
-        # deps = attr.label_list(
-        #     doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
-        #     providers = [
-        #         [OcamlProvider],
-        #         [OcamlArchiveMarker],
-        #         [OcamlImportMarker],
-        #         [OcamlLibraryMarker],
-        #         [OcamlModuleMarker],
-        #         [OcamlNsMarker],
-        #     ],
-        #     # cfg = ocaml_signature_deps_out_transition
-        # ),
+        data = attr.label_list(
+            allow_files = True
+        ),
 
-        # data = attr.label_list(
-        #     allow_files = True
-        # ),
+        ns_resolver = attr.label(
+            doc = "Bottom-up namespacing",
+            allow_single_file = True,
+            mandatory = False
+        ),
 
-        # ################################################################
-        # _ns_resolver = attr.label(
-        #     doc = "Experimental",
-        #     providers = [OcamlNsResolverProvider],
-        #     default = "@rules_ocaml//cfg/ns:resolver",
-        #     # cfg = ocaml_signature_deps_out_transition
-        # ),
-
-        # _ns_submodules = attr.label( # _list(
-        #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-        #     default = "@rules_ocaml//cfg/ns:submodules", ## NB: ppx modules use ocaml_signature
-        # ),
-        # _ns_strategy = attr.label(
-        #     doc = "Experimental",
-        #     default = "@rules_ocaml//cfg/ns:strategy"
-        # ),
-        # _mode       = attr.label(
-        #     default = "@rules_ocaml//build/mode",
-        # ),
+        _ns_resolver = attr.label(
+            doc = "Experimental",
+            providers = [OcamlNsResolverProvider],
+            default = "@rules_ocaml//cfg/ns:resolver",
+            # default = "@rules_ocaml//cfg/ns:bootstrap",
+            # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
+        ),
 
         module = attr.string(
             doc = "Set module (sig) name to this string"
@@ -843,17 +792,12 @@ the difference between '/' and ':' in such labels):
         ),
 
         _rule = attr.string( default = "ocaml_signature" ),
-
-        # _sdkpath = attr.label(
-        #     default = Label("@rules_ocaml//cfg:sdkpath")
-        # ),
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
     ),
     # cfg = toolchain_in_transition,
-    # incompatible_use_toolchain_transition = True,
-    provides = [OcamlSignatureProvider],
+    provides = [OCamlSignatureProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std",
                   "@rules_ocaml//toolchain/type:profile",

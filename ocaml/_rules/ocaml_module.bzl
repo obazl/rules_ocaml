@@ -40,7 +40,6 @@ rule_options.update(options_ppx)
 ####################
 ocaml_module = rule(
     implementation = _ocaml_module,
- # Provides: [OcamlModuleMarker](providers_ocaml.md#ocamlmoduleprovider).
     doc = """
 Compiles an OCaml module. The **module name** is determined by rule,
 based on the `struct`, `sig`, `name`, and `module` attributes:
@@ -157,14 +156,13 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
         _cmd_line_option = attr.label(default = "@rules_ocaml//cfg/option"),
     ),
 
-    fragments = ["platform", "cpp"],
+    fragments      = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],
-    # incompatible_use_toolchain_transition = True,
-    cfg     = module_in_transition,
-    provides = [OcamlModuleMarker],
-    executable = False,
-    toolchains = ["@rules_ocaml//toolchain/type:std",
-                  "@rules_ocaml//toolchain/type:profile",
-                  "@bazel_tools//tools/cpp:toolchain_type"]
+    cfg            = module_in_transition,
+    provides       = [OcamlModuleMarker],
+    executable     = False,
+    toolchains     = ["@rules_ocaml//toolchain/type:std",
+                      "@rules_ocaml//toolchain/type:profile",
+                      "@bazel_tools//tools/cpp:toolchain_type"]
 )
 

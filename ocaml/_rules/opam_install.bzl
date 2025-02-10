@@ -8,7 +8,7 @@ load("//providers:ocaml.bzl",
      "OcamlNsMarker",
      "OcamlNsSubmoduleMarker",
      "OcamlProvider",
-     "OcamlSignatureProvider",
+     "OCamlSignatureProvider",
 )
 load("//providers:codeps.bzl",
      "PpxExecutableMarker",

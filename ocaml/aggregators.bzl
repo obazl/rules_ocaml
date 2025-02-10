@@ -1,12 +1,14 @@
 load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 
 load("@rules_ocaml//providers:ocaml.bzl",
-     "OcamlLibraryMarker",
-     "OcamlModuleMarker",
-     "OcamlNsResolverProvider",
+     # "OcamlLibraryMarker",
+     # "OcamlModuleMarker",
      "OcamlProvider",
-     "OcamlSignatureProvider",
-     "OcamlVmRuntimeProvider")
+     # "OcamlVmRuntimeProvider"
+     "OcamlNsResolverProvider",
+     "OCamlSignatureProvider",
+     )
+
 load("@rules_ocaml//providers:codeps.bzl", "OcamlCodepsProvider")
 
 load("@rules_ocaml//ocaml/_rules:impl_ccdeps.bzl",
@@ -19,7 +21,8 @@ LINK         = 1
 COMPILE_LINK = 2
 
 ################################################################
-def _OCamlProvider_init(*,
+# RENAME: MergedDepsProvider
+def _MergedDepsProvider_init(*,
                     sigs          = [],
                     cli_link_deps = [],
                     archives      = [],
@@ -50,7 +53,9 @@ def _OCamlProvider_init(*,
         "runfiles"      : runfiles
     }
 
-OCamlProvider, _new_ocamlocamlinfo = provider(
+# RENAME: MergedDepsProvider
+MergedDepsProvider, _new_ocamlocamlinfo = provider(
+    init = _MergedDepsProvider_init,
     doc = "foo",
     fields = {
         "sigs"          : "Depset of .cmi files. always added to inputs, never to cmd line.",
@@ -66,8 +71,7 @@ OCamlProvider, _new_ocamlocamlinfo = provider(
         "paths"         : "string depset, for efficiency",
         "jsoo_runtimes" : "depset of runtime.js files",
         "runfiles"      : "one merged Runfiles object"
-    },
-    init = _OCamlProvider_init
+    }
 )
 
 def dump_ocamlinfo(bi):
@@ -76,20 +80,93 @@ def dump_ocamlinfo(bi):
     print("linkdeps: %s" % bi.cli_link_deps)
 
 ##########################
-DepsAggregator = provider(
+def _DepsAggregator_init(*,
+                         deps             = None,
+                         codeps           = None,
+                         compile_codeps   = None,
+                         link_codeps      = None,
+                         ccinfos          = None,
+                         ccinfos_archived = None):
+    return {
+        "deps"             : MergedDepsProvider(
+            sigs          = [],
+            cli_link_deps = [],
+            archives      = [],
+            structs       = [],
+            astructs      = [],
+            afiles        = [],
+            ofiles        = [],
+            mli           = [],
+            cmts          = [],
+            cmtis         = [],
+            paths         = [],
+            jsoo_runtimes = [], # depset(),
+            runfiles      = []
+        ),
+        "codeps"           : MergedDepsProvider(
+            sigs          = [],
+            cli_link_deps = [],
+            archives      = [],
+            structs       = [],
+            astructs      = [],
+            afiles        = [],
+            ofiles        = [],
+            mli           = [],
+            cmts          = [],
+            cmtis         = [],
+            paths         = [],
+            jsoo_runtimes = [],
+            runfiles      = []
+        ),
+        "compile_codeps"   : MergedDepsProvider(
+            sigs          = [],
+            cli_link_deps = [],
+            archives      = [],
+            structs       = [],
+            astructs      = [],
+            afiles        = [],
+            ofiles        = [],
+            mli           = [],
+            cmts          = [],
+            cmtis         = [],
+            paths         = [],
+            jsoo_runtimes = [],
+            runfiles      = []
+        ),
+        "link_codeps"      : MergedDepsProvider(
+            sigs          = [],
+            cli_link_deps = [],
+            archives      = [],
+            structs       = [],
+            astructs      = [],
+            afiles        = [],
+            ofiles        = [],
+            mli           = [],
+            cmts          = [],
+            cmtis         = [],
+            paths         = [],
+            jsoo_runtimes = [],
+            runfiles      = []
+        ),
+        "ccinfos"          : [],
+        "ccinfos_archived" : []
+    }
+
+DepsAggregator, _new_depsaggregator = provider(
+    init = _DepsAggregator_init,
     fields = {
-        "deps"             : "struct of OCamlProvider providers",
-        "codeps"           : "an OCamlProvider provider",
-        "compile_codeps"   : "an OCamlProvider provider",
-        "link_codeps"      : "an OCamlProvider provider",
+        "deps"             : "struct of MergedDepsProvider providers",
+        "codeps"           : "an MergedDepsProvider provider",
+        "compile_codeps"   : "an MergedDepsProvider provider",
+        "link_codeps"      : "an MergedDepsProvider provider",
         "ccinfos"          : "list of CcInfo providers",
         "ccinfos_archived" : "list of ccinfos whose metadata is archived",
     }
 )
 
-def new_deps_aggregator():
+def XDepsAggregator():
     return DepsAggregator(
-        deps = OCamlProvider(
+        deps = MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -104,7 +181,7 @@ def new_deps_aggregator():
             jsoo_runtimes = [],
             runfiles      = []
         ),
-        codeps = OCamlProvider(
+        codeps = MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -119,7 +196,7 @@ def new_deps_aggregator():
             jsoo_runtimes = [],
             runfiles      = []
         ),
-        compile_codeps = OCamlProvider(
+        compile_codeps = MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -134,7 +211,7 @@ def new_deps_aggregator():
             jsoo_runtimes = [],
             runfiles      = []
         ),
-        link_codeps = OCamlProvider(
+        link_codeps = MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
             archives      = [],
@@ -191,7 +268,7 @@ def aggregate_deps(ctx,
     #         if mInfo.name == item.label.name:
     #             module_archived = True
 
-    if OcamlProvider in target: # FIXME: OCamlProvider
+    if OcamlProvider in target: # FIXME: MergedDepsProvider
         provider = target[OcamlProvider]
 
         # if ctx.label.name == "Expansion":
@@ -202,7 +279,7 @@ def aggregate_deps(ctx,
 
         ##TMP HACK:
         ## for 'main'dep of executable:
-        ## OCamlProvider deps of 'main' must go first,
+        ## MergedDepsProvider deps of 'main' must go first,
         ## before OCamlMainInfo of main module itself,
         ## to preserve correct link ordering
         if ctx.attr._rule == "ocaml_test": ##FIXME
@@ -341,8 +418,8 @@ def aggregate_deps(ctx,
                 depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
     ## Now ocaml_signature, ocaml_module
-    if OcamlSignatureProvider in target:
-        depsets.deps.mli.append(target[OcamlSignatureProvider].mli)
+    if OCamlSignatureProvider in target:
+        depsets.deps.mli.append(target[OCamlSignatureProvider].mli)
 
     # if OCamlModuleInfo in target:
     #     # if target.label.name == "Common":

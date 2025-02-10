@@ -1,5 +1,5 @@
 def pprint_ocamlinfo(name, provider):
-    print("OCamlProvider: %s" % name)
+    print("provider: %s" % name)
     # print("  sigs:    %s" % provider.sigs)
     print("  structs: %s" % provider.structs)
     # print("  ofiles:  %s" % provider.ofiles)

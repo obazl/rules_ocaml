@@ -31,6 +31,7 @@ def _OCamlModuleInfo_init(*,
 
 OCamlModuleInfo, _new_ocamlmoduleinfo = provider(
     doc = "foo",
+    init = _OCamlModuleInfo_init,
     fields = {
         "name": "Normalized module name",
         "label_name": "Name component of target label",
@@ -45,7 +46,6 @@ OCamlModuleInfo, _new_ocamlmoduleinfo = provider(
         "cmt"  : "One .cmt file",
         "ofile" : "One .o file if struct is .cmx",
         "files": "Depset of the above"
-    },
-    init = _OCamlModuleInfo_init
+    }
 )
 

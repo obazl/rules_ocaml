@@ -5,9 +5,8 @@ load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
-     "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlProvider",
+     # "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//providers:ocaml.bzl",
@@ -73,7 +72,7 @@ def impl_ns_resolver(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
-    depsets = new_deps_aggregator()
+    depsets = DepsAggregator()
 
 
     ## RULE: do not allow mixing bottomup and topdown namespaces.

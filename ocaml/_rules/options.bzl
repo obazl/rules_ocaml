@@ -8,7 +8,7 @@ load("//providers:ocaml.bzl",
      "OcamlNsMarker",
      "OcamlNsSubmoduleMarker",
      "OcamlProvider",
-     "OcamlSignatureProvider",
+     "OCamlSignatureProvider",
 )
 load("@rules_ocaml//providers:codeps.bzl", "OcamlCodepsProvider")
 
@@ -30,38 +30,6 @@ load("//ocaml/_transitions:out_transitions.bzl",
      )
 
 load("//ocaml/_debug:colors.bzl", "CCRED", "CCDER", "CCMAG", "CCRESET")
-
-#########################################
-# def _ppx_transition_impl(settings, attr):
-#     print("{color}_ppx_transition{reset}: {lbl}".format(
-#         color=CCDER, reset = CCRESET, lbl = attr.name
-#     ))
-
-#     print("build host: %s" % settings["//command_line_option:host_platform"])
-#     print("target host: %s" % settings["//command_line_option:platforms"])
-
-#     return {
-#         "@rules_ocaml//cfg/toolchain:build-host":
-#         settings["//command_line_option:host_platform"].name,
-#         "@rules_ocaml//cfg/toolchain:target-host":
-#         [x.name for x in settings["//command_line_option:platforms"]]
-#     }
-
-# ################
-# _ppx_transition = transition(
-#     implementation = _ppx_transition_impl,
-#     inputs = [
-#         "@rules_ocaml//cfg/toolchain:build-host",
-#         "@rules_ocaml//cfg/toolchain:target-host",
-#         # special labels for Bazel native command line args:
-#         "//command_line_option:host_platform",
-#         "//command_line_option:platforms",
-#     ],
-#     outputs = [
-#         "@rules_ocaml//cfg/toolchain:build-host",
-#         "@rules_ocaml//cfg/toolchain:target-host"
-#     ]
-# )
 
 ################
 def options(ws):
@@ -256,7 +224,7 @@ def options_aggregators():
         [OcamlModuleMarker],
         [OcamlNsResolverProvider],
         [OcamlNsMarker],
-        [OcamlSignatureProvider],
+        [OCamlSignatureProvider],
     ]
 
     return dict(
@@ -273,7 +241,7 @@ def options_aggregators():
                          [OcamlModuleMarker],
                          [OcamlNsMarker],
                          ## sigs are ok in libraries, not archives
-                         [OcamlSignatureProvider]
+                         [OCamlSignatureProvider]
                          ],
             # cfg = manifest_out_transition
         ),
@@ -345,7 +313,7 @@ def options_aggregators():
 # def options_pack_library(ws):
 
 #     providers = [[OcamlArchiveMarker],
-#                  [OcamlSignatureProvider],
+#                  [OCamlSignatureProvider],
 #                  [OcamlLibraryMarker],
 #                  [OcamlModuleMarker],
 #                  [OcamlNsMarker]]
@@ -516,7 +484,7 @@ def options_ns_aggregators():
 #     # _submod_providers   = [
 #     #     [OcamlModuleMarker],
 #     #     [OcamlNsMarker],
-#     #     [OcamlSignatureProvider]
+#     #     [OCamlSignatureProvider]
 #     # ]
 
 #     # ws = "@" + ws
@@ -707,70 +675,6 @@ options_ppx = dict(
     # )
 )
 
-################################################################
-options_signature = dict(
-
-    src = attr.label(
-        doc = "A single .mli source file label",
-        allow_single_file = [".mli", ".ml"] #, ".cmi"]
-    ),
-
-    pack = attr.string(
-        doc = "Experimental",
-    ),
-
-    deps = attr.label_list(
-        doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
-        providers = [
-            [OcamlProvider],
-            [OcamlArchiveMarker],
-            [OcamlImportMarker],
-            [OcamlLibraryMarker],
-            [OcamlModuleMarker],
-            [OcamlNsMarker],
-        ],
-        # cfg = ocaml_signature_deps_out_transition
-    ),
-
-    open = attr.label_list(
-        doc = "List of OCaml dependencies to be passed with -open.",
-        providers = [
-            [OcamlProvider],
-            [OcamlArchiveMarker],
-            [OcamlImportMarker],
-            [OcamlLibraryMarker],
-            [OcamlModuleMarker],
-            [OcamlNsMarker],
-        ],
-        # cfg = ocaml_signature_deps_out_transition
-    ),
-
-    data = attr.label_list(
-        allow_files = True
-    ),
-
-    ################################################################
-    ns_resolver = attr.label(
-        doc = "Bottom-up namespacing",
-        allow_single_file = True,
-        mandatory = False
-    ),
-
-    _ns_resolver = attr.label(
-        doc = "Experimental",
-        providers = [OcamlNsResolverProvider],
-        default = "@rules_ocaml//cfg/ns:resolver",
-        # default = "@rules_ocaml//cfg/ns:bootstrap",
-        # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
-    ),
-
-    # _ns_submodules = attr.label( # _list(
-    #     doc = "Experimental.  May be set by ocaml_ns_library containing this module as a submodule.",
-    #     default = "@rules_ocaml//cfg/ns:submodules", ## NB: ppx modules use ocaml_signature
-    # ),
-
-)
-
 #######################
 def options_module(ws):
 
@@ -781,7 +685,7 @@ def options_module(ws):
                   [OcamlModuleMarker],
                   # [OcamlNsMarker],
                   [OcamlNsResolverProvider],
-                  [OcamlSignatureProvider],
+                  [OCamlSignatureProvider],
                   [CcInfo]]
 
     # ws = "@" + ws
@@ -801,10 +705,10 @@ def options_module(ws):
         ),
 
         sig = attr.label(
-            doc = "Single label of a target producing `OcamlSignatureProvider` (i.e. rule `ocaml_signature`) OR a sig source file. Optional.",
+            doc = "Single label of a target producing `OCamlSignatureProvider` (i.e. rule `ocaml_signature`) OR a sig source file. Optional.",
             allow_single_file = True,
-            ## FIXME: how to specify OcamlSignatureProvider OR FileProvider?
-            #providers = [[OcamlSignatureProvider]],
+            ## FIXME: how to specify OCamlSignatureProvider OR FileProvider?
+            #providers = [[OCamlSignatureProvider]],
             # cfg = ocaml_module_sig_out_transition
         ),
 

@@ -4,7 +4,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//providers:ocaml.bzl",
      "OcamlModuleMarker",
-     "OcamlSignatureProvider",
+     "OCamlSignatureProvider",
      "OcamlNsResolverProvider")
 
 load("//ocaml/_functions:utils.bzl", "capitalize_initial_char")

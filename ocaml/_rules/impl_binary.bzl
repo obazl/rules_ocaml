@@ -4,8 +4,8 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//providers:ocaml.bzl",
      "OcamlProvider",
      "OcamlExecutableMarker",
-     "OcamlImportMarker",
-     "OcamlModuleMarker",
+     # "OcamlImportMarker",
+     # "OcamlModuleMarker",
      "OcamlTestMarker",
      "OcamlVmRuntimeProvider",
 )
@@ -20,18 +20,8 @@ load(":impl_ccdeps.bzl", "extract_cclibs",
 load("@rules_ocaml//ocaml:aggregators.bzl",
      "aggregate_deps",
      "aggregate_codeps",
-     "new_deps_aggregator",
      "DepsAggregator",
-     "OCamlProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
-
-# load("//ocaml/_functions:deps.bzl",
-#      "aggregate_deps",
-#      "aggregate_codeps",
-#      "merge_depsets",
-#      "OCamlProvider",
-#      "DepsAggregator",
-#      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//ocaml/_functions:module_naming.bzl", "file_to_lib_name")
 
@@ -158,7 +148,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     # * merge deps  ###############################
 
-    depsets = new_deps_aggregator()
+    depsets = DepsAggregator()
 
     if hasattr(ctx.attr, "prologue"):
         ##FIXME: only for ppx_executable, do not pass on to consumers
@@ -858,15 +848,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         astructs = depset(order="postorder",
                           # direct=astructs_primary,
                           transitive = depsets.deps.astructs),
-        cmts     = depset(order="postorder",
-                          # direct=cmts_primary,
-                          transitive = depsets.deps.cmts),
+        cmts     = depsets.deps.cmts,
+        # cmts     = depset(order="postorder",
+        #                   # direct=cmts_primary,
+        #                   transitive = depsets.deps.cmts),
         paths    = depset(order="postorder",
                           # direct=paths_primary,
                           transitive = depsets.deps.paths),
-        jsoo_runtimes = depset(order="postorder",
-                               # direct=jsoo_runtimes_primary,
-                               transitive = depsets.deps.jsoo_runtimes),
+        jsoo_runtimes = depsets.deps.jsoo_runtimes # FIXME
     )
     # providers.append(_ocamlProvider)
 
@@ -889,8 +878,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                                 transitive = depsets.codeps.astructs),
         paths      = depset(order=dsorder,
                           transitive = depsets.codeps.paths),
-        jsoo_runtimes = depset(order="postorder",
-                               transitive = depsets.codeps.jsoo_runtimes),
+        jsoo_runtimes = depsets.deps.jsoo_runtimes
+        # jsoo_runtimes = depset(order="postorder",
+        #                        transitive = depsets.codeps.jsoo_runtimes),
     )
     providers.append(ppxCodepsInfo)
 
