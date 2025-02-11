@@ -4,13 +4,10 @@ load("//build/_lib:options.bzl", "options", "options_binary")
 
 load("//build/_rules/ocaml_binary:impl_binary.bzl", "impl_binary")
 
-load("//ocaml/_transitions:in_transitions.bzl",
+load("//build/_transitions:ocaml_executable_in_transition.bzl",
      "ocaml_executable_in_transition")
-# ## load("//ocaml/_transitions:out_transitions.bzl", "nsarchive_in_transition")
 
 load("//lib:colors.bzl", "CCRED", "CCMAG", "CCRESET")
-
-CCBLURED="\033[44m\033[31m"
 
 ###############################
 def _ocaml_binary(ctx):

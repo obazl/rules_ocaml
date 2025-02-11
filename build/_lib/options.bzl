@@ -13,9 +13,9 @@ load("//build:providers.bzl",
 )
 load("@rules_ocaml//build:providers.bzl", "OCamlCodepsProvider")
 
-# load("//ocaml/_transitions:in_transitions.bzl")
+# load("//build/_transitions:in_transitions.bzl")
 
-load("//ocaml/_transitions:out_transitions.bzl",
+load("//build/_transitions:out_transitions.bzl",
      "cc_deps_out_transition",
      # "manifest_out_transition",
      "ocaml_module_sig_out_transition",

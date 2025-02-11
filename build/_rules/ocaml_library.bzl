@@ -5,7 +5,7 @@ load("//build/_lib:options.bzl", "options", "options_aggregators")
 load("//build/_rules/ocaml_library:impl_archive.bzl", "impl_archive")
 load("//build/_rules/ocaml_library:impl_library.bzl", "impl_library")
 
-load("//ocaml/_transitions:in_transitions.bzl",
+load("//build/_transitions:in_transitions.bzl",
      "nslib_in_transition", "reset_in_transition")
 
 ###############################

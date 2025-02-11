@@ -6,14 +6,12 @@ load("//build:providers.bzl", "OcamlExecutableMarker")
 # load("//build/_lib:utils.bzl",
 #      "get_sdkpath")
 
-load("//build/_lib:impl_common.bzl", "tmpdir")
-
-# tmpdir = "_obazl_/"
+load("//build/_lib:utils.bzl", "tmpdir")
 
 ppxdir = "__ppx/"
 
 ################################################################
-def impl_ppx_transform(rule, ctx, srcfile, dst):
+def ppx_transformation(rule, ctx, srcfile, dst):
     """Apply a PPX to source file.
 
     Inputs: rule, context, srcfile
@@ -24,7 +22,7 @@ def impl_ppx_transform(rule, ctx, srcfile, dst):
 
     if debug:
         print()
-        print("impl_ppx_transform: {src} to {dst}".format(
+        print("ppx_transformation: {src} to {dst}".format(
             src = src, dst = dst))
 
     # To deal with generated runtime data files (ppx_data) we need

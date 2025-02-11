@@ -3,7 +3,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@bazel_skylib//lib:structs.bzl", "structs")
 
-load("//build/_lib:utils.bzl", "capitalize_initial_char")
 load("//build/_lib:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
@@ -100,7 +99,8 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
         attr_submodule_labels.append(str(submod_label))
     if debug: print("attr_submodules: %s" % attr_submodules)
 
-    nslib_module = capitalize_initial_char(nslib_name) # not needed?
+    nslib_module = nslib_name[:1].capitalize() + nslib_name[1:]
+
     if debug: print("nslib_module: %s" % nslib_module)
 
     if len(ns_prefixes) == 0 and ns_submodules == []:
@@ -124,7 +124,10 @@ def _ocaml_nslib_out_transition_impl(transition, settings, attr):
 
     # user-defined resolver in attr.resolver overrides ns name
     if hasattr(attr, "resolver"):
-        ns_name = capitalize_initial_char(attr.resolver.name)
+        # ns_name = capitalize_initial_char(attr.resolver.name)
+        n = attr.resolver.name
+        ns_name = n[:1].capitalize() + n[1:]
+
         print("RESOLVER name: %s" % ns_name)
         ns_prefixes = [ns_name]
 
@@ -388,7 +391,8 @@ def _ocaml_module_deps_out_transition_impl(settings, attr):
 
     srcfile = attr.struct.name if hasattr(attr, "struct") else attr.src.name
     (basename, ext) = paths.split_extension(srcfile)
-    module = capitalize_initial_char(basename)
+    # module = capitalize_initial_char(basename)
+    module = basename[:1].capitalize() + basename[1:]
 
     submodules = []
     for submodule_label in settings["@rules_ocaml//cfg/ns:submodules"]:
@@ -457,7 +461,8 @@ def _ocaml_signature_deps_out_transition_impl(settings, attr):
 
     srcfile = attr.src.name
     (basename, ext) = paths.split_extension(srcfile)
-    module = capitalize_initial_char(basename)
+    # module = capitalize_initial_char(basename)
+    module = basename[:1].capitalize() + basename[1:]
 
     submodules = []
     for submodule_label in settings["@rules_ocaml//cfg/ns:submodules"]:
@@ -509,7 +514,8 @@ def _ocaml_subsignature_deps_out_transition_impl(settings, attr):
 
     srcfile = attr.src.name
     (basename, ext) = paths.split_extension(srcfile)
-    module = capitalize_initial_char(basename)
+    # module = capitalize_initial_char(basename)
+    module = basename[:1].capitalize() + basename[1:]
 
     submodules = []
     for submodule_label in settings["@rules_ocaml//cfg/ns:submodules"]:

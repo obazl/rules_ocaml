@@ -1,6 +1,6 @@
 load("//build:providers.bzl", "OcamlModuleMarker")
 
-load("//ocaml/_transitions:in_transitions.bzl", "module_in_transition")
+load("//build/_transitions:in_transitions.bzl", "module_in_transition")
 
 load(":options.bzl",
      "options",

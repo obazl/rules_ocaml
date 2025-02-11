@@ -1,7 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//build/_lib:impl_common.bzl", "tmpdir", "module_sep")
+load("//build/_lib:utils.bzl", "tmpdir", "module_sep")
 
 load("//build:providers.bzl", "OCamlNsResolverProvider")
 

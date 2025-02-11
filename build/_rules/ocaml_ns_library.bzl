@@ -5,10 +5,10 @@ load("//build:providers.bzl",
      "OcamlNsMarker",
      "OCamlNsResolverProvider")
 
-load("//ocaml/_transitions:in_transitions.bzl",
+load("//build/_transitions:in_transitions.bzl",
      "nslib_in_transition")
 
-load("//ocaml/_transitions:out_transitions.bzl",
+load("//build/_transitions:out_transitions.bzl",
      "ocaml_nslib_submodules_out_transition")
 
 load("//build/_rules/ocaml_library:impl_archive.bzl", "impl_archive")

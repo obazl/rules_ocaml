@@ -2,7 +2,7 @@ load("//build:providers.bzl",
      "OcamlModuleMarker",
      "OCamlNsResolverProvider")
 
-load("//ocaml/_transitions:in_transitions.bzl", "module_in_transition")
+load("//build/_transitions:in_transitions.bzl", "module_in_transition")
 
 load("//build/_lib:options.bzl",
      "options",

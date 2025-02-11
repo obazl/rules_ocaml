@@ -23,11 +23,13 @@ load("//build:providers.bzl",
      "OCamlSignatureProvider")
 load("//build:providers.bzl", "OCamlCodepsProvider")
 
-load("//ocaml/_rules:impl_ppx_transform.bzl", "impl_ppx_transform")
+load("//build:actions.bzl", "ppx_transformation")
 
-load("//build/_lib:module_naming.bzl", "derive_module_name_from_file_name")
+load("//build/_lib:module_naming.bzl",
+     "derive_module_name_from_file_name")
 
-load("//build/_lib:utils.bzl", "get_options")
+load("//build/_lib:utils.bzl",
+     "get_options", "dsorder", "tmpdir")
 
 # load("//build/_lib:utils.bzl",
 #      "capitalize_initial_char",
@@ -39,18 +41,12 @@ load("//build/_lib:module_naming.bzl",
      "module_name_from_label",
      "normalize_module_name")
 
-load("@rules_ocaml//build/_lib:impl_ccdeps.bzl",
+load("@rules_ocaml//build/_lib:ccdeps.bzl",
      "cc_shared_lib_to_ccinfo",
      "filter_ccinfo",
      # "extract_cclibs",
      "dump_CcInfo",
      "ccinfo_to_string"
-     )
-
-load("//build/_lib:impl_common.bzl",
-     "dsorder",
-     # "opam_lib_prefix",
-     "tmpdir"
      )
 
 load("@rules_ocaml//lib:colors.bzl",
@@ -223,7 +219,7 @@ def _handle_precompiled_sig(ctx, modname, ext):
     # FIXME: pass the ppx to the compiler using -ppx
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig:")
-        ppx_src_ml, work_ml = impl_ppx_transform(
+        ppx_src_ml, work_ml = ppx_transformation(
             ctx.attr._rule, ctx,
             ctx.file.struct, modname + ".ml"
         )
@@ -264,7 +260,7 @@ def _handle_source_sig(ctx, modname, ext):
 
     ppx_src_ml = None
     if ctx.attr.ppx: ## no sig, plus ppx
-        ppx_src_ml, work_mli = impl_ppx_transform(
+        ppx_src_ml, work_mli = ppx_transformation(
             ctx.attr._rule, ctx,
             ctx.file.sig, modname + ".mli"
         )
@@ -281,7 +277,7 @@ def _handle_source_sig(ctx, modname, ext):
 
     if ctx.attr.ppx: ## no sig, plus ppx
         if debug: print("ppxing module:")
-        ppx_src_ml, work_ml = impl_ppx_transform(
+        ppx_src_ml, work_ml = ppx_transformation(
             ctx.attr._rule, ctx,
             ctx.file.struct, modname + ".ml"
         )
@@ -684,7 +680,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             print("module name: %s" % modname)
         if ctx.attr.ppx: ## no sig, plus ppx
             if debug_ppx: print("ppxing module:")
-            ppx_src_ml, work_ml = impl_ppx_transform(
+            ppx_src_ml, work_ml = ppx_transformation(
                 ctx.attr._rule, ctx,
                 ctx.file.struct, modname + ".ml"
             )

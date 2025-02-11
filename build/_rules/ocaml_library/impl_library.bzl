@@ -15,7 +15,7 @@ load("//build/_lib:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
 
-load("@rules_ocaml//build/_lib:impl_ccdeps.bzl",
+load("@rules_ocaml//build/_lib:ccdeps.bzl",
      "cc_shared_lib_to_ccinfo",
      "filter_ccinfo",
      "extract_cclibs", "dump_CcInfo",
@@ -35,7 +35,8 @@ load("@rules_ocaml//lib:merge.bzl",
 #      "OCamlProvider",
 #      "DepsAggregator")
 
-load("//build/_lib:impl_common.bzl", "dsorder", "module_sep", "resolver_suffix")
+load("//build/_lib:utils.bzl",
+     "dsorder", "module_sep", "resolver_suffix")
 
 load("//lib:colors.bzl",
      "CCRED", "CCBLU", "CCBLUCYN", "CCDER", "CCGRN", "CCMAG", "CCRESET")

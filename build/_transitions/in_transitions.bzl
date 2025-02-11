@@ -7,20 +7,55 @@ load("//build:providers.bzl",
      "OCamlSignatureProvider",
      "OCamlNsResolverProvider")
 
-load("//build/_lib:utils.bzl", "capitalize_initial_char")
-
 load("//build/_lib:module_naming.bzl",
      "derive_module_name_from_file_name",
      "label_to_module_name",
      "normalize_module_label",
      "normalize_module_name")
 
-load("//build/_lib:impl_common.bzl", "module_sep")
+load("//build/_lib:utils.bzl", "module_sep")
 
 load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCCYN", "CCRESET",
      "CCYEL", "CCUYEL", "CCYELBG", "CCYELBGH"
      )
+
+##################################################
+def executable_in_transition_impl(transition, settings, attr):
+    debug = False
+
+    if debug:
+        print("")
+        print("{c}>>> {t}{r}".format(
+            c=CCYELBGH,r=CCRESET,t=transition))
+        print_config_state(settings, attr)
+        print("{c}attrs:{r}".format(c=CCYEL,r=CCRESET))
+        # for a in attr:
+        print("  %s" % attr)
+
+    if debug:
+        print("nslib in OUT STATE:")
+        print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+
+
+    # host, tgt = _get_tc(settings)
+    # if host == None:
+    #     return {
+    #         "@rules_ocaml//cfg/ns:prefixes"   : [],
+    #         "@rules_ocaml//cfg/ns:submodules" : [],
+    #         # "//command_line_option:host_platform": settings[
+    #         #     "//command_line_option:host_platform"],
+    #         # "//command_line_option:platforms": settings[
+    #         #     "//command_line_option:platforms"]
+    #     }
+    # else:
+    return {
+        "@rules_ocaml//cfg/ns:prefixes"   : [],
+        "@rules_ocaml//cfg/ns:submodules" : [],
+        # "//command_line_option:host_platform": host,
+        # "//command_line_option:platforms": tgt
+    }
 
 #######################################
 def print_config_state(settings, attr):
@@ -60,85 +95,6 @@ def print_config_state(settings, attr):
     # print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
     # print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
 
-
-##################################################
-def _executable_in_transition_impl(transition, settings, attr):
-    debug = False
-
-    if debug:
-        print("")
-        print("{c}>>> {t}{r}".format(
-            c=CCYELBGH,r=CCRESET,t=transition))
-        print_config_state(settings, attr)
-        print("{c}attrs:{r}".format(c=CCYEL,r=CCRESET))
-        # for a in attr:
-        print("  %s" % attr)
-
-    if debug:
-        print("nslib in OUT STATE:")
-        print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
-        print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
-
-
-    # host, tgt = _get_tc(settings)
-    # if host == None:
-    #     return {
-    #         "@rules_ocaml//cfg/ns:prefixes"   : [],
-    #         "@rules_ocaml//cfg/ns:submodules" : [],
-    #         # "//command_line_option:host_platform": settings[
-    #         #     "//command_line_option:host_platform"],
-    #         # "//command_line_option:platforms": settings[
-    #         #     "//command_line_option:platforms"]
-    #     }
-    # else:
-    return {
-        "@rules_ocaml//cfg/ns:prefixes"   : [],
-        "@rules_ocaml//cfg/ns:submodules" : [],
-        # "//command_line_option:host_platform": host,
-        # "//command_line_option:platforms": tgt
-    }
-
-#######################################################
-def _ppx_executable_in_transition_impl(settings, attr):
-    return _executable_in_transition_impl("ppx_executable_in_transition", settings, attr)
-
-ppx_executable_in_transition = transition(
-    implementation = _ppx_executable_in_transition_impl,
-    inputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
-        # "@rules_ocaml//toolchain",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms"
-    ],
-    outputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms"
-    ]
-)
-
-#######################################################
-def _ocaml_executable_in_transition_impl(settings, attr):
-    return _executable_in_transition_impl("ocaml_executable_in_transition", settings, attr)
-
-ocaml_executable_in_transition = transition(
-    implementation = _ocaml_executable_in_transition_impl,
-    inputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
-        # "@rules_ocaml//toolchain",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms"
-    ],
-    outputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms"
-    ]
-)
 
 ##############################################
     # if this-nslib in ns:submodules list
@@ -198,7 +154,7 @@ def _nslib_in_transition_impl(settings, attr):
         attr_submodules.append(submod)
         attr_submodule_labels.append(str(submod_label))
 
-    nslib_module = capitalize_initial_char(nslib_name) # not needed?
+    nslib_module = nslib_name[:1].capitalize() + nslib_name[1:]
 
     submodules = []
     for submodule_label in settings["@rules_ocaml//cfg/ns:submodules"]:

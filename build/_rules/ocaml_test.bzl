@@ -2,7 +2,7 @@ load("//build/_rules/ocaml_binary:impl_binary.bzl", "impl_binary")
 
 load("//build/_lib:options.bzl", "options", "options_binary")
 
-load("//ocaml/_transitions:in_transitions.bzl",
+load("//build/_transitions:in_transitions.bzl",
      "toolchain_in_transition")
 
 load("//lib:colors.bzl", "CCYEL", "CCRESET")

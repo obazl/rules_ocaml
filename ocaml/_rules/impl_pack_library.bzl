@@ -10,25 +10,17 @@ load("//build:providers.bzl",
 )
 load("//build:providers.bzl", "OCamlCodepsProvider")
 
-load(":impl_ppx_transform.bzl", "impl_ppx_transform")
+load("@rules_ocaml//build:actions.bzl.bzl", "ppx_transformation")
 
 load("//build/_lib:module_naming.bzl", "derive_module_name_from_file_name")
 
-load("//build/_lib:utils.bzl",
-     "get_options",
-     )
+load("//build/_lib:utils.bzl", "get_options")
 
 load("//build/_lib:utils.bzl",
-     "capitalize_initial_char",
-     "get_sdkpath")
+     "get_sdkpath", "dsorder", "tmpdir")
 
 load("//build/_lib:module_naming.bzl",
-     "file_to_lib_name",
-     "normalize_module_name")
-
-load("//build/_lib:impl_common.bzl",
-     "dsorder",
-     "tmpdir")
+     "file_to_lib_name", "normalize_module_name")
 
 scope = tmpdir
 
@@ -270,7 +262,7 @@ def impl_pack_library(ctx):
         includes.append(path)
 
     # if ctx.attr.ppx:
-    #     structfile = impl_ppx_transform(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
+    #     structfile = ppx_transformation(ctx.attr._rule, ctx, ctx.file.struct, module_name + ".ml")
     # else:
     #     ## cp src file to working dir (__obazl)
     #     ## this is necessary for .mli/.cmi resolution to work

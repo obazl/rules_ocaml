@@ -15,25 +15,18 @@ load("//build:providers.bzl",
      "OcamlNsSubmoduleMarker")
 
 load("//build/_lib:utils.bzl",
-     "capitalize_initial_char",
      "get_fs_prefix",
      # "get_sdkpath",
 )
 
-load("//build/_lib:utils.bzl", "get_options")
+load("//build/_lib:utils.bzl",
+     "get_options", "dsorder", "module_sep",
+     "resolver_suffix", "tmpdir")
 
 load("//build/_lib:module_naming.bzl",
      "label_to_module_name",
      "normalize_module_label",
      "normalize_module_name")
-
-load("//build/_lib:impl_common.bzl",
-     "dsorder",
-     "module_sep",
-     # "opam_lib_prefix",
-     "resolver_suffix",
-     "tmpdir"
-     )
 
 load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCREDBG", "CCYEL", "CCGRN", "CCBLU", "CCMAG", "CCCYN", "CCRESET")
@@ -228,7 +221,9 @@ def impl_ns_resolver(ctx):
         ## else len(pfxs) !> 0
 
         # print("submodule pre: %s" % submodule)
-        submodule = capitalize_initial_char(submodule)
+        # submodule = capitalize_initial_char(submodule)
+        submodule = submodule[:1].capitalize() + submodule[1:]
+
         if debug_submodules: print("submodule uc: %s" % submodule)
         # if attr.module:
         #     if debug_submodules: print("module attrib: %s" % attr.module)

@@ -1,10 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//ocaml/_transitions:in_transitions.bzl",
-     "toolchain_in_transition")
-
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
 load("//build:providers.bzl",
      "OcamlArchiveMarker",
      "OcamlImportMarker",
@@ -12,7 +8,18 @@ load("//build:providers.bzl",
      "OcamlModuleMarker",
      "OcamlNsMarker",
      "OCamlNsResolverProvider",
+     "OCamlProvider",
      "OCamlSignatureProvider")
+
+load("//build/_lib:module_naming.bzl",
+     "derive_module_name_from_file_name",
+     "normalize_module_name")
+load("//build/_lib:options.bzl", "options", "options_ppx")
+load("//build/_lib:utils.bzl",
+     "dsorder", "tmpdir", "get_options")
+
+load("//build/_transitions:in_transitions.bzl",
+     "toolchain_in_transition")
 
 load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
@@ -21,33 +28,7 @@ load("@rules_ocaml//lib:merge.bzl",
      "MergedDepsProvider",      #  ??
      "COMPILE", "LINK", "COMPILE_LINK")
 
-load("//build/_lib:module_naming.bzl",
-     "derive_module_name_from_file_name")
-
-load("//ocaml/_rules:impl_ppx_transform.bzl", "impl_ppx_transform")
-
-# load("//build/_lib:utils.bzl",
-#      "capitalize_initial_char",
-#      # "get_sdkpath",
-# )
-load("//build/_lib:module_naming.bzl",
-     "normalize_module_name",
-     # "normalize_module_label"
-     )
-
-load("//build/_lib:options.bzl",
-     "options",
-     # "options_ns_opts",
-     "options_ppx")
-
-load("//build/_lib:utils.bzl", "get_options")
-
-# load(":impl_ccdeps.bzl", "link_ccdeps", "dump_CcInfo")
-
-load("//build/_lib:impl_common.bzl",
-     "dsorder",
-     # "opam_lib_prefix",
-     "tmpdir")
+load("//build:actions.bzl", "ppx_transformation")
 
 workdir = tmpdir
 
@@ -338,7 +319,7 @@ def _ocaml_signature_impl(ctx):
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig")
         ## work_mli output is generated output of ppx processing
-        ppx_src_mli, work_mli = impl_ppx_transform("ocaml_signature", ctx,
+        ppx_src_mli, work_mli = ppx_transformation("ocaml_signature", ctx,
                                       ctx.file.src, ## sig_src,
                                       modname + ".mli")
                                       # module_name + ".mli")

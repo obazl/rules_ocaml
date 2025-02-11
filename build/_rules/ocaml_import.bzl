@@ -11,11 +11,9 @@ load("@rules_ocaml//build:providers.bzl",
      "OcamlImportMarker")
 load("//build:providers.bzl", "OCamlCodepsProvider")
 
-load("@rules_ocaml//build/_lib:impl_common.bzl",
-     "dsorder")
-# , "opam_lib_prefix")
+load("@rules_ocaml//build/_lib:utils.bzl", "dsorder")
 
-load("@rules_ocaml//build/_lib:impl_ccdeps.bzl", "dump_CcInfo")
+load("@rules_ocaml//build/_lib:ccdeps.bzl", "dump_CcInfo")
 
 load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCDER", "CCMAG", "CCRESET")

@@ -11,6 +11,17 @@ NEGATION_OPTS = [
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
 
+## ocaml/_rules/common.bzl
+tmpdir = "__obazl/"
+
+dsorder = "postorder"
+
+# opam_lib_prefix = "external/ocaml/lib"
+
+module_sep = "__"
+
+resolver_suffix = module_sep + "0Resolver"
+
 #######################
 def get_fs_prefix(lbl_string):
     # print("GET_FS_PREFIX: %s" % lbl_string)
@@ -25,7 +36,9 @@ def get_fs_prefix(lbl_string):
 
     lbl = Label(lbl_string)
     if lbl_string.startswith("@"):
-        ws  = capitalize_initial_char(lbl.workspace_name) + "_"
+        # ws  = capitalize_initial_char(lbl.workspace_name) + "_"
+        ws = lbl.workspace_name[:1].capitalize() + lbl.workspace_name[1:]
+
     else:
         ws  = ""
     # print(" FS WS: %s" % ws)
@@ -38,12 +51,12 @@ def get_fs_prefix(lbl_string):
     return prefix
 
 ###############################
-def capitalize_initial_char(s):
-  """Starlark's capitalize fn downcases everything but the first char.  This fn only affects first char."""
-  # first = s[:1]
-  # rest  = s[1:]
-  # return first.capitalize() + rest
-  return s[:1].capitalize() + s[1:]
+# def capitalize_initial_char(s):
+#   """Starlark's capitalize fn downcases everything but the first char.  This fn only affects first char."""
+#   # first = s[:1]
+#   # rest  = s[1:]
+#   # return first.capitalize() + rest
+#   return s[:1].capitalize() + s[1:]
 
 #####################################################
 def get_src_root(ctx, root_file_names = ["main.ml"]):

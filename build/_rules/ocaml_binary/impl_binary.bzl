@@ -11,9 +11,10 @@ load("//build:providers.bzl",
 )
 load("//build:providers.bzl", "OCamlCodepsProvider")
 
-load("//build/_lib:utils.bzl", "get_options")
+load("//build/_lib:utils.bzl",
+     "get_options", "dsorder", "tmpdir")
 
-load("@rules_ocaml//build/_lib:impl_ccdeps.bzl", "extract_cclibs",
+load("@rules_ocaml//build/_lib:ccdeps.bzl", "extract_cclibs",
      "dump_compilation_context",
      "dump_CcInfo",)
 
@@ -26,10 +27,6 @@ load("@rules_ocaml//lib:merge.bzl",
 load("//build/_lib:module_naming.bzl", "file_to_lib_name")
 
 load("//build/_lib:options.bzl", "options")
-
-load("//build/_lib:impl_common.bzl", "dsorder", # "opam_lib_prefix",
-     "tmpdir"
-     )
 
 load("//lib:colors.bzl",
      "CCBLU", "CCRED", "CCGRN", "CCMAG", "CCRESET")
