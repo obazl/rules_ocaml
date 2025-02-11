@@ -1,6 +1,6 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@rules_ocaml//ocaml:aggregators.bzl",
+load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "DepsAggregator",

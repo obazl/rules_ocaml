@@ -17,7 +17,7 @@ load(":impl_ccdeps.bzl", "extract_cclibs",
      "dump_compilation_context",
      "dump_CcInfo",)
 
-load("@rules_ocaml//ocaml:aggregators.bzl",
+load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "DepsAggregator",

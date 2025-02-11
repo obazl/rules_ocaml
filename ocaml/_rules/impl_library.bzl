@@ -22,7 +22,7 @@ load(":impl_ccdeps.bzl",
      "ccinfo_to_string"
      )
 
-load("@rules_ocaml//ocaml:aggregators.bzl",
+load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "DepsAggregator",

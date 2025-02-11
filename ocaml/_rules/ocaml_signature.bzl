@@ -24,7 +24,7 @@ load("//providers:ocaml.bzl",
      "OCamlSignatureProvider")
 load("//providers:codeps.bzl", "OcamlCodepsProvider")
 
-load("@rules_ocaml//ocaml:aggregators.bzl",
+load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "DepsAggregator",
