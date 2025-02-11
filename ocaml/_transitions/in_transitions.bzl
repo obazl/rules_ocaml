@@ -2,22 +2,22 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:structs.bzl", "structs")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//providers:ocaml.bzl",
+load("//build:providers.bzl",
      "OcamlModuleMarker",
      "OCamlSignatureProvider",
-     "OcamlNsResolverProvider")
+     "OCamlNsResolverProvider")
 
-load("//ocaml/_functions:utils.bzl", "capitalize_initial_char")
+load("//build/_lib:utils.bzl", "capitalize_initial_char")
 
-load("//ocaml/_functions:module_naming.bzl",
+load("//build/_lib:module_naming.bzl",
      "derive_module_name_from_file_name",
      "label_to_module_name",
      "normalize_module_label",
      "normalize_module_name")
 
-load("//ocaml/_rules:impl_common.bzl", "module_sep")
+load("//build/_lib:impl_common.bzl", "module_sep")
 
-load("@rules_ocaml//ocaml/_debug:colors.bzl",
+load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCCYN", "CCRESET",
      "CCYEL", "CCUYEL", "CCYELBG", "CCYELBGH"
      )
@@ -48,7 +48,7 @@ def print_config_state(settings, attr):
     #     print(" nsr: %s" % attr._ns_resolver)
     #     print(" %s" % settings[str(attr._ns_resolver)])
     #     fail("xxxx")
-        # for d in attr._ns_resolver[OcamlNsResolverProvider]:
+        # for d in attr._ns_resolver[OCamlNsResolverProvider]:
         #     print(" %s" % d)
         # print("nsr ws: %s" % attr._ns_resolver.workspace_name)
 

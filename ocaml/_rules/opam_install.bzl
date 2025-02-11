@@ -1,16 +1,16 @@
-load("//providers:ocaml.bzl",
+load("//build:providers.bzl",
      "OcamlArchiveMarker",
      "OcamlExecutableMarker",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
-     "OcamlNsResolverProvider",
+     "OCamlNsResolverProvider",
      "OcamlModuleMarker",
      "OcamlNsMarker",
      "OcamlNsSubmoduleMarker",
      "OcamlProvider",
      "OCamlSignatureProvider",
 )
-load("//providers:codeps.bzl",
+load("//build:providers.bzl",
      "PpxExecutableMarker",
 )
 

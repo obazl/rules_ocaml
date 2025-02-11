@@ -13,11 +13,13 @@ load("//ocaml/_rules:ocaml_null.bzl", _ocaml_null = "ocaml_null")
 
 # load("//ocaml/_rules:ocaml_archive.bzl", _ocaml_archive = "ocaml_archive")
 
-load("//ocaml/_rules:ocaml_binary.bzl"  , _ocaml_binary = "ocaml_binary")
+load("//build/_rules:ocaml_binary.bzl",
+     _ocaml_binary = "ocaml_binary")
 
 # load("//ocaml/_rules:ocaml_genrule.bzl"      , _ocaml_genrule = "ocaml_genrule")
 
-load("//ocaml/_rules:ocaml_import.bzl"      , _ocaml_import = "ocaml_import")
+load("//build/_rules:ocaml_import.bzl",
+     _ocaml_import = "ocaml_import")
 
 # load("//ocaml/_rules:ocaml_lex.bzl"         , _ocaml_lex = "ocaml_lex")
 # load("//ocaml/_rules:ocaml_yacc.bzl"        , _ocaml_yacc = "ocaml_yacc")
@@ -25,27 +27,35 @@ load("//ocaml/_rules:ocaml_import.bzl"      , _ocaml_import = "ocaml_import")
 load("//ocaml/_rules:ocaml_parsing.bzl",
      _ocamllex = "ocamllex", _ocamlyacc = "ocamlyacc")
 
-load("//ocaml/_rules:ocaml_library.bzl"     , _ocaml_library = "ocaml_library")
-load("//ocaml/_rules:ocaml_exec_module.bzl"      , _ocaml_exec_module = "ocaml_exec_module")
-load("//ocaml/_rules:ocaml_module.bzl"      , _ocaml_module = "ocaml_module")
+load("//build/_rules:ocaml_library.bzl",
+     _ocaml_library = "ocaml_library")
+
+# load("//ocaml/_rules:ocaml_exec_module.bzl"      , _ocaml_exec_module = "ocaml_exec_module")
+
+load("//build/_rules:ocaml_module.bzl", _ocaml_module = "ocaml_module")
 
 # load("//ocaml/_rules:ocaml_pack_library.bzl"      , _ocaml_pack_library = "ocaml_pack_library")
 
 # load("//ocaml/_rules:ocaml_ns_archive.bzl"  , _ocaml_ns_archive = "ocaml_ns_archive")
 
-load("//ocaml/_rules:ocaml_ns_library.bzl"  , _ocaml_ns_library = "ocaml_ns_library")
-load("//ocaml/_rules:ocaml_ns_resolver.bzl"      , _ocaml_ns_resolver = "ocaml_ns_resolver")
-load("//ocaml/_rules:ocaml_ns_resolver_topdown.bzl",
+load("//build/_rules:ocaml_ns_library.bzl",
+     _ocaml_ns_library = "ocaml_ns_library")
+
+load("//build/_rules:ocaml_ns_resolver.bzl",
+     _ocaml_ns_resolver = "ocaml_ns_resolver")
+
+load("//build/_rules:ocaml_ns_resolver_topdown.bzl",
      _ocaml_topdown_ns_resolver = "ocaml_topdown_ns_resolver")
 
-load("//ocaml/_rules:ocaml_signature.bzl",
+load("//build/_rules:ocaml_signature.bzl",
      _ocaml_signature = "ocaml_signature",
      )
 # load("//ocaml/_rules:ocaml_ns_signature.bzl",
 #      _ocaml_ns_signature = "ocaml_ns_signature"
 #      )
 
-load("//ocaml/_rules:ocaml_test.bzl"        , _ocaml_test = "ocaml_test")
+load("//build/_rules:ocaml_test.bzl",
+     _ocaml_test = "ocaml_test")
 
 load("//ocaml/_rules:ocaml_vm_runtime.bzl", _ocaml_vm_runtime = "ocaml_vm_runtime")
 
@@ -77,7 +87,7 @@ ocaml_binary = _ocaml_binary
 ocaml_import     = _ocaml_import
 ocaml_library    = _ocaml_library
 # ocaml_pack_library    = _ocaml_pack_library
-ocaml_exec_module     = _ocaml_exec_module
+# ocaml_exec_module     = _ocaml_exec_module
 ocaml_module     = _ocaml_module
 # ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns_library = _ocaml_ns_library

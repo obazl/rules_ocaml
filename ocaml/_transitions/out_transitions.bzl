@@ -3,12 +3,12 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@bazel_skylib//lib:structs.bzl", "structs")
 
-load("//ocaml/_functions:utils.bzl", "capitalize_initial_char")
-load("//ocaml/_functions:module_naming.bzl",
+load("//build/_lib:utils.bzl", "capitalize_initial_char")
+load("//build/_lib:module_naming.bzl",
      "normalize_module_label",
      "normalize_module_name")
 
-load("@rules_ocaml//ocaml/_debug:colors.bzl",
+load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCMAG", "CCMAGBG", "CCCYN", "CCRESET",
      "CCYEL", "CCUYEL", "CCYELBG", "CCYELBGH",
      "CCWHTBG"

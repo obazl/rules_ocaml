@@ -1,6 +1,6 @@
 load(":options.bzl", "options") # , "options_ns_resolver")
 
-# load("//providers:ocaml.bzl",
+# load("//build:providers.bzl",
 #      "OcamlProvider")
 
 ## ocaml_spi targets provide the package containing the module needed
@@ -15,7 +15,7 @@ def _ocaml_spi_impl(ctx):
     return [defaultInfo]
 
 ###############################
-rule_options = options("ocaml")
+rule_options = options("rules_ocaml")
 
 #########################
 ocaml_spi = rule(

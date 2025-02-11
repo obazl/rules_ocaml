@@ -1,4 +1,4 @@
-load("//providers:ocaml.bzl", "OcamlModuleMarker")
+load("//build:providers.bzl", "OcamlModuleMarker")
 
 ################################################################
 def _ocaml_null_module_impl(ctx):

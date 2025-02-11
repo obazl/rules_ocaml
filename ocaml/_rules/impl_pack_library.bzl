@@ -2,31 +2,31 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("//providers:ocaml.bzl",
+load("//build:providers.bzl",
      "OcamlArchiveProvider",
      "OcamlModuleMarker",
-     "OcamlNsResolverProvider",
+     "OCamlNsResolverProvider",
      "OcamlSDK",
 )
-load("//providers:codeps.bzl", "OcamlCodepsProvider")
+load("//build:providers.bzl", "OCamlCodepsProvider")
 
 load(":impl_ppx_transform.bzl", "impl_ppx_transform")
 
-load("//ocaml/_functions:module_naming.bzl", "derive_module_name_from_file_name")
+load("//build/_lib:module_naming.bzl", "derive_module_name_from_file_name")
 
-load("//ocaml/_rules/utils:utils.bzl",
+load("//build/_lib:utils.bzl",
      "get_options",
      )
 
-load("//ocaml/_functions:utils.bzl",
+load("//build/_lib:utils.bzl",
      "capitalize_initial_char",
      "get_sdkpath")
 
-load("//ocaml/_functions:module_naming.bzl",
+load("//build/_lib:module_naming.bzl",
      "file_to_lib_name",
      "normalize_module_name")
 
-load(":impl_common.bzl",
+load("//build/_lib:impl_common.bzl",
      "dsorder",
      "tmpdir")
 
@@ -168,7 +168,7 @@ def impl_pack_library(ctx):
             fail("Unexpected rule for 'impl_pack_library': %s" % ctx.attr._rule)
 
         print("  _NS_RESOLVER: %s" % ctx.attr._ns_resolver[DefaultInfo])
-        print("  _NS_RESOLVER Marker: %s" % ctx.attr._ns_resolver[OcamlNsResolverProvider])
+        print("  _NS_RESOLVER Marker: %s" % ctx.attr._ns_resolver[OCamlNsResolverProvider])
         ns_prefixes     = ctx.attr._ns_prefixes[BuildSettingInfo].value
         ns_submodules = ctx.attr._ns_submodules[BuildSettingInfo].value
         print("  _NS_PREFIXES: %s" % ns_prefixes)
@@ -293,10 +293,10 @@ def impl_pack_library(ctx):
         if dep in ctx.files.deps:
             args.add(dep)
 
-    # if hasattr(ctx.attr._ns_resolver[OcamlNsResolverProvider], "resolver"):
+    # if hasattr(ctx.attr._ns_resolver[OCamlNsResolverProvider], "resolver"):
     #     ## this will only be the case if this is a submodule of an nslib
     #     args.add("-no-alias-deps")
-    #     args.add("-open", ctx.attr._ns_resolver[OcamlNsResolverProvider].resolver)
+    #     args.add("-open", ctx.attr._ns_resolver[OCamlNsResolverProvider].resolver)
 
     # if ctx.attr.for_pack:
     #     args.add("-for-pack", ctx.attr.pack)
@@ -396,7 +396,7 @@ def impl_pack_library(ctx):
     #         ),
     #     )
 
-    adjunctsMarker = OcamlCodepsProvider(
+    adjunctsMarker = OCamlCodepsProvider(
         ppx_codeps = depset(transitive = indirect_adjunct_depsets),
         paths = depset(transitive = indirect_adjunct_path_depsets)
     )

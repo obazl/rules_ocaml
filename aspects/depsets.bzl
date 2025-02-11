@@ -1,4 +1,4 @@
-# load("@rules_ocaml//providers:ocaml.bzl",
+# load("@rules_ocaml//build:providers.bzl",
 #      "OcamlModuleMarker")
 
 ####################################

@@ -27,7 +27,7 @@ bzl_library(
         "//ocaml/_functions:stardoc",
         "//ocaml/_providers:stardoc",
 
-        # "//providers:ocaml.bzl",
+        # "//build:providers.bzl",
         # "//ppx/_config:config",
         # "//providers:codeps",
         # "@obazl_rules_opam//opam/_providers:providers",
@@ -47,7 +47,7 @@ bzl_library(
         "//ocaml/_actions:actions",
         # "//ocaml/_config:config",
         "//ocaml/_functions:functions",
-        "//providers:ocaml.bzl",
+        "//build:providers.bzl",
         # "//providers:codeps",
         "//ppx/_config:config",
     ],

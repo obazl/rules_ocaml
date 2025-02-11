@@ -1,5 +1,7 @@
 workspace(name = "re2c")
 
+## Leave this here for compatibility with Bazel < 8.0.0. It will be removed with Bazel 9.
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(

@@ -1,4 +1,4 @@
-load("@rules_ocaml//ocaml/_rules:impl_ccdeps.bzl",
+load("@rules_ocaml//build/_lib:impl_ccdeps.bzl",
      "link_ccdeps", "dump_CcInfo")
 
 ####################################

@@ -1,9 +1,9 @@
-# load("@rules_ocaml//providers:ocaml.bzl",
+# load("@rules_ocaml//build:providers.bzl",
 #      # "OcamlDepsetProvider",
 #      "OCamlSignatureProvider",
 #      "OcamlModuleMarker",
 #      "OcamlNsLibraryProvider",
-#      "OcamlNsResolverProvider",
+#      "OCamlNsResolverProvider",
 #      # "OpamDepsProvider",
 #      "OcamlSDK")
 

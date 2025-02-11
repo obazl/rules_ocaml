@@ -1,4 +1,4 @@
-load("//providers:ocaml.bzl", "OcamlModuleMarker")
+load("//build:providers.bzl", "OcamlModuleMarker")
 
 load("//ocaml/_transitions:in_transitions.bzl", "module_in_transition")
 
@@ -11,7 +11,7 @@ load(":options.bzl",
 load(":impl_pack_library.bzl", "impl_pack_library")
 
 ################################
-rule_options = options("ocaml")
+rule_options = options("rules_ocaml")
 rule_options.update(options_pack_library("ocaml"))
 rule_options.update(options_ns_opts("ocaml"))
 

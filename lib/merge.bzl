@@ -1,17 +1,17 @@
-load("@rules_ocaml//providers:moduleinfo.bzl", "OCamlModuleInfo")
+load("@rules_ocaml//build:providers.bzl",
+     "OCamlModuleInfo", "OCamlProvider")
 
-load("@rules_ocaml//providers:ocaml.bzl",
+load("@rules_ocaml//build:providers.bzl",
      # "OcamlLibraryMarker",
      # "OcamlModuleMarker",
-     "OcamlProvider",
-     # "OcamlVmRuntimeProvider"
-     "OcamlNsResolverProvider",
+     # "OCamlVmRuntimeProvider"
+     "OCamlNsResolverProvider",
      "OCamlSignatureProvider",
      )
 
-load("@rules_ocaml//providers:codeps.bzl", "OcamlCodepsProvider")
+load("@rules_ocaml//build:providers.bzl", "OCamlCodepsProvider")
 
-load("@rules_ocaml//ocaml/_rules:impl_ccdeps.bzl",
+load("@rules_ocaml//build/_lib:impl_ccdeps.bzl",
      "cc_shared_lib_to_ccinfo",
      "normalize_ccinfo",
      "extract_cclibs", "dump_CcInfo")
@@ -268,8 +268,8 @@ def aggregate_deps(ctx,
     #         if mInfo.name == item.label.name:
     #             module_archived = True
 
-    if OcamlProvider in target: # FIXME: MergedDepsProvider
-        provider = target[OcamlProvider]
+    if OCamlProvider in target: # FIXME: MergedDepsProvider
+        provider = target[OCamlProvider]
 
         # if ctx.label.name == "Expansion":
         #     print("target: %s" % target)
@@ -309,7 +309,7 @@ def aggregate_deps(ctx,
                     #FIXME: if item is library, need we iterate over it???
                     # if OcamlLibraryMarker in item:
                     #     print("Item is library")
-                    #     for libitem in item[OcamlProvider].sigs.to_list():
+                    #     for libitem in item[OCamlProvider].sigs.to_list():
                     #         print("libitem sig: %s" % libitem)
                         # fail("embedded libs not yet implemented")
 
@@ -322,7 +322,7 @@ def aggregate_deps(ctx,
                         print("MODULE UNARCHIVED: %s" % mInfo)
 
             # bottomup ns resolver:
-            if OcamlNsResolverProvider in target:
+            if OCamlNsResolverProvider in target:
                 module_archived = True
 
             depsets.deps.sigs.append(depset([mInfo.sig]))
@@ -349,7 +349,7 @@ def aggregate_deps(ctx,
                         transitive = [provider.cli_link_deps]
                     )
                 )
-                # target[OcamlProvider].cli_link_deps)
+                # target[OCamlProvider].cli_link_deps)
 
         if hasattr(provider, "sigs"):
             if provider.sigs != []:
@@ -362,7 +362,7 @@ def aggregate_deps(ctx,
         #         depsets.deps.cli_link_deps.append(provider.cli_link_deps)
 
         if not OCamlModuleInfo in target:
-            if hasattr(provider, "cli_link_deps"): # tmp, for OcamlProvider
+            if hasattr(provider, "cli_link_deps"): # tmp, for OCamlProvider
                 if provider.cli_link_deps != []:
                     depsets.deps.cli_link_deps.append(provider.cli_link_deps)
             if hasattr(provider, "astructs"):
@@ -449,10 +449,10 @@ def aggregate_deps(ctx,
 
     ## ns resolvers
     if type(target) == "list":
-        if OcamlNsResolverProvider in target[0]:
+        if OCamlNsResolverProvider in target[0]:
             if debug: print("ns resolver: %s" % target)
             # fail()
-            provider = target[0][OcamlNsResolverProvider]
+            provider = target[0][OCamlNsResolverProvider]
             depsets.deps.sigs.append(depset([provider.cmi]))
             # depsets.deps.archives.append(provider.archives)
             if hasattr(provider, "astructs"):
@@ -470,10 +470,10 @@ def aggregate_deps(ctx,
 
     ## if target is ctx.attr.ppx, then we want to put codeps in deps
     ## elif target is e.g. prologue of ppx_executable, put them in codeps
-    if OcamlCodepsProvider in target:
+    if OCamlCodepsProvider in target:
         # print("AGGREGATING CODEPS FOR")
         # print("Target: %s" % target)
-        provider = target[OcamlCodepsProvider]
+        provider = target[OCamlCodepsProvider]
         # if ctx.label.name == "ppx.exe":
         #     print("AGGREGATING PPXCODEPS FOR")
         #     print("Target: %s" % target)
@@ -569,7 +569,7 @@ def aggregate_deps(ctx,
         #     ccinfos.append(filtered_ccinfo)
         #     # ccinfos.append(libname)
         # else:
-        #     ## this dep has CcInfo but not OcamlProvider (i.e. it
+        #     ## this dep has CcInfo but not OCamlProvider (i.e. it
         #     ## was not propagated by an ocaml_* rule?); infer it
         #     ## was delivered by cc_binary must be a shared lib
         #     ccfile = dep[DefaultInfo].files.to_list()[0]
@@ -609,10 +609,10 @@ def aggregate_codeps(ctx,
     # print("PPXCOD: %s" % target)
     # if target.label.name == "config":
     # if target.label.name == "runtime-lib":
-    #     print("codep archives: %s" % target[OcamlProvider].archives)
-    #     print("codep astructs: %s" % target[OcamlProvider].astructs)
-    #     if OcamlCodepsProvider in target:
-    #         print("ppx: %s" % target[OcamlCodepsProvider])
+    #     print("codep archives: %s" % target[OCamlProvider].archives)
+    #     print("codep astructs: %s" % target[OCamlProvider].astructs)
+    #     if OCamlCodepsProvider in target:
+    #         print("ppx: %s" % target[OCamlCodepsProvider])
     #     fail(target)
 
     if kind == COMPILE:
@@ -624,8 +624,8 @@ def aggregate_codeps(ctx,
     else:
         fail("Invalid kind: {}; must be COMPILE (0), LINK (1), or COMPILE_LINK (2)")
 
-    if OcamlProvider in target:
-        provider = target[OcamlProvider]
+    if OCamlProvider in target:
+        provider = target[OCamlProvider]
         depsets.codeps.sigs.append(provider.sigs)
         if provider.cli_link_deps != []:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
@@ -645,8 +645,8 @@ def aggregate_codeps(ctx,
             if provider.jsoo_runtimes != []:
                 depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
-    if OcamlCodepsProvider in target:
-        provider = target[OcamlCodepsProvider]
+    if OCamlCodepsProvider in target:
+        provider = target[OCamlCodepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
         if provider.cli_link_deps != []:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)

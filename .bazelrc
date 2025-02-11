@@ -1,2 +1,4 @@
-common --enable_bzlmod
+## during development:
+common --lockfile_mode=off
+
 try-import user.bazelrc

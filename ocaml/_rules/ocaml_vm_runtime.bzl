@@ -1,10 +1,8 @@
 # load(":options.bzl", "options") # , "options_ns_resolver")
 
-load("//providers:ocaml.bzl",
-     "OcamlVmRuntimeProvider"
-)
+load("@rules_ocaml//build:providers.bzl", "OCamlVmRuntimeProvider")
 
-load("//ocaml/_debug:colors.bzl", "CCRED", "CCMAGBG", "CCRESET")
+load("//lib:colors.bzl", "CCRED", "CCMAGBG", "CCRESET")
 
 ###############################
 def _ocaml_vm_runtime(ctx):
@@ -28,7 +26,7 @@ def _ocaml_vm_runtime(ctx):
         # executable=out_exe,
         # runfiles = myrunfiles
     )
-    ocamlVmRuntimeProvider = OcamlVmRuntimeProvider(
+    ocamlVmRuntimeProvider = OCamlVmRuntimeProvider(
         kind = kind
     )
 
@@ -40,7 +38,7 @@ def _ocaml_vm_runtime(ctx):
     return providers
 
 ###############################
-# rule_options = options("ocaml")
+# rule_options = options("rules_ocaml")
 # rule_options.update(options_vm_runtime("ocaml"))
 
 #########################
@@ -57,7 +55,7 @@ ocaml_vm_runtime = rule(
         ),
         _rule = attr.string(default = "ocaml_vm_runtime")
     ),
-    provides = [OcamlVmRuntimeProvider],
+    provides = [OCamlVmRuntimeProvider],
     executable = False,
     toolchains = [
         "@rules_ocaml//toolchain/type:std",

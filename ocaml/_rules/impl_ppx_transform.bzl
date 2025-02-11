@@ -1,12 +1,12 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//providers:ocaml.bzl", "OcamlExecutableMarker")
-# load("//providers:ocaml.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
-# load("//ocaml/_functions:utils.bzl",
+load("//build:providers.bzl", "OcamlExecutableMarker")
+# load("//build:providers.bzl", "PpxExecutableMarker") #, "PpxPrintSettingMarker")
+# load("//build/_lib:utils.bzl",
 #      "get_sdkpath")
 
-load(":impl_common.bzl", "tmpdir")
+load("//build/_lib:impl_common.bzl", "tmpdir")
 
 # tmpdir = "_obazl_/"
 
