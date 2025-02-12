@@ -284,9 +284,9 @@ def _ocaml_signature_impl(ctx):
     if ns_enabled:
         depsets = aggregate_deps(ctx, ns_resolver, depsets, manifest)
 
-    if hasattr(ctx.attr, "ppx_codeps"):
-        for codep in ctx.attr.ppx_codeps:
-            depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets, manifest)
+    ## NB: sigs never have direct codeps
+    if ctx.attr.ppx:
+        depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     if hasattr(ctx.attr, "ppx_compile_codeps"):
         for codep in ctx.attr.ppx_compile_codeps:
@@ -461,21 +461,13 @@ def _ocaml_signature_impl(ctx):
         transitive =
         depsets.deps.sigs
         + depsets.codeps.sigs
-        # we only need sig deps?
-
-         # indirect_ppx_codep_depsets
-        # + [ppx_codep_structset]
-        # + [depset(direct=archives)]
-         # ns_deps
-        # depsets.deps.structs # structs_secondary
-        # + depsets.deps.ofiles # ofiles_secondary
-        # + depsets.deps.archives # archives_secondary
-        # + depsets.deps.afiles   # afiles_secondary
-        # + depsets.deps.astructs # astructs_secondary
-        # + cclibs_secondary
-        # + bottomup_ns_inputs
+        + depsets.codeps.cli_link_deps
+        + depsets.codeps.structs
+        + depsets.codeps.ofiles
+        + depsets.codeps.astructs
+        + depsets.codeps.archives ## FIXME: redundant (cli_link_deps)
+        + depsets.codeps.afiles
     )
-    # if ctx.label.name in ["Red_cmi"]:
     #     print("SIGACTION INPUTS: %s" % ctx.label)
     #     for dep in action_inputs_depset.to_list():
     #         print("IDEP: %s" % dep.path)
