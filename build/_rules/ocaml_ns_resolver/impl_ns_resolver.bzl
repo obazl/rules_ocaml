@@ -1,7 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@rules_ocaml//build:providers.bzl",
-     "OCamlModuleProvider", "OCamlProvider")
+     "OCamlModuleProvider", "OCamlDepsProvider")
 
 load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
@@ -101,7 +101,7 @@ def impl_ns_resolver(ctx):
         if debug:
             print("{c}returning null ns_resolver{r}".format(c=CCREDBG,r=CCRESET))
         return [DefaultInfo(),
-                OCamlProvider(),
+                OCamlDepsProvider(),
                 OCamlNsResolverProvider(tag = "NULL")
                 ]
     ################
@@ -115,7 +115,7 @@ def impl_ns_resolver(ctx):
                             print("NO SUBMODULES/MODULES/MERGE")
                             print("label: %s" % ctx.label)
                         return [DefaultInfo(),
-                                OCamlProvider(),
+                                OCamlDepsProvider(),
                                 OCamlNsResolverProvider(ns_name = "FOO")]
 
     # env = {"PATH": get_sdkpath(ctx)}
@@ -338,7 +338,7 @@ def impl_ns_resolver(ctx):
         #     ns_name    = ns_name
         # )
 
-        # ocamlProvider = OCamlProvider(
+        # ocamlProvider = OCamlDepsProvider(
         #     inputs    = depset(
         #         order = dsorder,
         #         transitive = user_ns_resolver
@@ -364,14 +364,14 @@ def impl_ns_resolver(ctx):
     #     if debug_ns:
     #         print("NO ALIASES NO ALIASES NO ALIASES")
     #     return [DefaultInfo(),
-    #             OCamlProvider(),
+    #             OCamlDepsProvider(),
     #             OCamlNsResolverProvider(ns_name = ns_name)]
     #     # debug=True
     #     # print("LBL: %s" % ctx.label)
     #     if user_ns_resolver:
     #         print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
     #     #     return [DefaultInfo(),
-    #     #             OCamlProvider(),
+    #     #             OCamlDepsProvider(),
     #     #             OCamlNsResolverProvider(
     #     #                 ns_name = ns_name,
     #     #                 module_name = user_ns_resolver
@@ -381,7 +381,7 @@ def impl_ns_resolver(ctx):
     #         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % ns_name)
     #     #     print("user_ns_resolver: %s" % user_ns_resolver)
     #         return [DefaultInfo(),
-    #                 OCamlProvider(),
+    #                 OCamlDepsProvider(),
     #                 OCamlNsResolverProvider(ns_name = ns_name)]
 
     resolver_src_filename = resolver_module_name + ".ml"
@@ -576,7 +576,7 @@ def impl_ns_resolver(ctx):
         # files = #FIXME
     )
 
-    ocamlProvider = OCamlProvider(
+    ocamlProvider = OCamlDepsProvider(
         # cmi      = depset(direct = [out_cmi]),
         cmi      = out_cmi,
         # fileset  = fileset_depset,
@@ -620,7 +620,7 @@ def impl_ns_resolver(ctx):
         # )
     )
 
-    if debug: print("resolver OCamlProvider: %s" % ocamlProvider)
+    if debug: print("resolver OCamlDepsProvider: %s" % ocamlProvider)
     if debug: print("resolver nsrp: %s" % nsResolverProvider)
 
     return [

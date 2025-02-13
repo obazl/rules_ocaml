@@ -1,4 +1,4 @@
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
+load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("//build:providers.bzl",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
@@ -53,7 +53,7 @@ See [Namespacing](../ug/namespacing.md) for more information on namespaces.
         ),
     ),
     cfg     = nslib_in_transition,
-    provides = [OcamlNsMarker, OcamlLibraryMarker, OCamlProvider],
+    provides = [OcamlNsMarker, OcamlLibraryMarker, OCamlDepsProvider],
     executable = False,
     fragments = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],

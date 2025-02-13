@@ -1,4 +1,4 @@
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
+load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 load("//build:providers.bzl",
      "OcamlArchiveMarker",
@@ -143,7 +143,7 @@ def options_binary():
             doc = "Label of module containing entry point of executable. In the list of dependencies, this will be placed after 'prologue' deps and before 'epilogue' deps.",
             mandatory = True,
             # allow_single_file = True,
-            # providers = [[OCamlProvider,OcamlModuleMarker]],
+            # providers = [[OCamlDepsProvider,OcamlModuleMarker]],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
         ),
@@ -739,7 +739,7 @@ def options_module(ws):
         open = attr.label_list(
             doc = "List of OCaml dependencies to be passed with `-open`.",
             providers = [
-                [OCamlProvider],
+                [OCamlDepsProvider],
                 [OcamlArchiveMarker],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],

@@ -3,10 +3,10 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//build:providers.bzl",
      "MergedDepsProvider",
-     "OCamlModuleProvider", "OCamlProvider")
+     "OCamlModuleProvider", "OCamlDepsProvider")
 
 load("@rules_ocaml//lib:merge.bzl",
-     "aggregate_deps",
+     "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
      # "DepsAggregator",
@@ -473,15 +473,15 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     print("ns manifest: %s" % manifest)
 
     if ctx.file.sig:
-        depsets = aggregate_deps(ctx, ctx.attr.sig, depsets, manifest)
+        depsets = merge_deps(ctx, ctx.attr.sig, depsets, manifest)
 
-    if hasattr(ctx.attr, "sig_deps"):
-        for dep in ctx.attr.sig_deps:
-            depsets = aggregate_deps(ctx, dep, depsets, manifest)
+    # if hasattr(ctx.attr, "sig_deps"): ???
+    #     for dep in ctx.attr.sig_deps:
+    #         depsets = merge_deps(ctx, dep, depsets, manifest)
 
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
-        depsets = aggregate_deps(ctx, dep, depsets, manifest)
+        depsets = merge_deps(ctx, dep, depsets, manifest)
     if debug_deps:
         print("DEPSETS: %s" % depsets)
     if debug_ccdeps:
@@ -492,23 +492,23 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             print("Module provides: %s" % cc)
 
     if ctx.attr.ppx:
-        depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
+        depsets = merge_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     # input files produced by preprocessor, with codeps
     # (e.g. result of ppx transform)
     if OCamlCodepsProvider in ctx.attr.struct:
-        depsets = aggregate_deps(ctx, ctx.attr.struct, depsets, manifest)
+        depsets = merge_deps(ctx, ctx.attr.struct, depsets, manifest)
 
     if ctx.attr.sig:
         if OCamlCodepsProvider in ctx.attr.sig:
-            depsets = aggregate_deps(ctx, ctx.attr.sig, depsets, manifest)
+            depsets = merge_deps(ctx, ctx.attr.sig, depsets, manifest)
 
 
     if ns_enabled:
-        depsets = aggregate_deps(ctx, ns_resolver, depsets, manifest)
+        depsets = merge_deps(ctx, ns_resolver, depsets, manifest)
 
     for ccdep in ctx.attr.cc_deps:
-        depsets = aggregate_deps(ctx, ccdep, depsets, manifest)
+        depsets = merge_deps(ctx, ccdep, depsets, manifest)
 
 
     ############ PPX EXECUTABLE DEPENDENCIES ################
@@ -526,12 +526,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # if ctx.attr.ppx:
     #     # if ctx.label.name == "Test":
     #     #     print("ppx deps: %s" % ctx.attr.ppx[OCamlCodepsProvider])
-    #     depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
+    #     depsets = merge_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     # if ctx.label.name == "Test":
     #     print("AST2: %s" % depsets.deps.astructs)
 
-    ## Can a ppx_executable also have ordinary deps listed in OCamlProvider?
+    ## Can a ppx_executable also have ordinary deps listed in OCamlDepsProvider?
     ## Don't think so.
 
     ## But it can carry CcInfo
@@ -540,7 +540,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## attribute, for the deps they inject into the files they
     ## preprocess. They are _NOT_ material deps of the module itself.
     ## It follows that they are passed on in a OCamlCodepsProvider, not
-    ## in OCamlProvider.
+    ## in OCamlDepsProvider.
 
 
     #     ## to ppx a module:
@@ -550,7 +550,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     ## 4. compile transformed src, with ppx_codeps
     #     ## 5. provide them, for later linking (e.g. ppx_expect)
 
-    ## ppx_codeps attr was for ppx_module...
+    ## ppx_codeps only for ppx executables?
     if hasattr(ctx.attr, "ppx_codeps"):
         for codep in ctx.attr.ppx_codeps:
             depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets, manifest)
@@ -788,85 +788,29 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             default_outputs.append(out_ofile)
     else: out_ofile = []
 
-    dep_is_xmo = True
+    # if debug: print("iterating deps")
+    # dep_is_xmo = True
+    # the_deps = ctx.attr.deps + ctx.attr.open
+    # for dep in the_deps:
+    #     # if ctx.label.name == "Hello":
+    #     ## module deps have xmo flag
+    #     ## aggregates do not
+    #     ## so when we find an aggregate we must iterate over it
+    #     if OCamlDepsProvider in dep:
+    #         provider = dep[OCamlDepsProvider]
+    #         # if debug_deps: print("OCamlDepsProvider: %s" % dep)
+    #         if hasattr(provider, "xmo"):
+    #             if debug_xmo:
+    #                 print("DEP XMO: %s" % provider)
+    #                 # print("DEP.cmi: %s" % provider.cmi)
+    #                 # print("DEP: %s" % provider)
+    #                 print("")
 
-    ################################################################
-    if debug: print("iterating deps")
-
-    the_deps = ctx.attr.deps + ctx.attr.open
-    for dep in the_deps:
-        # if ctx.label.name == "Hello":
-        # if debug_deps:
-            # print("module lbl: %s" % ctx.label)
-            # print("module DEP: %s" % dep)
-        ## OCaml deps first
-
-        ## module deps have xmo flag
-        ## aggregates do not
-        ## so when we find an aggregate we must iterate over it
-
-        if OCamlProvider in dep:
-            provider = dep[OCamlProvider]
-            # if debug_deps: print("OCamlProvider: %s" % dep)
-
-            # if hasattr(provider, "ppx_codeps"):
-            #     print("Dep ppx_codeps: %s" % provider.ppx_codeps)
-
-            # if hasattr(provider, "ws"):
-            #     print("OCamlProvider WS: %s" % provider.ws)
-            if hasattr(provider, "xmo"):
-                if debug_xmo:
-                    print("DEP XMO: %s" % provider)
-                    # print("DEP.cmi: %s" % provider.cmi)
-                    # print("DEP: %s" % provider)
-                    print("")
-
-                # depending on xmo means...
-                if not provider.xmo:
-                    if debug_xmo:
-                        print("DEP is not xmo: %s" % provider.sigs)
-                    dep_is_xmo = False
-                    # sigs_secondary.append(provider.cmi)
-                #     sigs_depsets.append(provider.sigs)
-                #     structs_depsets.append(provider.structs)
-                # else:
-                #     sigs_depsets.append(provider.sigs)
-                #     structs_depsets.append(provider.structs)
-
-    structs_depset = depset(
-        order=dsorder,
-        # FIXME: out_struct only if not archived
-        direct = [out_struct], #structs_primary,
-        transitive = depsets.deps.structs #structs_secondary
-    )
-    # if debug_deps: print("STRUCTS_depset: %s" % structs_depset)
-
-    ofiles_depset = depset(
-        order = dsorder,
-        direct=[out_ofile] if out_ofile else [],
-        transitive = depsets.deps.ofiles #ofiles_secondary
-    )
-
-    if debug_deps: print("OFILES_depset: %s" % ofiles_depset)
-
-    archives_depset = depset(
-        order=dsorder,
-        # direct = archives_primary,
-        transitive = depsets.deps.archives # archives_secondary
-        # + depsets.codeps.archives
-    )
-    if debug_deps: print("ARCHIVES_depset: %s" % archives_depset)
-
-    afiles_depset = depset(
-        order=dsorder,
-        # direct = afiles_primary,
-        transitive = depsets.deps.afiles # afiles_secondary
-    )
-    if debug_deps: print("ARFILES_depset: %s" % afiles_depset)
-
-    # for arch in archives_depset.to_list():
-    #         args.add(arch.path)
-    #         includes.append(arch.dirname)
+    #             # depending on xmo means...
+    #             if not provider.xmo:
+    #                 if debug_xmo:
+    #                     print("DEP is not xmo: %s" % provider.sigs)
+    #                 dep_is_xmo = False
 
     paths_depset  = depset(
         order = dsorder,
@@ -874,6 +818,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         transitive = depsets.deps.paths  # paths_secondary + paths_ns
         # + indirect_ppx_codep_path_depsets
     )
+    includes.extend(paths_depset.to_list()) # , before_each="-I")
     # paths_primary = [out_struct.dirname, out_cmi.dirname]
 
     codep_paths_depset = depset(
@@ -882,15 +827,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
     includes.extend(codep_paths_depset.to_list())
 
-    includes.extend(paths_depset.to_list()) # , before_each="-I")
     # args.add("-absname")
 
-    for a in archives_depset.to_list():
-        includes.append(a.dirname)
-
-    # for i in includes:
-    #     if  not i == "external/sexplib0/lib/sexplib0":
-    #         args.add("-I", i)
+    # for a in archives_depset.to_list():
+    #     includes.append(a.dirname)
 
     # FIXME: -no-alias-deps and -open only required for sibling deps.
     # in case of udr, they break the build?
@@ -912,15 +852,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         xmo_deps = []
     if debug_xmo: print("XMO DEPS: %s" % xmo_deps)
 
-    # if ctx.label.name in ["Test"]:
-    #     print("ACTION INPUTS: %s" % ctx.label)
-    #     x = depset(transitive = depsets.deps.astructs)
-    #     for dep in x.to_list():
-    #         print("ADEP: %s" % dep.basename)
-
     ## WARNING: pre-5.0.0, cmi file must be in same dir as source
     ## file. >=5 has -cmi-file option.
-
     if cmi_precompiled:
         # print("VERSION: %s" % tc.version.version)
         # print("MAJOR version: %s" % tc.version.major)
@@ -930,6 +863,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             None # print("TODO")
         else:
             args.add("-cmi-file", out_cmi.path)
+
+    ## NB: for compilation, only cmis are required,
+    ## must be in search path and inputs depset
+    ## cm structs only needed for xmo.
+    ## for linking cm structs on cmd line
+    ## so we pass them along in Provider.
 
     action_inputs_depset = depset(
         order = dsorder,
@@ -986,8 +925,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         + depsets.codeps.afiles
     )
 
-    for dep in action_inputs_depset.to_list():
-        includes.append(dep.dirname)
+    # isnt't this already done using paths depsets?
+    # for dep in action_inputs_depset.to_list():
+    #     includes.append(dep.dirname)
 
     args.add_all(includes, before_each="-I", uniquify = True)
 
@@ -1059,7 +999,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         )
     )
 
-    ################################################################
+    #########################
     ##  construct providers
     #########################
 
@@ -1119,6 +1059,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         transitive = depsets.deps.astructs #astructs_secondary
     )
 
+    #   if this module in manifest (i.e. will be archived):
+    #     do NOT add this module to cli_link_deps
+    #     DO add merged link_deps of this module's deps
     this_link_dep = []
     if len(manifest) > 0: #NB: only if namespaced, not for std libs/archives
         print("MANIFEST: %s" % manifest)
@@ -1137,7 +1080,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     cli_link_depset = depset(
         order=dsorder,
-        # direct = this_link_dep, # [out_file] or []
+        direct = this_link_dep, # [out_file] or []
         transitive = depsets.deps.cli_link_deps
     )
 
@@ -1149,7 +1092,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 print("linkdep: %s" % dep)
         # fail()
 
-    moduleInfo = OCamlModuleProvider(
+    moduleProvider = OCamlModuleProvider(
         #FIXME: standardize derivation of modname
         ## modname = _resolve_modname(ctx) or normalize_module_name(ctx.label.name),
         name = modname,
@@ -1171,21 +1114,48 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     # why this?
     # )
 
-    ocamlProvider = OCamlProvider(
-        # ws        = ctx.workspace_name,
-        # submodule = normalize_module_name(ctx.label.name),
-        # files = outputGroup_all_depset,
-        # cmi      = depset(direct = [out_cmi]),
-        cmi      = out_cmi,  ## no need for a depset for one file?
-        sig      = out_cmi,
-        struct   = out_struct,
+    structs_depset = depset(
+        order=dsorder,
+        # FIXME: out_struct only if not archived
+        direct = [out_struct], #structs_primary,
+        transitive = depsets.deps.structs #structs_secondary
+    )
+    # if debug_deps: print("STRUCTS_depset: %s" % structs_depset)
+
+    ofiles_depset = depset(
+        order = dsorder,
+        direct=[out_ofile] if out_ofile else [],
+        transitive = depsets.deps.ofiles #ofiles_secondary
+    )
+
+    if debug_deps: print("OFILES_depset: %s" % ofiles_depset)
+
+    archives_depset = depset(
+        order=dsorder,
+        # direct = archives_primary,
+        transitive = depsets.deps.archives # archives_secondary
+        # + depsets.codeps.archives
+    )
+    if debug_deps: print("ARCHIVES_depset: %s" % archives_depset)
+
+    # for arch in archives_depset.to_list():
+    #         args.add(arch.path)
+    #         includes.append(arch.dirname)
+
+    afiles_depset = depset(
+        order=dsorder,
+        # direct = afiles_primary,
+        transitive = depsets.deps.afiles # afiles_secondary
+    )
+    if debug_deps: print("ARFILES_depset: %s" % afiles_depset)
+
+    ocamlProvider = OCamlDepsProvider(
+        # cmi      = out_cmi,  ## no need for a depset for one file?
+        # sig      = out_cmi,
+        # struct   = out_struct,
         xmo      = module_xmo,
         sigs     = new_sigs_depset,
         cli_link_deps = cli_link_depset,
-        #   if this module in manifest (i.e. will be archived):
-        #     do NOT add this module to cli_link_deps
-        #     DO add merged link_deps of this module's deps
-
         archives = archives_depset,
         afiles   = depset(
             order=dsorder,
@@ -1222,7 +1192,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         OcamlModuleMarker(marker="OcamlModule"),
         ocamlProvider,
 
-        moduleInfo,
+        moduleProvider,
         # ocamlInfo,
     ]
 

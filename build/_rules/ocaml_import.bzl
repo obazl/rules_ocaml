@@ -6,7 +6,7 @@ load("@rules_ocaml//lib:merge.bzl",
      "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
+load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("@rules_ocaml//build:providers.bzl",
      "OcamlImportMarker")
 load("//build:providers.bzl", "OCamlCodepsProvider")
@@ -204,9 +204,9 @@ def _ocaml_import_impl(ctx):
     #     print("deps.astructs: %s" % depsets.deps.astructs)
     #     fail()
 
-    ## To produce an OCamlProvider provider, we merge the direct deps of
+    ## To produce an OCamlDepsProvider provider, we merge the direct deps of
     ## this import with the depsets from ctx.attr.deps.
-    ocamlProvider = OCamlProvider(
+    ocamlProvider = OCamlDepsProvider(
         sigs    = depset(order=dsorder,
                          direct=ctx.files.sigs,
                          transitive = depsets.deps.sigs),
@@ -249,7 +249,7 @@ def _ocaml_import_impl(ctx):
         # transitive=jsoo_runtimes_secondary),
     )
     # if ctx.label.name == "ppx_inline_test":
-    #     print("OCamlProvider.astructs: %s" % ocamlProvider.astructs)
+    #     print("OCamlDepsProvider.astructs: %s" % ocamlProvider.astructs)
     #     fail()
 
     providers.append(ocamlProvider)

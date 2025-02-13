@@ -1,9 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-# load("@rules_ocaml//build:providers.bzl", "OCamlModuleProvider")
-
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
+load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("//build:providers.bzl",
      "OCamlNsResolverProvider",
      "OcamlLibraryMarker",
@@ -26,13 +24,13 @@ load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "DepsAggregator",
-     # "OCamlProvider",
+     # "OCamlDepsProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 # load("//ocaml/_functions:deps.bzl",
 #      "aggregate_deps",
 #      "aggregate_codeps",
-#      "OCamlProvider",
+#      "OCamlDepsProvider",
 #      "DepsAggregator")
 
 load("//build/_lib:utils.bzl",
@@ -154,7 +152,7 @@ def impl_library(ctx, for_archive = True):
     depsets = DepsAggregator()
     for dep in ctx.attr.manifest:
         # if dep.label.name == "Red":
-        #     print("red dep: %s" % dep[OCamlProvider])
+        #     print("red dep: %s" % dep[OCamlDepsProvider])
         #     fail()
         depsets = aggregate_deps(ctx, dep, depsets, archive_manifest)
 
@@ -250,7 +248,7 @@ def impl_library(ctx, for_archive = True):
     #         transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
     # )
 
-    ## build depsets here, use for OCamlProvider and OutputGroupInfo
+    ## build depsets here, use for OCamlDepsProvider and OutputGroupInfo
     sigs_depset = depset(order=dsorder, transitive = depsets.deps.sigs)
     structs_depset = depset(order=dsorder,
                             # direct=structs_primary,
@@ -299,7 +297,7 @@ def impl_library(ctx, for_archive = True):
     #                          transitive = cclibs_secondary)
 
     # print("new_linkargs: %s" % new_linkargs)
-    ocamlProvider = OCamlProvider(
+    ocamlProvider = OCamlDepsProvider(
         sigs     = sigs_depset,
         structs  = structs_depset,
         ofiles   = ofiles_depset,

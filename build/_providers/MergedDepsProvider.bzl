@@ -3,8 +3,8 @@ def _MergedDepsProvider_init(*,
                     cli_link_deps = [],
                     archives      = [],
                     afiles        = [],
-                    astructs      = [], # archived, for inputs_depset only
-                    structs       = [], # free-standing structs (unarchived)
+                    astructs      = [],
+                    structs       = [],
                     ofiles        = [],
                     mli           = [],
                     cmts          = [],

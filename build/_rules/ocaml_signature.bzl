@@ -9,7 +9,7 @@ load("//build:providers.bzl",
      "OcamlModuleMarker",
      "OcamlNsMarker",
      "OCamlNsResolverProvider",
-     "OCamlProvider",
+     "OCamlDepsProvider",
      "OCamlSignatureProvider")
 
 load("//build/_lib:module_naming.bzl",
@@ -23,7 +23,7 @@ load("//build/_transitions:in_transitions.bzl",
      "toolchain_in_transition")
 
 load("@rules_ocaml//lib:merge.bzl",
-     "aggregate_deps",
+     "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
@@ -183,20 +183,20 @@ def _ocaml_signature_impl(ctx):
     depsets = DepsAggregator()
 
     for dep in ctx.attr.deps:
-        depsets = aggregate_deps(ctx, dep, depsets, manifest)
+        depsets = merge_deps(ctx, dep, depsets, manifest)
 
     for dep in ctx.attr.open: # opened modules are deps
-        depsets = aggregate_deps(ctx, dep, depsets, manifest)
+        depsets = merge_deps(ctx, dep, depsets, manifest)
 
     if ns_enabled:
-        depsets = aggregate_deps(ctx, ns_resolver, depsets, manifest)
+        depsets = merge_deps(ctx, ns_resolver, depsets, manifest)
 
     ## NB: sigs never have direct codeps
     ## add ppx_codeps from ppx provider
     ## only the codeps of the ppx executable deps of this sig.
     ## ppx codeps in the dep graph are NOT compile deps of this sig.
     if ctx.attr.ppx:
-        depsets = aggregate_deps(ctx, ctx.attr.ppx, depsets, manifest)
+        depsets = merge_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     ################################################
     modname = None
@@ -422,7 +422,7 @@ def _ocaml_signature_impl(ctx):
     # )
 
     ## FIXME: use MergedDepsProvider?
-    ocamlProvider  = OCamlProvider(
+    ocamlProvider  = OCamlDepsProvider(
         # inputs   = new_inputs_depset,
         # linkargs = linkargs_depset,
         sigs       = sigs_depset,
@@ -445,13 +445,14 @@ def _ocaml_signature_impl(ctx):
         cmti = out_cmti if out_cmti else None,
         mli = work_mli,
         xmo = xmo, # True if xmo else False,
-        merged_deps = MergedDepsProvider( # OCamlProvider?
+        merged_deps = MergedDepsProvider( # OCamlDepsProvider?
+            # NB: sigs_depset contains out_cmi
             sigs       = sigs_depset,
             # cli_link_deps = depset(
             #     order = dsorder,
             #     transitive = depsets.deps.cli_link_deps
             # ),
-        structs    = structs_depset,
+            structs    = structs_depset,
             ofiles     = ofiles_depset,
             archives   = archives_depset,
             afiles     = afiles_depset,
@@ -536,7 +537,7 @@ the difference between '/' and ':' in such labels):
             doc = "List of OCaml dependencies. Use this for compiling a .mli source file with deps. See [Dependencies](#deps) for details.",
             providers = [
                 [OCamlSignatureProvider],
-                [OCamlProvider],
+                [OCamlDepsProvider],
                 [OcamlArchiveMarker],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],
@@ -558,7 +559,7 @@ the difference between '/' and ':' in such labels):
             doc = "List of OCaml dependencies to be passed with -open.",
             providers = [
                 [OCamlSignatureProvider],
-                [OCamlProvider],
+                [OCamlDepsProvider],
                 [OcamlArchiveMarker],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],

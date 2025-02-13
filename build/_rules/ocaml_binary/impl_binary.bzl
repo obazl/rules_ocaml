@@ -1,15 +1,13 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
-load("//build:providers.bzl",
+load("@rules_ocaml//build:providers.bzl",
+     "OCamlCodepsProvider",
      "OcamlExecutableMarker",
-     # "OcamlImportMarker",
-     # "OcamlModuleMarker",
+     "OCamlDepsProvider",
      "OcamlTestMarker",
      "OCamlVmRuntimeProvider",
 )
-load("//build:providers.bzl", "OCamlCodepsProvider")
 
 load("//build/_lib:utils.bzl",
      "get_options", "dsorder", "tmpdir")
@@ -19,7 +17,7 @@ load("@rules_ocaml//build/_lib:ccdeps.bzl", "extract_cclibs",
      "dump_CcInfo",)
 
 load("@rules_ocaml//lib:merge.bzl",
-     "aggregate_deps",
+     "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
@@ -151,8 +149,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         if debug_deps: print("ctx.attr.prologue: %s" % ctx.attr.prologue)
         for dep in ctx.attr.prologue:
             # print("PROLOG DEP: %s" % dep)
-            depsets = aggregate_deps(ctx, dep, depsets)
-            ## codeps already handled by aggregate_deps
+            depsets = merge_deps(ctx, dep, depsets)
+            ## codeps already handled by merge_deps
             ## aggregate_codeps is just for ppx_codeps
             # if OCamlCodepsProvider in dep:
             #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
@@ -180,14 +178,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     if debug: print("processing 'main' attribute")
     # if ctx.label.name == "ppx_1.exe":
-    #     print("main op: %s" % ctx.attr.main[OCamlProvider])
+    #     print("main op: %s" % ctx.attr.main[OCamlDepsProvider])
     #     print("main codep: %s" % ctx.attr.main[OCamlCodepsProvider])
         # fail("x")
 
     ## WARNING: we do not want ctx.attr.main to go in output codeps provider
     ## i.e. these deps are just for compiling the binary and should
     ## not be passed on (like codeps) to users of the (ppx) binary
-    depsets = aggregate_deps(ctx, ctx.attr.main, depsets)
+    depsets = merge_deps(ctx, ctx.attr.main, depsets)
     # if ctx.label.name == "test":
     #     print("CLILINK %s" % depsets.deps.cli_link_deps)
     #     fail()
@@ -196,7 +194,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         ## as above, for the binary only, not to be passed on
         if debug_deps: print("ctx.attr.epilogue: %s" % ctx.attr.epilogue)
         for dep in ctx.attr.epilogue:
-            depsets = aggregate_deps(ctx, dep, depsets)
+            depsets = merge_deps(ctx, dep, depsets)
 
     ##FIXME: cc_deps?
 
@@ -554,10 +552,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     else:
         bin_codeps = []
 
-    cli_depset = depset(
-        order=dsorder,
-        transitive= depsets.deps.structs
-    )
+    # cli_depset = depset(
+    #     order=dsorder,
+    #     transitive= depsets.deps.structs
+    # )
     # for dep in cli_depset.to_list():
     #     args.add(dep)
 
@@ -818,7 +816,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             # direct = codep_sigs_primary,
             # transitive = codep_sigs_secondary)
 
-    _ocamlProvider = OCamlProvider(
+    _ocamlProvider = OCamlDepsProvider(
         # struct = depset(direct = [outfile]),
         cli_link_deps = depset(order=dsorder,
                                # transitive = depsets.deps.cli_link_deps
@@ -890,7 +888,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # )
     # providers.append(outputGroupInfo)
 
-        ## no OCamlProvider?
+        ## no OCamlDepsProvider?
 
     # print("PROVIDERS: %s" % providers)
 

@@ -9,9 +9,6 @@ may change without notice. Really.
 load("//build/_providers:MergedDepsProvider.bzl",
      _MergedDepsProvider = "MergedDepsProvider")
 
-load("//build/_providers:ModuleInfo.bzl",
-     _ModuleInfo = "ModuleInfo")
-
 load("//build/_providers:OCamlCodepsProvider.bzl",
      _OCamlCodepsProvider = "OCamlCodepsProvider")
 
@@ -21,8 +18,8 @@ load("//build/_providers:OCamlModuleProvider.bzl",
 load("//build/_providers:OCamlNsResolverProvider.bzl",
      _OCamlNsResolverProvider = "OCamlNsResolverProvider")
 
-load("//build/_providers:OCamlProvider.bzl",
-     _OCamlProvider = "OCamlProvider")
+load("//build/_providers:OCamlDepsProvider.bzl",
+     _OCamlDepsProvider = "OCamlDepsProvider")
 
 load("//build/_providers:OCamlSignatureProvider.bzl",
      _OCamlSignatureProvider = "OCamlSignatureProvider")
@@ -37,7 +34,7 @@ OCamlCodepsProvider     = _OCamlCodepsProvider
 MergedDepsProvider      = _MergedDepsProvider
 OCamlModuleProvider     = _OCamlModuleProvider
 OCamlNsResolverProvider = _OCamlNsResolverProvider
-OCamlProvider           = _OCamlProvider
+OCamlDepsProvider           = _OCamlDepsProvider
 OCamlSignatureProvider  = _OCamlSignatureProvider
 OCamlVmRuntimeProvider  = _OCamlVmRuntimeProvider
 OpamInstallProvider     = _OpamInstallProvider

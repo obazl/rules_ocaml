@@ -1,5 +1,5 @@
 load("@rules_ocaml//build:providers.bzl",
-     "OCamlProvider",
+     "OCamlDepsProvider",
      "OcamlModuleMarker",
      "OCamlSignatureProvider")
 # load("@rules_ocaml//build:providers.bzl",
@@ -17,8 +17,8 @@ def _ocaml_selection_proxy_impl(ctx):
 
     providers = []
     s = ctx.attr.selection[0]
-    if OCamlProvider in s:
-        providers.append(s[OCamlProvider])
+    if OCamlDepsProvider in s:
+        providers.append(s[OCamlDepsProvider])
         if OCamlSignatureProvider in s:
             providers.append(s[OCamlSignatureProvider])
             providers.append(s[DefaultInfo])

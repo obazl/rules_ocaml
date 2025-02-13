@@ -6,7 +6,7 @@ load("//build:providers.bzl",
      "OcamlNsSubmoduleMarker")
      # "OcamlProvider")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
+load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 # load("//ocaml/_rules:impl_module.bzl", "impl_module")
 
@@ -199,7 +199,7 @@ Includes all submodules of an exogenous namespace.
 
         _rule = attr.string(default = "ocaml_topdown_ns_resolver")
     ),
-    provides = [OCamlNsResolverProvider,OCamlProvider],
+    provides = [OCamlNsResolverProvider,OCamlDepsProvider],
     executable = False,
     toolchains = [
         "@rules_ocaml//toolchain/type:std",

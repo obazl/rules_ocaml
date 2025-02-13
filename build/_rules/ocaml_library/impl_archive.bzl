@@ -1,11 +1,9 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-# load("@rules_ocaml//build:providers.bzl", "OCamlModuleProvider")
-
 load("@rules_ocaml//build:providers.bzl",
      "OCamlCodepsProvider",
      "OCamlNsResolverProvider",
-      "OCamlProvider",
+      "OCamlDepsProvider",
      "OcamlArchiveMarker",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
@@ -196,10 +194,6 @@ def impl_archive(ctx):
     ## ns_archives have submodules, plain archives have modules
     # direct_submodule_deps = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
     direct_submodule_deps = ctx.files.manifest
-    # for dep in ctx.attr.manifest:
-    #     if OCamlModuleProvider in dep:
-    #         print("DIRDEP %s" % dep[OCamlModuleProvider])
-        # print("ODEP %s" % dep[OcamlProvider])
 
     # if OcamlProvider in ns_resolver:
     #     ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
@@ -452,7 +446,7 @@ def impl_archive(ctx):
         # transitive = [libOcamlProvider.cli_link_deps]
     )
 
-    ocamlProvider = OCamlProvider(
+    ocamlProvider = OCamlDepsProvider(
         # files   = libOcamlProvider.files,
         # fileset = libOcamlProvider.fileset,
         # inputs   = new_inputs_depset,
