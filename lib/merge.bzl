@@ -1,15 +1,12 @@
 load("@rules_ocaml//build:providers.bzl",
-     "OCamlModuleInfo", "OCamlProvider")
-
-load("@rules_ocaml//build:providers.bzl",
-     # "OcamlLibraryMarker",
-     # "OcamlModuleMarker",
-     # "OCamlVmRuntimeProvider"
+     "OCamlCodepsProvider",
+     "OCamlModuleProvider",
+     "OCamlProvider",
      "OCamlNsResolverProvider",
-     "OCamlSignatureProvider",
-     )
+     "OCamlSignatureProvider")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlCodepsProvider")
+load("@rules_ocaml//build/_providers:MergedDepsProvider.bzl",
+     "MergedDepsProvider")
 
 load("@rules_ocaml//build/_lib:ccdeps.bzl",
      "cc_shared_lib_to_ccinfo",
@@ -21,59 +18,6 @@ LINK         = 1
 COMPILE_LINK = 2
 
 ################################################################
-# RENAME: MergedDepsProvider
-def _MergedDepsProvider_init(*,
-                    sigs          = [],
-                    cli_link_deps = [],
-                    archives      = [],
-                    afiles        = [],
-                    astructs      = [], # archived, for inputs_depset only
-                    structs       = [], # free-standing structs (unarchived)
-                    ofiles        = [],
-                    mli           = [],
-                    cmts          = [],
-                    cmtis         = [],
-                    paths         = [],
-                    jsoo_runtimes = [],
-                    runfiles      = []
-                    ):
-    return {
-        "sigs"          : sigs,
-        "cli_link_deps" : cli_link_deps,
-        "archives"      : archives,
-        "afiles"        : afiles,
-        "astructs"      : astructs,
-        "structs"       : structs,
-        "ofiles"        : ofiles,
-        "mli"           : mli,
-        "cmts"          : cmts,
-        "cmtis"         : cmtis,
-        "paths"         : paths,
-        "jsoo_runtimes" : jsoo_runtimes,
-        "runfiles"      : runfiles
-    }
-
-# RENAME: MergedDepsProvider
-MergedDepsProvider, _new_ocamlocamlinfo = provider(
-    init = _MergedDepsProvider_init,
-    doc = "foo",
-    fields = {
-        "sigs"          : "Depset of .cmi files. always added to inputs, never to cmd line.",
-        "cli_link_deps" : "Depset of cm[x]a and cm[x|o] files to be added to inputs and link cmd line (executables and archives).",
-        "archives"      : "Depset of archives.",
-        "astructs"      : "Depset of archived .cmx files.",
-        "structs"       : "Depset of unarchived .cmo or .cmx files.",
-        "afiles"        : "Depset of the .a files that go with .cmxa files",
-        "ofiles"        : "Depset of the .o files that go with .cmx files",
-        "mli"           : ".mli files needed for .ml compilation",
-        "cmts"          : ".cmt files",
-        "cmtis"         : ".cmti files",
-        "paths"         : "string depset, for efficiency",
-        "jsoo_runtimes" : "depset of runtime.js files",
-        "runfiles"      : "one merged Runfiles object"
-    }
-)
-
 def dump_ocamlinfo(bi):
     print("sigs: %s" % bi.sigs)
     print("structs: %s" % bi.structs)
@@ -259,8 +203,8 @@ def aggregate_deps(ctx,
     archiving = len(manifest) > 0
 
     module_archived = False
-    # if OCamlModuleInfo in target:
-    #     mInfo = target[OCamlModuleInfo]
+    # if OCamlModuleProvider in target:
+    #     mInfo = target[OCamlModuleProvider]
     #     print("mInfo: %s" % mInfo)
     #     print("manifest: %s" % manifest)
     #     for item in manifest:
@@ -285,7 +229,7 @@ def aggregate_deps(ctx,
         if ctx.attr._rule == "ocaml_test": ##FIXME
             depsets.deps.cli_link_deps.append(provider.cli_link_deps)
 
-        if OCamlModuleInfo in target:
+        if OCamlModuleProvider in target:
             ## FIXME: won't work for topdown namespaced libs/archives
             ## since mInfo.name will have ns prefix, e.g. Color__Red, not Red
 
@@ -293,7 +237,7 @@ def aggregate_deps(ctx,
                 print("module runfiles: %s" % target[DefaultInfo].default_runfiles.files)
             depsets.deps.runfiles.append(target[DefaultInfo].default_runfiles)
 
-            mInfo = target[OCamlModuleInfo]
+            mInfo = target[OCamlModuleProvider]
             if debug:
                 print("mInfo: %s" % mInfo)
                 print("manifest: %s" % manifest)
@@ -301,8 +245,8 @@ def aggregate_deps(ctx,
                 if debug:
                     print("manifest item: %s" % item)
                 # print("manifest item.label: %s" % item.label)
-                # if OCamlModuleInfo in item:
-                #     print("item.minfo: %s" % item[OCamlModuleInfo])
+                # if OCamlModuleProvider in item:
+                #     print("item.minfo: %s" % item[OCamlModuleProvider])
                 # else:
                 #     print("no minfo in item")
                     #NB: lib manifest may contain non-modules (e.g. libs)
@@ -350,10 +294,7 @@ def aggregate_deps(ctx,
                     )
                 )
                 # target[OCamlProvider].cli_link_deps)
-
-        if hasattr(provider, "sigs"):
-            if provider.sigs != []:
-                depsets.deps.sigs.append(provider.sigs)
+        ## end if OCamlModuleProvider in target
 
         # if target not in manifest:
         #     if hasattr(provider, "cli_link_deps"):
@@ -361,13 +302,17 @@ def aggregate_deps(ctx,
         #         #     fail("CLI LINKDEPS: %s" % provider.cli_link_deps)
         #         depsets.deps.cli_link_deps.append(provider.cli_link_deps)
 
-        if not OCamlModuleInfo in target:
+        else: # if not OCamlModuleProvider in target:
             if hasattr(provider, "cli_link_deps"): # tmp, for OCamlProvider
                 if provider.cli_link_deps != []:
                     depsets.deps.cli_link_deps.append(provider.cli_link_deps)
             if hasattr(provider, "astructs"):
                 if provider.astructs != []:
                     depsets.deps.astructs.append(provider.astructs)
+
+        if hasattr(provider, "sigs"):
+            if provider.sigs != []:
+                depsets.deps.sigs.append(provider.sigs)
 
         if hasattr(provider, "archives"):
             if provider.archives != []:
@@ -382,7 +327,7 @@ def aggregate_deps(ctx,
                 if provider.structs != []:
                     depsets.deps.structs.append(provider.structs)
 
-        # if manifest: # for OCamlModuleInfo only
+        # if manifest: # for OCamlModuleProvider only
         #     if debug_archives:
         #         print("archive manifest: %s" % manifest)
         #     if target in manifest:
@@ -417,35 +362,11 @@ def aggregate_deps(ctx,
             if provider.jsoo_runtimes != []:
                 depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
+    ## end if OCamlProvider in target FIXME: MergedDepsProvider
+
     ## Now ocaml_signature, ocaml_module
     if OCamlSignatureProvider in target:
         depsets.deps.mli.append(target[OCamlSignatureProvider].mli)
-
-    # if OCamlModuleInfo in target:
-    #     # if target.label.name == "Common":
-    #         # print("ModuleInfo: %s" % target[ModuleInfo])
-    #         # print("DefaultInfo.files: %s" % target[DefaultInfo].files)
-    #         # print("BootInfo.linkdeps: %s" % target[BootInfo].cli_link_deps)
-    #         # fail("COMMON")
-
-    #     if not suppress_cmi:
-    #         depsets.deps.sigs.append(
-    #             depset([target[ModuleInfo].sig]))
-
-    #     if target[ModuleInfo].ofile:
-    #         depsets.deps.ofiles.append(depset([target[ModuleInfo].ofile]))
-
-    #     if archiving:
-    #         if target not in manifest:
-    #             if provider.cli_link_deps != []:
-    #                 depsets.deps.cli_link_deps.append(
-    #                     depset([target[ModuleInfo].struct]))
-    #         else:
-    #             depsets.deps.astructs.append(target[ModuleInfo].struct)
-    #     else:
-    #         if provider.cli_link_deps != []:
-    #             depsets.deps.cli_link_deps.append(
-    #                 depset([target[ModuleInfo].struct]))
 
     ## ns resolvers
     if type(target) == "list":
@@ -470,6 +391,8 @@ def aggregate_deps(ctx,
 
     ## if target is ctx.attr.ppx, then we want to put codeps in deps
     ## elif target is e.g. prologue of ppx_executable, put them in codeps
+    ## BUT any target may have been preprocessed and
+    ## thus have codeps
     if OCamlCodepsProvider in target:
         # print("AGGREGATING CODEPS FOR")
         # print("Target: %s" % target)

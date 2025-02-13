@@ -1,5 +1,5 @@
 ################################################################
-def _OCamlModuleInfo_init(*,
+def _OCamlModuleProvider_init(*,
                           name       = None,
                           label_name = None,
                           namespaced = False,
@@ -29,9 +29,9 @@ def _OCamlModuleInfo_init(*,
         "files"      : files
     }
 
-OCamlModuleInfo, _new_ocamlmoduleinfo = provider(
+OCamlModuleProvider, _new_ocamlmoduleinfo = provider(
     doc = "foo",
-    init = _OCamlModuleInfo_init,
+    init = _OCamlModuleProvider_init,
     fields = {
         "name": "Normalized module name",
         "label_name": "Name component of target label",

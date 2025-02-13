@@ -7,6 +7,8 @@ load("@rules_ocaml//ocaml/_config:settings.bzl", "ocaml_null_module")
 package(default_visibility = ["//visibility:public"])
 
 bool_flag( name = "cmt", build_setting_default = False )
+config_setting(name = "cmt?", flag_values = {":cmt": str(True)})
+
 bool_flag( name = "debug", build_setting_default = False )
 bool_flag( name = "keep-locs", build_setting_default = False )
 bool_flag( name = "noassert", build_setting_default = False )

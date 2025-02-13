@@ -1,7 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlModuleInfo")
+# load("@rules_ocaml//build:providers.bzl", "OCamlModuleProvider")
 
 load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
 load("//build:providers.bzl",

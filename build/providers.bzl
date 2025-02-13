@@ -6,14 +6,17 @@ Definitions outside this file are private unless otherwise noted, and
 may change without notice. Really.
 """
 
+load("//build/_providers:MergedDepsProvider.bzl",
+     _MergedDepsProvider = "MergedDepsProvider")
+
 load("//build/_providers:ModuleInfo.bzl",
      _ModuleInfo = "ModuleInfo")
 
 load("//build/_providers:OCamlCodepsProvider.bzl",
      _OCamlCodepsProvider = "OCamlCodepsProvider")
 
-load("//build/_providers:OCamlModuleInfo.bzl",
-     _OCamlModuleInfo = "OCamlModuleInfo")
+load("//build/_providers:OCamlModuleProvider.bzl",
+     _OCamlModuleProvider = "OCamlModuleProvider")
 
 load("//build/_providers:OCamlNsResolverProvider.bzl",
      _OCamlNsResolverProvider = "OCamlNsResolverProvider")
@@ -31,7 +34,8 @@ load("//build/_providers:OpamInstallProvider.bzl",
      _OpamInstallProvider = "OpamInstallProvider")
 
 OCamlCodepsProvider     = _OCamlCodepsProvider
-OCamlModuleInfo         = _OCamlModuleInfo
+MergedDepsProvider      = _MergedDepsProvider
+OCamlModuleProvider     = _OCamlModuleProvider
 OCamlNsResolverProvider = _OCamlNsResolverProvider
 OCamlProvider           = _OCamlProvider
 OCamlSignatureProvider  = _OCamlSignatureProvider

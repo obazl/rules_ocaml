@@ -1,7 +1,7 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@rules_ocaml//build:providers.bzl",
-     "OCamlModuleInfo", "OCamlProvider")
+     "OCamlModuleProvider", "OCamlProvider")
 
 load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
@@ -561,7 +561,7 @@ def impl_ns_resolver(ctx):
     #                                   # transitive = depsets.deps.cli_link_deps
     #                                   )
 
-    moduleInfo = OCamlModuleInfo(
+    moduleInfo = OCamlModuleProvider(
         name = resolver_module_name,
         label_name = ctx.label.name,
         # namespaced = ns_enabled, # FIXME: a resolver could be namespaced

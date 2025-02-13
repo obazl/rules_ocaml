@@ -1,9 +1,12 @@
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "bool_setting")
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_setting")
 
 package(default_visibility = ["//visibility:public"])
 
-bool_setting( name = "enable", build_setting_default = True)
-config_setting(name = "enabled", flag_values = {":cmt": str(True)})
+bool_setting( name = "cmt", build_setting_default = True)
+config_setting(name = "enabled",
+               flag_values = {":cmt": str(True)})
 
 bool_setting( name = "disable", build_setting_default = False)
-config_setting(name = "disabled", flag_values = {":cmt": str(False)})
+config_setting(name = "disabled",
+               flag_values = {"disable": str(False)})

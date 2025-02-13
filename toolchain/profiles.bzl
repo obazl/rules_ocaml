@@ -1,3 +1,7 @@
+# FIXME: rename
+## toolchain_profile_selector => ocaml_profile_selector
+## ocaml_toolchain_profile    => ocaml_profile
+
 def toolchain_profile_selector(
     name, profile,
     toolchain_type = "@rules_ocaml//toolchain/type:profile",

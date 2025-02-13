@@ -123,6 +123,8 @@ def get_options(rule, ctx):
             if not "-no-bin-annot" in options:
                 if not "-bin-annot" in options:
                     options.append("-bin-annot")
+    #options.append("-bin-annot")
+    # elif "//command_line_option:output_groups" == "cmti":
 
     if hasattr(ctx.attr, "_keep_locs"):
         if ctx.attr._keep_locs[BuildSettingInfo].value:

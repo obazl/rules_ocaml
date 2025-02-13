@@ -1,18 +1,17 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlModuleInfo")
+# load("@rules_ocaml//build:providers.bzl", "OCamlModuleProvider")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlProvider")
-load("//build:providers.bzl",
+load("@rules_ocaml//build:providers.bzl",
+     "OCamlCodepsProvider",
      "OCamlNsResolverProvider",
+      "OCamlProvider",
      "OcamlArchiveMarker",
      "OcamlLibraryMarker",
      "OcamlModuleMarker",
      "OcamlNsMarker",
      "OpamInstallProvider"
 )
-load("//build:providers.bzl", "OCamlCodepsProvider")
-
 load("@rules_ocaml//build/_lib:ccdeps.bzl", "extract_cclibs", "dump_CcInfo")
 
 load(":impl_library.bzl", "impl_library")
@@ -198,8 +197,8 @@ def impl_archive(ctx):
     # direct_submodule_deps = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
     direct_submodule_deps = ctx.files.manifest
     # for dep in ctx.attr.manifest:
-    #     if OCamlModuleInfo in dep:
-    #         print("DIRDEP %s" % dep[OCamlModuleInfo])
+    #     if OCamlModuleProvider in dep:
+    #         print("DIRDEP %s" % dep[OCamlModuleProvider])
         # print("ODEP %s" % dep[OcamlProvider])
 
     # if OcamlProvider in ns_resolver:

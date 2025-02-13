@@ -2,14 +2,14 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//build:providers.bzl",
-     "OCamlModuleInfo", "OCamlProvider")
+     "MergedDepsProvider",
+     "OCamlModuleProvider", "OCamlProvider")
 
 load("@rules_ocaml//lib:merge.bzl",
      "aggregate_deps",
      "aggregate_codeps",
      "DepsAggregator",
      # "DepsAggregator",
-     "MergedDepsProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 load("//build:providers.bzl",
@@ -1149,7 +1149,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 print("linkdep: %s" % dep)
         # fail()
 
-    moduleInfo = OCamlModuleInfo(
+    moduleInfo = OCamlModuleProvider(
         #FIXME: standardize derivation of modname
         ## modname = _resolve_modname(ctx) or normalize_module_name(ctx.label.name),
         name = modname,
@@ -1167,9 +1167,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # files = #FIXME
     )
 
-    ocamlInfo = MergedDepsProvider(
-        # why this?
-    )
+    # ocamlInfo = MergedDepsProvider(
+    #     # why this?
+    # )
 
     ocamlProvider = OCamlProvider(
         # ws        = ctx.workspace_name,
@@ -1180,26 +1180,22 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         sig      = out_cmi,
         struct   = out_struct,
         xmo      = module_xmo,
-        # fileset  = fileset_depset,
-        # inputs   = new_structs_depset,
-
-        # cli_link_deps:
+        sigs     = new_sigs_depset,
+        cli_link_deps = cli_link_depset,
         #   if this module in manifest (i.e. will be archived):
         #     do NOT add this module to cli_link_deps
         #     DO add merged link_deps of this module's deps
 
-        sigs     = new_sigs_depset,
-        cli_link_deps = cli_link_depset,
         archives = archives_depset,
         afiles   = depset(
             order=dsorder,
-            # direct=afiles_primary,
-            transitive = depsets.deps.afiles # afiles_secondary
+            transitive = depsets.deps.afiles
         ),
         astructs = astructs_depset,
+        # unarchived structs
         structs  = structs_depset, # new_structs_depset,
         ofiles   = ofiles_depset,
-        # cclibs = cclibs_depset,
+
         jsoo_runtimes = None if (len(depsets.deps.jsoo_runtimes) == 0) else depsets.deps.jsoo_runtimes,
         # jsoo_runtimes = depset(
         #     order=dsorder,
@@ -1227,7 +1223,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         ocamlProvider,
 
         moduleInfo,
-        ocamlInfo,
+        # ocamlInfo,
     ]
 
     # return providers

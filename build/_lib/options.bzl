@@ -52,7 +52,7 @@ def options(ws):
         ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
         ## these should never be directly set.
         _debug           = attr.label(default = ws + "//cfg:debug"),
-        _cmt             = attr.label(default = ws + "//cfg:cmt"),
+        _cmt             = attr.label(default = "@rules_ocaml//cfg:cmt"),
         _keep_locs       = attr.label(default = ws + "//cfg:keep-locs"),
         _noassert        = attr.label(default = ws + "//cfg:noassert"),
         _opaque          = attr.label(default = ws + "//cfg:opaque"),
