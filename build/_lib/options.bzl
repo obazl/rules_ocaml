@@ -6,7 +6,7 @@ load("//build:providers.bzl",
      "OcamlImportMarker",
      "OcamlLibraryMarker",
      "OCamlNsResolverProvider",
-     "OcamlModuleMarker",
+     "OCamlModuleProvider",
      "OcamlNsMarker",
      "OcamlNsSubmoduleMarker",
      "OCamlSignatureProvider",
@@ -133,7 +133,7 @@ def options_binary():
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
-                         [OcamlModuleMarker],
+                         [OCamlModuleProvider],
                          [OcamlNsMarker],
                          [CcInfo]],
             # cfg = ocaml_binary_deps_out_transition
@@ -143,7 +143,7 @@ def options_binary():
             doc = "Label of module containing entry point of executable. In the list of dependencies, this will be placed after 'prologue' deps and before 'epilogue' deps.",
             mandatory = True,
             # allow_single_file = True,
-            # providers = [[OCamlDepsProvider,OcamlModuleMarker]],
+            # providers = [[OCamlDepsProvider,OCamlModuleProvider]],
             default = None,
             # cfg = ocaml_binary_deps_out_transition
         ),
@@ -153,7 +153,7 @@ def options_binary():
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
-                         [OcamlModuleMarker],
+                         [OCamlModuleProvider],
                          [OcamlNsMarker],
                          [CcInfo]],
             # cfg = ocaml_binary_deps_out_transition
@@ -222,7 +222,7 @@ def options_aggregators():
     _providers = [
         [OcamlArchiveMarker],
         [OcamlLibraryMarker],
-        [OcamlModuleMarker],
+        [OCamlModuleProvider],
         [OCamlNsResolverProvider],
         [OcamlNsMarker],
         [OCamlSignatureProvider],
@@ -239,8 +239,8 @@ def options_aggregators():
             providers = [[OcamlArchiveMarker],
                          [OcamlImportMarker],
                          [OcamlLibraryMarker],
-                         [OcamlModuleMarker],
-                         [OcamlNsMarker],
+                         [OCamlModuleProvider],
+                         [OCamlNsResolverProvider],
                          ## sigs are ok in libraries, not archives
                          [OCamlSignatureProvider]
                          ],
@@ -316,7 +316,7 @@ def options_aggregators():
 #     providers = [[OcamlArchiveMarker],
 #                  [OCamlSignatureProvider],
 #                  [OcamlLibraryMarker],
-#                  [OcamlModuleMarker],
+#                  [OCamlModuleProvider],
 #                  [OcamlNsMarker]]
 
 #     ws = "@" + ws
@@ -418,7 +418,7 @@ def options_ns_aggregators():
         # resolver = attr.label(
         #     doc = """User-provided resolver module.""",
         #     allow_single_file = True,
-        #     providers = [OcamlModuleMarker],
+        #     providers = [OCamlModuleProvider],
         #     cfg = ocaml_nslib_resolver_out_transition
         #     ## user-provided resolver is not itself namespaced,
         #     ## do not use transition
@@ -427,7 +427,7 @@ def options_ns_aggregators():
         manifest = attr.label_list(
             doc = "List of namespaced submodules; will be renamed by prefixing the namespace,",
             allow_files = [".cmo", ".cmx", ".cmi", ".cmxa", ".cma"],
-            providers   = [[OcamlModuleMarker], [OcamlNsMarker]],
+            providers   = [[OCamlModuleProvider], [OcamlNsMarker]],
             cfg = ocaml_nslib_submodules_out_transition
         ),
         # aliases = attr.label_keyed_string_dict(),
@@ -483,7 +483,7 @@ def options_ns_aggregators():
 # def options_ns_archive():
 
 #     # _submod_providers   = [
-#     #     [OcamlModuleMarker],
+#     #     [OCamlModuleProvider],
 #     #     [OcamlNsMarker],
 #     #     [OCamlSignatureProvider]
 #     # ]
@@ -508,7 +508,7 @@ def options_ns_aggregators():
 #         ns_resolver = attr.label(
 #             doc = """User-provided resolver module.""",
 #             allow_single_file = True,
-#             providers = [OcamlModuleMarker],
+#             providers = [OCamlModuleProvider],
 #             ## user-provided resolver is not itself namespaced,
 #             ## do not use transition
 #             # cfg = ocaml_nslib_submodules_out_transition
@@ -517,7 +517,7 @@ def options_ns_aggregators():
 #         submodules = attr.label_list(
 #             doc = "List of *_module submodules",
 #             allow_files = [".cmo", ".cmx", ".cmi"],
-#             providers   = [[OcamlModuleMarker], [OcamlNsMarker]],
+#             providers   = [[OCamlModuleProvider], [OcamlNsMarker]],
 #             # providers   = _submod_providers,
 #             cfg = ocaml_nslib_submodules_out_transition
 #         ),
@@ -572,7 +572,7 @@ def options_ns_aggregators():
 #         ns_resolver = attr.label(
 #             doc = """User-provided resolver module.""",
 #             allow_single_file = True,
-#             providers = [OcamlModuleMarker],
+#             providers = [OCamlModuleProvider],
 #             ## user-provided resolver is not itself namespaced,
 #             ## do not use transition
 #             # cfg = ocaml_nslib_submodules_out_transition
@@ -581,7 +581,7 @@ def options_ns_aggregators():
 #         submodules = attr.label_list(
 #             doc = "List of namespaced submodules; will be renamed by prefixing the namespace,",
 #             allow_files = [".cmo", ".cmx", ".cmi"],
-#             providers   = [[OcamlModuleMarker], [OcamlNsMarker]],
+#             providers   = [[OCamlModuleProvider], [OcamlNsMarker]],
 #             cfg = ocaml_nslib_submodules_out_transition
 #         ),
 
@@ -680,13 +680,14 @@ options_ppx = dict(
 def options_module(ws):
 
     _providers = [[OcamlArchiveMarker],
+                  [OCamlDepsProvider],
                   [OCamlCodepsProvider],
                   [OcamlImportMarker],
                   [OcamlLibraryMarker],
-                  [OcamlModuleMarker],
+                  [OCamlModuleProvider],
                   # [OcamlNsMarker],
                   [OCamlNsResolverProvider],
-                  [OCamlSignatureProvider],
+                  # [OCamlSignatureProvider],
                   [CcInfo]]
 
     # ws = "@" + ws
@@ -708,7 +709,7 @@ def options_module(ws):
         sig = attr.label(
             doc = "Single label of a target producing `OCamlSignatureProvider` (i.e. rule `ocaml_signature`) OR a sig source file. Optional.",
             allow_single_file = True,
-            # providers = [[OCamlSignatureProvider],
+            providers = [OCamlSignatureProvider],
             #              [OCamlImportProvider]]
             ## FIXME: how to specify OCamlSignatureProvider OR FileProvider?
             # allow_files = True
@@ -743,7 +744,7 @@ def options_module(ws):
                 [OcamlArchiveMarker],
                 [OcamlImportMarker],
                 [OcamlLibraryMarker],
-                [OcamlModuleMarker],
+                [OCamlModuleProvider],
                 [OcamlNsMarker],
             ],
             # cfg = ocaml_signature_deps_out_transition

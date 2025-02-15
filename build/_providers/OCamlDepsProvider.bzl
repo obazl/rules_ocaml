@@ -1,5 +1,6 @@
 #######################
 def _OCamlDepsProvider_init(*,
+                        modname = None,
                         cmi = None,
                         sig = None,
                         struct = None,
@@ -22,6 +23,7 @@ def _OCamlDepsProvider_init(*,
                         ppx_codeps = None,
                         ppx_codep_paths = None):
     return {
+        "modname"         : modname,
         "cmi"             : cmi,
         "sig"             : sig,
         "struct"          : struct,
@@ -49,6 +51,7 @@ OCamlDepsProvider, _new_ocamlprovider = provider(
     init = _OCamlDepsProvider_init,
     fields = {
         # "ws"  : "Workspace ID for provided artifacts (not fully implemented)",
+        "modname": "Module name",
         "cmi" : "Cmi file provided",
         "sig" : "Cmi file provided",
         "struct" : "Structure file (.cmo or .cmx) provided",

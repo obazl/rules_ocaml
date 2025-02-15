@@ -1,7 +1,7 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//lib:merge.bzl",
-     "aggregate_deps",
+     "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
@@ -80,14 +80,14 @@ def _ocaml_import_impl(ctx):
 
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
-        depsets = aggregate_deps(ctx, dep, depsets)
+        depsets = merge_deps(ctx, dep, depsets)
         # if OCamlCodepsProvider in dep:
         #     # print("this: %s" % ctx.label)
         #     # print("UX: %s" % dep[OCamlCodepsProvider])
         #     depsets = aggregate_codeps(ctx, COMPILE_LINK, dep, depsets)
 
     for dep in ctx.attr.cc_deps:
-        depsets = aggregate_deps(ctx, dep, depsets)
+        depsets = merge_deps(ctx, dep, depsets)
 
     if debug_deps: print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
     if hasattr(ctx.attr, "ppx_codeps"):

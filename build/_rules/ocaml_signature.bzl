@@ -329,7 +329,11 @@ def _ocaml_signature_impl(ctx):
     ################
     default_depset = depset(
         order = dsorder,
-            direct = [out_cmi],
+        direct = [out_cmi]
+    )
+    cmti_depset = depset(
+        order = dsorder,
+        direct = [out_cmti] if out_cmti else []
     )
 
     defaultInfo = DefaultInfo(
@@ -422,7 +426,7 @@ def _ocaml_signature_impl(ctx):
     # )
 
     ## FIXME: use MergedDepsProvider?
-    ocamlProvider  = OCamlDepsProvider(
+    ocamlDepsProvider  = OCamlDepsProvider(
         # inputs   = new_inputs_depset,
         # linkargs = linkargs_depset,
         sigs       = sigs_depset,
@@ -445,21 +449,21 @@ def _ocaml_signature_impl(ctx):
         cmti = out_cmti if out_cmti else None,
         mli = work_mli,
         xmo = xmo, # True if xmo else False,
-        merged_deps = MergedDepsProvider( # OCamlDepsProvider?
-            # NB: sigs_depset contains out_cmi
-            sigs       = sigs_depset,
-            # cli_link_deps = depset(
-            #     order = dsorder,
-            #     transitive = depsets.deps.cli_link_deps
-            # ),
-            structs    = structs_depset,
-            ofiles     = ofiles_depset,
-            archives   = archives_depset,
-            afiles     = afiles_depset,
-            astructs   = astructs_depset,
-            # cclibs   = cclibs_depset,
-        paths      = paths_depset,
-        )
+        # merged_deps = MergedDepsProvider( # OCamlDepsProvider?
+        #     # NB: sigs_depset contains out_cmi
+        #     sigs       = sigs_depset,
+        #     # cli_link_deps = depset(
+        #     #     order = dsorder,
+        #     #     transitive = depsets.deps.cli_link_deps
+        #     # ),
+        #     structs    = structs_depset,
+        #     ofiles     = ofiles_depset,
+        #     archives   = archives_depset,
+        #     afiles     = afiles_depset,
+        #     astructs   = astructs_depset,
+        #     # cclibs   = cclibs_depset,
+        # paths      = paths_depset,
+        # )
     )
 
     ## FIXME:  cc deps
@@ -467,7 +471,7 @@ def _ocaml_signature_impl(ctx):
 
     providers = [
         defaultInfo,
-        ocamlProvider,
+        ocamlDepsProvider,
         sigProvider,
     ]
 
@@ -483,7 +487,8 @@ def _ocaml_signature_impl(ctx):
     #     )
 
     outputGroupInfo = OutputGroupInfo(
-        sig  = default_depset,
+        cmi  = default_depset,
+        cmti = cmti_depset,
         sigs = sigs_depset,
         #TODO: cmtis = cmtis_depset,
         all  = depset(order = dsorder,
@@ -602,7 +607,7 @@ the difference between '/' and ':' in such labels):
         # ),
     ),
     # cfg = toolchain_in_transition,
-    provides = [OCamlSignatureProvider],
+    provides = [OCamlSignatureProvider, OCamlDepsProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std",
                   "@rules_ocaml//toolchain/type:profile",

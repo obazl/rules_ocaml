@@ -1,5 +1,6 @@
 load("//build:providers.bzl",
-     "OcamlModuleMarker",
+     "OCamlModuleProvider",
+     "OCamlDepsProvider",
      "OCamlNsResolverProvider")
 
 load("//build/_transitions:in_transitions.bzl", "module_in_transition")
@@ -10,6 +11,7 @@ load("//build/_lib:options.bzl",
      "options_ns_opts",
      "options_ppx")
 
+# load("//build/_rules/ocaml_module:api.bzl", "ocaml_module_api")
 load("//build/_rules/ocaml_module:impl_module.bzl", "impl_module")
 
 load("@rules_ocaml//lib:colors.bzl",
@@ -121,7 +123,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
             doc = """
 NS resolver module for bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
             """,
-            # allow_single_file = True,
+            allow_single_file = True,
             providers = [OCamlNsResolverProvider],
             mandatory = False
         ),
@@ -159,7 +161,7 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
     fragments      = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],
     cfg            = module_in_transition,
-    provides       = [OcamlModuleMarker],
+    provides       = [OCamlModuleProvider, OCamlDepsProvider],
     executable     = False,
     toolchains     = ["@rules_ocaml//toolchain/type:std",
                       "@rules_ocaml//toolchain/type:profile",

@@ -21,14 +21,14 @@ load("@rules_ocaml//build/_lib:ccdeps.bzl",
      )
 
 load("@rules_ocaml//lib:merge.bzl",
-     "aggregate_deps",
+     "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
      # "OCamlDepsProvider",
      "COMPILE", "LINK", "COMPILE_LINK")
 
 # load("//ocaml/_functions:deps.bzl",
-#      "aggregate_deps",
+#      "merge_deps",
 #      "aggregate_codeps",
 #      "OCamlDepsProvider",
 #      "DepsAggregator")
@@ -154,7 +154,7 @@ def impl_library(ctx, for_archive = True):
         # if dep.label.name == "Red":
         #     print("red dep: %s" % dep[OCamlDepsProvider])
         #     fail()
-        depsets = aggregate_deps(ctx, dep, depsets, archive_manifest)
+        depsets = merge_deps(ctx, dep, depsets, archive_manifest)
 
     # print("DEPSETS %s" % depsets.deps)
     # print("cli link deps: %s" % depsets.deps.cli_link_deps)
@@ -165,12 +165,12 @@ def impl_library(ctx, for_archive = True):
     if ns_resolver:
         if debug_ns:
             print("RESOLVER module: %s" % ns_resolver[0][OCamlNsResolverProvider])
-        depsets = aggregate_deps(ctx, ns_resolver, depsets, archive_manifest)
+        depsets = merge_deps(ctx, ns_resolver, depsets, archive_manifest)
 
     ## The tricky bit: cc_binary producing .so does not deliver a
     ## CcInfo containing the .so file!
     for dep in ctx.attr.cc_deps:
-        depsets = aggregate_deps(ctx, dep, depsets, archive_manifest)
+        depsets = merge_deps(ctx, dep, depsets, archive_manifest)
 
     ##FIXME: irrelevant? no action to depend on these:
     action_inputs_depset = depset(

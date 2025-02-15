@@ -1,23 +1,18 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("@rules_ocaml//build:providers.bzl",
-     "OCamlModuleProvider", "OCamlDepsProvider")
+     "OCamlModuleProvider",
+     "OCamlNsResolverProvider",
+     "OcamlNsSubmoduleMarker",
+     "OCamlDepsProvider")
 
 load("@rules_ocaml//lib:merge.bzl",
-     "aggregate_deps",
+     "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
 
-load("//build:providers.bzl",
-     "OcamlModuleMarker",
-     "OCamlNsResolverProvider",
-     "OcamlNsSubmoduleMarker")
-
-load("//build/_lib:utils.bzl",
-     "get_fs_prefix",
-     # "get_sdkpath",
-)
+load("//build/_lib:utils.bzl", "get_fs_prefix")
 
 load("//build/_lib:utils.bzl",
      "get_options", "dsorder", "module_sep",
@@ -29,9 +24,7 @@ load("//build/_lib:module_naming.bzl",
      "normalize_module_name")
 
 load("@rules_ocaml//lib:colors.bzl",
-     "CCRED", "CCREDBG", "CCYEL", "CCGRN", "CCBLU", "CCMAG", "CCCYN", "CCRESET")
-
-CCBLUYEL = "\033[44m\033[33m"
+     "CCRED", "CCREDBG", "CCYEL", "CCGRN", "CCBLU", "CCBLUYEL", "CCMAG", "CCCYN", "CCRESET")
 
 workdir = tmpdir
 
@@ -65,7 +58,6 @@ def impl_ns_resolver(ctx):
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
     depsets = DepsAggregator()
-
 
     ## RULE: do not allow mixing bottomup and topdown namespaces.
     # but what happens if a selected submodule also elects?
@@ -133,21 +125,6 @@ def impl_ns_resolver(ctx):
     if debug:
         print("ctx.attr.ns: %s" % ctx.attr.ns)
         print("ctx.attr._ns_prefixes: %s" % ctx.attr._ns_prefixes[BuildSettingInfo].value)
-
-    sigs_primary   = []
-    sigs_secondary = []
-    structs_primary   = []
-    structs_secondary = []
-    ofiles_primary   = [] # never? ofiles only come from deps
-    ofiles_secondary = []
-    astructs_primary = []
-    astructs_secondary = []
-    afiles_primary   = []
-    afiles_secondary = []
-    archives_primary = []
-    archives_secondary = []
-    # cclibs_primary = []
-    # cclibs_secondary = []
 
     no_main_alias = False
     # if subnames_ct == 0:
@@ -239,30 +216,34 @@ def impl_ns_resolver(ctx):
 
     if debug_submodules: print("finished iterating submodules")
 
-    if debug_includes: print("iterating includes")
-    ## include specific exogenous (sub)modules, namespaced or not
-    for k,v in ctx.attr.include.items():
-        ## WARNING: check for namespacing first
-        if OcamlNsSubmoduleMarker in k:
-            resolver = k[OcamlNsSubmoduleMarker]
-            if debug_includes:
-                print("FUSE namespaced module, ns: %s" % resolver.ns_name)
-            alias = "module {alias} = {ns}{sep}{mod}".format(
-                alias = v,
-                sep = "__", # if nslib_submod else module_sep,
-                ns  = resolver.ns_name,
-                mod = k.label.name
-            )
-            aliases.append(alias)
-        elif OcamlModuleMarker in k:
-            if debug_includes:
-                print("FUSE non-namespaced module: {} -> {}".format(v, k))
-            alias = "module {alias} = {mod}".format(
-                alias = v,
-                mod = normalize_module_name(k.label.name)
-            )
-            aliases.append(alias)
-    if debug_includes: print("finished iterating includes")
+    if ctx.attr.include:
+        if debug_includes: print("iterating includes")
+        ## include specific exogenous (sub)modules, namespaced or not
+        for k,v in ctx.attr.include.items():
+            if debug_includes: print("k %s" % k)
+            ## WARNING: check for namespacing first
+            if OcamlNsSubmoduleMarker in k:
+                if debug_includes: print("submodule")
+                resolver = k[OcamlNsSubmoduleMarker]
+                if debug_includes:
+                    print("FUSE namespaced module, ns: %s" % resolver.ns_name)
+                alias = "module {alias} = {ns}{sep}{mod}".format(
+                    alias = v,
+                    sep = "__", # if nslib_submod else module_sep,
+                    ns  = resolver.ns_name,
+                    mod = k.label.name
+                )
+                aliases.append(alias)
+            elif OCamlModuleProvider in k:
+                if debug_includes: print("submodule")
+                if debug_includes:
+                    print("FUSE non-namespaced module: {} -> {}".format(v, k))
+                alias = "module {alias} = {mod}".format(
+                    alias = v,
+                    mod = normalize_module_name(k.label.name)
+                )
+                aliases.append(alias)
+        if debug_includes: print("finished iterating includes")
 
     if debug_embeds: print("iterating embeds")
     # embed exogenous namespace (not its submodules)
@@ -310,11 +291,7 @@ def impl_ns_resolver(ctx):
     if debug: print("ns_name: %s" % ns_name)
     if debug: print("aliases: %s" % aliases)
 
-    if ns_name == "":
-        print("WTF?")
-        fail("xxxxxxxxxxxxxxxx")
-
-    ################################################################
+    ##########################
     ## user-provided resolver
     if user_ns_resolver:
         if debug_ns:
@@ -438,7 +415,7 @@ def impl_ns_resolver(ctx):
         if debug: print("MERGE: %s" % tgt)
         merge_depsets.append(tgt.files)
     for tgt in ctx.attr.include:
-        if debug: print("INCLUDE: %s" % tgt)
+        if debug_includes: print("INCLUDE: %s" % tgt)
         merge_depsets.append(tgt.files)
 
     action_inputs.append(resolver_src_file)
@@ -492,6 +469,9 @@ def impl_ns_resolver(ctx):
         )
     )
 
+    ## an ns resolver is just a module, but
+    ## we provide OCamlNsResolverProvider
+    ## instead of OCamlModuleProvider
     nsResolverProvider = OCamlNsResolverProvider(
         # provide src for output group, for easy reference
         resolver_src = resolver_src_file,
@@ -536,71 +516,36 @@ def impl_ns_resolver(ctx):
     #     direct = action_outputs
     # )
 
+    ## Question: a default ns_resolver will have no deps;
+    ## but a user-defined ns resolver may have deps.
+    ## in that case, do we need to merge deps?
     sigs_depset     = depset(order=dsorder,
-                             direct=[out_cmi], # sigs_primary,
-                             transitive=sigs_secondary)
+                             direct=[out_cmi],
+                             )
     structs_depset  = depset(order=dsorder,
-                            direct=[out_struct],  ## structs_primary,
-                            transitive=structs_secondary)
+                            direct=[out_struct],
+                             )
     astructs_depset = depset(order=dsorder,
-                             # direct=[out_struct],  ## structs_primary,
-                             # direct=astructs_primary,
-                             transitive=astructs_secondary)
+                             )
     ofiles_depset  = depset(order=dsorder,
                             direct=[out_ofile] if out_ofile else [],
-                            transitive=ofiles_secondary)
+                            )
 
     cli_link_deps_depset = depset()
 
-    # if ctx.attr._rule.endswith("archive"):
-    #     cli_link_deps_depset = depset()
-    # else:
-    #     cli_link_deps_depset = depset(order = dsorder,
-    #                                   direct = [out_struct]
-    #                                   # direct = ns resolver,
-    #                                   # transitive = depsets.deps.cli_link_deps
-    #                                   )
-
-    moduleInfo = OCamlModuleProvider(
-        name = resolver_module_name,
-        label_name = ctx.label.name,
-        # namespaced = ns_enabled, # FIXME: a resolver could be namespaced
-        sig  = out_cmi,
-        # sig_src = #FIXME
-        # cmti = #FIXME
-        struct = out_struct,
-        struct_src = resolver_src_file,
-        structfile = resolver_src_filename,
-        ofile = out_ofile if out_ofile else None,
-        # cmt = #FIXME
-        # files = #FIXME
-    )
-
-    ocamlProvider = OCamlDepsProvider(
-        # cmi      = depset(direct = [out_cmi]),
+    ## Do we need this? Who is the consumer?
+    ## - we need it for user-defined ns resolvers?
+    ocamlDepsProvider = OCamlDepsProvider(
         cmi      = out_cmi,
-        # fileset  = fileset_depset,
-        # linkargs = linkset,
-        # cdeps    = new_cdeps_depset,
-        # ldeps    = new_ldeps_depset,
-        # inputs   = closure_depset, ## action_inputs_depset,
-
         sigs     = sigs_depset,
         structs  = structs_depset,
         ofiles   = ofiles_depset,
         archives   = depset(order=dsorder,
-                          direct=archives_primary,
-                          transitive=archives_secondary),
+                            ),
         afiles   = depset(order=dsorder,
-                           direct=afiles_primary,
-                           transitive=afiles_secondary),
+                          ),
         astructs = astructs_depset,
-        # cclibs   = depset(order=dsorder,
-        #                    direct=cclibs_primary,
-        #                    transitive=cclibs_secondary),
-
         paths    = depset(direct = [out_cmi.dirname]),
-
         cli_link_deps = cli_link_deps_depset
     )
 
@@ -613,21 +558,19 @@ def impl_ns_resolver(ctx):
         #     order = dsorder,
         #     transitive=[
         #         default_depset,
-        #         ocamlProvider_files_depset,
+        #         ocamlDepsProvider_files_depset,
         #         ppx_codeps_depset,
         #         # depset(action_inputs_ccdep_filelist)
         #     ]
         # )
     )
 
-    if debug: print("resolver OCamlDepsProvider: %s" % ocamlProvider)
+    if debug: print("resolver OCamlDepsProvider: %s" % ocamlDepsProvider)
     if debug: print("resolver nsrp: %s" % nsResolverProvider)
 
     return [
         defaultInfo,
         nsResolverProvider,
-        OcamlModuleMarker(marker="OcamlModule"),
-        moduleInfo,
-        ocamlProvider,
+        ocamlDepsProvider,
         outputGroupInfo
     ]

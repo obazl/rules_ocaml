@@ -3,25 +3,23 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//build:providers.bzl",
      "MergedDepsProvider",
-     "OCamlModuleProvider", "OCamlDepsProvider")
+     "OCamlCodepsProvider",
+     "OCamlDepsProvider",
+     "OCamlModuleProvider",
+
+     "OcamlArchiveMarker",
+     "OcamlImportMarker",
+     "OcamlLibraryMarker",
+     "OcamlNsMarker",
+     "OCamlNsResolverProvider",
+     "OcamlNsSubmoduleMarker",
+     "OCamlSignatureProvider")
 
 load("@rules_ocaml//lib:merge.bzl",
      "merge_deps",
      "aggregate_codeps",
      "DepsAggregator",
-     # "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
-
-load("//build:providers.bzl",
-     "OcamlArchiveMarker",
-     "OcamlImportMarker",
-     "OcamlLibraryMarker",
-     "OcamlModuleMarker",
-     "OcamlNsMarker",
-     "OCamlNsResolverProvider",
-     "OcamlNsSubmoduleMarker",
-     "OCamlSignatureProvider")
-load("//build:providers.bzl", "OCamlCodepsProvider")
 
 load("//build:actions.bzl", "ppx_transformation")
 
@@ -125,6 +123,8 @@ def _handle_ns_stuff(ctx):
              ns_resolver)
 
 ################
+## incoming cmi may have been ppx transformed,
+## which puts it in __obazl workdir?
 def _handle_precompiled_sig(ctx, modname, ext):
 
     debug      = False
@@ -259,7 +259,8 @@ def _handle_source_sig(ctx, modname, ext):
     if debug: print("sigattr is src: %s" % ctx.file.sig)
 
     ppx_src_ml = None
-    if ctx.attr.ppx: ## no sig, plus ppx
+    if ctx.attr.ppx:
+        ## ppx sigfile
         ppx_src_ml, work_mli = ppx_transformation(
             ctx.attr._rule, ctx,
             ctx.file.sig, modname + ".mli"
@@ -551,17 +552,17 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     ## 5. provide them, for later linking (e.g. ppx_expect)
 
     ## ppx_codeps only for ppx executables?
-    if hasattr(ctx.attr, "ppx_codeps"):
-        for codep in ctx.attr.ppx_codeps:
-            depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets, manifest)
+    # if hasattr(ctx.attr, "ppx_codeps"):
+    #     for codep in ctx.attr.ppx_codeps:
+    #         depsets = aggregate_codeps(ctx, COMPILE_LINK, codep, depsets, manifest)
 
-    if hasattr(ctx.attr, "ppx_compile_codeps"):
-        for codep in ctx.attr.ppx_compile_codeps:
-            depsets = aggregate_codeps(ctx, COMPILE, codep, depsets, manifest)
+    # if hasattr(ctx.attr, "ppx_compile_codeps"):
+    #     for codep in ctx.attr.ppx_compile_codeps:
+    #         depsets = aggregate_codeps(ctx, COMPILE, codep, depsets, manifest)
 
-    if hasattr(ctx.attr, "ppx_link_codeps"):
-        for codep in ctx.attr.ppx_link_codeps:
-            depsets = aggregate_codeps(ctx, LINK, codep, depsets, manifest)
+    # if hasattr(ctx.attr, "ppx_link_codeps"):
+    #     for codep in ctx.attr.ppx_link_codeps:
+    #         depsets = aggregate_codeps(ctx, LINK, codep, depsets, manifest)
 
     ################
     includes   = []
@@ -636,8 +637,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # if debug: print("sig ocamlsig: %s" % ctx.attr.sig[OCamlSignatureProvider])
         # if debug: print("sigfile: %s" % ctx.file.sig)
 
-        ## handlers to deal with ns renaming and ppx
-
+        ## Handlers to deal with ns renaming and ppx
         if OCamlSignatureProvider in ctx.attr.sig:
         # or ctx.file.sig.extension == "cmi"):
             if debug:
@@ -651,9 +651,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
              sig_is_xmo) = _handle_precompiled_sig(ctx, modname, ext)
 
         else: ################################################
-            if debug:
-                print("sigattr is source file")
-
+            if debug: print("sigattr is source file")
             cmi_precompiled = False
             (ppx_src_ml, work_ml,
              out_struct,
@@ -674,7 +672,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             print("WORK mli: %s" % work_mli)
             print("WORK cmi: %s" % out_cmi)
             print("cmi_precompiled: %s" % cmi_precompiled)
-    else:
+    else: # no sig attr
         if debug:
             print("SINGLETON: no sigfile")
             print("module name: %s" % modname)
@@ -870,10 +868,20 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     ## for linking cm structs on cmd line
     ## so we pass them along in Provider.
 
+    # for t in ctx.attr.open:
+    #     print("OPENS: %s" % t[OCamlModuleProvider].modname)
+
+    open_inputs = []
+    if ctx.attr.open:
+        for dep in ctx.attr.open:
+            open_inputs.append(dep[OCamlModuleProvider].cmi)
+            # open_inputs.append(dep[OCamlModuleProvider].struct)
+
     action_inputs_depset = depset(
         order = dsorder,
         direct = src_inputs
         + maybe_cmi
+        + open_inputs
         ## omit direct deps, they're outputs of this action
         # + sigs_primary + structs_primary + ofiles_primary
 
@@ -932,8 +940,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     args.add_all(includes, before_each="-I", uniquify = True)
 
     if ctx.attr.open:
-        for dep in ctx.files.open:
-            args.add("-open", normalize_module_name(dep.basename))
+        for dep in ctx.attr.open:
+            args.add("-open", dep[OCamlModuleProvider].modname)
 
     if work_mli and not cmi_precompiled: # sig_src:
         args.add("-I", work_mli.dirname) # sig_src.dirname)
@@ -1023,6 +1031,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     default_depset = depset(
         order = dsorder,
         direct = [out_struct]
+        # direct = [out_cmi, out_struct, out_ofile]
         # direct = default_outputs
     )
 
@@ -1037,8 +1046,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
 
     sigs_depset = depset(order=dsorder,
-                         direct = [out_cmi], # sigs_primary,
-                         transitive = depsets.deps.sigs) # sigs_secondary)
+                         direct = [out_cmi],
+                         transitive = depsets.deps.sigs)
     if debug_deps: print("SIGS_depset: %s" % sigs_depset)
 
     new_sigs_depset = depset(
@@ -1092,64 +1101,43 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 print("linkdep: %s" % dep)
         # fail()
 
-    moduleProvider = OCamlModuleProvider(
-        #FIXME: standardize derivation of modname
-        ## modname = _resolve_modname(ctx) or normalize_module_name(ctx.label.name),
-        name = modname,
-        label_name = ctx.label.name,
-        namespaced = ns_enabled,
-        ns_resolver = ns_resolver if ns_enabled else None,
-        sig  = out_cmi,
-        # sig_src = #FIXME
-        # cmti = #FIXME
-        struct = out_struct,
-        struct_src = ctx.file.struct,
-        structfile = work_ml,
-        ofile = out_ofile if out_ofile else None,
-        # cmt = #FIXME
-        # files = #FIXME
-    )
-
-    # ocamlInfo = MergedDepsProvider(
-    #     # why this?
-    # )
-
     structs_depset = depset(
         order=dsorder,
         # FIXME: out_struct only if not archived
-        direct = [out_struct], #structs_primary,
-        transitive = depsets.deps.structs #structs_secondary
+        direct = [out_struct],
+        transitive = depsets.deps.structs
     )
     # if debug_deps: print("STRUCTS_depset: %s" % structs_depset)
 
     ofiles_depset = depset(
         order = dsorder,
         direct=[out_ofile] if out_ofile else [],
-        transitive = depsets.deps.ofiles #ofiles_secondary
+        transitive = depsets.deps.ofiles
     )
-
     if debug_deps: print("OFILES_depset: %s" % ofiles_depset)
 
     archives_depset = depset(
-        order=dsorder,
-        # direct = archives_primary,
-        transitive = depsets.deps.archives # archives_secondary
-        # + depsets.codeps.archives
+        order=dsorder, transitive = depsets.deps.archives
     )
     if debug_deps: print("ARCHIVES_depset: %s" % archives_depset)
 
-    # for arch in archives_depset.to_list():
-    #         args.add(arch.path)
-    #         includes.append(arch.dirname)
-
     afiles_depset = depset(
-        order=dsorder,
-        # direct = afiles_primary,
-        transitive = depsets.deps.afiles # afiles_secondary
+        order=dsorder, transitive = depsets.deps.afiles
     )
     if debug_deps: print("ARFILES_depset: %s" % afiles_depset)
 
-    ocamlProvider = OCamlDepsProvider(
+    ocamlModuleProvider = OCamlModuleProvider(
+        modname = modname,
+        cmi      = out_cmi,  ## no need for a depset for one file?
+        struct   = out_struct,
+        xmo      = module_xmo,
+        label_name = ctx.label.name,
+        namespaced = ns_enabled,
+        ns_resolver = ns_resolver if ns_enabled else None,
+    )
+
+    ocamlDepsProvider = OCamlDepsProvider(
+        modname = modname,
         # cmi      = out_cmi,  ## no need for a depset for one file?
         # sig      = out_cmi,
         # struct   = out_struct,
@@ -1184,19 +1172,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         srcs = depset(direct=[work_ml]),
     )
-    # print("MPRovider: %s" % ocamlProvider)
+    # print("MPRovider: %s" % ocamlDepsProvider)
 
-    ################################################################
+    ########################################################
     providers = [
         defaultInfo,
-        OcamlModuleMarker(marker="OcamlModule"),
-        ocamlProvider,
-
-        moduleProvider,
-        # ocamlInfo,
+        ocamlModuleProvider,
+        ocamlDepsProvider,
     ]
-
-    # return providers
 
     ## FIXME: make this conditional:
     ## if this module is a submodule in a namespace:
@@ -1210,16 +1193,22 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         if debug:
             print("attr.ns_resolver: %s" % resolver)
             print("resolver: %s" % resolver[OCamlNsResolverProvider])
+        nsresolver_depset = depset(
+            transitive = [resolver[DefaultInfo].files]
+        )
+
         nsSubmoduleMarker = OcamlNsSubmoduleMarker(
             ns_name = resolver[OCamlNsResolverProvider].ns_name
         )
         providers.append(nsSubmoduleMarker)
         # fail("XXXXXXXXXXXXXXXX")
 
-    #     nsResolverProvider = OCamlNsResolverProvider(
-    #         files = ctx.attr._ns_resolver.files,
-    #         paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
-    #     )
+        nsResolverProvider = OCamlNsResolverProvider(
+            files = ctx.attr._ns_resolver.files,
+            paths = depset([d.dirname for d in ctx.attr._ns_resolver.files.to_list()])
+        )
+    else:
+        nsresolver_depset = depset()
 
     # print("RESOLVER PROVIDER: %s" % nsResolverProvider)
 
@@ -1307,6 +1296,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         archives  = archives_depset,
         afiles    = afiles_depset,
         astructs = astructs_depset,
+        ns = nsresolver_depset,
+
         ## put these in OCamlCodepsProvider?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,
@@ -1314,6 +1305,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         all = depset(
             order = dsorder,
             transitive=[
+                nsresolver_depset,
                 default_depset,
                 outputGroup_all_depset,
                 # ppx_codeps_depset,

@@ -6,7 +6,8 @@ NEGATION_OPTS = [
     "-no-linkall",
     "-no-short-paths", "-no-strict-formats", "-no-strict-sequence",
     "-no-keep-locs", "-no-opaque",
-    "-no-thread", "-no-verbose"
+    "-no-thread", "-no-verbose",
+    "-no-alias-deps"
 ]
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
@@ -110,6 +111,7 @@ def get_options(rule, ctx):
     options = []
     tc_options = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
     options.extend(tc_options.compile_opts)
+
     # last arg wins - target opts override profile opts
     options.extend(ctx.attr.opts)
 
