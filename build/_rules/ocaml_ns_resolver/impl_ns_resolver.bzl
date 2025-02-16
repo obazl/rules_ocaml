@@ -297,32 +297,9 @@ def impl_ns_resolver(ctx):
         if debug_ns:
             print("User-provided resolver for ns: %s" % ns_name)
             print(" resolver: %s" % user_ns_resolver)
-            fail("uda")
+            fail("udr")
 
         defaultInfo = DefaultInfo()
-        #     files = depset(
-        #         order  = dsorder,
-        #         # direct = default_outputs # action_outputs
-        #         direct = user_ns_resolver
-        #     )
-        # )
-
-        # nsResolverProvider = OCamlNsResolverProvider(
-        #     # resolver_file = resolver_src_file,
-        #     # subnames = subnames,
-        #     # resolver = resolver_module_name,
-        #     # prefixes   = ns_prefixes,
-        #     ns_name    = ns_name
-        # )
-
-        # ocamlProvider = OCamlDepsProvider(
-        #     inputs    = depset(
-        #         order = dsorder,
-        #         transitive = user_ns_resolver
-        #     ),
-        #     paths     = depset(direct = [out_cmi.dirname]),
-        # )
-
         return [DefaultInfo(),
                 OCamlDepsProvider(),
                 OCamlNsResolverProvider(ns_name = ns_name)]
@@ -481,6 +458,9 @@ def impl_ns_resolver(ctx):
         # provide src for output group, for easy reference
         resolver_src = resolver_src_file,
         submodules   = subnames,
+        # WARNING: modname may differ from ns name,
+        # e.g. nsname Foo, modname Foo__
+        # FIXME: always use modname
         modname      = resolver_module_name,
         prefixes     = ns_prefixes,
         ns_name      = ns_name,

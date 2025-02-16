@@ -783,28 +783,6 @@ Runtime data dependencies: list of labels of data files needed by this module at
             default = ws + "//cfg/module:deps"
         ),
 
-        ################
-        ## for namespacing we only need the resolver, we get the ns
-        ## prefix and submodules list from it.
-
-        # _ns_name = attr.label(
-        #     doc = "Implicit namespace name",
-        #     # providers = [OCamlNsResolverProvider],
-        #     # string
-        #     default = "@rules_ocaml//cfg/ns:name",
-        #     # cfg = ocaml_nslib_resolver_out_transition
-        # ),
-
-        # _ns_prefixes   = attr.label(
-        #     doc = "List of prefixes to use in renaming submodules. Set by transition fn.",
-        #     default = "@rules_ocaml//cfg/ns:prefixes"
-        # ),
-
-        # _ns_submodules = attr.label(
-        #     doc = "String list of submodules, set by transition fn.",
-        #     default = "@rules_ocaml//cfg/ns:submodules",
-        # ),
-
         _xmo = attr.label(
             doc = "Cross-module optimization. Boolean",
             default = "@rules_ocaml//cfg:xmo"

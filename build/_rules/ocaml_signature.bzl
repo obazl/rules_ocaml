@@ -32,72 +32,73 @@ load("//build:actions.bzl", "ppx_transformation")
 
 workdir = tmpdir
 
+########################################
+def _resolve_modname(ctx, nsr_provider):
+    debug = False
+    if ctx.attr.module_name:
+        ## Force module name
+        if debug: print("Setting module name to %s" % ctx.attr.module_name)
+        basename = ctx.attr.module_name
+        modname = basename[:1].capitalize() + basename[1:]
+        #FIXME: add ns prefix if needed
+    else:
+        ## Derive module name from src file name
+        (mname, extension) = paths.split_extension(
+            ctx.file.src.basename)
+        (from_name,
+         modname) = derive_module_name_from_file_name(
+             ctx, mname, nsr_provider
+         )
+
+    return modname
+
 ##########################
+##  _handle_ns_stuff(ctx)
+##  case a) no ns - return immediately
+##  case b) bottomup ns
+##  case c) topdown ns
+##  in both cases renaming is called for:
+##    get the ns name from the dependency
 def _handle_ns_stuff(ctx):
 
     debug_ns = False
 
     if not hasattr(ctx.attr, "ns"):
-        ## this is a plain ocaml_module
+        ## this is a plain ocaml_module w/o namespacing
         return  (False, # ns_enabled
-                 None,  # ns_name
-                 None,  # nsrp
-                 None,  # ns_resolver
-                 # []    # ns_resolver_files
-                 )
+                 None,  # nsr_provider = NsResolverProvider
+                 None)  # ns_resolver module
 
     ns_enabled = False
-    ns_name = None
-    nsrp = None
-    ns_resolver = None
+    nsr_provider = None  ## NsResolverProvider
+    nsr_target = None  ## resolver module
 
     ## bottom-up namespacing
     if ctx.attr.ns:
         ns_enabled = True
-        ns_resolver = ctx.attr.ns ## [0] # index by int?
-        # ns_resolver_files = ctx.files.ns_resolver ## [0] # index by int?
-        nsrp = ctx.attr.ns[OCamlNsResolverProvider]
-        if hasattr(nsrp, "ns_name"):
-            ns_name = nsrp.ns_name
-            ns_enabled = True
-
-        if hasattr(nsrp, "ns_module_name"):
-            ns_module_name = nsrp.ns_module_name
+        nsr_target = ctx.attr.ns
+        nsr_provider = ctx.attr.ns[OCamlNsResolverProvider]
+        if hasattr(nsr_provider, "modname"):
+            # e.g. Foo__, not Foo (ns name)
             ns_enabled = True
 
     ## top-down namespacing
     elif ctx.attr._ns_resolver:
-        nsrp = ctx.attr._ns_resolver[OCamlNsResolverProvider]
+        nsr_provider = ctx.attr._ns_resolver[OCamlNsResolverProvider]
         if debug_ns:
             print("_ns_resolver: %s" % ctx.attr._ns_resolver)
-            print("nsrp: %s" % nsrp)
-        if not nsrp.tag == "NULL": # hasattr(nsrp, "ns_name"):
+            print("nsr_provider: %s" % nsr_provider)
+        if not nsr_provider.tag == "NULL":
             ns_enabled = True
-            # fail("XXXXXXXXXXXXXXXX")
-            ns_name = nsrp.ns_name
-            ns_module_name = nsrp.modname
-            ns_resolver = ctx.attr._ns_resolver ## [0] # index by int?
-            # ns_resolver_files = ctx.files._ns_resolver ## [0] # index by int?
-
+            nsr_target = ctx.attr._ns_resolver ## [0] # index by int?
     else:
         if debug_ns: print("m: no resolver for %s" % ctx.label)
-        ns_resolver = None
+        nsr_target = None
         # ns_resolver_files = []
 
-    ## if we have a udr (from the 'resolver' attr of ocaml_ns*),
-    ## then our _ns_resolver will be contain a null resolver,
-    ## but we still need to rename our submodules.
-    # print("{c} _ns_resolver nsrp:{r} {s}".format(
-    #     c=CCGRN, r=CCRESET, s=ctx.attr._ns_resolver[OCamlNsResolverProvider]))
-    # print("{c} _ns_prefixes:{r} {s}".format(
-    #     c=CCGRN, r=CCRESET, s=ctx.attr._ns_prefixes[BuildSettingInfo].value))
-    # print("{c} _ns_submodules:{r} {s}".format(
-    #     c=CCGRN, r=CCRESET, s=ctx.attr._ns_submodules[BuildSettingInfo].value))
-
     return  (ns_enabled,
-             ns_name,
-             nsrp,
-             ns_resolver)
+             nsr_provider,
+             nsr_target)
 
 ########## RULE:  OCAML_SIGNATURE  ################
 def _ocaml_signature_impl(ctx):
@@ -133,16 +134,12 @@ def _ocaml_signature_impl(ctx):
     #     print("  TC.COMPILER: %s" % tc.compiler.basename)
 
     ns_enabled = False
-    ns_name    = None
-    (ns_enabled, ns_name, nsrp, ns_resolver) = _handle_ns_stuff(ctx)
+    (ns_enabled,
+     nsr_provider, nsr_target) = _handle_ns_stuff(ctx)
 
     manifest = [] # ??
-    ## FIXME: handle non-namespaced archive manifests
-    # if hasattr(nsrp, "submodules"):
-    #     manifest = nsrp.submodules
-    #     if debug_ns:
-    #         print("ns manifest: %s" % manifest)
 
+    ##########################
     depsets = DepsAggregator()
 
     for dep in ctx.attr.deps:
@@ -152,27 +149,14 @@ def _ocaml_signature_impl(ctx):
         depsets = merge_deps(ctx, dep, depsets, manifest)
 
     if ns_enabled:
-        depsets = merge_deps(ctx, ns_resolver, depsets, manifest)
+        depsets = merge_deps(ctx, nsr_target, depsets, manifest)
 
-    ## NB: sigs never have direct codeps
-    ## add ppx_codeps from ppx provider
-    ## only the codeps of the ppx executable deps of this sig.
-    ## ppx codeps in the dep graph are NOT compile deps of this sig.
     if ctx.attr.ppx:
         depsets = merge_deps(ctx, ctx.attr.ppx, depsets, manifest)
 
     ################################################
-    modname = None
-
-    if ctx.attr.module:
-        if debug: print("Setting module name to %s" % ctx.attr.module)
-        basename = ctx.attr.module
-        modname = basename[:1].capitalize() + basename[1:]
-        #FIXME: add ns prefix if needed
-    else:
-        (mname, extension) = paths.split_extension(
-            ctx.file.src.basename)
-        (from_name, modname) = derive_module_name_from_file_name(ctx, mname)
+    ## _resolve_modname
+    modname = _resolve_modname(ctx, nsr_provider)
 
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig")
@@ -199,10 +183,6 @@ def _ocaml_signature_impl(ctx):
         xmo = False
     else:
         xmo = True
-    # elif "-no-opaque" in _options:
-    #     xmo = True
-    # else:
-    #     xmo = ctx.attr._xmo
 
     args.add_all(_options)
 
@@ -245,7 +225,7 @@ def _ocaml_signature_impl(ctx):
 
     if ns_enabled:
         args.add("-no-alias-deps")
-        args.add("-open", nsrp.modname)
+        args.add("-open", nsr_provider.modname)
 
     if ctx.attr.open:
         for dep in ctx.files.open:
@@ -551,7 +531,7 @@ the difference between '/' and ':' in such labels):
             # default = "@rules_ocaml//cfg/bootstrap/ns:resolver",
         ),
 
-        module = attr.string(
+        module_name = attr.string(
             doc = "Set module (sig) name to this string"
         ),
 

@@ -169,14 +169,15 @@ def _src_module_in_submod_list(ctx, src, submodules):
 # if this is a submodule, add the prefix
 # otherwise, if ppx, rename
 # derive module name from ns prefixes
-def derive_module_name_from_file_name(ctx, src): # src: string
+def derive_module_name_from_file_name(ctx, stem, nsr_provider):
+    # stem: string
     debug = False
 
     if debug:
         print("{c}derive_module_name_from_file_name{r}: {m}".format(
-            c=CCBLU,r=CCRESET,m=src))
+            c=CCBLU,r=CCRESET,m=stem))
 
-    ## src: string ## for modules, ctx.file.struct, for sigs, ctx.file.src
+    ## stem: string ## for modules, ctx.file.struct, for sigs, ctx.file.src
 
     # we get prefix list from ns_resolver module. they're also in the
     # config state (@rules_ocaml//cfg/ns:prefixes), which is how ns_resolver
@@ -224,9 +225,9 @@ def derive_module_name_from_file_name(ctx, src): # src: string
     ns     = None
     # module_sep = "__"
 
-    ##WARN: this_module == src_module (src may be in difference dir/pkg);
-    # (this_module, extension) = paths.split_extension(src) # .basename)
-    this_module = src[:1].capitalize() + src[1:]
+    ##WARN: this_module == src_module (stem may be in difference dir/pkg);
+    # (this_module, extension) = paths.split_extension(stem) # .basename)
+    this_module = stem[:1].capitalize() + stem[1:]
     if debug: print("this_module: %s" % this_module)
     # if ctx.label.name == "Char_cmi":
     #     print("this_module: %s" % this_module)
@@ -251,7 +252,7 @@ def derive_module_name_from_file_name(ctx, src): # src: string
         elif this_module == ns_prefixes[-1]:
             # print("this module matches ns resolver name: %s" % this_module)
             # if _src_module_in_submod_list(ctx,
-            #                               src,
+            #                               stem,
             #                               ns_resolver.submodules):
             #     fs_prefix = module_sep.join(ns_prefixes) + "__"
             #     out_module = fs_prefix + this_module
@@ -271,7 +272,7 @@ def derive_module_name_from_file_name(ctx, src): # src: string
                 else:
                     # print("topdown this: %s" % this_module)
                     if _src_module_in_submod_list(ctx,
-                                                  src,
+                                                  stem,
                                                   ns_resolver.submodules):
                         # print("%s in submod list" % this_module)
                         # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":

@@ -121,7 +121,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
         ## this one is for bottom-up namespacing:
         ns = attr.label(
             doc = """
-NS resolver module for bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
+Label of an ocaml_ns target, which must list this module in its 'manifest' attribute. For bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
             """,
             allow_single_file = True,
             providers = [OCamlNsResolverProvider],
@@ -143,12 +143,6 @@ NS resolver module for bottom-up namespacing. Modules may use this attribute to 
             ## ocaml_lex), this transition will prevent ns renaming:
             # cfg = ocaml_module_deps_out_transition
         ),
-
-        # _manifest = attr.label( ## Why?
-        #     doc = "Hidden attribute set by transition function. Value is string list.",
-        #     default = "@rules_ocaml//cfg/manifest"
-        # ),
-
         _rule = attr.string( default  = "ocaml_module" ),
         _tags = attr.string_list( default  = ["ocaml"] ),
         _allowlist_function_transition = attr.label(
