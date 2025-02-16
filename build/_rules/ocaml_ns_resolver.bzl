@@ -1,12 +1,10 @@
 load("//build/_lib:options.bzl", "options", "options_module", "options_ppx")
 
-load("//build:providers.bzl",
+load("@rules_ocaml//build:providers.bzl",
+     "OCamlDepsProvider",
      "OCamlModuleProvider",
      "OCamlNsResolverProvider",
      "OcamlNsSubmoduleMarker")
-     # "OcamlProvider")
-
-load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 # load("//ocaml/_rules:impl_module.bzl", "impl_module")
 
@@ -202,7 +200,9 @@ Includes all submodules of an exogenous namespace.
 
         _rule = attr.string(default = "ocaml_ns_resolver")
     ),
-    provides = [OCamlNsResolverProvider,OCamlDepsProvider],
+    provides = [OCamlNsResolverProvider,
+                # OCamlModuleProvider,
+                OCamlDepsProvider],
     executable = False,
     toolchains = [
         "@rules_ocaml//toolchain/type:std",

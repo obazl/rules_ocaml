@@ -709,7 +709,7 @@ def options_module(ws):
         sig = attr.label(
             doc = "Single label of a target producing `OCamlSignatureProvider` (i.e. rule `ocaml_signature`) OR a sig source file. Optional.",
             allow_single_file = True,
-            providers = [OCamlSignatureProvider],
+            # providers = [OCamlSignatureProvider],
             #              [OCamlImportProvider]]
             ## FIXME: how to specify OCamlSignatureProvider OR FileProvider?
             # allow_files = True

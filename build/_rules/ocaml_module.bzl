@@ -119,7 +119,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
 
         ## we have both a public and a hidden ns resolver attribute.
         ## this one is for bottom-up namespacing:
-        ns_resolver = attr.label(
+        ns = attr.label(
             doc = """
 NS resolver module for bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
             """,

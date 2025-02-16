@@ -37,8 +37,8 @@ def _handle_ns_stuff(ctx):
 
     debug_ns = False
 
-    if not hasattr(ctx.attr, "ns_resolver"):
-        ## this is an ocaml_ns_resolver, not a "plain" module
+    if not hasattr(ctx.attr, "ns"):
+        ## this is a plain ocaml_module
         return  (False, # ns_enabled
                  None,  # ns_name
                  None,  # nsrp
@@ -52,11 +52,11 @@ def _handle_ns_stuff(ctx):
     ns_resolver = None
 
     ## bottom-up namespacing
-    if ctx.attr.ns_resolver:
+    if ctx.attr.ns:
         ns_enabled = True
-        ns_resolver = ctx.attr.ns_resolver ## [0] # index by int?
+        ns_resolver = ctx.attr.ns ## [0] # index by int?
         # ns_resolver_files = ctx.files.ns_resolver ## [0] # index by int?
-        nsrp = ctx.attr.ns_resolver[OCamlNsResolverProvider]
+        nsrp = ctx.attr.ns[OCamlNsResolverProvider]
         if hasattr(nsrp, "ns_name"):
             ns_name = nsrp.ns_name
             ns_enabled = True
@@ -75,7 +75,7 @@ def _handle_ns_stuff(ctx):
             ns_enabled = True
             # fail("XXXXXXXXXXXXXXXX")
             ns_name = nsrp.ns_name
-            ns_module_name = nsrp.module_name
+            ns_module_name = nsrp.modname
             ns_resolver = ctx.attr._ns_resolver ## [0] # index by int?
             # ns_resolver_files = ctx.files._ns_resolver ## [0] # index by int?
 
@@ -134,43 +134,6 @@ def _ocaml_signature_impl(ctx):
 
     ns_enabled = False
     ns_name    = None
-    ## bottom-up namespacing, demo: ns/bottomup/mwe
-    # if ctx.attr.ns_resolver:
-    #     ns_enabled = True
-    #     ns_resolver = ctx.attr.ns_resolver
-    #     # ns_resolver_files = ctx.files.ns_resolver
-    #     nsrp = ctx.attr.ns_resolver[OCamlNsResolverProvider]
-    #     if hasattr(nsrp, "ns_name"):
-    #         ns_name = nsrp.ns_name
-    #         ns_enabled = True
-    #     # else:
-    #     #     ???
-
-    #     if hasattr(nsrp, "ns_module_name"):
-    #         ns_module_name = nsrp.ns_module_name
-    #         ns_enabled = True
-    #     # else:
-    #     #     ???
-
-    # ## top-down ns, demo: ns/topdown/library/mwe/hello
-    # elif ctx.attr._ns_resolver:
-    #     nsrp = ctx.attr._ns_resolver[OCamlNsResolverProvider]
-    #     if debug_ns:
-    #         print("_ns_resolver: %s" % ctx.attr._ns_resolver)
-    #         print("nsrp: %s" % nsrp)
-    #     if not nsrp.tag == "NULL": # hasattr(nsrp, "ns_name"):
-    #         ns_enabled = True
-    #         ns_name = nsrp.ns_name
-    #         ns_module_name = nsrp.module_name
-    #         ns_resolver = ctx.attr._ns_resolver ## [0] # index by int?
-    #         # ns_resolver_files = ctx.files._ns_resolver
-
-    # # no namespacing
-    # else:
-    #     if debug_ns: print("lib: no resolver for %s" % ctx.label)
-    #     ns_resolver = None
-    #     # ns_resolver_files = []
-
     (ns_enabled, ns_name, nsrp, ns_resolver) = _handle_ns_stuff(ctx)
 
     manifest = [] # ??
@@ -241,16 +204,6 @@ def _ocaml_signature_impl(ctx):
     # else:
     #     xmo = ctx.attr._xmo
 
-    if "-bin-annot" in _options:
-        cmti = workdir + modname + ".cmti"
-        out_cmti = None
-        out_cmti = ctx.actions.declare_file(cmti)
-        action_outputs.append(out_cmti)
-    # elif "//command_line_option:output_groups" == "cmti":
-    #     same
-    else:
-        out_cmti = None
-
     args.add_all(_options)
 
     # if "-for-pack" in _options:
@@ -266,9 +219,15 @@ def _ocaml_signature_impl(ctx):
     #     args.add("-linkpkg")
 
     out_cmi = ctx.actions.declare_file(workdir + modname + ".cmi")
-
     action_outputs.append(out_cmi)
     if debug: print("out_cmi %s" % out_cmi)
+
+    if "-bin-annot" in _options:
+        f = modname + ".cmti"
+        out_cmti = ctx.actions.declare_file(f, sibling = out_cmi)
+        action_outputs.append(out_cmti)
+    else:
+        out_cmti = None
 
     paths_depset = depset(
         order=dsorder,
@@ -286,7 +245,7 @@ def _ocaml_signature_impl(ctx):
 
     if ns_enabled:
         args.add("-no-alias-deps")
-        args.add("-open", nsrp.module_name)
+        args.add("-open", nsrp.modname)
 
     if ctx.attr.open:
         for dep in ctx.files.open:
@@ -578,7 +537,7 @@ the difference between '/' and ':' in such labels):
             allow_files = True
         ),
 
-        ns_resolver = attr.label(
+        ns = attr.label(
             doc = "Bottom-up namespacing",
             allow_single_file = True,
             mandatory = False

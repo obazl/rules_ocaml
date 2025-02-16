@@ -141,10 +141,10 @@ def _src_module_in_submod_list(ctx, src, submodules):
     # print("src module: %s" % src_module)
     # print("src owner: %s" % src.owner)
 
-    # if type(ctx.attr._ns_resolver) == "list":
-    #     ns_resolver = ctx.attr._ns_resolver[0][OCamlNsResolverProvider]
+    # if type(ctx.attr._ns         ) == "list":
+    #     ns          = ctx.attr._ns         [0][OCamlNsResolverProvider]
     # else:
-    #     ns_resolver = ctx.attr._ns_resolver[OCamlNsResolverProvider]
+    #     ns          = ctx.attr._ns         [OCamlNsResolverProvider]
 
     result = False
     submods = []
@@ -194,16 +194,16 @@ def derive_module_name_from_file_name(ctx, src): # src: string
     # if ctx.attr._rule == "ppx_transform":
     #     # no ns resolver attrs?
     if ctx.attr._rule != "ppx_transform":
-        if ctx.attr.ns_resolver:
+        if ctx.attr.ns         :
             if debug: print("BOTTOMUP renaming")
             bottomup = True
-            ns_resolver = ctx.attr.ns_resolver
-            # resolver either ocaml_ns_resolver or ocaml_module
+            ns_resolver = ctx.attr.ns         
+            # resolver either ocaml_ns          or ocaml_module
             if hasattr(ns_resolver[OCamlNsResolverProvider], "ns_name"):
-                prefix = ctx.attr.ns_resolver[OCamlNsResolverProvider].ns_name
+                prefix = ctx.attr.ns[OCamlNsResolverProvider].ns_name
             else:
                 (prefix, extension) = paths.split_extension(
-                    ctx.file.ns_resolver.basename)
+                    ctx.file.ns.basename)
                 # print("prefix xxxx %s" % prefix)
         else:
             if debug: print("TOPDOWN renaming")

@@ -56,12 +56,12 @@ scope = tmpdir
 def _handle_ns_stuff(ctx):
     debug_ns = False
 
-    if not hasattr(ctx.attr, "ns_resolver"):
-        ## this is an ocaml_ns_resolver module
+    if not hasattr(ctx.attr, "ns"):
+        ## this is an ocaml_ns module
         return  (False, # ns_enabled
                  None,  # ns_name
                  None,  # nsrp
-                 None,  # ns_resolver
+                 None,  # ns
                  # []    # ns_resolver_files
                  )
 
@@ -71,11 +71,11 @@ def _handle_ns_stuff(ctx):
     ns_resolver = None
 
     ## bottom-up namespacing
-    if ctx.attr.ns_resolver:
+    if ctx.attr.ns:
         ns_enabled = True
-        ns_resolver = ctx.attr.ns_resolver ## [0] # index by int?
-        # ns_resolver_files = ctx.files.ns_resolver ## [0] # index by int?
-        nsrp = ctx.attr.ns_resolver[OCamlNsResolverProvider]
+        ns_resolver = ctx.attr.ns ## [0] # index by int?
+        # ns_resolver_files = ctx.files.ns ## [0] # index by int?
+        nsrp = ctx.attr.ns[OCamlNsResolverProvider]
         if hasattr(nsrp, "ns_name"):
             ns_name = nsrp.ns_name
             ns_enabled = True
@@ -98,7 +98,7 @@ def _handle_ns_stuff(ctx):
         if not nsrp.tag == "NULL": # hasattr(nsrp, "ns_name"):
             ns_enabled = True
             ns_name = nsrp.ns_name
-            ns_module_name = nsrp.module_name
+            ns_module_name = nsrp.modname
             ns_resolver = ctx.attr._ns_resolver ## [0] # index by int?
             # ns_resolver_files = ctx.files._ns_resolver ## [0] # index by int?
 
@@ -483,6 +483,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     if debug_deps: print("ctx.attr.deps: %s" % ctx.attr.deps)
     for dep in ctx.attr.deps:
         depsets = merge_deps(ctx, dep, depsets, manifest)
+    for dep in ctx.attr.open:
+        depsets = merge_deps(ctx, dep, depsets, manifest)
     if debug_deps:
         print("DEPSETS: %s" % depsets)
     if debug_ccdeps:
@@ -718,6 +720,15 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     else:
         xmo = True
 
+    if "-bin-annot" in _options:
+        f = modname + ".cmt"
+        out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
+        action_outputs.append(out_cmt)
+        # if not cmi_precompiled:
+        #     f = modname + ".cmti"
+        #     out_cmti = ctx.actions.declare_file(f, sibling = out_struct)
+        #     action_outputs.append(out_cmti)
+
     if debug_xmo:
         print("XMO: {} {}".format(xmo, ctx.label))
         print("_options: %s" % _options)
@@ -837,7 +848,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         if debug_ns:
             print("NSRP: %s" % nsrp)
         args.add("-no-alias-deps")
-        args.add("-open", nsrp.module_name)
+        args.add("-open", nsrp.modname)
 
     if cmi_precompiled:
         maybe_cmi = [out_cmi]
@@ -874,7 +885,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     open_inputs = []
     if ctx.attr.open:
         for dep in ctx.attr.open:
-            open_inputs.append(dep[OCamlModuleProvider].cmi)
+            if OCamlModuleProvider in dep:
+                open_inputs.append(dep[OCamlModuleProvider].cmi)
+            elif OCamlNsResolverProvider in dep:
+                open_inputs.append(dep[OCamlNsResolverProvider].cmi)
             # open_inputs.append(dep[OCamlModuleProvider].struct)
 
     action_inputs_depset = depset(
@@ -941,7 +955,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     if ctx.attr.open:
         for dep in ctx.attr.open:
-            args.add("-open", dep[OCamlModuleProvider].modname)
+            if OCamlModuleProvider in dep:
+                args.add("-open", dep[OCamlModuleProvider].modname)
+            elif OCamlNsResolverProvider in dep:
+                args.add("-open", dep[OCamlNsResolverProvider].modname)
 
     if work_mli and not cmi_precompiled: # sig_src:
         args.add("-I", work_mli.dirname) # sig_src.dirname)
@@ -1188,10 +1205,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # else:
     #     print("NO MODULE NS_RESOLVER: %s" % ns_resolver)
 
-    if ctx.attr.ns_resolver:  ## bottomup
-        resolver = ctx.attr.ns_resolver
+    if ctx.attr.ns:  ## bottomup
+        resolver = ctx.attr.ns
         if debug:
-            print("attr.ns_resolver: %s" % resolver)
+            print("attr.ns: %s" % resolver)
             print("resolver: %s" % resolver[OCamlNsResolverProvider])
         nsresolver_depset = depset(
             transitive = [resolver[DefaultInfo].files]

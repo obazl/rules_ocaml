@@ -324,7 +324,7 @@ def impl_ns_resolver(ctx):
         # )
 
         return [DefaultInfo(),
-                # ocamlProvider,
+                OCamlDepsProvider(),
                 OCamlNsResolverProvider(ns_name = ns_name)]
         # resolver_module_name = ns_name + resolver_suffix
 
@@ -406,6 +406,11 @@ def impl_ns_resolver(ctx):
     if ctx.attr._warnings:
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
+    if "-bin-annot" in _options:
+        f = resolver_module_name + ".cmt"
+        out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
+        action_outputs.append(out_cmt)
+
     args.add("-I", resolver_src_file.dirname)
     action_inputs = []
     merge_depsets = []
@@ -476,7 +481,7 @@ def impl_ns_resolver(ctx):
         # provide src for output group, for easy reference
         resolver_src = resolver_src_file,
         submodules   = subnames,
-        module_name  = resolver_module_name,
+        modname      = resolver_module_name,
         prefixes     = ns_prefixes,
         ns_name      = ns_name,
         cmi          = out_cmi,
@@ -531,10 +536,14 @@ def impl_ns_resolver(ctx):
                             direct=[out_ofile] if out_ofile else [],
                             )
 
-    cli_link_deps_depset = depset()
+    cli_link_deps_depset = depset(
+        order=dsorder,
+        direct=[out_struct],
+        ## FIXME: merge deps, so:
+        # transitive = depsets.deps.cli_link_deps
+    )
 
-    ## Do we need this? Who is the consumer?
-    ## - we need it for user-defined ns resolvers?
+    ## needed for cli_link_deps for executables?
     ocamlDepsProvider = OCamlDepsProvider(
         cmi      = out_cmi,
         sigs     = sigs_depset,
