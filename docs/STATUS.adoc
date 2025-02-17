@@ -1,9 +1,9 @@
 = rules_ocaml status
 :toc: true
 
-== Version 5.0.0.alpha
+== Version 3.0.0.beta
 
-Available for testing, on the branch of that name, as of 2/10/2025.
+Available for testing, on the branch of that name, as of 2/17/2025.
 
 == Features
 
@@ -41,6 +41,10 @@ can be built and depended upon directly.
 == Breaking changes
 
 * `ocaml_archive` is being removed. Use `ocaml_library` with attribute `archived = True` instead.
+
+* `ocaml_ns_resolver` renamed to `ocaml_ns`
+
+* attribute `ns_resolver` renamed to `ns` (in rules `ocaml_signature`, `ocaml_module`)
 
 * `load(@rules_ocaml//build:rules.bzl", "ppx_executable")` and similar must change to `load(@rules_ppx//build:rules.bzl",  "ppx_executable")`.
 
