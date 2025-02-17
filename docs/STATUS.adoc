@@ -1,0 +1,62 @@
+= rules_ocaml status
+:toc: true
+
+== Version 5.0.0.alpha
+
+Available for testing, on the branch of that name, as of 2/10/2025.
+
+== Features
+
+See also link:ROADMAP.adoc[Roadmap].
+
+=== Toolchain selection
+
+Currently one selects a toolchain by passing `--host_platform` and `--platforms` parameters on the command line.  But those are really implementation details the user should not need to know.
+
+The new implementation will keep those details internal, and will provide a
+single, easily remembered build setting for toolchain selection:
+`+@rules_ocaml//toolchain+`.  This can be abbreviated using an alias, e.g. in `.bazelrc`:
+
+    common --flag_alias=tc=@rules_ocaml//toolchain
+
+so that the user can just pass e.g. `--tc=ocamlc.opt`.
+
+=== Namespacing
+
+Version 5.0.0 will support bottom-up namespacing. With top-down
+namespacing, the namespace selects its members; with bottom-up
+namespacing, modules elect membership.
+
+This means, among other things, that each member module of a namespace
+can be built and depended upon directly.
+
+=== Ppx support
+
+* Ppx rules are being migrated to link:https://github.com/obazl/rules_ppx[rules_ppx].
+
+* Ppx transformation logic is being migrated out of the Ppx rule implementations and into a new rule, `ppx_transformation`.
+
+* Macros are being added to sugar the use of `ppx_transformation` rules.
+
+== Breaking changes
+
+* `ocaml_archive` is being removed. Use `ocaml_library` with attribute `archived = True` instead.
+
+* `load(@rules_ocaml//build:rules.bzl", "ppx_executable")` and similar must change to `load(@rules_ppx//build:rules.bzl",  "ppx_executable")`.
+
+* Migration from `@coswitch` to the new
+  link:https://github.com/obazl/tools_opam/tree/1.0.0.alpha[tools_opam]
+  module extension. This should mostly be invisible to users, but it
+  does require renaming of opam labels. For example, `@ounit2//lib/ounit2` becomes `@opam.ounit2//lib`.  See link:https://github.com/obazl/tools_opam/tree/1.0.0.alpha?tab=readme-ov-file#bazel-labels-for-opam-packages[Bazel labels for opam packages] for details.
+
+* Rules that were previously in `@tools_ocaml` have been migrated to their own Bazel modules:
+  ** link:https://github.com/obazl/obazl_menhir/tree/2024.07.15.beta[obazl_menhir] (Branch 2024.07.15.beta)  See link:https://github.com/obazl/demos_obazl/tree/5.0.0.alpha/rules_ocaml/parsing/menhir[menhir demos] for examples of usage.
+  ** link:https://github.com/obazl/obazl_cppo/tree/1.8.0.beta[obazl_cppo] (Branch 1.8.0.beta) See link:https://github.com/obazl/demos_obazl/tree/5.0.0.alpha/rules_ocaml/preprocessing/cppo[cppo demos] for examples of usage.
+
+== Implementation changes
+
+Rule implementation code is undergoing a major cleanup - dead code
+elimination, renaming, refactoring, etc.
+
+
+

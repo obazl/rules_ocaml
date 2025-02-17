@@ -1,0 +1,171 @@
+= rules_ocaml roadmap
+:toc: true
+
+== Near-term
+
+==== Revise toolchain selection
+
+Toolchain selection is based on Bazel's `+host_platform+` and
+`+platforms+` config settings. Currently, to specify a platform for a
+build, the user must pass these on the command line. For example, to
+build with the `+ocamlc.opt` compiler:
+
+    $ bazel build //pkg:tgt --host_platform=@rules_ocaml//platform:ocamlc.opt --platforms=@rules_ocaml//platform:ocamlc.byte
+
+This is cumbersome to say the least. We can make it a little more
+palatable by defining `config` groups in `+.bazelrc+`, e.g.
+
+[source="starlark", title=".bazelrc"]
+----
+common:ocamlc.opt --host_platform=@rules_ocaml//platform:ocamlc.opt
+common:ocamlc.opt --platforms=@rules_ocaml//platform:ocamlc.byte
+----
+
+Then the user can write `+$ bazel build //pkg:tgt
+--config=ocamlc.opt+`.
+
+But that does not really solve the problem, it just moves it: each
+user must still define the configs in every project, and different
+users might chose different names for the config groups. That's
+exactly the kind of thing most working programmers to _not_ want to
+have to bother with. It's an implementation detail of the build
+system.
+
+The proposed solution is to move this logic into the rule themselves,
+by attaching an incoming transition function to every rule. The
+function will take as input a label flag defined by `+rules_ocaml+`;
+for example, `+@rules_ocaml//toolchain+`. Then the user can write
+[nowrap]`+--@rules_ocaml//toolchain=ocamlc.opt+`.  This can be sugared
+by defining a link:https://bazel.build/extending/config#using-build-setting-aliases[build setting alias] like so:
+
+    common --flag_alias=tc=@rules_ocaml//toolchain
+
+and then a toolchain can be specified by passiing `+--tc=ocamlc.opt+`.
+That may not be a huge improvement over
+[nowrap]`+--config=ocamlc.opt+`, but eliminating the need to remember
+the [nowrap]`+--host_platform=...+`
+and [nowrap]`+--platforms=...+`
+syntax seems like a clear win.
+
+=== Code cleanup and refactoring
+
+The source code of the rules is admittedly a hideous mess. So a top
+priority for the immediate future is to clean it up and make it
+readable.
+
+=== Finish `rules_ppx`
+
+link:https://github.com/obazl/rules_ppx[rules_ppx]
+
+=== Fix broken demo cases
+
+A small number of demons fail in certain circumstances.
+
+=== Update documentation
+
+== Medium term
+
+=== Bytecode executables
+
+OCaml compilers emitting bytecode (`ocamlc.byte`, `ocamlc.opt`)
+support several kinds of executable output; for example, passing
+[nowrap]`-custom` "produces an output file that contains both the
+runtime system and the bytecode for the program", so that the output
+file can be run without `ocamlrun`. Furthermore several strategies for
+linking user-provided C code are supported.
+
+A goal of `rules_ocaml` is to provide fine-grained support for all these options; however, this support is not yet complete.
+
+Relevant options: `-custom`, `-cclib`, `-ccopt`, `-dlpath`, `-dllib`.
+
+Manual sections:
+
+* link:https://v2.ocaml.org/releases/5.1/htmlman/comp.html[Chapter 13. Batch compilation (ocamlc)]
+
+* link:https://v2.ocaml.org/manual/runtime.html[Chapter 15. The runtime system (ocamlrun)]
+
+**  link:https://v2.ocaml.org/manual/runtime.html[15.3 Dynamic loading of shared libraries]
+
+* link:https://v2.ocaml.org/manual/native.html[Chapter 16. Native-code compilation (ocamlopt)]
+
+* link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html#[Chapter 22. Interfacing C with OCaml]
+
+** link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html#ss:staticlink-c-code[22.1.3 Statically linking C code with OCaml code]
+
+** link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html[22.1.4 Dynamically linking C code with OCaml code]
+
+* link:https://v2.ocaml.org/releases/5.1/htmlman/libdynlink.html[Chapter 34 The dynlink library: dynamic loading and linking of object files]
+
+=== Dynlink
+
+TODO: add test/demo cases.
+
+=== Standalone custom runtimes
+
+Not yet supported.  Relevant options: `-make-runtime`, `-use-runtime`
+
+Manual sections: link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html#ss:custom-runtime[22.1.6 Building standalone custom runtime systems]
+
+=== Object output
+
+The OCaml linker can "produce a C object file instead of an executable file. This is useful to wrap OCaml code as a C library, callable from any C program."  It can also output a C file, or a DSO file (*.so, *.dll).
+
+Not yet supported. Relevant options:  `-output-obj`,
+`-output-complete-obj`, [nowrap]#`-output-complete-exe`#
+
+Manual sections:
+
+* link:https://v2.ocaml.org/manual/intfc.html#ss%3Ac-embedded-code[22.7.5 Embedding the OCaml code in the C code]
+
+=== Packed modules
+
+Seamless support for packed modules (options `-for-pack`, `-pack`) is not yet implemented
+
+=== Foreign library support
+
+The OCaml linker supports a variety of methods for linking foreign libraries with OCaml code.  Currently the OBazl rules support static linking of static libraries fairly well, but support for dynamic linking is still a work in progress, as is find-grained control of such linking.
+
+Simple makefile-based demos of 24 different ways of linking are available at link:https://github.com/obazl/demos_obazl/tree/main/makefiles/ffi[demos_obazl/makefiles/ffi,window=_blank]
+
+Manual sections:
+
+* link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html#[Chapter 22. Interfacing C with OCaml]
+
+** link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html#ss:staticlink-c-code[22.1.3 Statically linking C code with OCaml code]
+
+** link:https://v2.ocaml.org/releases/5.1/htmlman/intfc.html[22.1.4 Dynamically linking C code with OCaml code]
+
+
+
+
+=== Build profiles
+
+I.e. a named collection of build settings that apply globally, overriding defaults.
+
+=== Easy generation of mli files
+
+I.e. to pass the `i` flag and write the output to the source tree.
+
+=== Easy use of `ocamlobjinfo`
+
+=== repl support
+
+=== tsan support
+
+=== More demo cases
+
+In particular, demos for `ctypes` and `cstubs` etc.
+
+=== Optional outputs
+
+E.g. `+-dlambda+` etc. output
+
+=== mibl
+
+== Long term
+
+=== Building the compilers
+
+=== Editor integration
+
+=== OCamldoc, odoc
