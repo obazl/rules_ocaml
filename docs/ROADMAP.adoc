@@ -53,7 +53,7 @@ The source code of the rules is admittedly a hideous mess. So a top
 priority for the immediate future is to clean it up and make it
 readable.
 
-Issue #56
+Issue https://github.com/obazl/rules_ocaml/issues/56[#56]
 
 === Finish `rules_ppx`
 
