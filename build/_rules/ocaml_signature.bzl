@@ -304,70 +304,7 @@ def _ocaml_signature_impl(ctx):
         order=dsorder,
         transitive = depsets.deps.astructs
     )
-    ## FIXME: what about depsets.codeps etc.?
-    ## this is not used anywhere?
-    # ocamlInfo = MergedDepsProvider( ## MergedDepsProvider
-    # )
-    #     sigs  = depset(
-    #         order = dsorder,
-    #         direct = [out_cmi],
-    #         transitive = depsets.deps.sigs
-    #     ),
-    #     cli_link_deps = depset(
-    #         order = dsorder,
-    #         transitive = depsets.deps.cli_link_deps
-    #     ),
-    #     archives = depset(
-    #         order = dsorder,
-    #         transitive = depsets.deps.archives
-    #     ),
-    #     afiles   = depset(
-    #         order = dsorder,
-    #         transitive = depsets.deps.afiles
-    #     ),
-    #     astructs = depset(
-    #         order = dsorder,
-    #         transitive = depsets.deps.astructs
-    #     ),
-    #     structs = depset(
-    #         order = dsorder,
-    #         transitive = depsets.deps.structs
-    #     ),
-    #     ofiles = depset(
-    #         order=dsorder,
-    #         transitive=depsets.deps.ofiles
-    #     ),
-    #     # mli = depset( ## FIXME: not needed?
-    #     #     order=dsorder,
-    #     #     direct = [work_mli],
-    #     #     transitive=depsets.deps.mli
-    #     # ),
-    #     cmts = depset(
-    #         order=dsorder,
-    #         transitive=depsets.deps.cmts
-    #     ),
-
-    ## FIXME: deal with empty depsets.deps.cmtis
-    # cmtis_depset = depset(
-    #     order=dsorder,
-    #     direct = [out_cmti],
-    #     transitive = depsets.deps.cmtis
-    # )
-
-    #     paths = depset(
-    #         order=dsorder,
-    #         transitive=depsets.deps.paths
-    #     ),
-    #     jsoo_runtimes = depset(
-    #         order=dsorder,
-    #         transitive=depsets.deps.jsoo_runtimes
-    #     ),
-    # )
-
-    ## FIXME: use MergedDepsProvider?
     ocamlDepsProvider  = OCamlDepsProvider(
-        # inputs   = new_inputs_depset,
-        # linkargs = linkargs_depset,
         sigs       = sigs_depset,
         #FIXME: cmtis      = cmtis_depset,
         cli_link_deps = depset(
@@ -387,22 +324,7 @@ def _ocaml_signature_impl(ctx):
         cmi = out_cmi,
         cmti = out_cmti if out_cmti else None,
         mli = work_mli,
-        xmo = xmo, # True if xmo else False,
-        # merged_deps = MergedDepsProvider( # OCamlDepsProvider?
-        #     # NB: sigs_depset contains out_cmi
-        #     sigs       = sigs_depset,
-        #     # cli_link_deps = depset(
-        #     #     order = dsorder,
-        #     #     transitive = depsets.deps.cli_link_deps
-        #     # ),
-        #     structs    = structs_depset,
-        #     ofiles     = ofiles_depset,
-        #     archives   = archives_depset,
-        #     afiles     = afiles_depset,
-        #     astructs   = astructs_depset,
-        #     # cclibs   = cclibs_depset,
-        # paths      = paths_depset,
-        # )
+        xmo = xmo,
     )
 
     ## FIXME:  cc deps

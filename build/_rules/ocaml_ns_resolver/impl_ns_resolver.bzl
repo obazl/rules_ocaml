@@ -64,11 +64,13 @@ def impl_ns_resolver(ctx):
 
     bottomup = False
 
+    ns_modname = None
     if ctx.attr.ns:
         bottomup = True
-        if debug: print("has ns attr: %s" % ctx.attr.ns)
-        # fail("fasdf")
-        ns_prefixes = [ctx.attr.ns]
+        ns_modname = ctx.attr.ns[:1].capitalize() + ctx.attr.ns[1:]
+        if debug: print("has ns attr: %s" % ns_modname)
+        ns_prefixes = [ctx.attr.ns[:1].capitalize() + ctx.attr.ns[1:]]
+        # ns_prefixes = [ctx.attr.ns]
     else:
         # ns_prefixes = [ctx.label.name]
         ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
@@ -96,8 +98,8 @@ def impl_ns_resolver(ctx):
                 OCamlDepsProvider(),
                 OCamlNsResolverProvider(tag = "NULL")
                 ]
-    ################
 
+    ################
     if bottomup:
         if len(ctx.attr.manifest) < 1:
             if len(ctx.attr.include) < 1:
@@ -143,15 +145,9 @@ def impl_ns_resolver(ctx):
         # NB: //a/b:c will be normalized to C
         submodule = label_to_module_name(submod_label)
         if debug_submodules: print("submodule normed: %s" % submodule)
-        # if ctx.attr._ns_strategy[BuildSettingInfo].value == "fs":
-        #     ## NB: subnames may come from different pkgs
-        #     fs_prefix = get_fs_prefix(submod_label)
-        #     alias_prefix = fs_prefix
-        # else:
         fs_prefix = ""
         alias_prefix = module_sep.join(ns_prefixes) ## ns_prefix
         if debug_submodules: print("alias_prefix: %s" % alias_prefix)
-
         ## an ns can be used as a submodule of another ns
         nslib_submod = False
         # if submodule.startswith("#"):
@@ -215,6 +211,19 @@ def impl_ns_resolver(ctx):
             aliases.append(alias)
 
     if debug_submodules: print("finished iterating submodules")
+
+    action_inputs = []
+    merge_depsets = []
+    ns_deps = []
+
+    if ctx.attr.ns_deps:
+        for dep in ctx.attr.ns_deps:
+            submodule = "Greek"
+            alias = "module {mod} = {mod}".format(
+                mod = submodule,
+            )
+            aliases.append(alias)
+            ns_deps.append(dep[DefaultInfo].files)
 
     if ctx.attr.include:
         if debug_includes: print("iterating includes")
@@ -307,8 +316,11 @@ def impl_ns_resolver(ctx):
 
     ################################################################
     else:
-        if no_main_alias:
-            resolver_module_name = ns_name + "__"
+        if ns_modname:
+            if no_main_alias:
+                resolver_module_name = ns_modname + "__"
+            else:
+                resolver_module_name = ns_modname
         else:
             resolver_module_name = ns_name
 
@@ -389,8 +401,6 @@ def impl_ns_resolver(ctx):
         action_outputs.append(out_cmt)
 
     args.add("-I", resolver_src_file.dirname)
-    action_inputs = []
-    merge_depsets = []
 
     ## FIXME: handle cdeps v. ldeps
     for tgt in ctx.attr.merge:
@@ -441,14 +451,15 @@ def impl_ns_resolver(ctx):
     ################################################################
     ## construct Providers
     ########################
+    default_depset = depset(
+        order  = dsorder,
+        direct = [out_struct],
+        #default_outputs.extend([out_cmi, out_struct])
+        # direct = default_outputs # action_outputs
+    )
 
     defaultInfo = DefaultInfo(
-        files = depset(
-            order  = dsorder,
-            direct = [out_struct],
-            #default_outputs.extend([out_cmi, out_struct])
-            # direct = default_outputs # action_outputs
-        )
+        files = default_depset
     )
 
     ## an ns resolver is just a module, but
@@ -469,38 +480,6 @@ def impl_ns_resolver(ctx):
         ofile        = out_ofile if out_ofile else None
     )
 
-    # new_cdeps_depset = depset(
-    #     order = dsorder,
-    #     direct = # [action_inputs_depset]
-    #     action_outputs
-    #     # + ns_resolver_files
-    #     # + ctx.files.deps_runtime,
-    #     # transitive = # cdeps_depsets
-    #     # indirect_ppx_codep_depsets
-    #     # + ns_deps
-    #     # + bottomup_ns_inputs
-    # )
-
-    # new_ldeps_depset = depset(
-    #     order = dsorder,
-    #     direct = #[action_inputs_depset]
-    #     action_outputs
-    #     # + ns_resolver_files
-    #     # + ctx.files.deps_runtime,
-    #     # transitive = # ldeps_depsets ## cdeps_depsets
-    #     # indirect_ppx_codep_depsets
-    #     # + ns_deps
-    #     # + bottomup_ns_inputs
-    # )
-
-    # linkset    = depset(direct = [out_struct])
-
-    # fileset_depset = depset(direct=action_outputs)
-
-    # closure_depset = depset(
-    #     direct = action_outputs
-    # )
-
     ## Question: a default ns_resolver will have no deps;
     ## but a user-defined ns resolver may have deps.
     ## in that case, do we need to merge deps?
@@ -508,7 +487,8 @@ def impl_ns_resolver(ctx):
                              direct=[out_cmi],
                              )
     structs_depset  = depset(order=dsorder,
-                            direct=[out_struct],
+                             direct=[out_struct],
+                             transitive = ns_deps
                              )
     astructs_depset = depset(order=dsorder,
                              )
@@ -538,20 +518,19 @@ def impl_ns_resolver(ctx):
         cli_link_deps = cli_link_deps_depset
     )
 
+    all_depset = depset(
+        direct=[
+            out_struct, out_cmi
+        ] + ([out_ofile] if out_ofile else [])
+        + [resolver_src_file]
+    )
+
     outputGroupInfo = OutputGroupInfo(
         cmi        = depset(direct=[out_cmi]),
         # fileset    = fileset_depset,
         # linkset    = linkset,
         inputs = action_inputs_depset,
-        # all = depset(
-        #     order = dsorder,
-        #     transitive=[
-        #         default_depset,
-        #         ocamlDepsProvider_files_depset,
-        #         ppx_codeps_depset,
-        #         # depset(action_inputs_ccdep_filelist)
-        #     ]
-        # )
+        all = all_depset
     )
 
     if debug: print("resolver OCamlDepsProvider: %s" % ocamlDepsProvider)
@@ -561,5 +540,5 @@ def impl_ns_resolver(ctx):
         defaultInfo,
         nsResolverProvider,
         ocamlDepsProvider,
-        outputGroupInfo
+        outputGroupInfo,
     ]

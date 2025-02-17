@@ -1158,15 +1158,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             print("appending OCamlCodepsProvider: %s" % ppxCodepsProvider)
         providers.append(ppxCodepsProvider)
 
-    ## now merge ccInfo list
-    #FIXME: use depsets.ccinfos
     ccInfo = cc_common.merge_cc_infos(
         cc_infos = depsets.ccinfos
     )
     providers.append(ccInfo)
-
-    # if ctx.attr._rule == "ppx_module":
-    #     providers.append(PpxModuleMarker())
 
     ################
     outputGroupInfo = OutputGroupInfo(
@@ -1202,7 +1197,5 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
 
     providers.append(outputGroupInfo)
-
-    # print("MPROV: %s" % providers)
 
     return providers

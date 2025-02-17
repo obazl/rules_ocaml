@@ -41,8 +41,8 @@ load("//build/_rules:ocaml_module.bzl", _ocaml_module = "ocaml_module")
 load("//build/_rules:ocaml_ns_library.bzl",
      _ocaml_ns_library = "ocaml_ns_library")
 
-load("//build/_rules:ocaml_ns_resolver.bzl",
-     _ocaml_ns_resolver = "ocaml_ns_resolver")
+load("//build/_rules:ocaml_ns.bzl",
+     _ocaml_ns = "ocaml_ns")
 
 load("//build/_rules:ocaml_ns_resolver_topdown.bzl",
      _ocaml_topdown_ns_resolver = "ocaml_topdown_ns_resolver")
@@ -91,7 +91,7 @@ ocaml_library    = _ocaml_library
 ocaml_module     = _ocaml_module
 # ocaml_ns_archive = _ocaml_ns_archive
 ocaml_ns_library = _ocaml_ns_library
-ocaml_ns         = _ocaml_ns_resolver
+ocaml_ns         = _ocaml_ns
 ocaml_topdown_ns_resolver = _ocaml_topdown_ns_resolver
 ocaml_signature  = _ocaml_signature
 # ocaml_ns_signature  = _ocaml_ns_signature

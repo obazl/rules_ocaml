@@ -93,6 +93,10 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
 
         ns = attr.string(),
 
+        ns_deps = attr.label_list(
+
+        ),
+
         # submodules = attr.string_list(
         manifest = attr.string_list(
             # default = "@rules_ocaml//cfg/ns:submodules", # => string_list_setting

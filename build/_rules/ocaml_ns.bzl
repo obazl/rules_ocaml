@@ -12,7 +12,7 @@ load("//build/_rules/ocaml_ns_resolver:impl_ns_resolver.bzl",
      "impl_ns_resolver")
 
 ###############################
-def _ocaml_ns_resolver(ctx):
+def _ocaml_ns_impl(ctx):
 
     # return impl_module(ctx)
 
@@ -26,8 +26,8 @@ rule_options.update(options_ppx)
 # rule_options.update(options_ns_resolver("ocaml"))
 
 #########################
-ocaml_ns_resolver = rule(
-  implementation = _ocaml_ns_resolver,
+ocaml_ns = rule(
+  implementation = _ocaml_ns_impl,
     doc = """OBSOLETE DOCSTRING!  under revision...
 
 This rule initializes a 'namespace evaluation environment' consisting of a pseudo-namespace prefix string and optionally an ns resolver module.  A pseudo-namespace prefix string is a string that is used to form (by prefixation) a (presumably) globally unique name for a module. An ns resolver module is a module that contains nothing but alias equations mapping module names to pseudo-namespaced module names.
@@ -106,6 +106,10 @@ The normalized submodule names must match the names of the modules electing memb
             """,
             # allow_files = True,
             # mandatory = True
+        ),
+
+        ns_deps = attr.label_list(
+
         ),
 
         # fusions = attr.label_keyed_string_dict(
