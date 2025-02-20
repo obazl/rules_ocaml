@@ -1,7 +1,7 @@
 load("//build/_lib:options.bzl", "options", "options_module", "options_ppx")
 
 load("//build:providers.bzl",
-     "OcamlModuleMarker",
+     "OCamlModuleProvider",
      "OCamlNsResolverProvider",
      "OcamlNsSubmoduleMarker")
      # "OcamlProvider")
@@ -124,7 +124,7 @@ e.g. '//mwe/rgb:R': 'Red' will generate
 module R = Red
             """,
             providers = [
-                [OcamlModuleMarker],     ## exogenous non-namespaced
+                [OCamlModuleProvider],     ## exogenous non-namespaced
                 [OcamlNsSubmoduleMarker] ## exogenous namespaced
             ]
         ),

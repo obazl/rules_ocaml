@@ -4,8 +4,8 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("//build:providers.bzl",
      "OCamlNsResolverProvider",
-     "OcamlLibraryMarker",
-     "OcamlModuleMarker",
+     "OCamlLibraryProvider",
+     "OCamlModuleProvider",
      "OcamlNsMarker")
 load("//build:providers.bzl", "OCamlCodepsProvider")
 
@@ -344,7 +344,9 @@ def impl_library(ctx, for_archive = True):
 
     ## Provider 3: Library Marker
     providers.append(
-        OcamlLibraryMarker(marker = "OcamlLibraryMarker")
+        OCamlLibraryProvider(
+            name = ctx.label.name
+        )
     )
 
     ## Provider 4: possibly empty OCamlCodepsProvider

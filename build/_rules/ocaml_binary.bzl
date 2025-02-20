@@ -1,4 +1,4 @@
-load("//build:providers.bzl", "OcamlExecutableMarker", "OcamlModuleMarker")
+load("//build:providers.bzl", "OcamlExecutableMarker", "OCamlModuleProvider")
 
 load("//build/_lib:options.bzl", "options", "options_binary")
 
@@ -83,7 +83,7 @@ the difference between '/' and ':' in such labels):
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         ),
     ),
-    provides = [OcamlExecutableMarker], # OcamlModuleMarker],
+    provides = [OcamlExecutableMarker], # OCamlModuleProvider],
     ## this is not an ns archive, and it does not use ns ConfigState,
     ## but we need to reset the ConfigState anyway, so the deps are
     ## not affected if this is a dependency of an ns aggregator.

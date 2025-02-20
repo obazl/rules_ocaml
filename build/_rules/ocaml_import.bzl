@@ -6,10 +6,11 @@ load("@rules_ocaml//lib:merge.bzl",
      "DepsAggregator",
      "COMPILE", "LINK", "COMPILE_LINK")
 
-load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("@rules_ocaml//build:providers.bzl",
-     "OcamlImportMarker")
-load("//build:providers.bzl", "OCamlCodepsProvider")
+     "OCamlCcInfo",
+     "OCamlDepsProvider",
+     "OCamlImportProvider",
+     "OCamlCodepsProvider")
 
 load("@rules_ocaml//build/_lib:utils.bzl", "dsorder")
 
@@ -20,25 +21,37 @@ load("@rules_ocaml//lib:colors.bzl",
 
 ##############################################
 def _import_transition_impl(settings, attr):
+    # print("IMPORT: %s" % attr.name)
+    build_host  = settings["//command_line_option:host_platform"]
+    # print("BUILDHOST: %s" % build_host)
+    target_host = settings["//command_line_option:platforms"]
+    # print("TARGETHOST: %s" % target_host)
+    tc = settings["@rules_ocaml//toolchain"]
+    # print("TC: %s" % tc)
+
     return {
         # "@rules_ocaml//cfg/manifest"   : [],
-        "@rules_ocaml//cfg/ns:nonce"      : "",
-        "@rules_ocaml//cfg/ns:prefixes"   : [],
-        "@rules_ocaml//cfg/ns:submodules" : []
+        # "@rules_ocaml//cfg/ns:nonce"      : "",
+        # "@rules_ocaml//cfg/ns:prefixes"   : [],
+        # "@rules_ocaml//cfg/ns:submodules" : []
     }
 
 _import_transition = transition(
     implementation = _import_transition_impl,
-    inputs = [],
+    inputs = [
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"
+    ],
     #     "@rules_ocaml//cfg/ns:nonce",
     #     "@rules_ocaml//cfg/ns:prefixes",
     #     "@rules_ocaml//cfg/ns:submodules",
     # ],
     outputs = [
         # "@rules_ocaml//cfg/manifest",
-        "@rules_ocaml//cfg/ns:nonce",
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//cfg/ns:nonce",
+        # "@rules_ocaml//cfg/ns:prefixes",
+        # "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
@@ -71,7 +84,7 @@ def _ocaml_import_impl(ctx):
         if not ctx.file.archive:
             if debug: print("Skipping dummy target: %s" % ctx.label)
             return [
-                OcamlImportMarker()
+                OCamlImportProvider()
             ]
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
@@ -88,6 +101,10 @@ def _ocaml_import_impl(ctx):
 
     for dep in ctx.attr.cc_deps:
         depsets = merge_deps(ctx, dep, depsets)
+
+    # print("Imp %s" % ctx.label.name)
+    # print("IMPORT cc %s" % depsets.ccinfos)
+    # print("IMPORT ccarch %s" % depsets.ccinfos_archived)
 
     if debug_deps: print("ctx.attr.ppx_codeps: %s" % ctx.attr.ppx_codeps)
     if hasattr(ctx.attr, "ppx_codeps"):
@@ -206,7 +223,7 @@ def _ocaml_import_impl(ctx):
 
     ## To produce an OCamlDepsProvider provider, we merge the direct deps of
     ## this import with the depsets from ctx.attr.deps.
-    ocamlProvider = OCamlDepsProvider(
+    ocamlDepsProvider = OCamlDepsProvider(
         sigs    = depset(order=dsorder,
                          direct=ctx.files.sigs,
                          transitive = depsets.deps.sigs),
@@ -249,10 +266,10 @@ def _ocaml_import_impl(ctx):
         # transitive=jsoo_runtimes_secondary),
     )
     # if ctx.label.name == "ppx_inline_test":
-    #     print("OCamlDepsProvider.astructs: %s" % ocamlProvider.astructs)
+    #     print("OCamlDepsProvider.astructs: %s" % ocamlDepsProvider.astructs)
     #     fail()
 
-    providers.append(ocamlProvider)
+    providers.append(ocamlDepsProvider)
 
     ccInfo = cc_common.merge_cc_infos(
         # direct_cc_infos = ccinfos_primary,
@@ -260,7 +277,18 @@ def _ocaml_import_impl(ctx):
     )
     providers.append(ccInfo)
 
-    providers.append(OcamlImportMarker(marker = "OcamlImport"))
+    ccInfo_archived = cc_common.merge_cc_infos(
+
+        # direct_cc_infos = ccinfos_primary,
+        cc_infos = depsets.ccinfos_archived
+    )
+    ocamlCcInfo = OCamlCcInfo(
+        direct   = ccInfo,
+        archived = ccInfo_archived
+    )
+    providers.append(ocamlCcInfo)
+
+    providers.append(OCamlImportProvider(name = ctx.label.name))
 
     ## --output_groups only prints generated stuff, so there's no
     ## --point in providing OutputGroupInfo for ocaml_import
@@ -307,7 +335,7 @@ ocaml_import = rule(
             allow_files = True,
             providers = [CcInfo],
         ),
-        vmlibs   = attr.label_list(
+        dllibs   = attr.label_list(
             doc = "Dynamically-loadable, for ocamlrun. Standard naming is 'dll<name>_stubs.so' or 'dll<name>.so'.",
             allow_files = [".so"]
         ),
@@ -332,7 +360,7 @@ ocaml_import = rule(
         # ocaml_import can only depend on other ocaml_imports
         deps = attr.label_list(
             allow_files = True,
-            providers = [[OcamlImportMarker],[CcInfo]],
+            providers = [[OCamlImportProvider],[CcInfo]],
             # cfg       = _import_transition,
         ),
 
@@ -346,19 +374,19 @@ ocaml_import = rule(
 
         ppx_codeps = attr.label_list(
             allow_files = True,
-            providers = [[OcamlImportMarker]],
+            providers = [[OCamlImportProvider]],
             # cfg = _ppx_codeps_transition,
         ),
         version = attr.string(),
         ocaml_version = attr.string(),
         doc = attr.string(),
         _rule = attr.string( default = "ocaml_import" ),
-        _allowlist_function_transition = attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
-        ),
+        # _allowlist_function_transition = attr.label(
+        #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
+        # ),
     ),
     cfg     = _import_transition,
-    provides = [OcamlImportMarker],
+    provides = [OCamlImportProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std"],
 )

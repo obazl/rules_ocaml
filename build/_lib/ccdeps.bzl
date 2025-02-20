@@ -3,7 +3,7 @@ load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
 # load("//build:providers.bzl", "CcDepsProvider")
-load("//build:providers.bzl", "OCamlVmRuntimeProvider")
+load("//build:providers.bzl", "OCamlRuntimeProvider")
 
 load("//build/_lib:module_naming.bzl", "file_to_lib_name")
 
@@ -164,13 +164,18 @@ def extract_cclibs(ctx,
     # runfiles    = []
 
     compilation_ctx = ccInfo.compilation_context
-    runtime_variant = None
-    if compilation_ctx.defines:
-        defns = compilation_ctx.defines.to_list()
-        if "RUNTIME_VARIANT_DEBUG" in defns:
-            runtime_variant = "d"
-        elif "RUNTIME_VARIANT_INSTRUMENTED" in defns:
-            runtime_variant = "i"
+    ## In case user has built a cc lib with env var
+    ## RUNTIME_VARIANT_DEBUG etc.
+    ## I can't find a ref to this in the manual
+    ## so I'm disabling it. It doesn't make much
+    ## sense anyway for a lib. Runtimes are for executables.
+    # runtime_variant = None
+    # if compilation_ctx.defines:
+    #     defns = compilation_ctx.defines.to_list()
+    #     if "RUNTIME_VARIANT_DEBUG" in defns:
+    #         runtime_variant = "d"
+    #     elif "RUNTIME_VARIANT_INSTRUMENTED" in defns:
+    #         runtime_variant = "i"
 
     linking_ctx     = ccInfo.linking_context
     linker_inputs = linking_ctx.linker_inputs.to_list()
@@ -189,7 +194,7 @@ def extract_cclibs(ctx,
                 # print("LIB: %s" % lib)
 
                 if lib.static_library and lib.dynamic_library:
-                    if ctx.attr.vm_runtime[OCamlVmRuntimeProvider].kind == "static":
+                    if ctx.attr.vm_runtime[OCamlRuntimeProvider].kind == "static":
                     # if default_linkmode == "static":
                         ## FIXME: what about pic_static_library?
                         static_libs.append(lib.static_library)
@@ -209,7 +214,7 @@ def extract_cclibs(ctx,
                         dynamic_libs.append(lib.dynamic_library)
 
     # print("static_libs: %s" % static_libs)
-    return [static_libs, dynamic_libs, runtime_variant]
+    return [static_libs, dynamic_libs] #, runtime_variant]
 
 ################################################################
 def x(ctx,

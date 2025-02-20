@@ -5,8 +5,8 @@ load("@rules_ocaml//build:providers.bzl",
      "OCamlNsResolverProvider",
       "OCamlDepsProvider",
      "OcamlArchiveMarker",
-     "OcamlLibraryMarker",
-     "OcamlModuleMarker",
+     "OCamlLibraryProvider",
+     "OCamlModuleProvider",
      "OcamlNsMarker",
      "OpamInstallProvider"
 )
@@ -93,7 +93,7 @@ def impl_archive(ctx):
     if debug_lib:
         print("lib outputGroupInfo: %s" % outputGroupInfo)
 
-    _ = lib_providers[3] # OcamlLibraryMarker
+    _ = lib_providers[3] # OCamlLibraryProvider
 
     ppxCodepsProvider = lib_providers[4] ## may be empty
     if debug_lib:
@@ -222,7 +222,7 @@ def impl_archive(ctx):
     if debug_cc:
         dump_CcInfo(ctx, lib_CcInfo)
 
-    [static_cc_deps, dynamic_cc_deps, runtime_variant] = extract_cclibs(ctx, lib_CcInfo)
+    [static_cc_deps, dynamic_cc_deps] = extract_cclibs(ctx, lib_CcInfo)
     if debug_cc:
         print("static_cc_deps:  %s" % static_cc_deps)
         print("dynamic_cc_deps: %s" % dynamic_cc_deps)
@@ -479,7 +479,7 @@ def impl_archive(ctx):
         newDefaultInfo,
         ocamlProvider,
         installProvider,
-        OcamlLibraryMarker(),
+        OCamlLibraryProvider(),
         OcamlArchiveMarker(marker = "OcamlArchive"),
     ]
 

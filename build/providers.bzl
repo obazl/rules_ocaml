@@ -9,8 +9,17 @@ may change without notice. Really.
 load("//build/_providers:MergedDepsProvider.bzl",
      _MergedDepsProvider = "MergedDepsProvider")
 
+load("//build/_providers:OCamlCcInfo.bzl",
+     _OCamlCcInfo = "OCamlCcInfo")
+
 load("//build/_providers:OCamlCodepsProvider.bzl",
      _OCamlCodepsProvider = "OCamlCodepsProvider")
+
+load("//build/_providers:OCamlImportProvider.bzl",
+     _OCamlImportProvider = "OCamlImportProvider")
+
+load("//build/_providers:OCamlLibraryProvider.bzl",
+     _OCamlLibraryProvider = "OCamlLibraryProvider")
 
 load("//build/_providers:OCamlModuleProvider.bzl",
      _OCamlModuleProvider = "OCamlModuleProvider")
@@ -24,19 +33,22 @@ load("//build/_providers:OCamlDepsProvider.bzl",
 load("//build/_providers:OCamlSignatureProvider.bzl",
      _OCamlSignatureProvider = "OCamlSignatureProvider")
 
-load("//build/_providers:OCamlVmRuntimeProvider.bzl",
-     _OCamlVmRuntimeProvider = "OCamlVmRuntimeProvider")
+load("//build/_providers:OCamlRuntimeProvider.bzl",
+     _OCamlRuntimeProvider = "OCamlRuntimeProvider")
 
 load("//build/_providers:OpamInstallProvider.bzl",
      _OpamInstallProvider = "OpamInstallProvider")
 
+OCamlCcInfo     = _OCamlCcInfo
 OCamlCodepsProvider     = _OCamlCodepsProvider
 MergedDepsProvider      = _MergedDepsProvider
+OCamlImportProvider     = _OCamlImportProvider
+OCamlLibraryProvider    = _OCamlLibraryProvider
 OCamlModuleProvider     = _OCamlModuleProvider
 OCamlNsResolverProvider = _OCamlNsResolverProvider
 OCamlDepsProvider       = _OCamlDepsProvider
 OCamlSignatureProvider  = _OCamlSignatureProvider
-OCamlVmRuntimeProvider  = _OCamlVmRuntimeProvider
+OCamlRuntimeProvider    = _OCamlRuntimeProvider
 OpamInstallProvider     = _OpamInstallProvider
 
 PpxExecutableMarker = provider(doc = "Ppx Executable Marker provider.")
@@ -50,9 +62,7 @@ PpxModuleMarker = provider(
 
 OcamlArchiveMarker    = provider(doc = "OCaml Archive Marker provider.")
 OcamlExecutableMarker = provider(doc = "OCaml Executable Marker provider.")
-OcamlImportMarker    = provider(doc = "OCaml Import Marker provider.")
-OcamlLibraryMarker   = provider(doc = "OCaml Library Marker provider.")
-OcamlModuleMarker    = provider(doc = "OCaml Module Marker provider.")
+# OCamlModuleProvider    = provider(doc = "OCaml Module Marker provider.")
 OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")
 OcamlNsSubmoduleMarker = provider(
     doc = "OCaml NS Submodule Marker.",

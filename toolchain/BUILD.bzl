@@ -6,7 +6,7 @@ load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAM
 # load("//build:providers.bzl",
 #      "OcamlArchiveMarker",
 #      "OcamlExecutableMarker",
-#      "OcamlImportMarker")
+#      "OCamlImportProvider")
 
 # load("//lib:colors.bzl", "CCRED", "CCMAG", "CCRESET")
 
@@ -223,8 +223,8 @@ def _ocaml_toolchain_adapter_impl(ctx):
 
         # vmruntime_debug        = ctx.file.vmruntime_debug,
         # vmruntime_instrumented = ctx.file.vmruntime_instrumented,
-        vmlibs                 = ctx.files.vmlibs,
-        vmlibs_path            = ctx.attr.vmlibs_path[BuildSettingInfo].value,
+        dllibs                 = ctx.files.dllibs,
+        dllibs_path            = ctx.attr.dllibs_path[BuildSettingInfo].value,
 
         ocamllex               = ctx.file.ocamllex,
         ocamlyacc              = ctx.file.ocamlyacc,
@@ -308,11 +308,11 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
 
 
 
-        "vmlibs": attr.label(
+        "dllibs": attr.label(
             doc = "Dynamically-loadable libs needed by the ocamlrun vm. Standard location: lib/stublibs. The libs are usually named 'dll<name>_stubs.so', e.g. 'dllcore_unix_stubs.so'.",
             allow_files = True,
         ),
-        "vmlibs_path": attr.label(
+        "dllibs_path": attr.label(
             doc = "Label of string_setting target providing absolute path to stublibs dir"
         ),
 

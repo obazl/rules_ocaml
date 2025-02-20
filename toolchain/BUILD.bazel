@@ -4,7 +4,8 @@ load("@bazel_skylib//rules:common_settings.bzl",
 string_flag(name = "toolchain",
             build_setting_default = "ocamlopt.opt",
             values = ["ocamlopt.opt",  "ocamlc.byte",
-                      "ocamlopt.byte", "ocamlc.opt"])
+                      "ocamlopt.byte", "ocamlc.opt",
+                      "nop"])
 
 ## e.g. @rules_ocaml//toolchain=ocamlopt.opt
 

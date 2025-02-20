@@ -1,4 +1,4 @@
-load("//build:providers.bzl", "OcamlModuleMarker")
+load("//build:providers.bzl", "OCamlModuleProvider")
 
 load("//build/_transitions:in_transitions.bzl", "module_in_transition")
 
@@ -27,7 +27,7 @@ ocaml_pack_library = rule(
         # ),
     ),
     # cfg     = module_in_transition,
-    provides = [OcamlModuleMarker],
+    provides = [OCamlModuleProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std"],
 )

@@ -26,6 +26,13 @@ platform(name = "ocamlc.opt",
              "@rules_ocaml//platform/executor:sys",
              "@rules_ocaml//platform/emitter:vm"
          ])
+## non-compiler target platform - unconstrained emitter
+platform(name = "sys>any",
+         parents = ["@local_config_platform//:host"],
+         constraint_values = [
+             "@rules_ocaml//platform/arch:sys",
+             "@rules_ocaml//platform/executor:sys",
+         ])
 
 platform(name = "ocamlopt.byte",
          parents = ["@local_config_platform//:host"],
@@ -33,5 +40,12 @@ platform(name = "ocamlopt.byte",
              "@rules_ocaml//platform/arch:sys",
              "@rules_ocaml//platform/executor:vm",
              "@rules_ocaml//platform/emitter:sys"
+         ])
+
+platform(name = "vm>any",
+         parents = ["@local_config_platform//:host"],
+         constraint_values = [
+             "@rules_ocaml//platform/arch:sys",
+             "@rules_ocaml//platform/executor:vm",
          ])
 

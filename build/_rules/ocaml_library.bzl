@@ -1,12 +1,13 @@
-load("//build:providers.bzl", "OcamlLibraryMarker")
+load("//build:providers.bzl", "OCamlLibraryProvider")
 
 load("//build/_lib:options.bzl", "options", "options_aggregators")
 
 load("//build/_rules/ocaml_library:impl_archive.bzl", "impl_archive")
 load("//build/_rules/ocaml_library:impl_library.bzl", "impl_library")
 
-load("//build/_transitions:in_transitions.bzl",
-     "nslib_in_transition", "reset_in_transition")
+# load("//build/_transitions:in_transitions.bzl",
+#      "nslib_in_transition",
+#      "reset_in_transition")
 
 ###############################
 def _ocaml_library(ctx):
@@ -23,7 +24,7 @@ rule_options.update(options_aggregators())
 #####################
 ocaml_library = rule(
     implementation = _ocaml_library,
-    doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OcamlLibraryMarker](providers_ocaml.md#ocamllibraryprovider).
+    doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OCamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider).
 
 An `ocaml_library` is a collection of modules packaged into an OBazl
 target; it is not a single binary file. It is a OBazl convenience rule
@@ -34,7 +35,7 @@ Be careful not to confuse `ocaml_library` with `ocaml_archive`. The
 latter generates OCaml binaries (`.cma`, `.cmxa`, '.a' archive files);
 the former does not generate anything, it just passes on its
 dependencies under a single label, packaged in a
-[OcamlLibraryMarker](providers_ocaml.md#ocamllibraryprovider). For
+[OCamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider). For
 more information see [Collections: Libraries, Archives and
 Packages](../ug/collections.md).
     """,
@@ -55,8 +56,8 @@ Packages](../ug/collections.md).
     # cfg     = reset_in_transition,
     #NB: reset wipes configs, not good if this needs to pass on ns
     #deps to its deps
-    cfg     = nslib_in_transition,
-    provides = [OcamlLibraryMarker],
+    # cfg     = nslib_in_transition,
+    provides = [OCamlLibraryProvider],
     executable = False,
     fragments = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],

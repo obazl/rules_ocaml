@@ -3,7 +3,7 @@
 
 == Near-term
 
-==== Revise toolchain selection
+==== Revise toolchain specification interface
 
 Toolchain selection is based on Bazel's `+host_platform+` and
 `+platforms+` config settings. Currently, to specify a platform for a
@@ -65,7 +65,31 @@ A small number of demons fail in certain circumstances.
 
 === Update documentation
 
+=== Template-based codegen
+
+See link:https://github.com/obazl/tools_obazl[tools_obazl].
+
 == Medium term
+
+=== Namespace redesign
+
+* Remove topdown namespacing?
+* Use of module aliases to emulate namespacing is independent of build
+system. Document techniques/strategies separately.
+* Demos showing how Obazl supports the techniques
+
+=== re-design ruleset
+
+All rules should be primitives: one rule, one action.  Use macros to abstract.
+
+Example: ppx processing requires two actions, a ppx transform followed
+by compilation. So two rules, rather than one rule that performs both
+actions (which is the current design). Replace current rule with a
+macro that expands to two targets.
+
+=== opam publication
+
+
 
 === Bytecode executables
 
@@ -165,6 +189,10 @@ E.g. `+-dlambda+` etc. output
 === mibl
 
 == Long term
+
+=== Automatic conversion of Dune files
+
+Using link:https://github.com/obazl/mibl[mibl]
 
 === Building the compilers
 

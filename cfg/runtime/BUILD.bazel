@@ -3,7 +3,7 @@ package(default_visibility = ["//visibility:public"])
 load("@bazel_skylib//rules:common_settings.bzl",
         "string_flag", "string_setting")
 
-load("@rules_ocaml//build:rules.bzl", "ocaml_vm_runtime")
+load("@rules_ocaml//build:rules.bzl", "ocaml_runtime")
 
 ## Runtime variants: standard, debug, and instrumented.
 
@@ -18,16 +18,16 @@ config_setting(name = "dbg?", flag_values = {":runtime": "dbg"})
 config_setting(name = "instrumented?", flag_values = {":runtime": "instrumented"})
 config_setting(name = "shared?", flag_values = {":runtime": "shared"})
 
-label_setting(name="linkage", build_setting_default = ":dynamic")
+# label_setting(name="linkage", build_setting_default = ":dynamic")
 
-ocaml_vm_runtime(name = "dynamic")
-ocaml_vm_runtime(name = "static")
+# ocaml_runtime(name = "dynamic")
+# ocaml_runtime(name = "static")
 
 ## user-defined runtimes, using ocamlc -make-runtime, e.g.
-ocaml_vm_runtime(
-    name = "foo",
-    deps = [
-        "@unix//lib/unix",
-        "@threads//lib/threads"
-    ]
-)
+# ocaml_runtime(
+#     name = "foo",
+#     deps = [
+#         "@unix//lib/unix",
+#         "@threads//lib/threads"
+#     ]
+# )

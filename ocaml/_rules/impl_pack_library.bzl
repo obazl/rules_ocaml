@@ -4,7 +4,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//build:providers.bzl",
      "OcamlArchiveProvider",
-     "OcamlModuleMarker",
+     "OCamlModuleProvider",
      "OCamlNsResolverProvider",
      "OcamlSDK",
 )
@@ -338,7 +338,7 @@ def impl_pack_library(ctx):
     )
 
     if (ctx.attr._rule == "ocaml_pack_library"):
-        moduleMarker = OcamlModuleMarker(
+        moduleMarker = OCamlModuleProvider(
             module_links     = depset(
                 order = dsorder,
                 direct = [out_cm_],

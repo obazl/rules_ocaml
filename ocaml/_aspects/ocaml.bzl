@@ -19,9 +19,9 @@ def _print_aspect_impl(target, ctx):
             #     print("Path: %s" % path)
             # if OpamDepsProvider in f:
             #     print("OPAM deps: %s" % f[OpamDepsProvider])
-            # if OcamlModuleMarker in f:
-            #     print("Module Paths: %s" % f[OcamlModuleMarker].paths)
-            #     print("Module resolvers: %s" % f[OcamlModuleMarker].resolvers)
+            # if OCamlModuleProvider in f:
+            #     print("Module Paths: %s" % f[OCamlModuleProvider].paths)
+            #     print("Module resolvers: %s" % f[OCamlModuleProvider].resolvers)
             print("Submod: {m} -> {f}".format(
                 m = m, f = f.label)
                   )

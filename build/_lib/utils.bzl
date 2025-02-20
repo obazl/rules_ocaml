@@ -109,10 +109,10 @@ def split_srcs(srcs):
 # Special case: 'opaque' attr.
 def get_options(rule, ctx):
     options = []
-    tc_options = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
-    options.extend(tc_options.compile_opts)
+    tc_profile = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
+    options.extend(tc_profile.compile_opts)
+    # print("TC OPTIONS: %s" % tc_profile.compile_opts)
 
-    # last arg wins - target opts override profile opts
     options.extend(ctx.attr.opts)
 
     if ctx.attr._debug[BuildSettingInfo].value:
@@ -214,9 +214,13 @@ def get_options(rule, ctx):
 
     ################################################################
     ## MUST COME LAST - instance opts override configurable defaults
+    ## FIXME: but we also want opts passed on the cmd line
+    ## to have precedence.
+    # print("OPTS {}: {}".format(ctx.label, options))
     for arg in ctx.attr.opts:
         if arg not in NEGATION_OPTS:
-            options.append(arg)
+            if arg not in options:
+                options.append(arg)
 
     return options
 

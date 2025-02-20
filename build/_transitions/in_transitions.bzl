@@ -3,7 +3,7 @@ load("@bazel_skylib//lib:structs.bzl", "structs")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 load("//build:providers.bzl",
-     "OcamlModuleMarker",
+     "OCamlModuleProvider",
      "OCamlSignatureProvider",
      "OCamlNsResolverProvider")
 
@@ -50,12 +50,57 @@ def executable_in_transition_impl(transition, settings, attr):
     #         #     "//command_line_option:platforms"]
     #     }
     # else:
-    return {
-        "@rules_ocaml//cfg/ns:prefixes"   : [],
-        "@rules_ocaml//cfg/ns:submodules" : [],
-        # "//command_line_option:host_platform": host,
-        # "//command_line_option:platforms": tgt
+    # return {
+    #     "@rules_ocaml//cfg/ns:prefixes"   : [],
+    #     "@rules_ocaml//cfg/ns:submodules" : [],
+    #     # "//command_line_option:host_platform": host,
+    #     # "//command_line_option:platforms": tgt
+    # }
+
+    print("ppx: %s" % attr.name)
+    build_host  = settings["//command_line_option:host_platform"]
+    print("BUILDHOST: %s" % build_host)
+    target_host = settings["//command_line_option:platforms"]
+    print("TARGETHOST: %s" % target_host)
+
+    tc = settings["@rules_ocaml//toolchain"]
+    print("TC: %s" % tc)
+
+    if tc == "nop":
+        host = build_host
+        tgt  = target_host
+    else:
+        if Label(build_host) == target_host[0]:
+            if build_host.name == "ocamlc.opt":
+                # set sys>vm => vm>vm
+                host = build_host
+                # tgt  = ["@rules_ocaml//platform:vm>any"]
+                tgt  = ["@rules_ocaml//platform:ocamlc.byte"]
+            elif build_host.name == "ocamlopt.byte":
+                # set vm>sys => sys>sys
+                host = build_host
+                # tgt  = ["@rules_ocaml//platform:sys>any"]
+                tgt  = ["@rules_ocaml//platform:ocamlopt.opt"]
+            else:
+                host = build_host
+                tgt  = target_host
+        else:
+            host, tgt = get_tc(settings, attr)
+    # fail("HOST {}, TGT {}".format(host, tgt))
+
+    # return configs.update({
+    #     "@rules_ocaml//toolchain": "ocamlopt"
+    # })
+    # if host != None:
+    # host = "@rules_ocaml//platform:ocamlopt.opt"
+    # tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+    configs = {
+        "@rules_ocaml//toolchain" : "nop", # "ocamlopt",
+        "//command_line_option:host_platform": host,
+        "//command_line_option:platforms": tgt
     }
+    print("CONFIGS: %s" % configs)
+    return configs
 
 #######################################
 def print_config_state(settings, attr):
@@ -120,16 +165,41 @@ def _nslib_in_transition_impl(settings, attr):
         # print("{c}attrs:{r}".format(c=CCBLU,r=CCRESET))
         # print("  %s" % attr)
 
+    # tc = settings["@rules_ocaml//toolchain"]
+
     if settings["@rules_ocaml//cfg/ns:submodules"] == []:
         if debug: print("null submodules: resetting config")
         # print("nonce: %s" % settings["@rules_ocaml//cfg/ns:nonce"])
         # print("pfxs:  %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
         # print("submodules:  %s" % settings["@rules_ocaml//cfg/ns:submodules"])
-        return {}
-        #     "@rules_ocaml//cfg/ns:nonce": "",
-        #     "@rules_ocaml//cfg/ns:prefixes": [],
-        #     "@rules_ocaml//cfg/ns:submodules": [],
-        # }
+        # return {}
+        # print("LIBTC: %s" % tc)
+        # if tc == "nop":
+        #     host = None
+        # else:
+        #     host, tgt = get_tc(settings, attr)
+        # fail("HOST {}, TGT {}".format(host, tgt))
+
+        prefixes = settings["@rules_ocaml//cfg/ns:prefixes"]
+        submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+        # if host == None:
+        #     # print("%s %s NULL TC TRANSITION" % (attr._rule,attr.name))
+        #     return {
+        #         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+        #         "@rules_ocaml//cfg/ns:submodules" : submodules,
+        #         # "//command_line_option:host_platform": settings[
+        #         #     "//command_line_option:host_platform"],
+        #         # "//command_line_option:platforms": settings[
+        #         #     "//command_line_option:platforms"]
+        #     }
+        # else:
+        #     # print("%s %s TC TRANSITION" % (attr._rule, attr.name))
+        #     return {
+        #         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+        #         "@rules_ocaml//cfg/ns:submodules" : submodules,
+        #         # "//command_line_option:host_platform": host,
+        #         # "//command_line_option:platforms": tgt
+        #     }
 
     nslib_name = normalize_module_name(attr.name)
     # ns attribute overrides default derived from rule name
@@ -182,8 +252,8 @@ def _nslib_in_transition_impl(settings, attr):
         print("  ns:prefixes: %s" % prefixes)
         print("  ns:submodules: %s" % submodules)
 
-    if attr.name == "color":
-        fail("bbbbbbbbbbbbbbbb")
+    # if attr.name == "color":
+    #     fail("bbbbbbbbbbbbbbbb")
 
     return {
         # "@rules_ocaml//cfg/ns:nonce"      : nonce,
@@ -198,11 +268,17 @@ nslib_in_transition = transition(
         # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms",
     ],
     outputs = [
         # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//toolchain",
+        # "//command_line_option:host_platform",
+        # "//command_line_option:platforms",
     ]
 )
 
@@ -226,11 +302,15 @@ reset_in_transition = transition(
 )
 
 ################
-def _get_tc(settings):
+def get_tc(settings, attr):
     build_host  = settings["//command_line_option:host_platform"]
     target_host = settings["//command_line_option:platforms"]
-
     tc = settings["@rules_ocaml//toolchain"]
+
+    # print("target: %s" % attr.name)
+    # print("INBH %s" % build_host)
+    # print("INTH %s" % target_host)
+    # print("INTC %s" % tc)
 
     if build_host.name == tc:
         if target_host[0].name == tc:
@@ -242,19 +322,51 @@ def _get_tc(settings):
     else:
         # print("Transition from %s to %s" % (
         #     build_host.name, tc))
-        if tc == "ocamlopt.opt":
+        if tc == "nop":
+            host = build_host
+            tgt  = target_host
+        elif tc == "ocamlopt":
             host = "@rules_ocaml//platform:ocamlopt.opt"
             tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+        elif tc == "ocamlopt.opt":
+            host = "@rules_ocaml//platform:ocamlopt.opt"
+            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+        elif  tc == "ocamlc":
+            host = "@rules_ocaml//platform:ocamlc.byte"
+            tgt  = "@rules_ocaml//platform:ocamlc.byte"
         elif  tc == "ocamlc.byte":
             host = "@rules_ocaml//platform:ocamlc.byte"
             tgt  = "@rules_ocaml//platform:ocamlc.byte"
         elif  tc == "ocamlc.opt":
             host = "@rules_ocaml//platform:ocamlc.opt"
-            tgt  = "@rules_ocaml//platform:ocamlc.byte"
+            # ocaml_imports select archive based on
+            # //platform:emitter, which defaults to sys
+            # this means the target emitter, since by
+            # default build targets are built for the
+            # target platform.
+
+            # (which means ocaml_import *should* select
+            # on build emitter)
+
+            # since vm>any does not set //platform:emitter,
+            # using it as target platform means the default
+            # sys will be used, which is not what we need.
+            # we need to override the default emitter
+            # to match
+            tgt  = "@rules_ocaml//platform:vm>any"
+            # tgt  = "@rules_ocaml//platform:ocamlc.byte"
+            # or vm>sys
+            # tgt  = "@rules_ocaml//platform:ocamlopt.byte"
         elif  tc == "ocamlopt.byte":
             host = "@rules_ocaml//platform:ocamlopt.byte"
-            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
-
+            # but when build emitter is sys, the default
+            # will work so we can use sys>any
+            tgt  = "@rules_ocaml//platform:sys>any"
+            # tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+            # or
+            # tgt  = "@rules_ocaml//platform:ocamlc.opt"
+        else:
+            fail("UNEXPECTED")
         return host, tgt
 
 ###############################################
@@ -276,11 +388,6 @@ def _get_tc(settings):
 
 def _module_in_transition_impl(settings, attr):
     debug = False
-
-    # if attr.name in [""]:
-    #     debug = True
-    #     print("_module_in_transition_impl")
-    #     print("target:{c}{t}{r}".format(c=CCRED,t=attr.name,r=CCRESET))
 
     if debug:
         print("{c}>>> module_in_transition{r}".format(
@@ -367,25 +474,38 @@ def _module_in_transition_impl(settings, attr):
 
         # fail("xxxxxxxxxxxxxxxx")
 
-    # host, tgt = _get_tc(settings)
-    # if host == None:
-    #     # print("%s %s NULL TC TRANSITION" % (attr._rule,attr.name))
-    #     return {
-    #         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
-    #         "@rules_ocaml//cfg/ns:submodules" : submodules,
-    #         "//command_line_option:host_platform": settings[
-    #             "//command_line_option:host_platform"],
-    #         "//command_line_option:platforms": settings[
-    #             "//command_line_option:platforms"]
-    #     }
-    # else:
+    # print("module: %s" % attr.name)
+    # build_host  = settings["//command_line_option:host_platform"]
+    # print("BH: %s" % build_host)
+    # target_host = settings["//command_line_option:platforms"]
+    # print("TH: %s" % target_host)
+
+    tc = settings["@rules_ocaml//toolchain"]
+    # print("TC: %s" % tc)
+    if tc == "nop":
+        host = None
+    else:
+        host, tgt = get_tc(settings, attr)
+    # fail("HOST {}, TGT {}".format(host, tgt))
+
+    if host == None:
+        # print("%s %s NULL TC TRANSITION" % (attr._rule,attr.name))
+        return {
+            "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+            "@rules_ocaml//cfg/ns:submodules" : submodules,
+            "//command_line_option:host_platform": settings[
+                "//command_line_option:host_platform"],
+            "//command_line_option:platforms": settings[
+                "//command_line_option:platforms"]
+        }
+    else:
         # print("%s %s TC TRANSITION" % (attr._rule, attr.name))
-    return {
-        "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
-        "@rules_ocaml//cfg/ns:submodules" : submodules,
-        # "//command_line_option:host_platform": host,
-        # "//command_line_option:platforms": tgt
-    }
+        return {
+            "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+            "@rules_ocaml//cfg/ns:submodules" : submodules,
+            "//command_line_option:host_platform": host,
+            "//command_line_option:platforms": tgt
+        }
 
 ####################
 module_in_transition = transition(
@@ -393,25 +513,26 @@ module_in_transition = transition(
     inputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        # "@rules_ocaml//toolchain",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms"
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"
     ],
     outputs = [
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms"
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"
     ]
 )
 
 ################################################################
 def _toolchain_in_transition_impl(settings, attr):
     debug = False
-    # if attr.name in ["alcotest_stdlib_ext"]:
-    #     debug = True
 
-    host, tgt = _get_tc(settings)
+    tc = settings["@rules_ocaml//toolchain"]
+    if tc == "nop":
+        return {}
+    host, tgt = get_tc(settings, attr)
 
     if host == None:
         # print("%s %s NULL TC TRANSITION" % (attr._rule, attr.name))

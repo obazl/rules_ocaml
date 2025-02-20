@@ -3,8 +3,8 @@ load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("//build:providers.bzl",
      "OcamlArchiveMarker",
      "OcamlExecutableMarker",
-     "OcamlImportMarker",
-     "OcamlLibraryMarker",
+     "OCamlImportProvider",
+     "OCamlLibraryProvider",
      "OCamlNsResolverProvider",
      "OCamlModuleProvider",
      "OcamlNsMarker",
@@ -131,8 +131,8 @@ def options_binary():
         prologue = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],
-                         [OcamlImportMarker],
-                         [OcamlLibraryMarker],
+                         [OCamlImportProvider],
+                         [OCamlLibraryProvider],
                          [OCamlModuleProvider],
                          [OcamlNsMarker],
                          [CcInfo]],
@@ -151,8 +151,8 @@ def options_binary():
         epilogue = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],
-                         [OcamlImportMarker],
-                         [OcamlLibraryMarker],
+                         [OCamlImportProvider],
+                         [OCamlLibraryProvider],
                          [OCamlModuleProvider],
                          [OcamlNsMarker],
                          [CcInfo]],
@@ -200,10 +200,14 @@ def options_binary():
 
         ),
 
-        # vm_runtime = attr.string(
-        vm_runtime = attr.label(
-            doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
-            default = "@rules_ocaml//cfg/runtime:dynamic"
+        runtime = attr.label(
+            doc = "runtime to use",
+            default = "@rules_ocaml//rt:std"
+        ),
+
+        vm_linkage = attr.label(
+            doc = "dynamic (default) or static",
+            default = "@rules_ocaml//vm/linkage:static"
         ),
 
         # mode = attr.label(
@@ -221,7 +225,7 @@ def options_aggregators():
 
     _providers = [
         [OcamlArchiveMarker],
-        [OcamlLibraryMarker],
+        [OCamlLibraryProvider],
         [OCamlModuleProvider],
         [OCamlNsResolverProvider],
         [OcamlNsMarker],
@@ -237,8 +241,8 @@ def options_aggregators():
         manifest = attr.label_list(
             doc = "List of component modules, for libraries and archives.",
             providers = [[OcamlArchiveMarker],
-                         [OcamlImportMarker],
-                         [OcamlLibraryMarker],
+                         [OCamlImportProvider],
+                         [OCamlLibraryProvider],
                          [OCamlModuleProvider],
                          [OCamlNsResolverProvider],
                          ## sigs are ok in libraries, not archives
@@ -267,10 +271,10 @@ def options_aggregators():
             default = "@rules_ocaml//cfg/ns:prefixes"
         ),
 
-        vm_runtime = attr.label(
-            doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_vm_runtime target label",
-            default = "@rules_ocaml//cfg/runtime:dynamic"
-        ),
+        # vm_runtime = attr.label(
+        #     doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_runtime target label",
+        #     default = "@rules_ocaml//cfg/runtime:dynamic"
+        # ),
 
         cc_deps = attr.label_list(
             doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must deliver a CcInfo provider. Since ocaml rules may deliver CcInfo providers, we cannnot assume these deps are produced directly by rules_cc.",
@@ -315,7 +319,7 @@ def options_aggregators():
 
 #     providers = [[OcamlArchiveMarker],
 #                  [OCamlSignatureProvider],
-#                  [OcamlLibraryMarker],
+#                  [OCamlLibraryProvider],
 #                  [OCamlModuleProvider],
 #                  [OcamlNsMarker]]
 
@@ -682,8 +686,8 @@ def options_module(ws):
     _providers = [[OcamlArchiveMarker],
                   [OCamlDepsProvider],
                   [OCamlCodepsProvider],
-                  [OcamlImportMarker],
-                  [OcamlLibraryMarker],
+                  [OCamlImportProvider],
+                  [OCamlLibraryProvider],
                   [OCamlModuleProvider],
                   # [OcamlNsMarker],
                   [OCamlNsResolverProvider],
@@ -742,8 +746,8 @@ def options_module(ws):
             providers = [
                 [OCamlDepsProvider],
                 [OcamlArchiveMarker],
-                [OcamlImportMarker],
-                [OcamlLibraryMarker],
+                [OCamlImportProvider],
+                [OCamlLibraryProvider],
                 [OCamlModuleProvider],
                 [OcamlNsMarker],
             ],

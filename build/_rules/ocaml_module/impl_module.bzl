@@ -8,8 +8,8 @@ load("@rules_ocaml//build:providers.bzl",
      "OCamlModuleProvider",
 
      "OcamlArchiveMarker",
-     "OcamlImportMarker",
-     "OcamlLibraryMarker",
+     "OCamlImportProvider",
+     "OCamlLibraryProvider",
      "OcamlNsMarker",
      "OCamlNsResolverProvider",
      "OcamlNsSubmoduleMarker",
@@ -639,7 +639,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             # if ctx.attr._ppx_only[BuildSettingInfo].value == True:
             #     return [
             #         DefaultInfo(files = depset(direct=[work_ml])),
-            #         OcamlModuleMarker()
+            #         OCamlModuleProvider()
             #     ]
 
             out_cmi = ctx.actions.declare_file(
