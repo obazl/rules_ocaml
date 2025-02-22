@@ -89,22 +89,33 @@ def dump_CcInfo(ctx, cc_info): # dep):
     #         print(" Default f: %s" % dep)
 
 ################################################################
+lib_to_link_private_methods = [
+    "disable_whole_archive",
+    "library_identifier",
+    "lto_compilation_context",
+    "must_keep_debug",
+    "objects_private",
+    "pic_lto_compilation_context",
+    "pic_objects_private",
+    "pic_shared_non_lto_backends",
+    "shared_non_lto_backends"
+]
 def lib_to_string(ctx, i, j, lib):
     text = "\n"
+
     # flds = ["static_library",
     #         "pic_static_library",
     #         "interface_library",
     #         "dynamic_library",]
     for fld in dir(lib):
-    # for fld in flds:
-        # if hasattr(lib, fld):
         if getattr(lib, fld):
-            text = text + "  lib[{i}][{j}].{f}: {c}{p}{noc}\n".format(
-                c=CCMAG, noc=CCRESET,
-                i=i, j=j, f=fld, p=getattr(lib,fld)) # .path)
-        else:
-            text = text + "  lib[{i}][{j}].{f} == None\n".format(
-                i=i, j=j, f=fld)
+            if fld not in lib_to_link_private_methods:
+                text = text + "  lib[{i}][{j}].{f}: {c}{p}{noc}\n".format(
+                    c=CCMAG, noc=CCRESET,
+                    i=i, j=j, f=fld, p=getattr(lib,fld)) # .path)
+        # else:
+        #     text = text + "  lib[{i}][{j}].{f} == None\n".format(
+        #         i=i, j=j, f=fld)
     return text
 
 ################
@@ -143,6 +154,69 @@ def ccinfo_to_string(ctx, cc_info):
                 text = text + lib_to_string(ctx, lidx, j, lib)
                 j = j+1
         lidx = lidx + 1
+    return text
+
+################
+# CcSharedLibraryInfo:
+# "dynamic_deps": "All shared libraries depended on transitively",
+# "exports": "cc_libraries that are linked statically and exported",
+# "link_once_static_libs": "All libraries linked statically into this library that should " +
+#        "only be linked once, e.g. because they have static " +
+#        "initializers. If we try to link them more than once, " +
+#        "we will throw an error",
+# "linker_input": "the resulting linker input artifact for the shared library",
+
+def ccsharedlibinfo_to_string(ctx, cc_sharedlib_info):
+    debug = True
+    if debug: print("\nCCSHAREDLIBINFO_TO_STRING for %s" % ctx.label)
+    if debug: print(CCYEL + "\nccsharedlibinfo: %s" % cc_sharedlib_info)
+
+    text = ""
+    text = text + "dynamic deps:\n"
+    for lib in cc_sharedlib_info.dynamic_deps.to_list():
+        text = text + "\t" + lib + "\n"
+    text = text + "exports:\n"
+    for lib in cc_sharedlib_info.exports:
+        text = text + "\t" + lib + "\n"
+    text = text + "link_once_static_libs:\n"
+    for lib in cc_sharedlib_info.link_once_static_libs:
+        text = text + "\t" + lib + "\n"
+
+    linker_input     = cc_sharedlib_info.linker_input
+    text = text + "linker_input:\n"
+    text = text + "\tadditional_inputs: %s\n" % linker_input.additional_inputs
+    text = text + "\tlibraries (LibraryToLink):"
+    libs = linker_input.libraries
+    if debug: print(CCYEL + " libs count: %s" % len(libs))
+    if len(libs) > 0:
+        j = 0
+        for lib in libs:
+            if debug: print(CCYEL + " lib[{j}]: %s" % lib)
+            if debug: print(CCYEL + " lib[{j}] dir: {l}".format(
+                j=j, l=dir(lib)))
+            text = text + lib_to_string(ctx, 0, j, lib)
+            j = j+1
+
+    text = text + "\tlinkstamps: %s\n" % linker_input.linkstamps
+    text = text + "\towner: %s\n" % linker_input.owner
+    text = text + "\tuser_link_flags: %s\n" % linker_input.user_link_flags
+
+    # lidx = 0
+    # for linput in linker_inputs:
+    #     if debug: print(CCYEL + " linker_input[{i}]: %s" %linput)
+    #     if debug: print(CCYEL + " linker_input[{i}] flds: {li}".format(i=lidx, li=dir(linput)))
+    #     if debug: print(CCYEL + " linkflags[{i}]: {f}".format(i=lidx, f= linput.user_link_flags))
+    #     libs = linput.libraries
+    #     if debug: print(CCYEL + " libs count: %s" % len(libs))
+    #     if len(libs) > 0:
+    #         j = 0
+    #         for lib in libs:  # linput.libraries:
+    #             if debug: print(CCYEL + " lib[{j}]: %s" % lib)
+    #             if debug: print(CCYEL + " lib[{j}] dir: {l}".format(
+    #                 j=j, l=dir(lib)))
+    #             text = text + lib_to_string(ctx, lidx, j, lib)
+    #             j = j+1
+    #     lidx = lidx + 1
     return text
 
 ################################################################

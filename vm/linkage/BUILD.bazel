@@ -1,0 +1,17 @@
+package(default_visibility = ["//visibility:public"])
+
+load("@bazel_skylib//rules:common_settings.bzl",
+        "string_flag", "string_setting")
+
+string_flag(name = "linkage",
+            values = ["dynamic", "static"],
+            build_setting_default = "dynamic")
+config_setting(name = "dynamic?",
+               flag_values = {":linkage": "dynamic"})
+config_setting(name = "static?",
+               flag_values = {":linkage": "static"})
+
+string_setting(name = "dynamic",
+               build_setting_default = "dynamic")
+string_setting(name = "static",
+               build_setting_default = "static")

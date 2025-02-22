@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//build:providers.bzl",
-     "MergedDepsProvider",
      "OCamlCodepsProvider",
      "OCamlDepsProvider",
      "OCamlModuleProvider",
@@ -468,6 +467,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     for dep in ctx.attr.deps:
         depsets = merge_deps(ctx, dep, depsets, manifest)
+    print("MDEPS DSOS %s" % depsets.deps.cc_dsos)
 
     for dep in ctx.attr.open:
         depsets = merge_deps(ctx, dep, depsets, manifest)
@@ -1038,6 +1038,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
     if debug_deps: print("ARFILES_depset: %s" % afiles_depset)
 
+    if depsets.deps.cc_dsos != None:
+        print("CCDSOS %s" % depsets.deps.cc_dsos)
+        cc_dsos_depset = depset(
+            transitive = depsets.deps.cc_dsos
+        )
+    else:
+        cc_dsos_depset = []
+
     ocamlModuleProvider = OCamlModuleProvider(
         modname = modname,
         cmi      = out_cmi,  ## no need for a depset for one file?
@@ -1075,7 +1083,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # linkargs = linkset,
         paths    = paths_depset,
 
-        # cc_libs = cc_libs,
+        cc_dsos  = cc_dsos_depset,
 
         srcs = depset(direct=[work_ml]),
     )
@@ -1162,6 +1170,11 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         cc_infos = depsets.ccinfos
     )
     providers.append(ccInfo)
+
+    # ccSharedLibInfo = cc_common.merge_cc_sharedlibinfos(
+    #     cc_infos = depsets.ccsharedlibinfos
+    # )
+    # providers.append(ccSharedLibInfo)
 
     ################
     outputGroupInfo = OutputGroupInfo(

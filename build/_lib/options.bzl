@@ -207,7 +207,7 @@ def options_binary():
 
         vm_linkage = attr.label(
             doc = "dynamic (default) or static",
-            default = "@rules_ocaml//vm/linkage:static"
+            default = "@rules_ocaml//vm/linkage:dynamic"
         ),
 
         # mode = attr.label(
@@ -692,7 +692,8 @@ def options_module(ws):
                   # [OcamlNsMarker],
                   [OCamlNsResolverProvider],
                   # [OCamlSignatureProvider],
-                  [CcInfo]]
+                  [CcInfo],
+                  [CcSharedLibraryInfo]]
 
     # ws = "@" + ws
     ws = "@rules_ocaml"

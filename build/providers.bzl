@@ -30,26 +30,31 @@ load("//build/_providers:OCamlNsResolverProvider.bzl",
 load("//build/_providers:OCamlDepsProvider.bzl",
      _OCamlDepsProvider = "OCamlDepsProvider")
 
-load("//build/_providers:OCamlSignatureProvider.bzl",
-     _OCamlSignatureProvider = "OCamlSignatureProvider")
+load("//build/_providers:OpamInstallProvider.bzl",
+     _OpamInstallProvider = "OpamInstallProvider")
 
 load("//build/_providers:OCamlRuntimeProvider.bzl",
      _OCamlRuntimeProvider = "OCamlRuntimeProvider")
 
-load("//build/_providers:OpamInstallProvider.bzl",
-     _OpamInstallProvider = "OpamInstallProvider")
+load("//build/_providers:OCamlSignatureProvider.bzl",
+     _OCamlSignatureProvider = "OCamlSignatureProvider")
 
-OCamlCcInfo     = _OCamlCcInfo
+load("//build/_providers:OCamlTestProvider.bzl",
+     _OCamlTestProvider = "OCamlTestProvider")
+
+
+OCamlCcInfo             = _OCamlCcInfo
 OCamlCodepsProvider     = _OCamlCodepsProvider
 MergedDepsProvider      = _MergedDepsProvider
+OCamlDepsProvider       = _OCamlDepsProvider
 OCamlImportProvider     = _OCamlImportProvider
 OCamlLibraryProvider    = _OCamlLibraryProvider
 OCamlModuleProvider     = _OCamlModuleProvider
 OCamlNsResolverProvider = _OCamlNsResolverProvider
-OCamlDepsProvider       = _OCamlDepsProvider
-OCamlSignatureProvider  = _OCamlSignatureProvider
-OCamlRuntimeProvider    = _OCamlRuntimeProvider
 OpamInstallProvider     = _OpamInstallProvider
+OCamlRuntimeProvider    = _OCamlRuntimeProvider
+OCamlSignatureProvider  = _OCamlSignatureProvider
+OCamlTestProvider       = _OCamlTestProvider
 
 PpxExecutableMarker = provider(doc = "Ppx Executable Marker provider.")
 
@@ -70,16 +75,6 @@ OcamlNsSubmoduleMarker = provider(
         "ns_name": "ns name (joined prefixes)"
     }
 )
-
-# OcamlRuntimeMarker = provider(
-#     doc = "OCaml Runtime Variant Marker.",
-#     fields = {
-#         "variant": "d or i"
-#     }
-# )
-
-OcamlTestMarker      = provider(doc = "OCaml Test Marker provider.")
-
 
 OcamlSDK = provider(
     doc = "Contains information about the Ocaml SDK used in the toolchain",

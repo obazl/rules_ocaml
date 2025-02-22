@@ -57,20 +57,25 @@ def executable_in_transition_impl(transition, settings, attr):
     #     # "//command_line_option:platforms": tgt
     # }
 
-    print("ppx: %s" % attr.name)
     build_host  = settings["//command_line_option:host_platform"]
-    print("BUILDHOST: %s" % build_host)
     target_host = settings["//command_line_option:platforms"]
-    print("TARGETHOST: %s" % target_host)
-
     tc = settings["@rules_ocaml//toolchain"]
-    print("TC: %s" % tc)
+    # print("\nppx: %s" % attr.name)
+    # print("\nTC: %s" % tc)
+    # print("\nBUILDHOST: %s" % build_host)
+    # print("\nTARGETHOST: %s" % target_host)
 
     if tc == "nop":
         host = build_host
         tgt  = target_host
     else:
-        if Label(build_host) == target_host[0]:
+        if  Label(build_host) == Label("@@bazel_tools//tools:host_platform"):
+            if Label(build_host) == target_host[0]:
+                host, tgt = get_tc(settings, attr)
+            else:
+                # ?
+                host, tgt = get_tc(settings, attr)
+        elif Label(build_host) == target_host[0]:
             if build_host.name == "ocamlc.opt":
                 # set sys>vm => vm>vm
                 host = build_host
@@ -252,9 +257,6 @@ def _nslib_in_transition_impl(settings, attr):
         print("  ns:prefixes: %s" % prefixes)
         print("  ns:submodules: %s" % submodules)
 
-    # if attr.name == "color":
-    #     fail("bbbbbbbbbbbbbbbb")
-
     return {
         # "@rules_ocaml//cfg/ns:nonce"      : nonce,
         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
@@ -366,7 +368,12 @@ def get_tc(settings, attr):
             # or
             # tgt  = "@rules_ocaml//platform:ocamlc.opt"
         else:
-            fail("UNEXPECTED")
+            fail("""
+
+Unrecognized toolchain: {}
+Available toolchains: ocamlopt, ocamlc, ocamlopt.opt, ocamlc.byte, ocamlopt.byte, ocamlc.opt
+            """.format(tc))
+
         return host, tgt
 
 ###############################################

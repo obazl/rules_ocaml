@@ -6,6 +6,8 @@ constraint_setting(name = "executor",
                    default_constraint_value = ":sys")
 
 constraint_value(name = "sys", constraint_setting = ":executor")
+config_setting(name = "sys?", constraint_values = [":sys"])
 
 constraint_value(name = "vm",  constraint_setting = ":executor")
+config_setting(name = "vm?", constraint_values = [":vm"])
 

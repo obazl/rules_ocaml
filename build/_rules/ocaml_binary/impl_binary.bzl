@@ -3,10 +3,10 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("@rules_ocaml//build:providers.bzl",
      "OCamlCodepsProvider",
-     "OcamlExecutableMarker",
      "OCamlDepsProvider",
-     "OcamlTestMarker",
+     "OcamlExecutableMarker",
      "OCamlRuntimeProvider",
+     "OCamlTestProvider",
 )
 
 load("//build/_lib:utils.bzl",
@@ -29,15 +29,10 @@ load("//build/_lib:options.bzl", "options")
 load("//lib:colors.bzl",
      "CCBLU", "CCRED", "CCGRN", "CCMAG", "CCRESET")
 
-# load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
-
 load("@rules_cc//cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
 
-
-DISABLED_FEATURES = [
-#     "module_maps",  # copybara-comment-this-out-please
-]
+DISABLED_FEATURES = []
 
 workdir = tmpdir
 
@@ -216,9 +211,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # 1b. throw warning if ctx.attr.exe has extension
     # 2. add configured extension (default: .byte / none)
     if ctx.attr.exe:
-        out_exe = ctx.actions.declare_file(ctx.attr.exe) # + ".exe")
+        out_bin = ctx.actions.declare_file(ctx.attr.exe) # + ".exe")
+    # elif ctx.attr.bin_type == "obj":
+    #     ...
     else:
-        out_exe = ctx.actions.declare_file(ctx.label.name)
+        out_bin = ctx.actions.declare_file(ctx.label.name + ".bc")
+        #out_bin = ctx.actions.declare_file("libfoo.o")
 
     ################################################################
     ##  construct command line ##
@@ -323,7 +321,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ## for std (non-custom) linking use -dllib
 
     # runtime_input = []
-    runfiles_root = out_exe.path + ".runfiles"
+    runfiles_root = out_bin.path + ".runfiles"
     if debug_runfiles:
         print("runfiles_root: %s" % runfiles_root)
     ws_name = ctx.workspace_name
@@ -358,9 +356,23 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             action_inputs.append(cclib)
         for cclib in static_cc_deps:
             cclib_files.append(cclib.path)
-
         for cclib in dynamic_cc_deps:
             cclib_linkpaths.append("-L" + cclib.dirname)
+
+        for dso in depsets.deps.cc_dsos:
+            for dsolib in dso.to_list():
+                action_inputs.append(dsolib)
+                cc_runfiles.append(dsolib)
+                bn = dsolib.basename[3:]  # drop 'lib' prefix
+                bn = bn[:-3]             # drop '.so' suffix
+                args.add("-cclib", "-l" + bn)
+                ## this is needed at linktime
+                args.add("-ccopt", "-L" + dsolib.dirname)
+                ## macos: -rpath needed at runtime:
+                rpath = paths.dirname(dsolib.short_path)
+                args.add("-ccopt", "-rpath")
+                args.add("-ccopt", rpath)
+
     elif tc.target == "vm": # ocamlc.byte, ocamlc.opt
         ## FIXME: tc.vmruntime is misnamed? its value
         ## is ocamlrun, ocamlrund, or ocamlruni
@@ -438,13 +450,48 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             ## FIXME: only for dynamic link strategy?
             ## no, it's determined by whether or not
             ## archive files have registered clibs
-            args.add("-dllpath",
-                     tc.dllibs_path)
+            # args.add("-dllpath", tc.dllibs_path)
                      # "/Users/gar/.opam/510a/lib")
                      # ctx.bin_dir.path + "/" +
                      # paths.dirname(tc.dllibs[0].short_path))
 
             args.add("-dllpath", tc.dllibs[0].dirname)
+
+            for dso in depsets.deps.cc_dsos:
+                for dsolib in dso.to_list():
+                    action_inputs.append(dsolib)
+                    cc_runfiles.append(dsolib)
+                    bn = dsolib.basename[3:]  # drop 'lib' prefix
+                    bn = bn[:-3]             # drop '.so' suffix
+
+                    args.add("-dllib", "-l" + bn)
+
+                    ## -I required at build (link) time with full dirname,
+                    ## else we get "Error: I/O error: dllalpha.so: No such file or directory"
+                    args.add("-I", dsolib.dirname)
+
+                    ## -dllpath required at runtime with relative dirname, else we get
+                    ## Fatal error: cannot load shared library dllalpha
+                    rpath = paths.dirname(dsolib.short_path)
+                    args.add("-dllpath", rpath)
+
+            for cclib in static_cc_arch:
+                # print("STATIC DEP: %s" % dep)
+                # args.add("-ccopt", "-L" + cclib.dirname)
+                cclib_linkpaths.append("-L" + cclib.dirname)
+                action_inputs.append(cclib)
+            for cclib in static_cc_deps:
+                # print("STATIC DEP: %s" % dep)
+                cclib_files.append(cclib.path)
+                cclib_linkpaths.append("-L" + cclib.dirname)
+                # args.add("-cclib", "-l" + cclib.basename[3:-2])
+                # includes.append(cclib.dirname)
+                # sincludes.append("-L" + cclib.dirname)
+            for cclib in dynamic_cc_deps:
+                cc_runfiles.append(cclib)
+                args.add("-dllib", cclib.name)
+                args.add("-I", cclib.dirname)
+                cclib_linkpaths.append("-L" + cclib.dirname)
 
             # if "ppx" in ctx.attr.tags or ctx.attr._rule == "ppx_executable":
                 ## Currently we default to a custom runtime.
@@ -570,8 +617,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             # args.add("-dllpath", "ocaml~0.0.0")
             ## /TESTING
 
-    args.add_all(cclib_linkpaths, before_each="-ccopt", uniquify=True)
-    args.add_all(cclib_files, before_each="-ccopt", uniquify=True)
+    args.add_all(cclib_linkpaths, uniquify=True, before_each="-ccopt")
+    args.add_all(cclib_files, uniquify=True)
 
     # if ctx.label.name == "inline_test_runner.exe":
     #     fail("x")
@@ -671,7 +718,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     # args.add(ctx.attr.main)
 
-    args.add("-o", out_exe)
+    args.add("-o", out_bin)
 
     # if tc.target == "vm":
     #     # FIXME: requires that runtime and stubs files be added to cmd line
@@ -765,7 +812,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         executable = tc.compiler, # tool,
         arguments = [args],
         inputs = action_inputs_depset,
-        outputs = [out_exe],
+        outputs = [out_bin],
         tools = [
             tc.compiler # tool,
             # cctc.static_runtime_lib()
@@ -832,7 +879,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     ##########################
     defaultInfo = DefaultInfo(
-        executable=out_exe,
+        executable=out_bin,
         runfiles = myrunfiles.merge_all(
             depsets.deps.runfiles,
         )
@@ -847,7 +894,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     if ctx.attr._rule == "ocaml_binary":
         exe_provider = OcamlExecutableMarker()
     elif ctx.attr._rule == "ocaml_test":
-        exe_provider = OcamlTestMarker()
+        exe_provider = OCamlTestProvider()
     else:
         exe_provider = OcamlExecutableMarker()
 

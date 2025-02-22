@@ -33,7 +33,8 @@ def _DepsAggregator_init(*,
                          compile_codeps   = None,
                          link_codeps      = None,
                          ccinfos          = None,
-                         ccinfos_archived = None):
+                         ccinfos_archived = None,
+                         cc_dsos = None):
     return {
         "deps"             : MergedDepsProvider(
             sigs          = [],
@@ -46,6 +47,7 @@ def _DepsAggregator_init(*,
             mli           = [],
             cmts          = [],
             cmtis         = [],
+            cc_dsos       = [],
             paths         = [],
             jsoo_runtimes = [], # depset(),
             runfiles      = []
@@ -96,7 +98,8 @@ def _DepsAggregator_init(*,
             runfiles      = []
         ),
         "ccinfos"          : [],
-        "ccinfos_archived" : []
+        "ccinfos_archived" : [],
+        "cc_dsos"  : []
     }
 
 DepsAggregator, _new_depsaggregator = provider(
@@ -108,6 +111,7 @@ DepsAggregator, _new_depsaggregator = provider(
         "link_codeps"      : "an MergedDepsProvider provider",
         "ccinfos"          : "list of CcInfo providers",
         "ccinfos_archived" : "list of ccinfos whose metadata is archived",
+        "cc_dsos"          : "list of shared (.so) objs",
     }
 )
 
@@ -191,6 +195,9 @@ def aggregate_codeps(ctx,
             depsets.ccinfos_archived.append(ccInfo)
         else:
             depsets.ccinfos.append(ccInfo)
+
+    if CcSharedLibraryInfo in target:
+        fail("xxxxxxxxxxxxxxxx")
 
     # if target.label.name == "runtime-lib":
     #     print("depsets.deps.archives: %s" % depsets.deps.archives)
@@ -435,6 +442,10 @@ def merge_deps(ctx,
             if provider.jsoo_runtimes != []:
                 depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
+        if hasattr(provider, "cc_dsos"):
+            if provider.cc_dsos != None:
+                depsets.deps.cc_dsos.append(provider.cc_dsos)
+
     ## end if OCamlDepsProvider in target FIXME: MergedDepsProvider
 
     ## Now ocaml_signature, ocaml_module
@@ -543,8 +554,15 @@ def merge_deps(ctx,
                     depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
     if OCamlCcInfo in target:
+        ## contains ccinfos and ccinfos_arch (for ccinfos embedded in archives)
         depsets.ccinfos.append(target[OCamlCcInfo].direct)
         depsets.ccinfos_archived.append(target[OCamlCcInfo].archived)
+
+    if CcSharedLibraryInfo in target:
+        print("target: %s" % ctx.label)
+        print("CcSharedLibraryInfo %s" % target[CcSharedLibraryInfo])
+        print("Shared lib DefaultInfo %s" % target[DefaultInfo])
+        depsets.deps.cc_dsos.append(target[DefaultInfo].files)
 
     if CcInfo in target:
         if debug_ccinfo:

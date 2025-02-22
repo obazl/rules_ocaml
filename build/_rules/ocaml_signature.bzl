@@ -2,7 +2,6 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//build:providers.bzl",
-     "MergedDepsProvider",
      "OcamlArchiveMarker",
      "OCamlImportProvider",
      "OCamlLibraryProvider",

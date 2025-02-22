@@ -1,0 +1,7 @@
+# generated file - DO NOT EDIT
+
+package(default_visibility = ["//visibility:public"])
+
+config_setting(name = "sys?", constraint_values = ["//platform/executor:sys"])
+config_setting(name = "vm?", constraint_values = ["//platform/executor:vm"])
+
