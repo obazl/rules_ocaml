@@ -426,10 +426,20 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             ## so we always add it
             ## ideally we would inspect the cma/cmxa files
             ## and only add if needed
-            if debug_vm: print("VMLIBS %s" % tc.dllibs)
+            if debug_vm: print("DLLIBS %s" % tc.dllibs)
 
             ## WARNING: both -dllpath and -I are required!
-            args.add("-ccopt", "-L" + tc.dllibs[0].dirname)
+            ## "At link-time, shared libraries are searched in the
+            ## standard search path (the one corresponding to the -I
+            ## option)."
+
+            ## required at build (link) time:
+            args.add("-I", tc.dllibs[0].dirname)
+
+            ## required at load/run time:
+            rpath = paths.dirname(tc.dllibs[0].short_path)
+            args.add("-dllpath", rpath)
+
             # print("dllibs[0]: %s" % tc.dllibs[0])
             # print("dllibs[0] owner: %s" % tc.dllibs[0].owner)
             # print("dllibs path 0: %s" % tc.dllibs[0].path)
@@ -438,10 +448,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
             ## FIXME: shared libs only if link strategy = dynamic
 
-            ## "At link-time, shared libraries are searched in the
-            ## standard search path (the one corresponding to the -I
-            ## option)."
-            args.add("-I", tc.dllibs[0].dirname)
+            # action_inputs.append(tc.dllibs)
 
             ## "The -dllpath option simply stores dir in
             ## the produced executable file, where ocamlrun
@@ -756,6 +763,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         + ctx.files.main
         + oruntime
         + action_inputs
+        + tc.dllibs
         ,
         transitive =
         depsets.deps.sigs

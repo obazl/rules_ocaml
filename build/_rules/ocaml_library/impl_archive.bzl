@@ -438,6 +438,13 @@ def impl_archive(ctx):
     # direct=afiles_direct,
     # transitive=afiles_indirect),
 
+    srcs_depset  = depset(order = dsorder,
+                          transitive = [libOcamlProvider.srcs])
+
+    cmts_depset  = depset(order = dsorder,
+                          transitive = [libOcamlProvider.cmts])
+    cmtis_depset  = depset(order = dsorder,
+                           transitive = [libOcamlProvider.cmtis])
 
     cli_link_depset = depset(
         order=dsorder,
@@ -466,7 +473,9 @@ def impl_archive(ctx):
         ofiles   = ofiles_depset,
         archives = archives_depset,
         afiles   = afiles_depset,
-
+        cmts     = cmts_depset,
+        cmtis    = cmtis_depset,
+        srcs     = srcs_depset,
         paths    = libOcamlProvider.paths
     )
 

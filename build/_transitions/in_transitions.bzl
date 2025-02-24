@@ -278,9 +278,9 @@ nslib_in_transition = transition(
         # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        # "@rules_ocaml//toolchain",
-        # "//command_line_option:host_platform",
-        # "//command_line_option:platforms",
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms",
     ]
 )
 

@@ -32,7 +32,7 @@ workdir = tmpdir
 def impl_ns_resolver(ctx):
 
     debug            = False
-    debug_ns         = False
+    debug_ns         = True
     debug_submodules = False
     debug_includes   = False
     debug_embeds     = False
@@ -204,7 +204,7 @@ def impl_ns_resolver(ctx):
         if not submod_is_main:
             alias = "module {mod} = {ns}{sep}{mod}".format(
                 mod = submodule,
-                sep = "" if nslib_submod else module_sep, # fs_prefix != "" else module_sep,
+                sep = "" if nslib_submod else "_" if alias_prefix.endswith("_") else module_sep,
                 ns  = "" if nslib_submod else alias_prefix
             )
             if debug_submodules: print("appending alias: %s" % alias)
@@ -238,7 +238,8 @@ def impl_ns_resolver(ctx):
                     print("FUSE namespaced module, ns: %s" % resolver.ns_name)
                 alias = "module {alias} = {ns}{sep}{mod}".format(
                     alias = v,
-                    sep = "__", # if nslib_submod else module_sep,
+                    sep = "_" if resolver.ns_name.enswith("_") else module_sep,
+                    # sep = "__", # if nslib_submod else module_sep,
                     ns  = resolver.ns_name,
                     mod = k.label.name
                 )
@@ -282,7 +283,8 @@ def impl_ns_resolver(ctx):
                 alias = "module {alias} = {ns}{sep}{mod}".format(
                     alias = submod,
                     ns  = resolver.ns_name,
-                    sep = "__", # if nslib_submod else module_sep,
+                    sep = "_" if resolver.ns_name.endswith("_") else module_sep,
+                    # sep = "__", # if nslib_submod else module_sep,
                     mod = submod
                 )
                 aliases.append(alias)
@@ -320,9 +322,9 @@ def impl_ns_resolver(ctx):
             if no_main_alias:
                 resolver_module_name = ns_modname + "__"
             else:
-                resolver_module_name = ns_modname
+                resolver_module_name = ns_modname + "__"
         else:
-            resolver_module_name = ns_name
+            resolver_module_name = ns_name + "__"
 
     # Always generate a resolver, even if no aliases
     # (in case user provides one, or its a singleton with module name matching ns name; ns has '__' suffix
@@ -495,6 +497,13 @@ def impl_ns_resolver(ctx):
     ofiles_depset  = depset(order=dsorder,
                             direct=[out_ofile] if out_ofile else [],
                             )
+    cmts_depset  = depset(order=dsorder,
+                          #direct=[out_cmt]
+                          )
+
+    cmtis_depset  = depset(order=dsorder,
+                           #direct=[out_cmti]
+                           )
 
     cli_link_deps_depset = depset(
         order=dsorder,
@@ -514,6 +523,8 @@ def impl_ns_resolver(ctx):
         afiles   = depset(order=dsorder,
                           ),
         astructs = astructs_depset,
+        cmts     = cmts_depset,
+        cmtis     = cmtis_depset,
         paths    = depset(direct = [out_cmi.dirname]),
         cli_link_deps = cli_link_deps_depset
     )

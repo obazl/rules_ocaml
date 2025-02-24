@@ -198,7 +198,7 @@ def derive_module_name_from_file_name(ctx, stem, nsr_provider):
         if ctx.attr.ns         :
             if debug: print("BOTTOMUP renaming")
             bottomup = True
-            ns_resolver = ctx.attr.ns         
+            ns_resolver = ctx.attr.ns
             # resolver either ocaml_ns          or ocaml_module
             if hasattr(ns_resolver[OCamlNsResolverProvider], "ns_name"):
                 prefix = ctx.attr.ns[OCamlNsResolverProvider].ns_name
@@ -238,7 +238,8 @@ def derive_module_name_from_file_name(ctx, stem, nsr_provider):
     #     print("TOPDOWN")
 
     if bottomup:
-        out_module = prefix + module_sep + this_module
+        pfx = prefix.removesuffix("_")
+        out_module = pfx + module_sep + this_module
     elif hasattr(ns_resolver, "prefixes"): # "prefix"):
         if debug: print("hasattr prefixes: %s" % ns_resolver.prefixes)
         ns_prefixes = ns_resolver.prefixes # .prefix

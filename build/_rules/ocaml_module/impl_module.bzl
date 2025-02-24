@@ -467,7 +467,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     for dep in ctx.attr.deps:
         depsets = merge_deps(ctx, dep, depsets, manifest)
-    print("MDEPS DSOS %s" % depsets.deps.cc_dsos)
+    # print("MDEPS DSOS %s" % depsets.deps.cc_dsos)
 
     for dep in ctx.attr.open:
         depsets = merge_deps(ctx, dep, depsets, manifest)
@@ -1038,8 +1038,32 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     )
     if debug_deps: print("ARFILES_depset: %s" % afiles_depset)
 
+    srcs_depset = depset(
+        order=dsorder,
+        direct = [ctx.file.struct],
+        transitive = depsets.deps.srcs
+    )
+    if len(depsets.deps.cmts) == 0:
+        # print(ctx.label)
+        # fail(depsets.deps.cmts)
+        cmts_depset = depset()
+    else:
+        # print(ctx.label)
+        # print(depsets.deps.cmts)
+        cmts_depset = depset(
+            order=dsorder,
+            # direct = [ctx.file.struct],
+            transitive = depsets.deps.cmts
+        )
+
+    cmtis_depset = depset(
+        order=dsorder,
+        # direct = [ctx.file.struct],
+        # transitive = depsets.deps.cmtis
+    )
+
     if depsets.deps.cc_dsos != None:
-        print("CCDSOS %s" % depsets.deps.cc_dsos)
+        # print("CCDSOS %s" % depsets.deps.cc_dsos)
         cc_dsos_depset = depset(
             transitive = depsets.deps.cc_dsos
         )
@@ -1073,6 +1097,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # unarchived structs
         structs  = structs_depset, # new_structs_depset,
         ofiles   = ofiles_depset,
+        srcs = srcs_depset,
+        cmts = cmts_depset,
+        cmtis = cmtis_depset,
 
         jsoo_runtimes = None if (len(depsets.deps.jsoo_runtimes) == 0) else depsets.deps.jsoo_runtimes,
         # jsoo_runtimes = depset(
@@ -1084,8 +1111,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         paths    = paths_depset,
 
         cc_dsos  = cc_dsos_depset,
-
-        srcs = depset(direct=[work_ml]),
     )
     # print("MPRovider: %s" % ocamlDepsProvider)
 
@@ -1192,7 +1217,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         afiles    = afiles_depset,
         astructs = astructs_depset,
         ns = nsresolver_depset,
-
+        srcs = srcs_depset,
         ## put these in OCamlCodepsProvider?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,

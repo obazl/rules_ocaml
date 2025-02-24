@@ -303,6 +303,12 @@ def _ocaml_signature_impl(ctx):
         order=dsorder,
         transitive = depsets.deps.astructs
     )
+    srcs_depset = depset(
+        order=dsorder,
+        direct = [ctx.file.src],
+        transitive = depsets.deps.sigs
+    )
+
     ocamlDepsProvider  = OCamlDepsProvider(
         sigs       = sigs_depset,
         #FIXME: cmtis      = cmtis_depset,
@@ -315,6 +321,9 @@ def _ocaml_signature_impl(ctx):
         archives   = archives_depset,
         afiles     = afiles_depset,
         astructs   = astructs_depset,
+        srcs       = srcs_depset,
+        cmts       = depset(),
+        cmtis       = depset(),
         # cclibs   = cclibs_depset,
         paths      = paths_depset,
     )

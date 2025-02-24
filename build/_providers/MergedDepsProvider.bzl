@@ -9,10 +9,11 @@ def _MergedDepsProvider_init(*,
                              mli           = [],
                              cmts          = [],
                              cmtis         = [],
+                             srcs          = [],
                              cc_dsos       = [],
                              paths         = [],
                              jsoo_runtimes = [],
-                             runfiles      = None
+                             runfiles      = []
                              ):
     return {
         "sigs"          : sigs,
@@ -25,6 +26,7 @@ def _MergedDepsProvider_init(*,
         "mli"           : mli,
         "cmts"          : cmts,
         "cmtis"         : cmtis,
+        "srcs"          : srcs,
         "cc_dsos"       : cc_dsos,
         "paths"         : paths,
         "jsoo_runtimes" : jsoo_runtimes,
@@ -46,6 +48,7 @@ MergedDepsProvider, _new_ocamlocamlinfo = provider(
         "mli"           : ".mli files needed for .ml compilation",
         "cmts"          : ".cmt files",
         "cmtis"         : ".cmti files",
+        "srcs"          : "source files",
         "cc_dsos"       : ".so files",
         "paths"         : "string depset, for efficiency",
         "jsoo_runtimes" : "depset of runtime.js files",

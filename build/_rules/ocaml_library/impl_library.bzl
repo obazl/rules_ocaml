@@ -150,13 +150,15 @@ def impl_library(ctx, for_archive = True):
         print("LIB MANIFEST: %s" % archive_manifest)
 
     depsets = DepsAggregator()
+    # print("LBL %s" % ctx.label)
     for dep in ctx.attr.manifest:
+        # if ctx.label.name == "re":
+        #     print("Merging %s" % dep)
         # if dep.label.name == "Red":
         #     print("red dep: %s" % dep[OCamlDepsProvider])
         #     fail()
         depsets = merge_deps(ctx, dep, depsets, archive_manifest)
 
-    # print("DEPSETS %s" % depsets.deps)
     # print("cli link deps: %s" % depsets.deps.cli_link_deps)
     ################
     paths_primary   = []
@@ -271,6 +273,17 @@ def impl_library(ctx, for_archive = True):
                              # direct = astructs_primary,
                              transitive = depsets.deps.astructs)
                          # transitive = astructs_secondary)
+    srcs_depset  = depset(order = dsorder,
+                          transitive = depsets.deps.srcs)
+    # if len(depsets.deps.cmts) == 0:
+    #     # print(ctx.label)
+    #     # fail(depsets.deps.cmts)
+    #     cmts_depset = depset()
+    # else:
+    cmts_depset  = depset(order = dsorder,
+                          transitive = depsets.deps.cmts)
+    cmtis_depset  = depset(order = dsorder,
+                          transitive = depsets.deps.cmtis)
     paths_depset  = depset(order = dsorder,
                            transitive = depsets.deps.paths)
 
@@ -297,20 +310,22 @@ def impl_library(ctx, for_archive = True):
     #                          transitive = cclibs_secondary)
 
     # print("new_linkargs: %s" % new_linkargs)
-    ocamlProvider = OCamlDepsProvider(
+    ocamlDepsProvider = OCamlDepsProvider(
         sigs     = sigs_depset,
         structs  = structs_depset,
         ofiles   = ofiles_depset,
         archives = archives_depset,
         afiles   = afiles_depset,
         astructs = astructs_depset,
-
+        srcs     = srcs_depset,
+        cmts     = cmts_depset,
+        cmtis    = cmtis_depset,
         # resolvers = resolvers_depset,
         paths    = paths_depset,
         cli_link_deps = cli_link_deps_depset
     )
-    providers.append(ocamlProvider)
-    # print("ocamlProvider: %s" % ocamlProvider)
+    providers.append(ocamlDepsProvider)
+    # print("ocamlDepsProvider: %s" % ocamlDepsProvider)
 
     outputGroupInfo = OutputGroupInfo(
         # resolver   = ns_resolver_files,
@@ -324,7 +339,9 @@ def impl_library(ctx, for_archive = True):
         archives = archives_depset,
         afiles  = afiles_depset,
         astructs= astructs_depset,
-
+        srcs    = srcs_depset,
+        cmts     = cmts_depset,
+        cmtis    = cmtis_depset,
         # ppx_codeps = ppx_codeps_depset,
         # cc = ... extract from CcInfo?
         all = depset(
@@ -338,7 +355,7 @@ def impl_library(ctx, for_archive = True):
 
     # providers = [
     #     defaultInfo,
-    #     ocamlProvider,
+    #     ocamlDepsProvider,
     #     outputGroupInfo,
     # ]
 
@@ -426,6 +443,7 @@ def impl_library(ctx, for_archive = True):
     ## if namespaced, then return OCamlNsResolverProvider, so that
     ## tools can find the resolver, e.g. @obazl//inspect:src
 
-    # print("LIB providers: %s" % providers)
+    # print("label: %s" % ctx.label)
+    # fail("LIB providers: %s" % providers)
 
     return providers

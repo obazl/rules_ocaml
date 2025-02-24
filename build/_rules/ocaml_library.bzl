@@ -5,9 +5,10 @@ load("//build/_lib:options.bzl", "options", "options_aggregators")
 load("//build/_rules/ocaml_library:impl_archive.bzl", "impl_archive")
 load("//build/_rules/ocaml_library:impl_library.bzl", "impl_library")
 
-# load("//build/_transitions:in_transitions.bzl",
-#      "nslib_in_transition",
-#      "reset_in_transition")
+load("//build/_transitions:in_transitions.bzl",
+     "toolchain_in_transition",
+     "nslib_in_transition",
+     "reset_in_transition")
 
 ###############################
 def _ocaml_library(ctx):
@@ -57,6 +58,7 @@ Packages](../ug/collections.md).
     #NB: reset wipes configs, not good if this needs to pass on ns
     #deps to its deps
     # cfg     = nslib_in_transition,
+    cfg     = toolchain_in_transition,
     provides = [OCamlLibraryProvider],
     executable = False,
     fragments = ["platform", "cpp"],

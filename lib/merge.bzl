@@ -47,6 +47,7 @@ def _DepsAggregator_init(*,
             mli           = [],
             cmts          = [],
             cmtis         = [],
+            srcs          = [],
             cc_dsos       = [],
             paths         = [],
             jsoo_runtimes = [], # depset(),
@@ -63,6 +64,7 @@ def _DepsAggregator_init(*,
             mli           = [],
             cmts          = [],
             cmtis         = [],
+            srcs          = [],
             paths         = [],
             jsoo_runtimes = [],
             runfiles      = []
@@ -78,6 +80,7 @@ def _DepsAggregator_init(*,
             mli           = [],
             cmts          = [],
             cmtis         = [],
+            srcs          = [],
             paths         = [],
             jsoo_runtimes = [],
             runfiles      = []
@@ -93,6 +96,7 @@ def _DepsAggregator_init(*,
             mli           = [],
             cmts          = [],
             cmtis         = [],
+            srcs          = [],
             paths         = [],
             jsoo_runtimes = [],
             runfiles      = []
@@ -148,42 +152,44 @@ def aggregate_codeps(ctx,
     if OCamlDepsProvider in target:
         provider = target[OCamlDepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
-        if provider.cli_link_deps != []:
+        if provider.cli_link_deps != None:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
         depsets.codeps.archives.append(provider.archives)
         depsets.codeps.afiles.append(provider.afiles)
         depsets.codeps.astructs.append(provider.astructs)
-        if provider.ofiles != []:
+        if provider.ofiles != None:
             depsets.codeps.ofiles.append(provider.ofiles)
-        if hasattr(provider, "cmtis"):
-            if provider.cmtis != []:
-                depsets.codeps.cmtis.append(provider.cmtis)
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
                 depsets.codeps.cmts.append(provider.cmts)
+        if hasattr(provider, "cmtis"):
+            if provider.cmtis != None:
+                depsets.codeps.cmtis.append(provider.cmtis)
         depsets.codeps.paths.append(provider.paths)
         if hasattr(provider, "jsoo_runtimes"):
-            if provider.jsoo_runtimes != []:
+            if provider.jsoo_runtimes != None:
                 depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
     if OCamlCodepsProvider in target:
         provider = target[OCamlCodepsProvider]
         depsets.codeps.sigs.append(provider.sigs)
-        if provider.cli_link_deps != []:
+        if provider.cli_link_deps != None:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
         depsets.codeps.structs.append(provider.structs)
-        if provider.ofiles != []:
+        if provider.ofiles != None:
             depsets.codeps.ofiles.append(provider.ofiles)
         depsets.codeps.archives.append(provider.archives)
         depsets.codeps.afiles.append(provider.afiles)
         depsets.codeps.astructs.append(provider.astructs)
-        if hasattr(provider, "cmtis"):
-            depsets.codeps.cmtis.append(provider.cmtis)
         if hasattr(provider, "cmts"):
-            depsets.codeps.cmts.append(provider.cmts)
+            if provider.cmts != []:
+                depsets.codeps.cmts.append(provider.cmts)
+        if hasattr(provider, "cmtis"):
+            if provider.cmtis != None:
+                depsets.codeps.cmtis.append(provider.cmtis)
         depsets.codeps.paths.append(provider.paths)
         if hasattr(provider, "jsoo_runtimes"):
-            if provider.jsoo_runtimes != []:
+            if provider.jsoo_runtimes != None:
                 depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
     if CcInfo in target:
@@ -352,6 +358,7 @@ def merge_deps(ctx,
             default_info = target[0][DefaultInfo]
 
         depsets.deps.runfiles.append(default_info.default_runfiles)
+
         # if ctx.label.name == "Expansion":
         #     print("target: %s" % target)
         #     for dep in provider.sigs.to_list():
@@ -371,10 +378,10 @@ def merge_deps(ctx,
         #         manifest, target, provider, depsets)
         # else:
         if hasattr(provider, "cli_link_deps"): # tmp, for OCamlDepsProvider
-            if provider.cli_link_deps != []:
+            if provider.cli_link_deps != None:
                 depsets.deps.cli_link_deps.append(provider.cli_link_deps)
         if hasattr(provider, "astructs"):
-            if provider.astructs != []:
+            if provider.astructs != None:
                 depsets.deps.astructs.append(provider.astructs)
 
         depsets.deps.structs.append(provider.structs)
@@ -391,20 +398,20 @@ def merge_deps(ctx,
             depsets.deps.cli_link_deps.append(provider.cli_link_deps)
 
         if hasattr(provider, "sigs"):
-            if provider.sigs != []:
+            if provider.sigs != None:
                 depsets.deps.sigs.append(provider.sigs)
 
         if hasattr(provider, "archives"):
-            if provider.archives != []:
+            if provider.archives != None:
                 depsets.deps.archives.append(provider.archives)
 
         if hasattr(provider, "afiles"):
-            if provider.afiles != []:
+            if provider.afiles != None:
                 depsets.deps.afiles.append(provider.afiles)
 
         if not module_archived:
             if hasattr(provider, "structs"):
-                if provider.structs != []:
+                if provider.structs != None:
                     depsets.deps.structs.append(provider.structs)
 
         # if manifest: # for OCamlModuleProvider only
@@ -423,23 +430,31 @@ def merge_deps(ctx,
         #     depsets.deps.structs.append(provider.structs)
 
         if hasattr(provider, "ofiles"):
-            if provider.ofiles != []:
+            if provider.ofiles != None:
                 depsets.deps.ofiles.append(provider.ofiles)
+
+        if hasattr(provider, "srcs"):
+            if provider.srcs != None:
+                depsets.deps.srcs.append(provider.srcs)
 
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
+                # print(ctx.label)
+                if provider.cmts == None:
+                    print(ctx.label)
+                    fail("CMT %s" % provider.cmts)
                 depsets.deps.cmts.append(provider.cmts)
 
         if hasattr(provider, "cmtis"):
-            if provider.cmtis != []:
+            if provider.cmtis != None:
                 depsets.deps.cmtis.append(provider.cmtis)
 
         if hasattr(provider, "paths"):
-            if provider.paths != []:
+            if provider.paths != None:
                 depsets.deps.paths.append(provider.paths)
 
         if hasattr(provider, "jsoo_runtimes"):
-            if provider.jsoo_runtimes != []:
+            if provider.jsoo_runtimes != None:
                 depsets.deps.jsoo_runtimes.append(provider.jsoo_runtimes)
 
         if hasattr(provider, "cc_dsos"):
@@ -496,7 +511,7 @@ def merge_deps(ctx,
         else:
             depsets.deps.sigs.append(provider.sigs)
 
-        if provider.cli_link_deps != []:
+        if provider.cli_link_deps != None:
             if ctx.attr._rule == "ppx_executable":
                 depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
             else:
@@ -532,10 +547,11 @@ def merge_deps(ctx,
                 if ctx.attr._rule == "ppx_executable":
                     depsets.codeps.cmts.append(provider.cmts)
                 else:
+                    fail(provider.cmts)
                     depsets.deps.cmts.append(provider.cmts)
 
         if hasattr(provider, "cmtis"):
-            if provider.cmtis != []:
+            if provider.cmtis != None:
                 if ctx.attr._rule == "ppx_executable":
                     depsets.codeps.cmtis.append(provider.cmtis)
                 else:
@@ -547,7 +563,7 @@ def merge_deps(ctx,
             depsets.deps.paths.append(provider.paths)
 
         if hasattr(provider, "jsoo_runtimes"):
-            if provider.jsoo_runtimes != []:
+            if provider.jsoo_runtimes != None:
                 if ctx.attr._rule == "ppx_executable":
                     depsets.codeps.jsoo_runtimes.append(provider.jsoo_runtimes)
                 else:
