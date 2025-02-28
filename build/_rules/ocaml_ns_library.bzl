@@ -1,3 +1,5 @@
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+
 load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 load("//build:providers.bzl",
      "OCamlLibraryProvider",
@@ -14,7 +16,7 @@ load("//build/_transitions:out_transitions.bzl",
 load("//build/_rules/ocaml_library:impl_archive.bzl", "impl_archive")
 load("//build/_rules/ocaml_library:impl_library.bzl", "impl_library")
 
-load("//build/_lib:options.bzl",
+load("//build/_lib:apis.bzl",
      "options",
      "options_ns_opts",
      "options_ns_aggregators")
@@ -22,12 +24,35 @@ load("//build/_lib:options.bzl",
 ###############################
 def _ocaml_ns_library(ctx):
 
-    if ctx.attr.archived:
-        return impl_archive(ctx)
-    else:
-        return impl_library(ctx)
+    # if ctx.attr.archived:
+    #     return impl_archive(ctx)
+    # else:
+    #     return impl_library(ctx)
 
-    # return impl_library(ctx)
+    ## target 'linkage' attr overrides hidden '_linkage'
+    if ctx.attr.linkage:
+        _linkage = ctx.attr.linkage
+    elif ctx.attr._linkage[BuildSettingInfo].value == "none":
+        _linkage = None
+    else:
+        _linkage = ctx.attr._linkage[BuildSettingInfo].value
+
+    print("{} linkage: {}, linklevel: {}".format(
+            ctx.label, _linkage,
+            ctx.attr._linklevel[BuildSettingInfo].value))
+
+    if (ctx.attr._linklevel[BuildSettingInfo].value == 0):
+        if _linkage == "static":
+            return impl_archive(ctx, _linkage)
+        elif _linkage == "shared":
+            return impl_archive(ctx, _linkage)
+        else:
+            return impl_library(ctx, _linkage)
+    else:
+        if ctx.attr.linkage: # explicit attr forces issue
+            return impl_archive(ctx, _linkage)
+        else:
+            return impl_library(ctx, _linkage)
 
 ################################
 rule_options = options("rules_ocaml")

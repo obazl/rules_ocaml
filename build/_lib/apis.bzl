@@ -17,7 +17,7 @@ load("@rules_ocaml//build:providers.bzl", "OCamlCodepsProvider")
 
 load("//build/_transitions:out_transitions.bzl",
      "cc_deps_out_transition",
-     # "manifest_out_transition",
+     "manifest_out_transition",
      "ocaml_module_sig_out_transition",
      "ocaml_binary_deps_out_transition",
      "ocaml_module_deps_out_transition",
@@ -119,6 +119,13 @@ def options_binary():
         # ),
         exe  = attr.string(
             doc = "By default, executable name is derived from 'name' attribute; use this to override."
+        ),
+
+        _vm_ext = attr.label(
+            default = "@rules_ocaml//cfg/executable:vm_ext"
+        ),
+        _sys_ext = attr.label(
+            default = "@rules_ocaml//cfg/executable:sys_ext"
         ),
 
         ## DEPENDENCIES
@@ -248,7 +255,7 @@ def options_aggregators():
                          ## sigs are ok in libraries, not archives
                          [OCamlSignatureProvider]
                          ],
-            # cfg = manifest_out_transition
+            cfg = manifest_out_transition
         ),
         # aliases = attr.label_keyed_string_dict(),
 
@@ -297,12 +304,22 @@ def options_aggregators():
             ## cfg = ocaml_module_cc_deps_out_transition
         ),
 
+        _linklevel = attr.label(
+            default = "@rules_ocaml//cfg/library/linkage:level"
+        ),
+        _linkage = attr.label(
+            default = "@rules_ocaml//cfg/library/linkage"
+        ),
+        linkage = attr.string(
+            doc = "Overrides hidden _linkage",
+            values = ["static", "shared"]
+        ),
         shared = attr.bool(
             doc = "True: build a shared lib (.cmxs)",
             default = False
         ),
 
-        ## FIXME: wtf?
+        ## FIXME: why?
         standalone = attr.bool(
             doc = "True: link total depgraph. False: link only direct deps.",
             default = False
@@ -468,10 +485,20 @@ def options_ns_aggregators():
             providers = [CcInfo],
         ),
 
-        shared = attr.bool(
-            doc = "True: build a shared lib (.cmxs)",
-            default = False
+        _linklevel = attr.label(
+            default = "@rules_ocaml//cfg/library/linkage:level"
         ),
+        _linkage = attr.label(
+            default = "@rules_ocaml//cfg/library/linkage"
+        ),
+        linkage = attr.string(
+            doc = "Overrides hidden _linkage",
+            values = ["static", "shared"]
+        ),
+        # shared = attr.bool(
+        #     doc = "True: build a shared lib (.cmxs)",
+        #     default = False
+        # ),
 
         # _allowlist_function_transition = attr.label(
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
@@ -703,6 +730,10 @@ def options_module(ws):
         _linkall  = attr.label(default = ws + "//cfg/module/linkall"),
         _warnings = attr.label(
             default = "@rules_ocaml//cfg/module:warnings"
+        ),
+
+        _normalize_modname = attr.label(
+            default = "@rules_ocaml//cfg/module:normalize"
         ),
 
         _rule = attr.string( default = "ocaml_module" ),

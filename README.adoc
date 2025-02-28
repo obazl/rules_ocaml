@@ -1,0 +1,32 @@
+= OBazl: rules_ocaml
+:toc: true
+
+Bazel rules for developing OCaml software.
+
+== Status
+
+Version 3.0.0.dev available for testing 2/28/2025.
+
+link:docs/STATUS.adoc[Status]
+
+link:docs/ROADMAP.adoc[Roadmap]
+
+
+== Documentation
+
+link:https://obazl.github.io/docs_obazl/[docs_obazl,window=_blank] (Not yet updated to 3.0.0.dev)
+
+== Demos
+
+link:https://github.com/obazl/demos_obazl/tree/3.0.0.dev/rules_ocaml[demos_obazl,window=_blank] (Version 3.0.0.dev)
+
+== Tools
+
+* link:https://github.com/obazl/tools_opam/tree/1.0.0.dev[tools_opam,window=_blank] (Version 1.0.0.dev)
+
+// * link:https://github.com/obazl/tools_obazl[tools_obazl]
+
+== Acknowledgements
+
+Support for the initial development of OBazl was provided by a Mina Genesis
+Token Grant and the generous assistance of the link:https://minaprotocol.com/[Mina] team.

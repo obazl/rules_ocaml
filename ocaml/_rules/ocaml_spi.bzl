@@ -1,4 +1,4 @@
-load(":options.bzl", "options") # , "options_ns_resolver")
+load(":apis.bzl", "options") # , "options_ns_resolver")
 
 # load("//build:providers.bzl",
 #      "OcamlProvider")

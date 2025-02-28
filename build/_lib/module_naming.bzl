@@ -200,8 +200,8 @@ def derive_module_name_from_file_name(ctx, stem, nsr_provider):
             bottomup = True
             ns_resolver = ctx.attr.ns
             # resolver either ocaml_ns          or ocaml_module
-            if hasattr(ns_resolver[OCamlNsResolverProvider], "ns_name"):
-                prefix = ctx.attr.ns[OCamlNsResolverProvider].ns_name
+            if hasattr(ns_resolver[OCamlNsResolverProvider], "ns_fqn"):
+                prefix = ctx.attr.ns[OCamlNsResolverProvider].ns_fqn
             else:
                 (prefix, extension) = paths.split_extension(
                     ctx.file.ns.basename)
@@ -227,7 +227,11 @@ def derive_module_name_from_file_name(ctx, stem, nsr_provider):
 
     ##WARN: this_module == src_module (stem may be in difference dir/pkg);
     # (this_module, extension) = paths.split_extension(stem) # .basename)
+    # if ctx.attr._normalize_modname[BuildSettingInfo].value == True:
     this_module = stem[:1].capitalize() + stem[1:]
+    # else:
+    #     this_module = stem
+
     if debug: print("this_module: %s" % this_module)
     # if ctx.label.name == "Char_cmi":
     #     print("this_module: %s" % this_module)

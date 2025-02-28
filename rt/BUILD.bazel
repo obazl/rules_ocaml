@@ -1,0 +1,48 @@
+package(default_visibility = ["//visibility:public"])
+
+load("@bazel_skylib//rules:common_settings.bzl",
+        "string_flag", "string_setting")
+
+load("@rules_ocaml//build:rules.bzl", "ocaml_runtime")
+
+## Runtime variants:
+## standard:      libasmrun.a, libcamlrun.a
+## debug          libasmrund.a, libcamlrund.a
+## instrumented:  libasmruni.a, libcamlruni.a
+## The distrib also includes
+## libasmrun_pic.a, libasmrun_shared.so
+## libcamlrun_pic.a, libcamlrun_shared.so
+## but I don't know how to use them; they're
+## not discussed in the manual.
+
+# string_setting(name = "std", build_setting_default = "std")
+# string_setting(name = "dbg", build_setting_default = "dbg")
+# string_setting(name = "instrumented", build_setting_default = "instrumented")
+
+## user-defined runtimes, using ocamlc -make-runtime, e.g.
+label_setting(name="std", build_setting_default = ":_std")
+ocaml_runtime(name = "_std")
+
+label_setting(name="dbg", build_setting_default = ":_dbg")
+ocaml_runtime(name = "_dbg")
+
+label_setting(name="instrumented",
+              build_setting_default = ":_instrumented")
+ocaml_runtime(name = "_instrumented")
+
+# string_flag(name = "rt",
+#             values = [
+#                 "std",
+#                 "d", # -runtime-variant d
+#                 "i"  # -runtime-variant i
+#             ],
+#             # "pic", "shared",
+#             build_setting_default = "std")
+
+# config_setting(name = "standard?", flag_values = {":runtime": "std"})
+# config_setting(name = "debug?", flag_values = {":runtime": "d"})
+# config_setting(name = "instrumented?", flag_values = {":runtime": "i"})
+
+# config_setting(name = "pic?", flag_values = {":runtime": "pic"})
+# config_setting(name = "shared?", flag_values = {":runtime": "shared"})
+

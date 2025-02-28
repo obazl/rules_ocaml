@@ -14,12 +14,14 @@ load("//build:providers.bzl",
 load("//build/_lib:module_naming.bzl",
      "derive_module_name_from_file_name",
      "normalize_module_name")
-load("//build/_lib:options.bzl", "options", "options_ppx")
+load("//build/_lib:apis.bzl", "options", "options_ppx")
 load("//build/_lib:utils.bzl",
      "dsorder", "tmpdir", "get_options")
 
 load("//build/_transitions:in_transitions.bzl",
-     "toolchain_in_transition")
+     "module_in_transition",
+     # "toolchain_in_transition"
+     )
 
 load("@rules_ocaml//lib:merge.bzl",
      "merge_deps",
@@ -38,7 +40,10 @@ def _resolve_modname(ctx, nsr_provider):
         ## Force module name
         if debug: print("Setting module name to %s" % ctx.attr.module_name)
         basename = ctx.attr.module_name
-        modname = basename[:1].capitalize() + basename[1:]
+        if ctx.attr._normalize_modname[BuildSettingInfo].value == True:
+            modname = basename[:1].capitalize() + basename[1:]
+        else:
+            modname = basename
         #FIXME: add ns prefix if needed
     else:
         ## Derive module name from src file name
@@ -51,6 +56,65 @@ def _resolve_modname(ctx, nsr_provider):
 
     return modname
 
+########################################
+def _resolve_fname(ctx, nsr_provider):
+    debug = False
+    if ctx.attr.module_name:
+        ## Force module name
+        if debug: print("Setting module name to %s" % ctx.attr.module_name)
+        basename = ctx.attr.module_name
+        if ctx.attr._normalize_modname[BuildSettingInfo].value == True:
+            modname = basename[:1].capitalize() + basename[1:]
+        else:
+            modname = basename
+        #FIXME: add ns prefix if needed
+        (mname, extension) = paths.split_extension(
+            basename)
+            # ctx.file.src.basename)
+        prefix = ""
+    else:
+        if ctx.attr.ns         :
+            if debug: print("BOTTOMUP ns")
+            bottomup = True
+            ns_resolver = ctx.attr.ns
+            if hasattr(ns_resolver[OCamlNsResolverProvider],
+                       "fs_prefix"):
+                prefix = ns_resolver[OCamlNsResolverProvider].fs_prefix
+            else:
+                (prefix, extension) = paths.split_extension(
+                    ctx.file.ns.basename)
+            ## Derive module name from src file name
+            (mname, extension) = paths.split_extension(
+                ctx.file.src.basename)
+            (from_name,
+             modname) = derive_module_name_from_file_name(
+                 ctx, mname, nsr_provider
+             )
+        elif nsr_provider.fs_prefix == None:
+            prefix = ""
+            (mname, extension) = paths.split_extension(
+                ctx.file.src.basename)
+        else:
+            if debug: print("TOPDOWN ns")
+            # (mname, extension) = paths.split_extension(
+            #     ctx.file.src.basename)
+            # (from_name,
+            #  mname) = derive_module_name_from_file_name(
+            #      ctx, mname, nsr_provider
+            #  )
+            prefix = nsr_provider.fs_prefix
+
+            ## Derive module name from src file name
+            (mname, extension) = paths.split_extension(
+                ctx.file.src.basename)
+            (from_name,
+             modname) = derive_module_name_from_file_name(
+                 ctx, mname, nsr_provider
+             )
+    fname = prefix + mname[:1].capitalize() + mname[1:]
+    # fail(fname)
+    return fname
+
 ##########################
 ##  _handle_ns_stuff(ctx)
 ##  case a) no ns - return immediately
@@ -60,7 +124,7 @@ def _resolve_modname(ctx, nsr_provider):
 ##    get the ns name from the dependency
 def _handle_ns_stuff(ctx):
 
-    debug_ns = False
+    debug_ns = True
 
     if not hasattr(ctx.attr, "ns"):
         ## this is a plain ocaml_module w/o namespacing
@@ -156,6 +220,8 @@ def _ocaml_signature_impl(ctx):
     ################################################
     ## _resolve_modname
     modname = _resolve_modname(ctx, nsr_provider)
+    fname = _resolve_fname(ctx, nsr_provider)
+    # fail(fname)
 
     if ctx.attr.ppx:
         if debug_ppx: print("ppxing sig")
@@ -168,10 +234,11 @@ def _ocaml_signature_impl(ctx):
         ## later we can optimize, avoiding symlinks if src in pkg dir
         ## and no renaming
         if debug: print("no ppx")
-        work_mli = ctx.actions.declare_file(
-            workdir + modname + ".mli")
-        ctx.actions.symlink(output = work_mli,
-                            target_file = ctx.file.src)
+        # work_mli = ctx.actions.declare_file(
+        #     workdir + fname + ".mli")
+        # ctx.actions.symlink(output = work_mli,
+        #                     target_file = ctx.file.src)
+        work_mli = ctx.file.src
 
     ################################
     args = ctx.actions.args()
@@ -197,7 +264,7 @@ def _ocaml_signature_impl(ctx):
     # if ctx.attr.pack:
     #     args.add("-linkpkg")
 
-    out_cmi = ctx.actions.declare_file(workdir + modname + ".cmi")
+    out_cmi = ctx.actions.declare_file(workdir + fname + ".cmi")
     action_outputs.append(out_cmi)
     if debug: print("out_cmi %s" % out_cmi)
 
@@ -269,10 +336,19 @@ def _ocaml_signature_impl(ctx):
         order = dsorder,
         direct = [out_cmi]
     )
-    cmti_depset = depset(
-        order = dsorder,
-        direct = [out_cmti] if out_cmti else []
-    )
+
+    if len(depsets.deps.cmtis) == 0:
+        if out_cmti:
+            cmti_depset = depset(
+                order = dsorder,
+                direct = [out_cmti])
+        else:
+            cmti_depset = []
+    else:
+        cmti_depset = depset(
+            order = dsorder,
+            direct = [out_cmti] if out_cmti else [],
+            transitive = depsets.deps.cmtis)
 
     defaultInfo = DefaultInfo(
         files = default_depset
@@ -322,6 +398,7 @@ def _ocaml_signature_impl(ctx):
         afiles     = afiles_depset,
         astructs   = astructs_depset,
         srcs       = srcs_depset,
+        cmxs       = depset(),
         cmts       = depset(),
         cmtis       = depset(),
         # cclibs   = cclibs_depset,
@@ -465,6 +542,10 @@ the difference between '/' and ':' in such labels):
             doc = "Set module (sig) name to this string"
         ),
 
+        _normalize_modname = attr.label(
+            default = "@rules_ocaml//cfg/module:normalize"
+        ),
+
         xmo = attr.bool(
             doc = "Cross-module optimization. If false, compile with -opaque",
             default = True
@@ -475,11 +556,11 @@ the difference between '/' and ':' in such labels):
         #     default = "@bazel_tools//tools/allowlists/function_transition_allowlist"
         # ),
     ),
-    cfg = toolchain_in_transition,
+    # cfg = toolchain_in_transition, # ok for bottomup ns
+    cfg = module_in_transition,
     provides = [OCamlSignatureProvider, OCamlDepsProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std",
                   "@rules_ocaml//toolchain/type:profile",
                   "@bazel_tools//tools/cpp:toolchain_type"]
 )
-

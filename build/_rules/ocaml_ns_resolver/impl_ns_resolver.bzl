@@ -30,12 +30,11 @@ workdir = tmpdir
 
 #################
 def impl_ns_resolver(ctx):
-
-    debug            = False
+    debug            = True
     debug_ns         = True
     debug_submodules = False
     debug_includes   = False
-    debug_embeds     = False
+    debug_ns_aliases = False
     debug_merges     = False
     # if ctx.label.name == "Jsoo_runtime":
     #     debug = True
@@ -57,23 +56,82 @@ def impl_ns_resolver(ctx):
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
 
-    depsets = DepsAggregator()
+    ## MANIFESTS - ns-submodules
+    ## OCaml has
+    ##   include M - imports and exports all definitions of M
+    ##   open M - imports but does not export
+
+    ## We have:
+    ##   manifest - list of direct ns-submodules in this ns
+    ##   include - specific exogenous (sub)modules, ns’ed or not
+    ##           - like OCaml include?
+    ##   open - import ALL submodules from exogenous namespaces
+    ##   ns_aliases - aliase exogenous namespaces to new ns
+
+    bottomup = False
 
     ## RULE: do not allow mixing bottomup and topdown namespaces.
     # but what happens if a selected submodule also elects?
 
-    bottomup = False
+    ## NB: always use capitalization in module aliasing equations
+    ## and in modname, but leave filename unchanged
+    ## unless _normalize_modname is passed
+
+    depsets = DepsAggregator()
+
+    ## NAMING
+    ## We have:
+    ##   ns_resolver_name - name of the ns module (normalized)
+    ##   ns_resolver_filename - unnormalized unless user asks
+    ##   fs_prefix - filesystem prefixes, used by clients
+    ##   ns_prefix - normalized fs_prefix, used for aliasing
+
+    private = True
+    if ctx.attr.visibility:
+        if  ctx.attr.visibility == []:
+            fail("visibility []")
+        elif ctx.attr.visibility[0] == Label("//visibility:private"):
+            private = True
+        else:
+            private = False
+    else:
+        ## no visibility attr, default to false
+        private = False
 
     ns_modname = None
+    ns_fs_stem = None
     if ctx.attr.ns:
         bottomup = True
         ns_modname = ctx.attr.ns[:1].capitalize() + ctx.attr.ns[1:]
+        if private:
+            ns_modname = ns_modname + "__"
+            # resolver_filename = ns_fs_stem
+            # fs_prefix = ns_fs_stem + "__"
+
+        if ctx.attr._normalize_modname[BuildSettingInfo].value == True:
+            ns_fs_stem = ns_modname
+        else:
+            if private:
+                ns_fs_stem = ctx.attr.ns + "__"
+            else:
+                ns_fs_stem = ctx.attr.ns
         if debug: print("has ns attr: %s" % ns_modname)
+
+        # if ctx.attr._normalize_modname[BuildSettingInfo].value == True:
         ns_prefixes = [ctx.attr.ns[:1].capitalize() + ctx.attr.ns[1:]]
+        # else:
+        #     ns_prefixes = [ctx.attr.ns]
         # ns_prefixes = [ctx.attr.ns]
-    else:
+    else: # no ctx.attr.nx
+        bottomup = False
         # ns_prefixes = [ctx.label.name]
         ns_prefixes = ctx.attr._ns_prefixes[BuildSettingInfo].value
+        if ns_prefixes == []:
+            ns_fs_stem = None
+        else:
+            # ns_fs_stem = ns_prefixes[0]
+            ns_fs_stem = module_sep.join(ns_prefixes)
+
         if debug: print("no ns attr, using _ns_prefixes: %s" % ns_prefixes)
 
     if ctx.attr.manifest:
@@ -103,14 +161,14 @@ def impl_ns_resolver(ctx):
     if bottomup:
         if len(ctx.attr.manifest) < 1:
             if len(ctx.attr.include) < 1:
-                if len(ctx.attr.embed) < 1:
+                if len(ctx.attr.ns_aliases) < 1:
                     if len(ctx.attr.merge) < 1:
                         if debug:
                             print("NO SUBMODULES/MODULES/MERGE")
                             print("label: %s" % ctx.label)
                         return [DefaultInfo(),
                                 OCamlDepsProvider(),
-                                OCamlNsResolverProvider(ns_name = "FOO")]
+                                OCamlNsResolverProvider(ns_fqn = "FOO")]
 
     # env = {"PATH": get_sdkpath(ctx)}
 
@@ -143,6 +201,7 @@ def impl_ns_resolver(ctx):
         submod_is_main = False
 
         # NB: //a/b:c will be normalized to C
+        # NB: this is string to modname, not label
         submodule = label_to_module_name(submod_label)
         if debug_submodules: print("submodule normed: %s" % submodule)
         fs_prefix = ""
@@ -189,12 +248,14 @@ def impl_ns_resolver(ctx):
                 no_main_alias = True
                 submod_is_main = True
                 if ctx.attr.manifest:
+                    print("XXXXXXXXXXXXXXXX")
                     user_ns_resolver = submod_label
                 continue ## no alias for main module
         ## else len(pfxs) !> 0
 
         # print("submodule pre: %s" % submodule)
         # submodule = capitalize_initial_char(submodule)
+        # if ctx.attr._normalize_modname[BuildSettingInfo].value == True:
         submodule = submodule[:1].capitalize() + submodule[1:]
 
         if debug_submodules: print("submodule uc: %s" % submodule)
@@ -214,16 +275,16 @@ def impl_ns_resolver(ctx):
 
     action_inputs = []
     merge_depsets = []
-    ns_deps = []
+    # ns_deps = []
 
-    if ctx.attr.ns_deps:
-        for dep in ctx.attr.ns_deps:
-            submodule = "Greek"
-            alias = "module {mod} = {mod}".format(
-                mod = submodule,
-            )
-            aliases.append(alias)
-            ns_deps.append(dep[DefaultInfo].files)
+    # if ctx.attr.ns_deps:
+    #     for dep in ctx.attr.ns_deps:
+    #         submodule = "Greek"
+    #         alias = "module {mod} = {mod}".format(
+    #             mod = submodule,
+    #         )
+    #         aliases.append(alias)
+    #         ns_deps.append(dep[DefaultInfo].files)
 
     if ctx.attr.include:
         if debug_includes: print("iterating includes")
@@ -235,12 +296,12 @@ def impl_ns_resolver(ctx):
                 if debug_includes: print("submodule")
                 resolver = k[OcamlNsSubmoduleMarker]
                 if debug_includes:
-                    print("FUSE namespaced module, ns: %s" % resolver.ns_name)
+                    print("FUSE namespaced module, ns: %s" % resolver.ns_fqn)
                 alias = "module {alias} = {ns}{sep}{mod}".format(
                     alias = v,
-                    sep = "_" if resolver.ns_name.enswith("_") else module_sep,
+                    sep = "_" if resolver.ns_fqn.endswith("_") else module_sep,
                     # sep = "__", # if nslib_submod else module_sep,
-                    ns  = resolver.ns_name,
+                    ns  = resolver.ns_fqn,
                     mod = k.label.name
                 )
                 aliases.append(alias)
@@ -255,22 +316,22 @@ def impl_ns_resolver(ctx):
                 aliases.append(alias)
         if debug_includes: print("finished iterating includes")
 
-    if debug_embeds: print("iterating embeds")
-    # embed exogenous namespace (not its submodules)
-    for k,v in ctx.attr.embed.items():
-        if debug_embeds:
-            print("EMBED: {} -> {}".format(v, k))
+    if debug_ns_aliases: print("iterating ns_aliases")
+    # ns_aliases exogenous namespace (not its submodules)
+    for k,v in ctx.attr.ns_aliases.items():
+        if debug_ns_aliases:
+            print("NS_ALIASES: {} -> {}".format(v, k))
         if  OCamlNsResolverProvider in k:
             resolver = k[OCamlNsResolverProvider]
-            if debug_embeds:
-                print("EMBED NS: %s" % resolver.ns_name)
+            if debug_ns_aliases:
+                print("NS_ALIASES NS: %s" % resolver.ns_fqn)
             alias = "module {alias} = {mod}".format(
                 alias = v,
                 ## FIXME: derive module name from label name
-                mod = resolver.ns_name
+                mod = resolver.ns_fqn
             )
             aliases.append(alias)
-    if debug_embeds: print("finished iterating embeds")
+    if debug_ns_aliases: print("finished iterating ns_aliases")
 
     if debug_merges: print("iterating merges")
     # import ALL submodules from exogenous namespaces
@@ -278,12 +339,12 @@ def impl_ns_resolver(ctx):
         if debug_merges: print("IMPORT: {}".format(f))
         if  OCamlNsResolverProvider in f:
             resolver = f[OCamlNsResolverProvider]
-            if debug_merges: print("IMPORT ns: %s" % resolver.ns_name)
+            if debug_merges: print("IMPORT ns: %s" % resolver.ns_fqn)
             for submod in resolver.submodules:
                 alias = "module {alias} = {ns}{sep}{mod}".format(
                     alias = submod,
-                    ns  = resolver.ns_name,
-                    sep = "_" if resolver.ns_name.endswith("_") else module_sep,
+                    ns  = resolver.ns_fqn,
+                    sep = "_" if resolver.ns_fqn.endswith("_") else module_sep,
                     # sep = "__", # if nslib_submod else module_sep,
                     mod = submod
                 )
@@ -291,40 +352,56 @@ def impl_ns_resolver(ctx):
             # FIXME: what if merged ns has merges?
     if debug_merges: print("finished iterating merges")
 
-    ## We've iterated over submodules, includes, embeds, merges giving
+    ## We've iterated over submodules, includes, ns_aliases, merges giving
     ## us aliases list.
 
-    ## Now we derive the ns module name itself. If manifest does NOT
-    ## contain a module with same name as ns name, then the resolver
-    ## name must be ns module name; otherwise, ns name with suffix '__'.
+    ## NAMING
+    ## fs_prefix: used to rename ns component modules, e.g. Foo__
+    ## ns_modname: used as filename for resolver, e.g. Foo (.ml)
+    ##     -- but may be same as fs_prefix, see ocaml-re example
+    ## ns_fqn:  ???
 
-    ns_name = module_sep.join(ns_prefixes)
-    if debug: print("ns_name: %s" % ns_name)
-    if debug: print("aliases: %s" % aliases)
+    ## Now we derive the ns module name itself. If manifest does
+    ## NOT contain a module with same name as ns name,
+    ## then the resolver name must be ns module name;
+    ## otherwise, ns name with suffix '__' (i.e. fs_prefix).
 
+    ns_fqn = module_sep.join(ns_prefixes)
     ##########################
     ## user-provided resolver
     if user_ns_resolver:
         if debug_ns:
-            print("User-provided resolver for ns: %s" % ns_name)
+            print("User-provided resolver for ns: %s" % ns_fqn)
             print(" resolver: %s" % user_ns_resolver)
-            fail("udr")
+            # fail("udr")
+        ns_modname = ns_modname + "__"
+        resolver_filename = ns_fs_stem + "__"
+        fs_prefix = ns_fs_stem + "__"
 
-        defaultInfo = DefaultInfo()
-        return [DefaultInfo(),
-                OCamlDepsProvider(),
-                OCamlNsResolverProvider(ns_name = ns_name)]
-        # resolver_module_name = ns_name + resolver_suffix
-
-    ################################################################
+        # defaultInfo = DefaultInfo()
+        # return [DefaultInfo(),
+        #         OCamlDepsProvider(),
+        #         OCamlNsResolverProvider(ns_fqn = ns_fqn)]
+        # resolver_module_name = ns_fqn + resolver_suffix
     else:
         if ns_modname:
-            if no_main_alias:
-                resolver_module_name = ns_modname + "__"
+            # if no_main_alias:
+            # ns_modname = ns_modname + "__"
+            # resolver_filename = ns_fs_stem
+            if private:
+                fs_prefix = ns_fs_stem
             else:
-                resolver_module_name = ns_modname + "__"
+                fs_prefix = ns_fs_stem + "__"
+            # else:
+            #     resolver_module_name = ns_modname + "__"
         else:
-            resolver_module_name = ns_name + "__"
+            if private:
+                ns_modname = ns_fqn + "__"
+            else:
+                ns_modname = ns_fqn
+            # resolver_module_name = ns_fqn # + "__"
+            resolver_filename = ns_fs_stem # + "__"
+            fs_prefix = ns_fs_stem + "__"
 
     # Always generate a resolver, even if no aliases
     # (in case user provides one, or its a singleton with module name matching ns name; ns has '__' suffix
@@ -333,7 +410,7 @@ def impl_ns_resolver(ctx):
     #         print("NO ALIASES NO ALIASES NO ALIASES")
     #     return [DefaultInfo(),
     #             OCamlDepsProvider(),
-    #             OCamlNsResolverProvider(ns_name = ns_name)]
+    #             OCamlNsResolverProvider(ns_fqn = ns_fqn)]
     #     # debug=True
     #     # print("LBL: %s" % ctx.label)
     #     if user_ns_resolver:
@@ -341,22 +418,48 @@ def impl_ns_resolver(ctx):
     #     #     return [DefaultInfo(),
     #     #             OCamlDepsProvider(),
     #     #             OCamlNsResolverProvider(
-    #     #                 ns_name = ns_name,
+    #     #                 ns_fqn = ns_fqn,
     #     #                 module_name = user_ns_resolver
     #     #             )]
     #     else:
     #     #     if debug: print("NO ALIASES: %s" % ctx.label)
-    #         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % ns_name)
+    #         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s" % ns_fqn)
     #     #     print("user_ns_resolver: %s" % user_ns_resolver)
     #         return [DefaultInfo(),
     #                 OCamlDepsProvider(),
-    #                 OCamlNsResolverProvider(ns_name = ns_name)]
+    #                 OCamlNsResolverProvider(ns_fqn = ns_fqn)]
 
-    resolver_src_filename = resolver_module_name + ".ml"
-    resolver_src_file = ctx.actions.declare_file(workdir + resolver_src_filename)
+    # resolver_src_filename = ns_fs_stem + ".ml"
+    resolver_src_file = ctx.actions.declare_file(
+        workdir + ns_fs_stem + ".ml") #resolver_src_filename)
 
-    if debug:
-        print("resolver_module_name: %s" % resolver_module_name)
+    if True: #debug:
+        print("""
+
+private:  {private}
+visibility: '{viz}'
+ns_modname: {modname}
+ns_fqn: {fqn}
+ns_fs_stem: {stem}
+fs_prefix:  {fs_pfx}
+ns_prefixes: {prefixes}
+resolver_file: {rfn}
+aliases: {aliases}
+user_ns_resolver: {user}
+        """.format(
+            private = private,
+            viz = ctx.attr.visibility,
+            modname = ns_modname,
+            fqn = ns_fqn,
+            stem = ns_fs_stem,
+            fs_pfx = fs_prefix,
+            prefixes = ns_prefixes,
+            rfn = resolver_src_file,
+            aliases = aliases,
+            user = user_ns_resolver))
+
+    # if debug:
+    #     print("resolver_module_name: %s" % resolver_module_name)
     ## action: generate ns resolver module file with alias content
     ##################
     ctx.actions.write(
@@ -367,20 +470,20 @@ def impl_ns_resolver(ctx):
 
     ## then compile it:
 
-    out_cmi_fname = resolver_module_name + ".cmi"
+    out_cmi_fname = ns_fs_stem + ".cmi"
     out_cmi = ctx.actions.declare_file(workdir + out_cmi_fname)
     action_outputs.append(out_cmi)
 
     out_ofile = None
     if tc.target == "vm":
-        out_struct_fname = resolver_module_name + ".cmo"
+        out_struct_fname = ns_fs_stem + ".cmo"
     else:
-        out_ofile_fname = resolver_module_name + ".o"
+        out_ofile_fname = ns_fs_stem + ".o"
         out_ofile = ctx.actions.declare_file(workdir + out_ofile_fname)
         action_outputs.append(out_ofile)
         default_outputs.append(out_ofile)
         # rule_outputs.append(out_ofile)
-        out_struct_fname = resolver_module_name + ".cmx"
+        out_struct_fname = ns_fs_stem + ".cmx"
 
     out_struct = ctx.actions.declare_file(workdir + out_struct_fname)
     action_outputs.append(out_struct)
@@ -398,7 +501,7 @@ def impl_ns_resolver(ctx):
         args.add_all(ctx.attr._warnings[BuildSettingInfo].value, before_each="-w", uniquify=True)
 
     if "-bin-annot" in _options:
-        f = resolver_module_name + ".cmt"
+        f = ns_modname + ".cmt"
         out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
         action_outputs.append(out_cmt)
 
@@ -473,10 +576,18 @@ def impl_ns_resolver(ctx):
         submodules   = subnames,
         # WARNING: modname may differ from ns name,
         # e.g. nsname Foo, modname Foo__
-        # FIXME: always use modname
-        modname      = resolver_module_name,
+        # i.e. modname matches filename stem
+        # e.g. Foo.A - compiler looks for file matching
+        # modname Foo, finds Foo.cmx
+        # then looks for A alias, finds A => Foo__A
+        # ns_fs_stem = ns_fs_stem + "__"
+        # fs_prefix = ns_fs_stem + "__"
+        # ns_fs_stem = ns_fs_stem + "__"
+        # fs_prefix = ns_fs_stem + "__"
+        modname      = ns_modname,
+        fs_prefix    = fs_prefix,
+        ns_fqn       = ns_fqn,
         prefixes     = ns_prefixes,
-        ns_name      = ns_name,
         cmi          = out_cmi,
         struct       = out_struct,
         ofile        = out_ofile if out_ofile else None
@@ -490,20 +601,25 @@ def impl_ns_resolver(ctx):
                              )
     structs_depset  = depset(order=dsorder,
                              direct=[out_struct],
-                             transitive = ns_deps
+                             # transitive = ns_deps
                              )
     astructs_depset = depset(order=dsorder,
                              )
     ofiles_depset  = depset(order=dsorder,
                             direct=[out_ofile] if out_ofile else [],
                             )
+    cmxs_depset  = depset(order=dsorder,
+                          )
+
     cmts_depset  = depset(order=dsorder,
                           #direct=[out_cmt]
                           )
 
-    cmtis_depset  = depset(order=dsorder,
-                           #direct=[out_cmti]
-                           )
+    if len(depsets.deps.cmtis) == 0:
+        cmtis_depset = []
+    else:
+        cmtis_depset  = depset(# order = dsorder,
+            transitive = depsets.deps.cmtis)
 
     cli_link_deps_depset = depset(
         order=dsorder,
@@ -523,6 +639,7 @@ def impl_ns_resolver(ctx):
         afiles   = depset(order=dsorder,
                           ),
         astructs = astructs_depset,
+        cmxs     = cmxs_depset,
         cmts     = cmts_depset,
         cmtis     = cmtis_depset,
         paths    = depset(direct = [out_cmi.dirname]),
@@ -544,8 +661,8 @@ def impl_ns_resolver(ctx):
         all = all_depset
     )
 
-    if debug: print("resolver OCamlDepsProvider: %s" % ocamlDepsProvider)
-    if debug: print("resolver nsrp: %s" % nsResolverProvider)
+    if debug: print("OUT resolver OCamlDepsProvider: %s" % ocamlDepsProvider)
+    if debug: print("OUT resolver nsrp: %s" % nsResolverProvider)
 
     return [
         defaultInfo,

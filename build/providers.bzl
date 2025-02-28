@@ -72,7 +72,7 @@ OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")
 OcamlNsSubmoduleMarker = provider(
     doc = "OCaml NS Submodule Marker.",
     fields = {
-        "ns_name": "ns name (joined prefixes)"
+        "ns_fqn": "fully-qualified ns name (joined prefixes)"
     }
 )
 

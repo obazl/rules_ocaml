@@ -30,9 +30,9 @@ load("@rules_ocaml//lib:colors.bzl",
 CCBLUCYN="\033[44m\033[36m"
 
 ######################
-def impl_archive(ctx):
+def impl_archive(ctx, _linkage):
 
-    debug     = False
+    debug     = True
     debug_lib = False
     debug_cc  = False
 
@@ -53,8 +53,8 @@ def impl_archive(ctx):
         print("ns resolver: %s" % ns_resolver)
         for f in ns_resolver:
             print("_ns_resolver f: %s" % f.path)
-        if ns_resolver:
-            print("XXXXXXXXXXXXXXXX")
+        # if ns_resolver:
+        #     print("XXXXXXXXXXXXXXXX")
             # if ctx.label.name == "libColor":
             #     fail()
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
@@ -129,19 +129,22 @@ def impl_archive(ctx):
 
     _options = get_options(ctx.attr._rule, ctx)
 
-    shared = False
-    if ctx.attr.shared:
-        shared = ctx.attr.shared or "-shared" in _options
-        if shared:
-            if "-shared" in _options:
-                _options.remove("-shared") ## avoid dup
+    # shared = False
+    # if ctx.attr.shared:
+    #     shared = ctx.attr.shared or "-shared" in _options
+    #     if shared:
+    #         if "-shared" in _options:
+    #             _options.remove("-shared") ## avoid dup
 
     if tc.target == "vm":
         ext = ".cma"
     else:
-        if shared:
+        ## FIXME: handle ["-shared"] in opts attr
+        if _linkage == "static":
+            ext = ".cmxa"
+        elif _linkage == "shared":
             ext = ".cmxs"
-        else:
+        else: # "none" - should not happen?
             ext = ".cmxa"
 
     #### declare output files ####
@@ -164,9 +167,9 @@ def impl_archive(ctx):
     paths_direct.append(archive_file.dirname)
     action_outputs.append(archive_file)
 
-    if tc.target == "vm":
-        archive_a_file = None
-    else:
+    archive_a_file = None
+    if ((tc.target == "sys")
+        and _linkage == "static"):
         archive_a_filename = tmpdir + archive_name + ".a"
         archive_a_file = ctx.actions.declare_file(archive_a_filename)
         paths_direct.append(archive_a_file.dirname)
@@ -175,7 +178,13 @@ def impl_archive(ctx):
     #########################
     args = ctx.actions.args()
 
-    args.add("-a")
+    if _linkage == "static":
+      args.add("-a")
+    elif _linkage == "shared":
+      args.add("-shared")
+    elif  _linkage(ctx) != None:
+        ## should not be possible
+        fail("Unrecognized linkage spec: %s" % _linkage)
 
     args.add_all(_options)
 
@@ -247,64 +256,9 @@ def impl_archive(ctx):
         if dep.basename.startswith("dll"):
             if tc.target == "vm":
                 args.add("-dllib", "-l" + dep.basename[3:-3])
-            # args.add("-ccopt", "-L" + dep.dirname)
-            # else:
-                ## FIXME: do not add to inputs? dll<name>.so never
-                ## used for native targets?
-
-        # else:
-
-        #     args.add("-ccopt", "-L" + dep.dirname)
-        #     args.add("-ccopt", "-l" + dep.basename[:-3])
-
-    # if ctx.label.name == "jsoo_runtime":
-    #     fail("r")
 
     ordered_submodules_depset = depset(direct=submod_arglist)
 
-    # only direct deps go on cmd line:
-    # if libOcamlProvider.ns_resolver != None:
-    #     for ds in libOcamlProvider.ns_resolver:
-    #         for f in ds.files.to_list():
-    #             # print("ns_resolver: %s" % f)
-    #             if f.extension == "cmx":
-    #                 args.add(f)
-
-    # for dep in libOcamlProvider.archives.to_list():
-    #     # print("inputs dep: %s" % dep)
-    #     # print("ns_resolver: %s" % ns_resolver)
-    #     if dep in submod_arglist:
-    #         # print("adding to args: %s" % dep)
-    #         args.add(dep)
-
-    ## structs: free-standing struct deps (not archived)
-    # for dep in libOcamlProvider.structs.to_list():
-    #     # print("inputs dep: %s" % dep)
-    #     # print("ns_resolver: %s" % ns_resolver)
-    #     if dep in submod_arglist:
-    #         print("adding struct to args: %s" % dep)
-    #         args.add(dep)
-
-            # astructs_primary.append(dep)
-        # else:
-        #     # ensure this dep will go on link cmd line
-        #     # astructs_secondary.append(dep)
-        #     structs_primary.append(dep)
-        # elif dep == ns_resolver:
-        #     args.add(dep)
-
-    ## this won't work because astructs contains entire depgraph, not
-    ## just the files in ctx.attr.manifest:
-    # for dep in libOcamlProvider.astructs.to_list():
-    #     args.add(dep)
-
-    ## this won't work because it does not respect dep ordering:
-    # for dep in ctx.files.manifest:
-    #     args.add(dep)
-
-    ## astructs are in dep order, but includes entire depgraph, so we
-    ## filter against manifest list:
-    # for dep in  libOcamlProvider.astructs.to_list():
     archive_link_deps = [] # excluding direct (manifest) deps
     for dep in libOcamlProvider.cli_link_deps.to_list():
         if dep in submod_arglist:
@@ -313,9 +267,6 @@ def impl_archive(ctx):
             args.add(dep)
         else:
             archive_link_deps.append(dep)
-
-    # for dep in libOcamlProvider.cli_link_deps.to_list():
-    #     args.add(dep)
 
     ##FIXME: cc deps same as for ocaml_binary, all indirect cc_deps in
     ## manifest should be added to cmd line of archive, plus direct cc
@@ -374,7 +325,7 @@ def impl_archive(ctx):
     ###################
     default_depset = depset(
         order  = dsorder,
-        direct = [archive_file] # .cmxa
+        direct = [archive_file] # .cmxa, .cma, .cmxs
     )
     newDefaultInfo = DefaultInfo(files = default_depset)
 
@@ -441,8 +392,18 @@ def impl_archive(ctx):
     srcs_depset  = depset(order = dsorder,
                           transitive = [libOcamlProvider.srcs])
 
+    if _linkage == "shared":
+        cmxs_depset  = depset(order = dsorder,
+                              direct = [archive_file],
+                              transitive = [libOcamlProvider.cmxs])
+    else:
+        cmxs_depset  = depset(order = dsorder,
+                              transitive = [libOcamlProvider.cmxs])
+
+
     cmts_depset  = depset(order = dsorder,
                           transitive = [libOcamlProvider.cmts])
+
     cmtis_depset  = depset(order = dsorder,
                            transitive = [libOcamlProvider.cmtis])
 
@@ -473,6 +434,7 @@ def impl_archive(ctx):
         ofiles   = ofiles_depset,
         archives = archives_depset,
         afiles   = afiles_depset,
+        cmxs     = cmxs_depset,
         cmts     = cmts_depset,
         cmtis    = cmtis_depset,
         srcs     = srcs_depset,

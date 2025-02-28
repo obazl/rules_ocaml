@@ -1,6 +1,6 @@
 load("//build:providers.bzl", "OcamlExecutableMarker", "OCamlModuleProvider")
 
-load("//build/_lib:options.bzl", "options", "options_binary")
+load("//build/_lib:apis.bzl", "options", "options_binary")
 
 load("//build/_rules/ocaml_binary:impl_binary.bzl", "impl_binary")
 

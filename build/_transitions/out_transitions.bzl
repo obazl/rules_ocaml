@@ -558,28 +558,32 @@ ocaml_subsignature_deps_out_transition = transition(
 )
 
 ###########################################################
-# def _manifest_out_transition_impl(settings, attr):
-#     debug = False
-#     # if attr.name == ":_Plexing.cmi":
-#     #     debug = True
+def _manifest_out_transition_impl(settings, attr):
+    debug = False
+    level = settings["@rules_ocaml//cfg/library/linkage:level"] + 1
+    return {"@rules_ocaml//cfg/library/linkage:level": level}
 
-#     if debug:
-#         print(">>> manifest_out_transition")
-#         print_config_state(settings, attr)
+    # if debug:
+    #     print(">>> manifest_out_transition")
+    #     print_config_state(settings, attr)
 
-#     manifest = [str(lbl) for lbl in attr.manifest]
-#     return {
-#         "@rules_ocaml//cfg/manifest"  : manifest
-#     }
+    # manifest = [str(lbl) for lbl in attr.manifest]
+    # return {
+    #     "@rules_ocaml//cfg/manifest"  : manifest
+    # }
 
-# ################
-# manifest_out_transition = transition(
-#     implementation = _manifest_out_transition_impl,
-#     inputs = [],
-#     outputs = [
-#         "@rules_ocaml//cfg/manifest",
-#     ]
-# )
+################
+manifest_out_transition = transition(
+    implementation = _manifest_out_transition_impl,
+    inputs = [
+        "@rules_ocaml//cfg/library/linkage:level"
+    ],
+    outputs = [
+        "@rules_ocaml//cfg/library/linkage:level"
+    ]
+    # inputs = [],
+    # outputs = ["@rules_ocaml//cfg/manifest"]
+)
 
 ###########################################################
 ## cc_deps out transition: reset config to initial state

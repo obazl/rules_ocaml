@@ -1,4 +1,4 @@
-load("//build/_lib:options.bzl", "options", "options_module", "options_ppx")
+load("//build/_lib:apis.bzl", "options", "options_module", "options_ppx")
 
 load("//build:providers.bzl",
      "OCamlModuleProvider",
@@ -129,9 +129,11 @@ module R = Red
             ]
         ),
 
-        embed = attr.label_keyed_string_dict(
+        ns_aliases = attr.label_keyed_string_dict(
             doc = """
-Exogenous namespaces (resolver modules).
+Dictionary: keys are exogenous namespaces (resolver modules),
+values are strings to serve as ns name aliases.
+Example: {"//foo/bar:nsbaz": "FOOBARBAZ"}
             """,
             providers = [
                 [OCamlNsResolverProvider], ## subnamespace resolver

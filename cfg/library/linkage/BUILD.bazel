@@ -1,0 +1,22 @@
+load("@bazel_skylib//rules:common_settings.bzl",
+     "int_flag", "int_setting",
+     "string_flag", "string_setting")
+
+package(default_visibility = ["//visibility:public"])
+
+string_flag(name = "linkage",
+            values = ["static", "shared", "none"],
+            build_setting_default = "none")
+
+# config_setting(name = "static",
+#                flag_values = {":linkage": "static"})
+# config_setting(name = "shared",
+#                flag_values = {":linkage": "shared"})
+
+
+int_flag(name = "level", build_setting_default = 0)
+
+# string_setting( name = "enable", build_setting_default = True)
+
+# string_setting( name = "disable", build_setting_default = False)
+# config_setting(name = "disabled", flag_values = {":linkall": str(True)})

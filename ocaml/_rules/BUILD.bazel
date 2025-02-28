@@ -12,7 +12,7 @@ bzl_library(
     srcs = glob([
         "ocam*.bzl", "ppx*.bzl",
         "impl*.bzl",
-        "options.bzl",
+        "apis.bzl",
         "selection_proxy.bzl"
     ]), # "x*bzl"]),
     visibility = ["//visibility:public"],
@@ -36,7 +36,7 @@ bzl_library(
 
 bzl_library(
     name = "ppx_rules",
-    srcs = glob(["ppx*.bzl", "impl*.bzl"]) + ["options.bzl"],
+    srcs = glob(["ppx*.bzl", "impl*.bzl"]) + ["apis.bzl"],
     visibility = ["//visibility:public"],
     deps = [
         "@bazel_skylib//lib:collections",

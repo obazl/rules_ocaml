@@ -1,13 +1,14 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 # load("@bazel_skylib//lib:paths.bzl", "paths")
 
+# these are obazl-defined pseudo opts:
 NEGATION_OPTS = [
     "-no-g", "-no-noassert",
     "-no-linkall",
     "-no-short-paths", "-no-strict-formats", "-no-strict-sequence",
     "-no-keep-locs", "-no-opaque",
     "-no-thread", "-no-verbose",
-    "-no-alias-deps"
+    # "-no-alias-deps"
 ]
 
 WARNING_FLAGS = "@1..3@5..28@30..39@43@46..47@49..57@61..62-40"
@@ -149,13 +150,19 @@ def get_options(rule, ctx):
     if hasattr(ctx.attr, "_xmo"):
         # print("XMO: %s" % ctx.attr._xmo[BuildSettingInfo].value)
         if "-no-opaque" in ctx.attr.opts:
-            options.remove("-no-opaque")
+            if "-no-opaque" in options:
+                options.remove("-no-opaque")
         else:
             if not "-opaque" in ctx.attr.opts:
             #     options.append("-opaque")
             # else:
                 if not ctx.attr._xmo[BuildSettingInfo].value:
                     options.append("-opaque")
+    else:
+        if "-no-opaque" in ctx.attr.opts:
+            if "-opaque" in options:
+                options.remove("-opaque")
+                options.remove("-no-opaque")
 
     if hasattr(ctx.attr, "_short_paths"):
         if ctx.attr._short_paths[BuildSettingInfo].value:
@@ -218,12 +225,11 @@ def get_options(rule, ctx):
     ## to have precedence.
     # print("OPTS {}: {}".format(ctx.label, options))
     # print("ATTR.OPTS {}: {}".format(ctx.label, ctx.attr.opts))
+
+    ## FIXME: handle obazl-defined pseudo-opts like -no-opaque
     for arg in ctx.attr.opts:
-        # if arg not in NEGATION_OPTS:
-            # if arg == "-w":
-            #     options.append(arg)
-            # if arg not in ctx.attr.opts:
-        options.append(arg)
+        if arg not in NEGATION_OPTS:
+            options.append(arg)
 
     return options
 

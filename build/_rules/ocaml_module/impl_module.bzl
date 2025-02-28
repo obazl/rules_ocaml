@@ -53,7 +53,10 @@ scope = tmpdir
 
 ##########################
 def _handle_ns_stuff(ctx):
-    debug_ns = False
+    debug_ns = True
+
+    ## Bottomup: resolver in 'ns' attribute
+    ## Topdown: resolver in '_ns_resolver' attr
 
     if not hasattr(ctx.attr, "ns"):
         ## this is a plain ocaml_module w/o namespacing
@@ -157,31 +160,34 @@ def _handle_precompiled_sig(ctx, modname, ext):
 
     # if struct_pkgdir == sig_pkgdir:
     # if tgt_pkgdir == sig_pkgdir:
-    if sig_pkgdir.find(scope): # already in __obazl workdir
-        ## already in same dir
-        if debug: print("NOT SYMLINKING mli/cmi")
-        work_mli = sigProvider.mli
-        work_cmi = sigProvider.cmi
-    else:
-        if debug: print("SYMLINKING mli/cmi")
-        work_mli = ctx.actions.declare_file(
-            scope + sigProvider.mli.basename
-        )
-        ctx.actions.symlink(
-            output = work_mli, target_file = sigProvider.mli,
-            progress_message = "symlinking {src} to {dst}".format(
-                src = sigProvider.mli.basename, dst = work_mli.basename
-            )
-        )
-        work_cmi = ctx.actions.declare_file(
-            scope + sigProvider.cmi.basename
-        )
-        ctx.actions.symlink(
-            output = work_cmi, target_file = sigProvider.cmi,
-            progress_message = "symlinking {src} to {dst}".format(
-                src = sigProvider.cmi.basename, dst = work_cmi.basename
-            )
-        )
+    # if sig_pkgdir.find(scope): # already in __obazl workdir
+    #     ## already in same dir
+    #     if debug: print("NOT SYMLINKING mli/cmi")
+    #     work_mli = sigProvider.mli
+    #     work_cmi = sigProvider.cmi
+    # else:
+    #     if debug: print("SYMLINKING mli/cmi")
+    #     work_mli = ctx.actions.declare_file(
+    #         scope + sigProvider.mli.basename
+    #     )
+    #     ctx.actions.symlink(
+    #         output = work_mli, target_file = sigProvider.mli,
+    #         progress_message = "symlinking {src} to {dst}".format(
+    #             src = sigProvider.mli.basename, dst = work_mli.basename
+    #         )
+    #     )
+    #     work_cmi = ctx.actions.declare_file(
+    #         scope + sigProvider.cmi.basename
+    #     )
+    #     ctx.actions.symlink(
+    #         output = work_cmi, target_file = sigProvider.cmi,
+    #         progress_message = "symlinking {src} to {dst}".format(
+    #             src = sigProvider.cmi.basename, dst = work_cmi.basename
+    #         )
+    #     )
+
+    work_mli = sigProvider.mli
+    work_cmi = sigProvider.cmi
 
     # we need to keep track of the original file when we ppx, because
     # some ppxes may write its path into the transformed outputs, and
@@ -201,14 +207,15 @@ def _handle_precompiled_sig(ctx, modname, ext):
         )
     else:
         if debug_ppx: print("no ppx")
-        work_ml = ctx.actions.declare_file(
-            # scope + ctx.file.struct.basename
-            scope + modname + ".ml"
-        )
-        ctx.actions.symlink(
-            output = work_ml, target_file = ctx.file.struct,
-            progress_message = "symlinking %{input} to %{output}"
-        )
+        # work_ml = ctx.actions.declare_file(
+        #     # scope + ctx.file.struct.basename
+        #     scope + modname + ".ml"
+        # )
+        # ctx.actions.symlink(
+        #     output = work_ml, target_file = ctx.file.struct,
+        #     progress_message = "symlinking %{input} to %{output}"
+        # )
+        work_ml = ctx.file.struct
 
     work_struct = ctx.actions.declare_file(
         scope + modname + ext
@@ -346,7 +353,6 @@ def _resolve_modname(ctx, nsr_provider):
             # basename = ctx.attr.module_name
             # return basename[:1].capitalize() + basename[1:]
         else:
-
             if ctx.attr.struct:
                 if debug: print("deriving module name from structfile: %s" % ctx.file.struct.basename)
                 (mname, extension) = paths.split_extension(ctx.file.struct.basename)
@@ -359,6 +365,114 @@ def _resolve_modname(ctx, nsr_provider):
                 modname = "FIXME:NSRESOLVERMODNAMEe"
 
             return modname
+
+def _resolve_fname(ctx, nsr_provider):
+    debug = False
+
+    # If ctx.attr.sig is precompiled
+    #     derive module name from it
+    # Elif ctx.attr.module_name not null
+    #     derive modname from it
+    # Else derive module name from ctx.attr.struct
+
+    if debug: print("_resolve_modname")
+
+    if ctx.attr.sig:
+        if debug: print("ctx.attr.sig: %s" % ctx.attr.sig)
+        if ctx.file.sig.is_source:
+            if debug: print("sig arg is src file")
+            ## sigfile is srcfile; derive mod name from module attrib
+            ## or structfile
+
+            # derive_module_name_from_file_name (unless sig attr is a
+            # cmi), handles ns prefixing, even with 'module' attr
+            if ctx.attr.module_name:
+                (from_name,
+                 modname) = derive_module_name_from_file_name(
+                     ctx, ctx.attr.module_name, nsr_provider
+                 )
+                return modname
+            else:
+                (from_name,
+                 modname) = derive_module_name_from_file_name(
+                     ctx, ctx.label.name, nsr_provider
+                 )
+                return modname
+
+        elif OCamlSignatureProvider in ctx.attr.sig:
+            # name of cmi always determines modname
+            if debug: print("sig arg is cmi")
+            if ctx.attr.module_name:
+                fail("Cannot force module name if sig attr is cmi file")
+
+            (module_name, extension) = paths.split_extension(
+                ctx.file.sig.basename)
+            # cmi name should already be normalized and namespaced
+            return module_name
+        else: # generated src, e.g. by ocamlyacc
+            if ctx.attr.module_name:
+                (from_name,
+                 modname) = derive_module_name_from_file_name(
+                    ctx, ctx.attr.module_name, nsr_provider
+                 )
+                return modname
+            else:
+                (from_name,
+                 modname) = derive_module_name_from_file_name(
+                     ctx, ctx.label.name, nsr_provider
+                 )
+                return modname
+
+    else:
+        if debug: print("singleton module, no sig arg")
+        ## singleton, no sig attribute
+        if ctx.attr.module_name:
+            if debug: print("ctx.attr.module_name override: %s" % ctx.attr.module_name)
+            (from_name,
+             modname) = derive_module_name_from_file_name(
+                 ctx, ctx.attr.module_name, nsr_provider
+             )
+            if debug: print("derived module name: %s" % modname)
+            return modname
+            # basename = ctx.attr.module_name
+            # return basename[:1].capitalize() + basename[1:]
+        else:
+            if ctx.attr.ns         :
+                if debug: print("BOTTOMUP renaming")
+                bottomup = True
+                ns_resolver = ctx.attr.ns
+                if hasattr(ns_resolver[OCamlNsResolverProvider],
+                           "fs_prefix"):
+                    prefix = ns_resolver[OCamlNsResolverProvider].fs_prefix
+                else:
+                    (prefix, extension) = paths.split_extension(
+                        ctx.file.ns.basename)
+
+                    ## Derive module name from src file name
+                (mname, extension) = paths.split_extension(
+                    ctx.file.struct.basename)
+                return prefix + mname[:1].capitalize() + mname[1:]
+            else:
+                if debug: print("TOPDOWN renaming")
+                (from_name,
+                 modname) = derive_module_name_from_file_name(
+                     ctx, ctx.label.name, nsr_provider
+                 )
+                # (mname, extension) = paths.split_extension(
+                #     ctx.file.struct.basename)
+                return modname
+
+            # if ctx.attr.struct:
+            #     if debug: print("deriving module name from structfile: %s" % ctx.file.struct.basename)
+            #     (mname, extension) = paths.split_extension(ctx.file.struct.basename)
+            #     (from_name,
+            #      modname) = derive_module_name_from_file_name(
+            #          ctx, mname, nsr_provider
+            #      )
+            #     if debug: print("derived module name: %s" % modname)
+            # else:
+            #     modname = "FIXME:NSRESOLVERMODNAMEe"
+
 
 #####################
 def impl_module(ctx): ## , mode, tool, tool_args):
@@ -584,6 +698,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     #FIXME: one way to derive modname
     modname = _resolve_modname(ctx, nsr_provider)
+    fname = _resolve_fname(ctx, nsr_provider)
+
     if debug_modname: print("resolved modname: %s" % modname)
 
     sig_is_xmo = True
@@ -643,18 +759,18 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             #     ]
 
             out_cmi = ctx.actions.declare_file(
-                scope + modname + ".cmi"
+                scope + fname + ".cmi"
             )
             out_struct = ctx.actions.declare_file(
-                scope + modname + ext
+                scope + fname + ext
             )
         else: ## no sig, no ppx
             work_ml   = ctx.file.struct
             out_cmi = ctx.actions.declare_file(
-                scope + modname + ".cmi"
+                scope + fname + ".cmi"
             )
             out_struct = ctx.actions.declare_file(
-                scope + modname + ext
+                scope + fname + ext
             )
 
     if debug:
@@ -672,7 +788,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         xmo = True
 
     if "-bin-annot" in _options:
-        f = modname + ".cmt"
+        f = fname + ".cmt"
         out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
         action_outputs.append(out_cmt)
 
@@ -725,7 +841,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     if tc.target != "vm":
         out_ofile = ctx.actions.declare_file(
-            scope + modname + ".o"
+            scope + fname + ".o"
         )
         action_outputs.append(out_ofile)
         if "exec" not in ctx.attr._tags:
@@ -777,6 +893,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # print("MAJOR version: %s" % tc.version.major)
 
         ## FIXME: version removed from toolchain adapter
+        print("TC.V %s" % tc.version.major)
         if (tc.version.major < 5):
             None # print("TODO")
         else:
@@ -1043,6 +1160,20 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         direct = [ctx.file.struct],
         transitive = depsets.deps.srcs
     )
+
+    if len(depsets.deps.cmxs) == 0:
+        # print(ctx.label)
+        # fail(depsets.deps.cmxs)
+        cmxs_depset = depset()
+    else:
+        # print(ctx.label)
+        # print(depsets.deps.cmxs)
+        cmxs_depset = depset(
+            order=dsorder,
+            # direct = [ctx.file.struct],
+            transitive = depsets.deps.cmxs
+        )
+
     if len(depsets.deps.cmts) == 0:
         # print(ctx.label)
         # fail(depsets.deps.cmts)
@@ -1056,11 +1187,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             transitive = depsets.deps.cmts
         )
 
-    cmtis_depset = depset(
-        order=dsorder,
-        # direct = [ctx.file.struct],
-        # transitive = depsets.deps.cmtis
-    )
+    if len(depsets.deps.cmtis) == 0:
+        cmtis_depset = depset()
+    else:
+        cmtis_depset = depset(
+            order=dsorder,
+            transitive = depsets.deps.cmtis
+        )
 
     if depsets.deps.cc_dsos != None:
         # print("CCDSOS %s" % depsets.deps.cc_dsos)
@@ -1098,6 +1231,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         structs  = structs_depset, # new_structs_depset,
         ofiles   = ofiles_depset,
         srcs = srcs_depset,
+        cmxs = cmxs_depset,
         cmts = cmts_depset,
         cmtis = cmtis_depset,
 
@@ -1138,7 +1272,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         )
 
         nsSubmoduleMarker = OcamlNsSubmoduleMarker(
-            ns_name = resolver[OCamlNsResolverProvider].ns_name
+            ns_fqn = resolver[OCamlNsResolverProvider].ns_fqn
         )
         providers.append(nsSubmoduleMarker)
         # fail("XXXXXXXXXXXXXXXX")

@@ -24,7 +24,7 @@ load("@rules_ocaml//lib:merge.bzl",
 
 load("//build/_lib:module_naming.bzl", "file_to_lib_name")
 
-load("//build/_lib:options.bzl", "options")
+load("//build/_lib:apis.bzl", "options")
 
 load("//lib:colors.bzl",
      "CCBLU", "CCRED", "CCGRN", "CCMAG", "CCRESET")
@@ -210,12 +210,15 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # 1. strip extension (e.g. name="foo.exe" => "foo")
     # 1b. throw warning if ctx.attr.exe has extension
     # 2. add configured extension (default: .byte / none)
-    if ctx.attr.exe:
-        out_bin = ctx.actions.declare_file(ctx.attr.exe) # + ".exe")
-    # elif ctx.attr.bin_type == "obj":
-    #     ...
+    if tc.target == "vm":
+        ext = ctx.attr._vm_ext[BuildSettingInfo].value
     else:
-        out_bin = ctx.actions.declare_file(ctx.label.name + ".bc")
+        ext = ctx.attr._sys_ext[BuildSettingInfo].value
+
+    if ctx.attr.exe:
+        out_bin = ctx.actions.declare_file(ctx.attr.exe)
+    else:
+        out_bin = ctx.actions.declare_file(ctx.label.name + ext)
         #out_bin = ctx.actions.declare_file("libfoo.o")
 
     ################################################################
@@ -725,7 +728,21 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     # args.add(ctx.attr.main)
 
+    action_outputs = []
+
+    if "-dstartup" in ctx.attr.opts:
+        out_startup = ctx.actions.declare_file(
+            out_bin.basename + ".startup.s")
+        action_outputs.append(out_startup)
+    if "-dump-into-file" in ctx.attr.opts:
+        dumpfile = ctx.actions.declare_file(
+            out_bin.basename + ".dump")
+        action_outputs.append(dumpfile)
+    if "-dump-dir" in ctx.attr.opts:
+        fail("-dump-dir not supported; use -dump-into-file instead")
+
     args.add("-o", out_bin)
+    action_outputs.append(out_bin)
 
     # if tc.target == "vm":
     #     # FIXME: requires that runtime and stubs files be added to cmd line
@@ -820,7 +837,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         executable = tc.compiler, # tool,
         arguments = [args],
         inputs = action_inputs_depset,
-        outputs = [out_bin],
+        outputs = action_outputs,
         tools = [
             tc.compiler # tool,
             # cctc.static_runtime_lib()
@@ -888,6 +905,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     ##########################
     defaultInfo = DefaultInfo(
         executable=out_bin,
+        files = depset(action_outputs),
         runfiles = myrunfiles.merge_all(
             depsets.deps.runfiles,
         )

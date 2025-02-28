@@ -223,7 +223,9 @@ def _ocaml_import_impl(ctx):
 
     ## To produce an OCamlDepsProvider provider, we merge the direct deps of
     ## this import with the depsets from ctx.attr.deps.
-    fail(ctx.attr.cmts)
+    cmxs_depset = depset(order=dsorder,
+                         direct=ctx.files.cmxs,
+                         transitive = depsets.deps.cmxs)
     cmts_depset = depset(order=dsorder,
                          direct=ctx.files.cmts,
                          transitive = depsets.deps.cmts)
@@ -250,6 +252,7 @@ def _ocaml_import_impl(ctx):
         ofiles   = depset(order=dsorder,
                           direct=ctx.files.ofiles,
                           transitive = depsets.deps.ofiles),
+        cmxs     = cmxs_depset,
         cmts     = cmts_depset,
         cmtis     = depset(order=dsorder,
                            direct=ctx.files.cmtis,

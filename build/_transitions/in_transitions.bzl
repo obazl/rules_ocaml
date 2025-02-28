@@ -146,6 +146,79 @@ def print_config_state(settings, attr):
     # print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
 
 
+################
+def get_tc(settings, attr):
+    build_host  = settings["//command_line_option:host_platform"]
+    target_host = settings["//command_line_option:platforms"]
+    tc = settings["@rules_ocaml//toolchain"]
+
+    # print("target: %s" % attr.name)
+    # print("INBH %s" % build_host)
+    # print("INTH %s" % target_host)
+    # print("INTC %s" % tc)
+
+    if build_host.name == tc:
+        if target_host[0].name == tc:
+            # endo-compiler, no change
+            return None, None
+        else:
+            ## exo-compiler, target should already be set
+            return None, None
+    else:
+        # print("Transition from %s to %s" % (
+        #     build_host.name, tc))
+        if tc == "nop":
+            host = build_host
+            tgt  = target_host
+        elif tc == "ocamlopt":
+            host = "@rules_ocaml//platform:ocamlopt.opt"
+            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+        elif tc == "ocamlopt.opt":
+            host = "@rules_ocaml//platform:ocamlopt.opt"
+            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+        elif  tc == "ocamlc":
+            host = "@rules_ocaml//platform:ocamlc.byte"
+            tgt  = "@rules_ocaml//platform:ocamlc.byte"
+        elif  tc == "ocamlc.byte":
+            host = "@rules_ocaml//platform:ocamlc.byte"
+            tgt  = "@rules_ocaml//platform:ocamlc.byte"
+        elif  tc == "ocamlc.opt":
+            host = "@rules_ocaml//platform:ocamlc.opt"
+            # ocaml_imports select archive based on
+            # //platform:emitter, which defaults to sys
+            # this means the target emitter, since by
+            # default build targets are built for the
+            # target platform.
+
+            # (which means ocaml_import *should* select
+            # on build emitter)
+
+            # since vm>any does not set //platform:emitter,
+            # using it as target platform means the default
+            # sys will be used, which is not what we need.
+            # we need to override the default emitter
+            # to match
+            tgt  = "@rules_ocaml//platform:vm>any"
+            # tgt  = "@rules_ocaml//platform:ocamlc.byte"
+            # or vm>sys
+            # tgt  = "@rules_ocaml//platform:ocamlopt.byte"
+        elif  tc == "ocamlopt.byte":
+            host = "@rules_ocaml//platform:ocamlopt.byte"
+            # but when build emitter is sys, the default
+            # will work so we can use sys>any
+            tgt  = "@rules_ocaml//platform:sys>any"
+            # tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+            # or
+            # tgt  = "@rules_ocaml//platform:ocamlc.opt"
+        else:
+            fail("""
+
+Unrecognized toolchain: {}
+Available toolchains: ocamlopt, ocamlc, ocamlopt.opt, ocamlc.byte, ocamlopt.byte, ocamlc.opt
+            """.format(tc))
+
+        return host, tgt
+
 ##############################################
     # if this-nslib in ns:submodules list
     #     pass on prefix but not ns:submodules
@@ -257,11 +330,38 @@ def _nslib_in_transition_impl(settings, attr):
         print("  ns:prefixes: %s" % prefixes)
         print("  ns:submodules: %s" % submodules)
 
-    return {
-        # "@rules_ocaml//cfg/ns:nonce"      : nonce,
-        "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
-        "@rules_ocaml//cfg/ns:submodules" : submodules,
-    }
+    tc = settings["@rules_ocaml//toolchain"]
+    if tc == "nop":
+        host = None
+    else:
+        host, tgt = get_tc(settings, attr)
+    # fail("HOST {}, TGT {}".format(host, tgt))
+
+    if host == None:
+        # print("%s %s NULL TC TRANSITION" % (attr._rule,attr.name))
+        return {
+            "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+            "@rules_ocaml//cfg/ns:submodules" : submodules,
+            "//command_line_option:host_platform": settings[
+                "//command_line_option:host_platform"],
+            "//command_line_option:platforms": settings[
+                "//command_line_option:platforms"]
+        }
+    else:
+        # print("%s %s TC TRANSITION" % (attr._rule, attr.name))
+        return {
+            "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+            "@rules_ocaml//cfg/ns:submodules" : submodules,
+            "//command_line_option:host_platform": host,
+            "//command_line_option:platforms": tgt
+        }
+
+
+    # return {
+    #     # "@rules_ocaml//cfg/ns:nonce"      : nonce,
+    #     "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+    #     "@rules_ocaml//cfg/ns:submodules" : submodules,
+    # }
 
 ###################
 nslib_in_transition = transition(
@@ -278,7 +378,7 @@ nslib_in_transition = transition(
         # "@rules_ocaml//cfg/ns:nonce",
         "@rules_ocaml//cfg/ns:prefixes",
         "@rules_ocaml//cfg/ns:submodules",
-        "@rules_ocaml//toolchain",
+        # "@rules_ocaml//toolchain",
         "//command_line_option:host_platform",
         "//command_line_option:platforms",
     ]
@@ -302,79 +402,6 @@ reset_in_transition = transition(
         "@rules_ocaml//cfg/ns:submodules",
     ]
 )
-
-################
-def get_tc(settings, attr):
-    build_host  = settings["//command_line_option:host_platform"]
-    target_host = settings["//command_line_option:platforms"]
-    tc = settings["@rules_ocaml//toolchain"]
-
-    # print("target: %s" % attr.name)
-    # print("INBH %s" % build_host)
-    # print("INTH %s" % target_host)
-    # print("INTC %s" % tc)
-
-    if build_host.name == tc:
-        if target_host[0].name == tc:
-            # endo-compiler, no change
-            return None, None
-        else:
-            ## exo-compiler, target should already be set
-            return None, None
-    else:
-        # print("Transition from %s to %s" % (
-        #     build_host.name, tc))
-        if tc == "nop":
-            host = build_host
-            tgt  = target_host
-        elif tc == "ocamlopt":
-            host = "@rules_ocaml//platform:ocamlopt.opt"
-            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
-        elif tc == "ocamlopt.opt":
-            host = "@rules_ocaml//platform:ocamlopt.opt"
-            tgt  = "@rules_ocaml//platform:ocamlopt.opt"
-        elif  tc == "ocamlc":
-            host = "@rules_ocaml//platform:ocamlc.byte"
-            tgt  = "@rules_ocaml//platform:ocamlc.byte"
-        elif  tc == "ocamlc.byte":
-            host = "@rules_ocaml//platform:ocamlc.byte"
-            tgt  = "@rules_ocaml//platform:ocamlc.byte"
-        elif  tc == "ocamlc.opt":
-            host = "@rules_ocaml//platform:ocamlc.opt"
-            # ocaml_imports select archive based on
-            # //platform:emitter, which defaults to sys
-            # this means the target emitter, since by
-            # default build targets are built for the
-            # target platform.
-
-            # (which means ocaml_import *should* select
-            # on build emitter)
-
-            # since vm>any does not set //platform:emitter,
-            # using it as target platform means the default
-            # sys will be used, which is not what we need.
-            # we need to override the default emitter
-            # to match
-            tgt  = "@rules_ocaml//platform:vm>any"
-            # tgt  = "@rules_ocaml//platform:ocamlc.byte"
-            # or vm>sys
-            # tgt  = "@rules_ocaml//platform:ocamlopt.byte"
-        elif  tc == "ocamlopt.byte":
-            host = "@rules_ocaml//platform:ocamlopt.byte"
-            # but when build emitter is sys, the default
-            # will work so we can use sys>any
-            tgt  = "@rules_ocaml//platform:sys>any"
-            # tgt  = "@rules_ocaml//platform:ocamlopt.opt"
-            # or
-            # tgt  = "@rules_ocaml//platform:ocamlc.opt"
-        else:
-            fail("""
-
-Unrecognized toolchain: {}
-Available toolchains: ocamlopt, ocamlc, ocamlopt.opt, ocamlc.byte, ocamlopt.byte, ocamlc.opt
-            """.format(tc))
-
-        return host, tgt
 
 ###############################################
 ## module_in_transition
@@ -411,8 +438,8 @@ def _module_in_transition_impl(settings, attr):
 
     # 1. derive this module name w/o ns prefix
 
-    # if hasattr(attr, "sig"):
-    if attr.sig:
+    if hasattr(attr, "sig"):
+    # if attr.sig:
         if debug: print("SIG: %s" % attr.sig)
         if attr.module_name:
             module = attr.module_name[:1].capitalize() + attr.module_name[1:]
@@ -427,8 +454,12 @@ def _module_in_transition_impl(settings, attr):
             if debug:
                 print("{c} struct:{r} {m}".format(c=CCBLU,r=CCRESET,m=attr.struct))
             ## FIXME: label_to_module_name?
-            (bn, ext) = paths.split_extension(attr.struct.name)
-            module = bn[:1].capitalize() + bn[1:]
+            if hasattr(attr, "struct"): # ocaml_module
+                (bn, ext) = paths.split_extension(attr.struct.name)
+                module = bn[:1].capitalize() + bn[1:]
+            elif hasattr(attr, "src"): # ocaml_signature
+                (bn, ext) = paths.split_extension(attr.src.name)
+                module = bn[:1].capitalize() + bn[1:]
 
     if debug:
         print("{c} this module:{r} {m}".format(c=CCBLU,r=CCRESET,m=module))

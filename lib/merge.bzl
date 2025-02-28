@@ -45,6 +45,7 @@ def _DepsAggregator_init(*,
             afiles        = [],
             ofiles        = [],
             mli           = [],
+            cmxs          = [],
             cmts          = [],
             cmtis         = [],
             srcs          = [],
@@ -62,6 +63,7 @@ def _DepsAggregator_init(*,
             afiles        = [],
             ofiles        = [],
             mli           = [],
+            cmxs          = [],
             cmts          = [],
             cmtis         = [],
             srcs          = [],
@@ -78,6 +80,7 @@ def _DepsAggregator_init(*,
             afiles        = [],
             ofiles        = [],
             mli           = [],
+            cmxs          = [],
             cmts          = [],
             cmtis         = [],
             srcs          = [],
@@ -94,6 +97,7 @@ def _DepsAggregator_init(*,
             afiles        = [],
             ofiles        = [],
             mli           = [],
+            cmxs          = [],
             cmts          = [],
             cmtis         = [],
             srcs          = [],
@@ -159,11 +163,14 @@ def aggregate_codeps(ctx,
         depsets.codeps.astructs.append(provider.astructs)
         if provider.ofiles != None:
             depsets.codeps.ofiles.append(provider.ofiles)
+        if hasattr(provider, "cmxs"):
+            if provider.cmxs != []:
+                depsets.codeps.cmts.append(provider.cmxs)
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
                 depsets.codeps.cmts.append(provider.cmts)
         if hasattr(provider, "cmtis"):
-            if provider.cmtis != None:
+            if provider.cmtis != []:
                 depsets.codeps.cmtis.append(provider.cmtis)
         depsets.codeps.paths.append(provider.paths)
         if hasattr(provider, "jsoo_runtimes"):
@@ -181,11 +188,14 @@ def aggregate_codeps(ctx,
         depsets.codeps.archives.append(provider.archives)
         depsets.codeps.afiles.append(provider.afiles)
         depsets.codeps.astructs.append(provider.astructs)
+        if hasattr(provider, "cmxs"):
+            if provider.cmxs != []:
+                depsets.codeps.cmts.append(provider.cmxs)
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
                 depsets.codeps.cmts.append(provider.cmts)
         if hasattr(provider, "cmtis"):
-            if provider.cmtis != None:
+            if provider.cmtis != []:
                 depsets.codeps.cmtis.append(provider.cmtis)
         depsets.codeps.paths.append(provider.paths)
         if hasattr(provider, "jsoo_runtimes"):
@@ -437,6 +447,14 @@ def merge_deps(ctx,
             if provider.srcs != None:
                 depsets.deps.srcs.append(provider.srcs)
 
+        if hasattr(provider, "cmxs"):
+            if provider.cmxs != []:
+                # print(ctx.label)
+                if provider.cmxs == None:
+                    print(ctx.label)
+                    fail("CMXS %s" % provider.cmxs)
+                depsets.deps.cmxs.append(provider.cmxs)
+
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
                 # print(ctx.label)
@@ -446,7 +464,7 @@ def merge_deps(ctx,
                 depsets.deps.cmts.append(provider.cmts)
 
         if hasattr(provider, "cmtis"):
-            if provider.cmtis != None:
+            if provider.cmtis != []:
                 depsets.deps.cmtis.append(provider.cmtis)
 
         if hasattr(provider, "paths"):
@@ -542,16 +560,23 @@ def merge_deps(ctx,
         else:
             depsets.deps.astructs.append(provider.astructs)
 
+        if hasattr(provider, "cmxs"):
+            if provider.cmxs != []:
+                if ctx.attr._rule == "ppx_executable":
+                    depsets.codeps.cmxs.append(provider.cmxs)
+                else:
+                    fail(provider.cmxs)
+                    depsets.deps.cmts.append(provider.cmxs)
+
         if hasattr(provider, "cmts"):
             if provider.cmts != []:
                 if ctx.attr._rule == "ppx_executable":
                     depsets.codeps.cmts.append(provider.cmts)
                 else:
-                    fail(provider.cmts)
                     depsets.deps.cmts.append(provider.cmts)
 
         if hasattr(provider, "cmtis"):
-            if provider.cmtis != None:
+            if provider.cmtis != []:
                 if ctx.attr._rule == "ppx_executable":
                     depsets.codeps.cmtis.append(provider.cmtis)
                 else:

@@ -49,9 +49,13 @@ load("//lib:colors.bzl",
 
 
 ######################
-def impl_library(ctx, for_archive = True):
+def impl_library(ctx, _linkage): ## , for_archive = True):
     # for_archive true: we were called by an archive rule
 
+    # if ctx.attr._linklevel[BuildSettingInfo].value > 0:
+    #     fail("{} linklevel: {}".format(
+    #         ctx.label,
+    #         ctx.attr._linklevel[BuildSettingInfo].value))
     # tasks:
     # * deal with namespacing & renaming
     #   * ns resolver must go into output
@@ -61,6 +65,7 @@ def impl_library(ctx, for_archive = True):
 
     debug      = False
     debug_deps = False
+    debug_static = True
     debug_ppx  = False
     debug_ns   = False
     debug_cc   = False
@@ -85,7 +90,9 @@ def impl_library(ctx, for_archive = True):
     ## ocaml_archive, ocaml_library: no ns attributes
     ## ocaml_ns_archive, ocaml_ns_library: no ns attributes
 
+    topdown = False
     if ctx.attr._rule.startswith("ocaml_ns_"):
+        topdown = True
         if hasattr(ctx.attr, "resolver"):
             if debug_ns: print("lib: user-provided resolver")
             ns_resolver = ctx.attr.resolver
@@ -122,10 +129,12 @@ def impl_library(ctx, for_archive = True):
     if debug_ns and ns_resolver:
         print("ns resolver: %s" % ns_resolver[0][DefaultInfo])
         print("rule: %s" % ctx.attr._rule)
-    if ((hasattr(ctx.attr, "archived") and ctx.attr.archived)
-        or ctx.attr._rule.endswith("archive")):
-        if debug:
-            print("xnsr: %s" % ctx.label)
+    # if ((hasattr(ctx.attr, "archived") and ctx.attr.archived)
+    #     or ctx.attr._rule.endswith("archive")):
+
+    if ((ctx.attr._linklevel[BuildSettingInfo].value == 0)
+        and (_linkage == "static")):
+        if debug_static: print("xnsr: %s" % ctx.label)
         archive_manifest = []
         # for dep in ctx.attr.manifest:
         #     archive_manifest.append(dep)
@@ -280,10 +289,19 @@ def impl_library(ctx, for_archive = True):
     #     # fail(depsets.deps.cmts)
     #     cmts_depset = depset()
     # else:
+    cmxs_depset  = depset(order = dsorder,
+                          transitive = depsets.deps.cmxs)
     cmts_depset  = depset(order = dsorder,
                           transitive = depsets.deps.cmts)
-    cmtis_depset  = depset(order = dsorder,
-                          transitive = depsets.deps.cmtis)
+
+    # if ctx.label.name == "libGreek":
+    #     fail(depsets.deps.cmtis)
+    if len(depsets.deps.cmtis) == 0:
+        cmtis_depset = []
+    else:
+        cmtis_depset  = depset(# order = dsorder,
+            transitive = depsets.deps.cmtis)
+
     paths_depset  = depset(order = dsorder,
                            transitive = depsets.deps.paths)
 
@@ -318,6 +336,7 @@ def impl_library(ctx, for_archive = True):
         afiles   = afiles_depset,
         astructs = astructs_depset,
         srcs     = srcs_depset,
+        cmxs     = cmxs_depset,
         cmts     = cmts_depset,
         cmtis    = cmtis_depset,
         # resolvers = resolvers_depset,

@@ -1,4 +1,4 @@
-# load(":options.bzl", "options") # , "options_ns_resolver")
+# load(":apis.bzl", "options") # , "options_ns_resolver")
 
 load("@rules_ocaml//build:providers.bzl",
      "OCamlDepsProvider",
@@ -7,7 +7,7 @@ load("@rules_ocaml//build:providers.bzl",
      # "OCamlLibraryProvider",
      "OCamlRuntimeProvider")
 
-load("//build/_lib:options.bzl", "options")
+load("//build/_lib:apis.bzl", "options")
 load("//build/_lib:ccdeps.bzl", "extract_cclibs")
 load("//build/_lib:utils.bzl",
      "get_options", "dsorder", "tmpdir")

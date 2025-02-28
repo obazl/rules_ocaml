@@ -5,7 +5,7 @@ load("//build:providers.bzl",
 
 load("//build/_transitions:in_transitions.bzl", "module_in_transition")
 
-load("//build/_lib:options.bzl",
+load("//build/_lib:apis.bzl",
      "options",
      "options_module",
      "options_ns_opts",
@@ -16,6 +16,8 @@ load("//build/_rules/ocaml_module:impl_module.bzl", "impl_module")
 
 load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCBLUBG", "CCMAG", "CCCYN", "CCRESET")
+
+visibility(["//build"])
 
 ###############################
 def _ocaml_module(ctx):

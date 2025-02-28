@@ -2,7 +2,7 @@ load("//build:providers.bzl", "OCamlModuleProvider")
 
 load("//build/_transitions:in_transitions.bzl", "module_in_transition")
 
-load(":options.bzl",
+load(":apis.bzl",
      "options",
      "options_pack_library",
      "options_ns_opts"
