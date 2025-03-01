@@ -10,14 +10,15 @@ load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 # load("//ocaml/_rules:impl_module.bzl", "impl_module")
 
-load("//build/_rules/ocaml_ns_resolver:impl_ns_resolver.bzl", "impl_ns_resolver")
+load("//build/_rules/ocaml_ns_resolver:impl_topdown_ns_resolver.bzl",
+     "impl_topdown_ns_resolver")
 
 ###############################
 def _ocaml_topdown_ns_resolver(ctx):
 
     # return impl_module(ctx)
 
-    return impl_ns_resolver(ctx)
+    return impl_topdown_ns_resolver(ctx)
 
 ###############################
 rule_options = options("rules_ocaml")

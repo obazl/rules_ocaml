@@ -14,6 +14,7 @@ load("//build/_transitions:in_transitions.bzl",
 
 ###############################
 def _ocaml_library(ctx):
+
     ## target 'linkage' attr overrides hidden '_linkage'
     if ctx.attr.linkage:
         _linkage = ctx.attr.linkage
@@ -22,9 +23,9 @@ def _ocaml_library(ctx):
     else:
         _linkage = ctx.attr._linkage[BuildSettingInfo].value
 
-    print("{} linkage: {}, linklevel: {}".format(
-            ctx.label, _linkage,
-            ctx.attr._linklevel[BuildSettingInfo].value))
+    # print("{} linkage: {}, linklevel: {}".format(
+    #         ctx.label, _linkage,
+    #         ctx.attr._linklevel[BuildSettingInfo].value))
 
     if (ctx.attr._linklevel[BuildSettingInfo].value == 0):
         if _linkage == "static":

@@ -124,7 +124,7 @@ def _resolve_fname(ctx, nsr_provider):
 ##    get the ns name from the dependency
 def _handle_ns_stuff(ctx):
 
-    debug_ns = True
+    debug_ns = False
 
     if not hasattr(ctx.attr, "ns"):
         ## this is a plain ocaml_module w/o namespacing

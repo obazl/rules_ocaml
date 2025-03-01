@@ -53,7 +53,7 @@ scope = tmpdir
 
 ##########################
 def _handle_ns_stuff(ctx):
-    debug_ns = True
+    debug_ns = False
 
     ## Bottomup: resolver in 'ns' attribute
     ## Topdown: resolver in '_ns_resolver' attr
@@ -893,7 +893,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # print("MAJOR version: %s" % tc.version.major)
 
         ## FIXME: version removed from toolchain adapter
-        print("TC.V %s" % tc.version.major)
+        # print("TC.V %s" % tc.version.major)
         if (tc.version.major < 5):
             None # print("TODO")
         else:

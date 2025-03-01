@@ -94,8 +94,7 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
             mandatory = True
         ),
 
-        # submodules = attr.string_list(
-        manifest = attr.string_list(
+        submodules = attr.string_list(
             # default = "@rules_ocaml//cfg/ns:submodules", # => string_list_setting
             doc = """
 List of strings from which submodule names are to be derived for aliasing. Bazel labels may be used; the submodule name will be derived from the target part. For example, '//a/b:c' normalizes to C. But they are just strings, and will not be checked against any files.
@@ -108,12 +107,10 @@ The normalized submodule names must match the names of the modules electing memb
             # mandatory = True
         ),
 
-        ns_deps = attr.label_list(
+        # ns_deps = attr.label_list(
+        # ),
 
-        ),
-
-        # fusions = attr.label_keyed_string_dict(
-        include = attr.label_keyed_string_dict(
+        import_as = attr.label_keyed_string_dict(
             doc = """
 Exogenous (sub)modules, namespaced or non-namespaced.  Aliased names will not be prefixed with ns name of this ns_resolver.
 
@@ -130,7 +127,7 @@ module R = Red
             ]
         ),
 
-        ns_aliases = attr.label_keyed_string_dict(
+        ns_import_as = attr.label_keyed_string_dict(
             doc = """
 Dictionary: keys are exogenous namespaces (resolver modules),
 values are strings to serve as ns name aliases.
@@ -141,9 +138,9 @@ Example: {"//foo/bar:nsbaz": "FOOBARBAZ"}
             ]
         ),
 
-        merge = attr.label_list(
+        ns_merge = attr.label_list(
             doc = """
-Includes all submodules of an exogenous namespace.
+Merges all submodules of an exogenous namespace.
             """,
             providers = [
                 [OCamlNsResolverProvider], ## subnamespace resolver

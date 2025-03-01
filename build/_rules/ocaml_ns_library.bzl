@@ -21,8 +21,19 @@ load("//build/_lib:apis.bzl",
      "options_ns_opts",
      "options_ns_aggregators")
 
+load("@rules_ocaml//lib:colors.bzl",
+     "CCRED", "CCRESET")
+
 ###############################
 def _ocaml_ns_library(ctx):
+
+    print("""
+
+{c}WARNING{r}: ocaml_ns_library is DEPRECATED and will be removed in the next version of rules_ocaml. Please use ocaml_ns instead.
+    """.format(
+        c=CCRED, r=CCRESET)
+    )
+
 
     # if ctx.attr.archived:
     #     return impl_archive(ctx)
@@ -37,9 +48,9 @@ def _ocaml_ns_library(ctx):
     else:
         _linkage = ctx.attr._linkage[BuildSettingInfo].value
 
-    print("{} linkage: {}, linklevel: {}".format(
-            ctx.label, _linkage,
-            ctx.attr._linklevel[BuildSettingInfo].value))
+    # print("{} linkage: {}, linklevel: {}".format(
+    #         ctx.label, _linkage,
+    #         ctx.attr._linklevel[BuildSettingInfo].value))
 
     if (ctx.attr._linklevel[BuildSettingInfo].value == 0):
         if _linkage == "static":

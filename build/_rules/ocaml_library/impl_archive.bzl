@@ -32,7 +32,7 @@ CCBLUCYN="\033[44m\033[36m"
 ######################
 def impl_archive(ctx, _linkage):
 
-    debug     = True
+    debug     = False
     debug_lib = False
     debug_cc  = False
 
