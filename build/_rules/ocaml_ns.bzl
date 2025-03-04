@@ -90,8 +90,8 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
             allow_single_file = True # no constraints on extension
         ),
 
-        ns = attr.string(
-            mandatory = True
+        ns_name = attr.string(
+            mandatory = False
         ),
 
         submodules = attr.string_list(

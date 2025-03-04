@@ -32,7 +32,7 @@ def submodule_from_label_string(s):
 ################################
 
 def label_to_module_name(lbl):
-    """Normalize module label: turn basename into a module name by removing extention and removing illegal chars. We do this as a convenience, so devs can use chars like $, !, @ etc. in target labels. The alternative is to force devs to use legal module names as target names. NB: if 'module' attr is used, then the label target must match it after normalization. So if target is //foo/bar:$BAZ!, module must be "BAZ" (or "baz" etc.) Or the filename must match I guess.
+    """Normalize module label: turn basename into a module name by removing extension and removing illegal chars. We do this as a convenience, so devs can use chars like $, !, @ etc. in target labels. The alternative is to force devs to use legal module names as target names. NB: if 'module' attr is used, then the label target must match it after normalization. So if target is //foo/bar:$BAZ!, module must be "BAZ" (or "baz" etc.) Or the filename must match I guess.
 
     Except that for now we only strip leading and trailing '.', '$', '@', '*', '?', '-', and '_', and internal '_', '-', '.', and '$'
     """

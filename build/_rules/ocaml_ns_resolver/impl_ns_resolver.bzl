@@ -76,9 +76,12 @@ def impl_ns_resolver(ctx):
     ns_modname = None
     ns_fs_stem = None
 
-    if ctx.attr.ns:
-        ns_modname = ctx.attr.ns[:1].capitalize() + ctx.attr.ns[1:]
+
+    if ctx.attr.ns_name:
+        ns_name = ctx.attr.ns_name
+        ns_modname = ctx.attr.ns_name[:1].capitalize() + ctx.attr.ns_name[1:]
     else:
+        ns_name = ctx.label.name
         ns_modname = ctx.label.name[:1].capitalize() + ctx.label.name[1:]
 
     if private:
@@ -87,11 +90,11 @@ def impl_ns_resolver(ctx):
         ns_fs_stem = ns_modname
     else:
         if private:
-            ns_fs_stem = ctx.attr.ns + "__"
+            ns_fs_stem = ns_name + "__"
         else:
-            ns_fs_stem = ctx.attr.ns
+            ns_fs_stem = ns_name
 
-    ns_prefix = ctx.attr.ns[:1].capitalize() + ctx.attr.ns[1:]
+    ns_prefix = ns_name[:1].capitalize() + ns_name[1:]
     ns_fqn = ns_prefix # module_sep.join(ns_prefix)
 
     if len(ctx.attr.submodules) < 1:
@@ -116,7 +119,7 @@ def impl_ns_resolver(ctx):
     aliases = []
 
     if debug:
-        print("ctx.attr.ns: %s" % ctx.attr.ns)
+        print("ns_name: %s" % ns_name)
 
     user_ns_resolver = None
 
@@ -228,12 +231,13 @@ def impl_ns_resolver(ctx):
             resolver = f[OCamlNsResolverProvider]
             if debug_ns_merge: print("IMPORT ns: %s" % resolver.ns_fqn)
             for submod in resolver.submodules:
+                submodule = label_to_module_name(submod)
                 alias = "module {alias} = {ns}{sep}{mod}".format(
-                    alias = submod,
+                    alias = submodule,
                     ns  = resolver.ns_fqn,
                     sep = "_" if resolver.ns_fqn.endswith("_") else module_sep,
                     # sep = "__", # if nslib_submod else module_sep,
-                    mod = submod
+                    mod = submodule
                 )
                 aliases.append(alias)
             # FIXME: what if merged ns has merges?
