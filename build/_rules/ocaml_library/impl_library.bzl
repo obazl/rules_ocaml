@@ -248,13 +248,6 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
     )
     providers.append(defaultInfo)
 
-    new_inputs_depset = depset(
-        # order = dsorder,
-        # ## direct = ns_resolver_files,
-        # transitive = ([ns_resolver_depset] if ns_resolver_depset else []) + [inputs_depset]
-        # # + indirect_inputs_depsets
-    )
-
     # fileset_depset = depset(
     #         transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
     # )
@@ -366,7 +359,14 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         all = depset(
             order = dsorder,
             transitive=[
-                new_inputs_depset,
+                archives_depset,
+                afiles_depset,
+                astructs_depset,
+                sigs_depset,
+                structs_depset,
+                ofiles_depset,
+                cmts_depset,
+                cmtis_depset
             ]
         )
     )
