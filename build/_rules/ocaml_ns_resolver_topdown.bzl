@@ -10,7 +10,7 @@ load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 # load("//ocaml/_rules:impl_module.bzl", "impl_module")
 
-load("//build/_rules/ocaml_ns_resolver:impl_topdown_ns_resolver.bzl",
+load("//build/_rules/ocaml_ns:impl_topdown_ns_resolver.bzl",
      "impl_topdown_ns_resolver")
 
 ###############################

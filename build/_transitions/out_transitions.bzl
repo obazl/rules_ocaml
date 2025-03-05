@@ -560,8 +560,11 @@ ocaml_subsignature_deps_out_transition = transition(
 ###########################################################
 def _manifest_out_transition_impl(settings, attr):
     debug = False
-    level = settings["@rules_ocaml//cfg/library/linkage:level"] + 1
+    level = settings["@rules_ocaml//cfg/library/linkage:level"]
+    if level == 0:
+        level = 1
     return {"@rules_ocaml//cfg/library/linkage:level": level}
+    # return {}
 
     # if debug:
     #     print(">>> manifest_out_transition")

@@ -563,6 +563,173 @@ module_in_transition = transition(
     ]
 )
 
+################################
+def _sig_in_transition_impl(settings, attr):
+    debug = False
+
+    if debug:
+        print("{c}>>> sig_in_transition{r}".format(
+            c=CCYELBG,r=CCRESET))
+        print("module: %s" % attr.name)
+        print("prefixes cfg: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("submodules cfg: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+        print_config_state(settings, attr)
+
+
+    module = None
+
+    ## NB: select() not yet resolved???
+
+    # 1. derive this module name w/o ns prefix
+
+    if hasattr(attr, "sig"):
+    # if attr.sig:
+        if debug: print("SIG: %s" % attr.sig)
+        if attr.module_name:
+            module = attr.module_name[:1].capitalize() + attr.module_name[1:]
+        else:
+            ## FIXME: label_to_module_name?
+            module = attr.name[:1].capitalize() + attr.name[1:]
+    else: ## singleton, no sig attribute
+        if attr.module_name:
+            ## must be a legal ocaml module name, so we can just upcase the first char
+            module = attr.module_name[:1].capitalize() + attr.module_name[1:]
+        else:
+            if debug:
+                print("{c} struct:{r} {m}".format(c=CCBLU,r=CCRESET,m=attr.struct))
+            ## FIXME: label_to_module_name?
+            if hasattr(attr, "struct"): # ocaml_module
+                (bn, ext) = paths.split_extension(attr.struct.name)
+                module = bn[:1].capitalize() + bn[1:]
+            elif hasattr(attr, "src"): # ocaml_signature
+                (bn, ext) = paths.split_extension(attr.src.name)
+                module = bn[:1].capitalize() + bn[1:]
+
+    if debug:
+        print("{c} this module:{r} {m}".format(c=CCBLU,r=CCRESET,m=module))
+
+    submodules = []
+    ## derive module names from manifest labels. note that we only have labels to work with, not targets and so not file names.
+    for submodule_label in settings["@rules_ocaml//cfg/ns:submodules"]:
+        # quasi-normalize. basenames of labels in ns:submodules may not be legal module names.
+        # submodule = normalize_module_label(submodule_label)
+        submodule = label_to_module_name(submodule_label)
+        submodules.append(submodule)
+    if debug: print("normalized submodules: %s" % submodules)
+
+    ## FIXME: we derive a module name from label name, or from module attrib.
+    ## but then we need to see if it is in the manifest.
+    ## but manifest entries are just labels, which have no necessary
+    ## connection to filename or module name.
+
+    ## the rule must be: derive module names from manifest labels by stripping illegal chars,
+    ## then test for module name inclusion
+
+    ## the grammar for module names (https://v2.ocaml.org/manual/names.html):
+    ## module-name       ::=	capitalized-ident
+    ## capitalized-ident ::=	 (A…Z) { letter ∣ 0…9 ∣ _ ∣ ' } 
+
+    ## NB: this is topdown-ns stuff:
+    if module in settings["@rules_ocaml//cfg/ns:prefixes"]:
+        prefixes   = settings["@rules_ocaml//cfg/ns:prefixes"]
+        submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+        # manifest   = settings["@rules_ocaml//cfg/manifest"]
+    elif module in submodules:
+        prefixes   = settings["@rules_ocaml//cfg/ns:prefixes"]
+        submodules = settings["@rules_ocaml//cfg/ns:submodules"]
+        # manifest   = settings["@rules_ocaml//cfg/manifest"]
+    else:
+        # reset to default values
+        prefixes   = []
+        submodules = []
+        # manifest   = []
+
+    # if prefixes == []:
+    #     print("\n\n{c}NULL PFXS: {n}{r}  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n".format(
+    #         c=CCRED,r=CCRESET,n=attr.name))
+    if debug:
+        print("module IN STATE:")
+        print("ns:prefixes: %s" % settings["@rules_ocaml//cfg/ns:prefixes"])
+        print("ns:submodules: %s" % settings["@rules_ocaml//cfg/ns:submodules"])
+        print("module OUT STATE:")
+        print("  ns:prefixes: %s" % prefixes)
+        print("  ns:submodules: %s" % submodules)
+
+        # fail("xxxxxxxxxxxxxxxx")
+
+    # print("module: %s" % attr.name)
+    # build_host  = settings["//command_line_option:host_platform"]
+    # print("BH: %s" % build_host)
+    # target_host = settings["//command_line_option:platforms"]
+    # print("TH: %s" % target_host)
+
+    # tc = settings["@rules_ocaml//toolchain"]
+    # # print("TC: %s" % tc)
+    # if tc == "nop":
+    #     host = None
+    # else:
+    #     host, tgt = get_tc(settings, attr)
+    # fail("HOST {}, TGT {}".format(host, tgt))
+
+    # if host == None:
+    #     # print("%s %s NULL TC TRANSITION" % (attr._rule,attr.name))
+    #     return {
+    #         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+    #         "@rules_ocaml//cfg/ns:submodules" : submodules,
+    #         "//command_line_option:host_platform": settings[
+    #             "//command_line_option:host_platform"],
+    #         "//command_line_option:platforms": settings[
+    #             "//command_line_option:platforms"]
+    #     }
+    # else:
+    #     # print("%s %s TC TRANSITION" % (attr._rule, attr.name))
+    #     return {
+    #         "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+    #         "@rules_ocaml//cfg/ns:submodules" : submodules,
+    #         "//command_line_option:host_platform": host,
+    #         "//command_line_option:platforms": tgt
+    #     }
+
+    host = "@rules_ocaml//platform:ocamlopt.opt"
+    tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+    tc   = "ocamlopt"
+    # if settings["@rules_ocaml//cfg/library/linkage:level"] > 0:
+    linklevel = 1
+    linkage = "static"
+
+    return {
+        "@rules_ocaml//cfg/ns:prefixes"   : prefixes,
+        "@rules_ocaml//cfg/ns:submodules" : submodules,
+        "@rules_ocaml//cfg/library/linkage:linkage" : linkage,
+        "@rules_ocaml//cfg/library/linkage:level" : linklevel,
+        "@rules_ocaml//toolchain": tc,
+        "//command_line_option:host_platform": host,
+        "//command_line_option:platforms": tgt
+    }
+
+####################
+sig_in_transition = transition(
+    implementation = _sig_in_transition_impl,
+    inputs = [
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
+        "@rules_ocaml//cfg/library/linkage:linkage",
+        "@rules_ocaml//cfg/library/linkage:level",
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"
+    ],
+    outputs = [
+        "@rules_ocaml//cfg/ns:prefixes",
+        "@rules_ocaml//cfg/ns:submodules",
+        "@rules_ocaml//cfg/library/linkage:linkage",
+        "@rules_ocaml//cfg/library/linkage:level",
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"
+    ]
+)
+
 ################################################################
 def _toolchain_in_transition_impl(settings, attr):
     debug = False

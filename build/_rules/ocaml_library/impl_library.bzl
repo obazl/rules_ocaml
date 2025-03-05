@@ -365,8 +365,8 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
                 sigs_depset,
                 structs_depset,
                 ofiles_depset,
-                cmts_depset,
-                cmtis_depset
+                # cmts_depset,
+                # cmtis_depset
             ]
         )
     )

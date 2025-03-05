@@ -182,7 +182,7 @@ def impl_archive(ctx, _linkage):
       args.add("-a")
     elif _linkage == "shared":
       args.add("-shared")
-    elif  _linkage(ctx) != None:
+    elif  _linkage != None:
         ## should not be possible
         fail("Unrecognized linkage spec: %s" % _linkage)
 

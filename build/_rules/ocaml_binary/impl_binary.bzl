@@ -347,6 +347,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             args.add("-use-runtime")
             args.add(ctx.attr.runtime[OCamlRuntimeProvider].rt)
 
+    # if ctx.label.name == "mark_test":
+    #     fail(ctx.attr.vm_linkage[BuildSettingInfo].value)
+
     action_inputs = []
     dllibs = [] ## we never need dllibs for native code
     if tc.target == "sys": # ocamlopt.opt or ocamlopt.byte

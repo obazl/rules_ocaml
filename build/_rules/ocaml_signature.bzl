@@ -317,11 +317,11 @@ def _ocaml_signature_impl(ctx):
 
     ################
     ctx.actions.run(
-        executable = tc.compiler,
+        executable = tc.sigcompiler,
         arguments = [args],
         inputs = action_inputs_depset,
         outputs = action_outputs,
-        tools = [tc.compiler],
+        tools = [tc.sigcompiler],
         mnemonic = "CompileOcamlSignature",
         progress_message = "{mode} compiling ocaml_signature: {ws}//{pkg}:{tgt}".format(
             mode = tc.host + ">" + tc.target,
@@ -382,7 +382,7 @@ def _ocaml_signature_impl(ctx):
     srcs_depset = depset(
         order=dsorder,
         direct = [ctx.file.src],
-        transitive = depsets.deps.sigs
+        transitive = depsets.deps.srcs
     )
 
     ocamlDepsProvider  = OCamlDepsProvider(

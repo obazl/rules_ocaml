@@ -213,6 +213,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
         host                 = ctx.attr.host,
         target               = ctx.attr.target,
         compiler             = ctx.file.compiler,
+        sigcompiler          = ctx.file.sigcompiler,
         version              = v, # ctx.attr.version,
         default_runtime      = ctx.file.default_runtime,
         std_runtime          = ctx.file.std_runtime,
@@ -319,6 +320,14 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
         "compiler": attr.label(
             executable = True,
             ## providers constraints seem to be ignored
+            # providers = [["OcamlArchiveMarker"]],
+            allow_single_file = True,
+            cfg = "exec",
+        ),
+
+        "sigcompiler": attr.label(
+            doc = "Alway compile sigfiles with this",
+            executable = True,
             # providers = [["OcamlArchiveMarker"]],
             allow_single_file = True,
             cfg = "exec",

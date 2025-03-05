@@ -27,13 +27,17 @@ def _ocaml_library(ctx):
     #         ctx.label, _linkage,
     #         ctx.attr._linklevel[BuildSettingInfo].value))
 
+    ## _linklevel controls propagation of linkage strategy
+    ## lib built on cmd line: maybe archive
+    ## lib built as dep: do not archive (unless forced)
     if (ctx.attr._linklevel[BuildSettingInfo].value == 0):
         if _linkage == "static":
             return impl_archive(ctx, _linkage)
         elif _linkage == "shared":
             return impl_archive(ctx, _linkage)
         else:
-            return impl_library(ctx, _linkage)
+            return impl_archive(ctx, "static") # _linkage)
+            # return impl_library(ctx, _linkage)
     else:
         if ctx.attr.linkage: # explicit attr forces issue
             return impl_archive(ctx, _linkage)
