@@ -135,6 +135,8 @@ def options_binary():
         ## not exist yes (unlike e.g. a structfile whose code depends
         ## on some other module).
 
+        archive_deps = attr.bool(default = False),
+
         prologue = attr.label_list(
             doc = "List of OCaml dependencies.",
             providers = [[OcamlArchiveMarker],

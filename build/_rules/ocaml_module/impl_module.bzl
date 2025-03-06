@@ -917,6 +917,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
                 open_inputs.append(dep[OCamlNsResolverProvider].cmi)
             # open_inputs.append(dep[OCamlModuleProvider].struct)
 
+    # fail(depsets.deps.link_archives_deps)
+
     action_inputs_depset = depset(
         order = dsorder,
         direct = src_inputs
@@ -943,6 +945,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
         + depsets.deps.sigs
         + depsets.deps.cli_link_deps
+        # + depsets.deps.link_archives_deps
         # + depsets.deps.structs
         # + depsets.deps.ofiles
         + depsets.deps.astructs
@@ -952,6 +955,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         # + bottomup_ns_inputs
         + depsets.codeps.sigs
         + depsets.codeps.cli_link_deps
+        + depsets.codeps.link_archives_deps
         + depsets.codeps.structs
         + depsets.codeps.ofiles
         + depsets.codeps.astructs
@@ -1111,24 +1115,22 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         if not str(ctx.label) in manifest:
             #FIXME: if not archived
             this_link_dep.append(out_struct)
-        # else:
-        #     this_link_dep.append(out_struct)
+        else:
+            this_link_dep.append(out_struct)
     else:
         this_link_dep.append(out_struct)
 
     cli_link_depset = depset(
         order=dsorder,
-        direct = this_link_dep, # [out_file] or []
+        direct = this_link_dep,
         transitive = depsets.deps.cli_link_deps
     )
 
-    if debug:
-        if ctx.label.name == "Main":
-            print("depsets cli_link_deps: %s" % depsets.deps.cli_link_deps)
-            print("cli_link_deps: %s" % cli_link_depset)
-            for dep in cli_link_depset.to_list():
-                print("linkdep: %s" % dep)
-        # fail()
+    link_archives_depset = depset(
+        order=dsorder,
+        # direct = this_link_dep,
+        transitive = depsets.deps.link_archives_deps
+    )
 
     structs_depset = depset(
         order=dsorder,
@@ -1221,6 +1223,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         xmo      = module_xmo,
         sigs     = new_sigs_depset,
         cli_link_deps = cli_link_depset,
+        link_archives_deps = link_archives_depset,
         archives = archives_depset,
         afiles   = depset(
             order=dsorder,
@@ -1306,8 +1309,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             # ppx_codeps = ppx_codeps_depset,
             sigs    = depset(order=dsorder,
                              transitive=depsets.codeps.sigs),
-            cli_link_deps = depset(order=dsorder,
-                                   transitive = depsets.codeps.cli_link_deps),
+            cli_link_deps = depset(
+                order=dsorder,
+                transitive = depsets.codeps.cli_link_deps),
+            link_archives_deps = depset(
+                order=dsorder,
+                transitive = depsets.codeps.link_archives_deps),
             structs    = depset(order=dsorder,
                                 transitive=depsets.codeps.structs),
             ofiles    = depset(order=dsorder,
@@ -1352,6 +1359,8 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         astructs = astructs_depset,
         ns = nsresolver_depset,
         srcs = srcs_depset,
+        cli_links = cli_link_depset,
+        link_archives = link_archives_depset,
         ## put these in OCamlCodepsProvider?
         # ppx_codeps = ppx_codeps_depset,
         # cc = action_inputs_ccdep_filelist,

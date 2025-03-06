@@ -61,19 +61,19 @@ def impl_ns_config(ctx):
     ##   fs_prefix - filesystem prefixes, used by clients
     ##   ns_prefix - normalized fs_prefix, used for aliasing
 
-    private = True
-    if ctx.attr.visibility:
-        if  ctx.attr.visibility == []:
-            fail("visibility []")
-        elif ctx.attr.visibility[0] == Label("//visibility:private"):
-            private = True
-        elif ctx.attr.visibility[0] == Label("//visibility:public"):
-            private = False
-        else:
-            private = True
-    else:
-        ## no visibility attr, default to public
-        private = False
+    private = ctx.attr.private
+    # if ctx.attr.visibility:
+    #     if  ctx.attr.visibility == []:
+    #         fail("visibility []")
+    #     elif ctx.attr.visibility[0] == Label("//visibility:private"):
+    #         private = True
+    #     elif ctx.attr.visibility[0] == Label("//visibility:public"):
+    #         private = False
+    #     else:
+    #         private = True
+    # else:
+    #     ## no visibility attr, default to public
+    #     private = False
 
     ns_modname = None
     ns_fs_stem = None
@@ -307,7 +307,7 @@ def impl_ns_config(ctx):
     resolver_src_file = ctx.actions.declare_file(
         workdir + ns_fs_stem + ".ml") #resolver_src_filename)
 
-    if True: #debug:
+    if debug:
         print("""
 
 private:  {private}

@@ -98,6 +98,8 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
             mandatory = False
         ),
 
+        private = attr.bool(default = False),
+
         submodules = attr.string_list(
             # default = "@rules_ocaml//cfg/ns:submodules", # => string_list_setting
             doc = """

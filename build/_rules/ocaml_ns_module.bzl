@@ -18,7 +18,6 @@ load("//build/_rules/ocaml_ns:impl_ns_module.bzl",
 
 ##############################################
 def _ns_config_out_transition_impl(settings, attr):
-    print("NS CONFIG OUT TRANSITION")
     return {
         "@rules_ocaml//toolchain": "ocamlopt",
         "//command_line_option:host_platform": "@rules_ocaml//platform:ocamlopt.opt",

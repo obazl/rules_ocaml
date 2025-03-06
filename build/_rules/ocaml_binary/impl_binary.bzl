@@ -718,11 +718,19 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     #     args.add(struct)
 
     ## cli_link_deps should include prologue, main, epilogue, in order
-    cli_link_depset = depset(
-        order=dsorder,
-        transitive= depsets.deps.cli_link_deps
-    )
+    if ctx.attr.archive_deps:
+        cli_link_depset = depset(
+            order=dsorder,
+            transitive= depsets.deps.link_archives_deps
+        )
+    else:
+        cli_link_depset = depset(
+            order=dsorder,
+            transitive= depsets.deps.cli_link_deps
+        )
+
     for dep in cli_link_depset.to_list():
+        # print("CLI LINKDEP %s" % dep)
         args.add(dep)
 
     # if hasattr(ctx.attr, "main"):
@@ -792,7 +800,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         + depsets.deps.archives
         + depsets.deps.afiles
         + depsets.deps.astructs
-        + depsets.deps.cli_link_deps
+        + [cli_link_depset] # depsets.deps.cli_link_deps
 
         + depsets.codeps.sigs
         + depsets.codeps.structs
@@ -956,9 +964,12 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     _ocamlProvider = OCamlDepsProvider(
         # struct = depset(direct = [outfile]),
-        cli_link_deps = depset(order=dsorder,
-                               # transitive = depsets.deps.cli_link_deps
-                               ),
+        cli_link_deps = depset(
+            order=dsorder,
+            transitive = depsets.deps.cli_link_deps),
+        link_archives_deps = depset(
+            order=dsorder,
+            transitive = depsets.deps.link_archives_deps),
         sigs    = depset(order="postorder",
                          # direct=sigs_primary,
                          transitive = depsets.deps.sigs),
@@ -996,6 +1007,9 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                             transitive = depsets.codeps.sigs),
         cli_link_deps = depset(order=dsorder,
                                transitive = depsets.codeps.cli_link_deps),
+        link_archives_deps = depset(
+            order=dsorder,
+            transitive = depsets.codeps.link_archives_deps),
         structs    = depset(order=dsorder,
                             transitive = depsets.codeps.structs),
         ofiles     = depset(order=dsorder,

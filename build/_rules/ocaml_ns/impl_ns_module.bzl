@@ -247,6 +247,13 @@ def impl_ns_module(ctx):
         # transitive = depsets.deps.cli_link_deps
     )
 
+    link_archives_deps_depset = depset(
+        order=dsorder,
+        # direct=[out_struct],
+        ## FIXME: merge deps, so:
+        transitive = depsets.deps.link_archives_deps
+    )
+
     ## needed for cli_link_deps for executables?
     ocamlDepsProvider = OCamlDepsProvider(
         cmi      = out_cmi,
@@ -262,7 +269,8 @@ def impl_ns_module(ctx):
         cmts     = cmts_depset,
         cmtis     = cmtis_depset,
         paths    = depset(direct = [out_cmi.dirname]),
-        cli_link_deps = cli_link_deps_depset
+        cli_link_deps = cli_link_deps_depset,
+        link_archives_deps = link_archives_deps_depset
     )
 
     all_depset = depset(

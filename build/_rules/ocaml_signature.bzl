@@ -308,6 +308,7 @@ def _ocaml_signature_impl(ctx):
         transitive = depsets.deps.sigs
         + depsets.codeps.sigs
         + depsets.codeps.cli_link_deps
+        + depsets.codeps.link_archives_deps
         + depsets.codeps.structs
         + depsets.codeps.ofiles
         + depsets.codeps.astructs
@@ -391,6 +392,10 @@ def _ocaml_signature_impl(ctx):
         cli_link_deps = depset(
             order = dsorder,
             transitive = depsets.deps.cli_link_deps
+        ),
+        link_archives_deps = depset(
+            order = dsorder,
+            transitive = depsets.deps.link_archives_deps
         ),
         structs    = structs_depset,
         ofiles     = ofiles_depset,

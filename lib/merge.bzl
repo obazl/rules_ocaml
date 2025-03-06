@@ -39,6 +39,7 @@ def _DepsAggregator_init(*,
         "deps"             : MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
+            link_archives_deps = [],
             archives      = [],
             structs       = [],
             astructs      = [],
@@ -57,6 +58,7 @@ def _DepsAggregator_init(*,
         "codeps"           : MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
+            link_archives_deps = [],
             archives      = [],
             structs       = [],
             astructs      = [],
@@ -74,6 +76,7 @@ def _DepsAggregator_init(*,
         "compile_codeps"   : MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
+            link_archives_deps = [],
             archives      = [],
             structs       = [],
             astructs      = [],
@@ -91,6 +94,7 @@ def _DepsAggregator_init(*,
         "link_codeps"      : MergedDepsProvider(
             sigs          = [],
             cli_link_deps = [],
+            link_archives_deps = [],
             archives      = [],
             structs       = [],
             astructs      = [],
@@ -158,6 +162,9 @@ def aggregate_codeps(ctx,
         depsets.codeps.sigs.append(provider.sigs)
         if provider.cli_link_deps != None:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
+        if provider.link_archives_deps != None:
+            depsets.codeps.link_archives_deps.append(
+                provider.link_archives_deps)
         depsets.codeps.archives.append(provider.archives)
         depsets.codeps.afiles.append(provider.afiles)
         depsets.codeps.astructs.append(provider.astructs)
@@ -182,6 +189,8 @@ def aggregate_codeps(ctx,
         depsets.codeps.sigs.append(provider.sigs)
         if provider.cli_link_deps != None:
             depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
+        if provider.link_archives_deps != None:
+            depsets.codeps.link_archives_deps.append(provider.link_archives_deps)
         depsets.codeps.structs.append(provider.structs)
         if provider.ofiles != None:
             depsets.codeps.ofiles.append(provider.ofiles)
@@ -232,75 +241,6 @@ def merge_depsets(depsets, fld):
 
     return merged
 
-
-################################################################
-# def _handle_module_provider(manifest, target, provider, depsets):
-#     debug = False
-#     debug_archives = False
-#     debug_ccinfo   = False # True
-#     debug_runfiles = False
-
-#     module_archived = False
-#     ## FIXME: won't work for topdown namespaced libs/archives
-#     ## since mInfo.name will have ns prefix, e.g. Color__Red, not Red
-#     mInfo = target[OCamlModuleProvider]
-#     if debug:
-#         print("mInfo: %s" % mInfo)
-#         print("manifest: %s" % manifest)
-#     for item in manifest:
-#         if debug:
-#             print("manifest item: %s" % item)
-#             # print("manifest item.label: %s" % item.label)
-#         # if OCamlModuleProvider in item:
-#         #     print("item.minfo: %s" % item[OCamlModuleProvider])
-#         # else:
-#         #     print("no minfo in item")
-#         #NB: lib manifest may contain non-modules (e.g. libs)
-#         #FIXME: if item is library, need we iterate over it???
-#         # if OCamlLibraryProvider in item:
-#         #     print("Item is library")
-#         #     for libitem in item[OCamlDepsProvider].sigs.to_list():
-#         #         print("libitem sig: %s" % libitem)
-#         # fail("embedded libs not yet implemented")
-
-#         if mInfo.label_name == item.label.name:
-#             if debug:
-#                 print("MODULE ARCHIVED: %s" % mInfo)
-#                 module_archived = True
-#         else:
-#             if debug:
-#                 print("MODULE UNARCHIVED: %s" % mInfo)
-
-#     # bottomup ns resolver:
-#     if OCamlNsResolverProvider in target:
-#         module_archived = True
-
-#     ## FIXME: sig is already inn OCamlDepsProvider
-#     depsets.deps.sigs.append(depset([mInfo.sig]))
-#     if mInfo.ofile:
-#         depsets.deps.ofiles.append(depset([mInfo.ofile]))
-#     if module_archived:
-#         depsets.deps.astructs.append(
-#             depset(direct = [mInfo.struct],
-#                    transitive = [provider.astructs])
-#         )
-#         ## cli_link_deps will be used to construct archiving CLI
-#         depsets.deps.cli_link_deps.append(
-#             depset(direct = [mInfo.struct],
-#                    # transitive = [provider.structs]
-#                    transitive = [provider.cli_link_deps]
-#                    )
-#         )
-#     else:
-#         depsets.deps.structs.append(provider.structs)
-#         depsets.deps.cli_link_deps.append(
-#             depset(
-#                 direct = [mInfo.struct],
-#                 transitive = [provider.cli_link_deps]
-#             )
-#         )
-
-#     return module_archived
 
 #######################
 def merge_deps(ctx,
@@ -382,6 +322,7 @@ def merge_deps(ctx,
         ## to preserve correct link ordering
         if ctx.attr._rule == "ocaml_test": ##FIXME
             depsets.deps.cli_link_deps.append(provider.cli_link_deps)
+            depsets.deps.link_archives_deps.append(provider.link_archives_deps)
 
         # if OCamlModuleProvider in target:
         #     module_archived = _handle_module_provider(
@@ -390,22 +331,25 @@ def merge_deps(ctx,
         if hasattr(provider, "cli_link_deps"): # tmp, for OCamlDepsProvider
             if provider.cli_link_deps != None:
                 depsets.deps.cli_link_deps.append(provider.cli_link_deps)
+        # if hasattr(provider, "cli_link_deps"):
+        #     depsets.deps.cli_link_deps.append(provider.cli_link_deps)
+
+        # if ctx.label.name == "Green":
+        #     fail(provider)
+
+        if hasattr(provider, "link_archives_deps"): # tmp, for OCamlDepsProvider
+            if provider.link_archives_deps == None:
+                print(ctx.label)
+            if provider.link_archives_deps == []:
+                fail(ctx.label)
+            if provider.link_archives_deps != None:
+                depsets.deps.link_archives_deps.append(provider.link_archives_deps)
+
         if hasattr(provider, "astructs"):
             if provider.astructs != None:
                 depsets.deps.astructs.append(provider.astructs)
 
         depsets.deps.structs.append(provider.structs)
-
-        # if (provider.struct):
-        #     depsets.deps.cli_link_deps.append(
-        #         depset(
-        #             # direct = [mInfo.struct],
-        #             direct = [provider.struct],
-        #             transitive = [provider.cli_link_deps]
-        #         )
-        #     )
-        if hasattr(provider, "cli_link_deps"):
-            depsets.deps.cli_link_deps.append(provider.cli_link_deps)
 
         if hasattr(provider, "sigs"):
             if provider.sigs != None:
@@ -534,6 +478,12 @@ def merge_deps(ctx,
                 depsets.codeps.cli_link_deps.append(provider.cli_link_deps)
             else:
                 depsets.deps.cli_link_deps.append(provider.cli_link_deps)
+
+        if provider.link_archives_deps != None:
+            if ctx.attr._rule == "ppx_executable":
+                depsets.codeps.link_archives_deps.append(provider.link_archives_deps)
+            else:
+                depsets.deps.link_archives_deps.append(provider.link_archives_deps)
 
         if ctx.attr._rule == "ppx_executable":
             depsets.codeps.structs.append(provider.structs)

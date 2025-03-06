@@ -5,6 +5,7 @@ def _OCamlDepsProvider_init(*,
                             sig             = None,
                             struct          = None,
                             cli_link_deps   = None,
+                            link_archives_deps = None,
                             submodule       = None,
                             sigs            = None,
                             structs         = None,
@@ -29,6 +30,7 @@ def _OCamlDepsProvider_init(*,
         "sig"             : sig,
         "struct"          : struct,
         "cli_link_deps"   : cli_link_deps,
+        "link_archives_deps": link_archives_deps,
         "submodule"       : submodule,
         "sigs"            : sigs,
         "structs"         : structs,
@@ -68,7 +70,9 @@ OCamlDepsProvider, _new_ocamlprovider = provider(
         ## not be able to express this. We would get either bar foo B
         ## or B bar foo.
 
-        "cli_link_deps": "depset of files (targets?) to be added to link cmd line",
+        "cli_link_deps": "depset of modules w/o archives to be added to link cmd line",
+
+        "link_archives_deps": "depset of archives and modules to be added to link cmd line",
 
         "submodule": "name of module without ns prefix",
         "sigs":      "depset of .cmi files",

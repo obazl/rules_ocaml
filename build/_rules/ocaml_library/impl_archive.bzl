@@ -79,14 +79,17 @@ def impl_archive(ctx, _linkage):
     # print("CALL IMPL_LIB %s" % ctx.label)
     lib_providers = impl_library(ctx, True) #, tc.target, tool, tool_args)
 
+    # if _linkage == None:
+    #     return lib_providers
+
     ## NB: lib_providers cannot be indexed by provider name, its just an array
     libDefaultInfo = lib_providers[0]
     if debug_lib:
         print("libDefaultInfo: %s" % libDefaultInfo.files.to_list())
 
-    libOcamlProvider = lib_providers[1]
+    libOCamlDepsProvider = lib_providers[1]
     if debug_lib:
-        print("libOcamlProvider: %s" % type(libOcamlProvider))
+        print("libOCamlDepsProvider: %s" % type(libOCamlDepsProvider))
     # fail("x")
 
     outputGroupInfo = lib_providers[2]
@@ -112,18 +115,18 @@ def impl_archive(ctx, _linkage):
         # dump_ccdep(ctx, dep)
 
     ################################
-    # if libOcamlProvider.ns_resolver == None:
+    # if libOCamlDepsProvider.ns_resolver == None:
     #     print("NO NSRESOLVER FROM NSLIB")
     #     fail("NO NSRESOLVER FROM NSLIB")
     # else:
-    #     ns_resolver = libOcamlProvider.ns_resolver
+    #     ns_resolver = libOCamlDepsProvider.ns_resolver
     #     if debug:
     #         print("ARCH GOT NSRESOLVER FROM NSLIB")
-    #         for f in libOcamlProvider.ns_resolver: # .files.to_list():
+    #         for f in libOCamlDepsProvider.ns_resolver: # .files.to_list():
     #             print("nsrsolver: %s" % f)
 
     paths_direct = []
-    paths_indirect = libOcamlProvider.paths
+    paths_indirect = libOCamlDepsProvider.paths
 
     action_outputs = []
 
@@ -136,6 +139,7 @@ def impl_archive(ctx, _linkage):
     #         if "-shared" in _options:
     #             _options.remove("-shared") ## avoid dup
 
+    ext = None
     if tc.target == "vm":
         ext = ".cma"
     else:
@@ -144,8 +148,8 @@ def impl_archive(ctx, _linkage):
             ext = ".cmxa"
         elif _linkage == "shared":
             ext = ".cmxs"
-        else: # "none" - should not happen?
-            ext = ".cmxa"
+        # else: # do not archive
+        #     ext = None
 
     #### declare output files ####
     ## same for plain and ns archives
@@ -182,6 +186,8 @@ def impl_archive(ctx, _linkage):
       args.add("-a")
     elif _linkage == "shared":
       args.add("-shared")
+    # elif  _linkage == None:
+    #   args.add("-a")
     elif  _linkage != None:
         ## should not be possible
         fail("Unrecognized linkage spec: %s" % _linkage)
@@ -195,7 +201,7 @@ def impl_archive(ctx, _linkage):
     ## ctx.files.manifest in the correct order.
     ## submod[DefaultInfo].files won't work, it contains OcamlProvider
     ## for only one module, so order would be lost. The aggregate
-    ## fiels of libOcamlProvider have the ordering info, but we need
+    ## fiels of libOCamlDepsProvider have the ordering info, but we need
     ## to filter out the direct submodules.
 
     submod_arglist = [] # direct deps
@@ -218,7 +224,7 @@ def impl_archive(ctx, _linkage):
     # cmd for building archive;
     # the latter excludes them (since they are in the archive)
     # NB also: ns_resolver only present if lib is ns
-    # for dep in libOcamlProvider.linkargs.to_list():
+    # for dep in libOCamlDepsProvider.linkargs.to_list():
     ## libDefaultInfo is the DefaultInfo provider of the underlying lib
 
     for f in ns_resolver: # [0][DefaultInfo].files:
@@ -260,12 +266,13 @@ def impl_archive(ctx, _linkage):
     ordered_submodules_depset = depset(direct=submod_arglist)
 
     archive_link_deps = [] # excluding direct (manifest) deps
-    for dep in libOcamlProvider.cli_link_deps.to_list():
+    for dep in libOCamlDepsProvider.cli_link_deps.to_list():
         if dep in submod_arglist:
             if debug:
                 print("adding link dep to args: %s" % dep)
             args.add(dep)
         else:
+            # args.add(dep)
             archive_link_deps.append(dep)
 
     ##FIXME: cc deps same as for ocaml_binary, all indirect cc_deps in
@@ -283,12 +290,12 @@ def impl_archive(ctx, _linkage):
         static_cc_deps + dynamic_cc_deps
         ,
         transitive =
-        [libOcamlProvider.sigs,
-         libOcamlProvider.structs,
-         libOcamlProvider.ofiles,
-         libOcamlProvider.archives,
-         libOcamlProvider.astructs,
-         libOcamlProvider.afiles]
+        [libOCamlDepsProvider.sigs,
+         libOCamlDepsProvider.structs,
+         libOCamlDepsProvider.ofiles,
+         libOCamlDepsProvider.archives,
+         libOCamlDepsProvider.astructs,
+         libOCamlDepsProvider.afiles]
     )
 
     if ctx.attr._rule == "ocaml_ns_archive":
@@ -331,105 +338,114 @@ def impl_archive(ctx, _linkage):
 
     # new_inputs_depset = depset(
     #     direct     = action_outputs, # + ns_resolver,
-    #     transitive = [libOcamlProvider.inputs]
+    #     transitive = [libOCamlDepsProvider.inputs]
     # )
 
     # linkargs_depsets = depset(
     #     ## indirect deps (excluding direct deps, i.e. submodules & resolver)
     #     # direct = linkargs_list,
-    #     transitive = [libOcamlProvider.linkargs]
+    #     transitive = [libOCamlDepsProvider.linkargs]
     # )
 
     # linkargs_depset = depset(
     #     direct     = linkargs_list
-    #     # transitive = [libOcamlProvider.linkargs]
+    #     # transitive = [libOCamlDepsProvider.linkargs]
     #     # transitive = [linkargs_depsets]
     # )
     paths_depset  = depset(
         order = dsorder,
         direct = paths_direct,
-        transitive = [libOcamlProvider.paths]
+        transitive = [libOCamlDepsProvider.paths]
     )
 
     sigs_depset = depset(order=dsorder,
-                         transitive = [libOcamlProvider.sigs])
+                         transitive = [libOCamlDepsProvider.sigs])
                           # direct=sigs_direct,
                           # transitive=sigs_indirect),
 
     structs_depset = depset(order=dsorder,
                             # direct=structs_primary,
-                            transitive = [libOcamlProvider.structs])
+                            transitive = [libOCamlDepsProvider.structs])
 
     astructs_depset = depset(order=dsorder,
                              # direct=astructs_primary,
-                             transitive =[libOcamlProvider.astructs])
-    # transitive = [libOcamlProvider.structs]),
+                             transitive =[libOCamlDepsProvider.astructs])
+    # transitive = [libOCamlDepsProvider.structs]),
     # transitive=structs_indirect),
 
-    ## FIXME: move direct submodules from libOcamlProvider.structs to
+    ## FIXME: move direct submodules from libOCamlDepsProvider.structs to
     ## astructs
-    ## FIXME: just deliver libOcamlProvider directly?
+    ## FIXME: just deliver libOCamlDepsProvider directly?
 
-    # if not hasattr(libOcamlProvider, "cli_link_deps"):
+    # if not hasattr(libOCamlDepsProvider, "cli_link_deps"):
 
     ofiles_depset = depset(order=dsorder,
-                           transitive = [libOcamlProvider.ofiles])
+                           transitive = [libOCamlDepsProvider.ofiles])
     # direct=ofiles_direct,
     # transitive=ofiles_indirect),
 
     archives_depset = depset(order=dsorder,
                              direct = [archive_file],
-                             transitive = [libOcamlProvider.archives])
+                             transitive = [libOCamlDepsProvider.archives])
     # direct=archives_direct,
     # transitive=archives_indirect),
 
     afiles_depset   = depset(order=dsorder,
                              direct = [archive_a_file] if archive_a_file else [],
-                             transitive = [libOcamlProvider.afiles])
+                             transitive = [libOCamlDepsProvider.afiles])
     # direct=afiles_direct,
     # transitive=afiles_indirect),
 
     srcs_depset  = depset(order = dsorder,
-                          transitive = [libOcamlProvider.srcs])
+                          transitive = [libOCamlDepsProvider.srcs])
 
     if _linkage == "shared":
         cmxs_depset  = depset(order = dsorder,
                               direct = [archive_file],
-                              transitive = [libOcamlProvider.cmxs])
+                              transitive = [libOCamlDepsProvider.cmxs])
     else:
         cmxs_depset  = depset(order = dsorder,
-                              transitive = [libOcamlProvider.cmxs])
+                              transitive = [libOCamlDepsProvider.cmxs])
 
 
     cmts_depset  = depset(order = dsorder,
-                          transitive = [libOcamlProvider.cmts])
+                          transitive = [libOCamlDepsProvider.cmts])
 
     cmtis_depset  = depset(order = dsorder,
-                           transitive = [libOcamlProvider.cmtis])
+                           transitive = [libOCamlDepsProvider.cmtis])
 
     cli_link_depset = depset(
         order=dsorder,
+        # direct = submod_arglist,
+        # transitive = [depset(archive_link_deps)]
+        # transitive = [depset(archive_link_deps)]
+        transitive = [libOCamlDepsProvider.cli_link_deps]
+    )
+
+    link_archives_depset = depset(
+        order=dsorder,
         direct = [archive_file],
-        transitive = [depset(archive_link_deps)]
-        # transitive = [libOcamlProvider.cli_link_deps]
+        transitive = [libOCamlDepsProvider.link_archives_deps]
+        # transitive = [depset(archive_link_deps)]
     )
 
     ocamlProvider = OCamlDepsProvider(
-        # files   = libOcamlProvider.files,
-        # fileset = libOcamlProvider.fileset,
+        # files   = libOCamlDepsProvider.files,
+        # fileset = libOCamlDepsProvider.fileset,
         # inputs   = new_inputs_depset,
         # linkargs = linkargs_depset,
-        # cdeps    = libOcamlProvider.cdeps,
-        # ldeps    = libOcamlProvider.ldeps,
+        # cdeps    = libOCamlDepsProvider.cdeps,
+        # ldeps    = libOCamlDepsProvider.ldeps,
 
         cli_link_deps = cli_link_depset,
+        link_archives_deps = link_archives_depset,
 
         sigs   = sigs_depset,
         structs = structs_depset,
         astructs = astructs_depset,
         # astructs   = depset(order=dsorder,
         #                    direct=astructs_primary),
-                           # transitive = [libOcamlProvider.astructs]),
+                           # transitive = [libOCamlDepsProvider.astructs]),
                            # transitive=astructs_indirect),
         ofiles   = ofiles_depset,
         archives = archives_depset,
@@ -438,7 +454,7 @@ def impl_archive(ctx, _linkage):
         cmts     = cmts_depset,
         cmtis    = cmtis_depset,
         srcs     = srcs_depset,
-        paths    = libOcamlProvider.paths
+        paths    = libOCamlDepsProvider.paths
     )
 
     installProvider = OpamInstallProvider(
@@ -463,15 +479,17 @@ def impl_archive(ctx, _linkage):
         archives = archives_depset,
         afiles   = afiles_depset,
         cli_link = cli_link_depset,
+        link_archives = link_archives_depset,
         sigs    = sigs_depset,
         structs = structs_depset,
         ofiles   = ofiles_depset,
         astructs = astructs_depset,
+
         # resolver = ns_resolver,
         # ppx_codeps = ppx_codeps_depset,
         # linkargs = linkargs_depset,
-        # cdeps    = libOcamlProvider.cdeps,
-        # ldeps    = libOcamlProvider.ldeps,
+        # cdeps    = libOCamlDepsProvider.cdeps,
+        # ldeps    = libOCamlDepsProvider.ldeps,
         all = depset(transitive=[
             archives_depset,
             astructs_depset,

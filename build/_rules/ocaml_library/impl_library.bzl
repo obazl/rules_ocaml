@@ -302,14 +302,19 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
     #     cli_link_deps_depset = depset()
     # else:
 
-    cli_link_deps_depset = depset(order = dsorder,
-                                  # direct = ns resolver,
-                                  transitive = depsets.deps.cli_link_deps
-                                  )
+    cli_link_deps_depset = depset(
+        order = dsorder,
+        # direct = ns resolver,
+        transitive = depsets.deps.cli_link_deps)
 
         # direct = paths_primary + ns_paths,
         # transitive = indirect_paths_depsets
     # )
+    link_archives_deps_depset = depset(
+        order = dsorder,
+        # direct = ns resolver,
+        transitive = depsets.deps.link_archives_deps)
+
 
     ##FIXME: do we need this?
     # resolvers_depset = depset(order=dsorder,
@@ -334,7 +339,8 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         cmtis    = cmtis_depset,
         # resolvers = resolvers_depset,
         paths    = paths_depset,
-        cli_link_deps = cli_link_deps_depset
+        cli_link_deps = cli_link_deps_depset,
+        link_archives_deps = link_archives_deps_depset
     )
     providers.append(ocamlDepsProvider)
     # print("ocamlDepsProvider: %s" % ocamlDepsProvider)
@@ -354,6 +360,9 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         srcs    = srcs_depset,
         cmts     = cmts_depset,
         cmtis    = cmtis_depset,
+        cli_links = cli_link_deps_depset,
+        link_archives = link_archives_deps_depset,
+
         # ppx_codeps = ppx_codeps_depset,
         # cc = ... extract from CcInfo?
         all = depset(
@@ -407,8 +416,12 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         # ppx_codeps = ppx_codeps_depset,
         sigs    = depset(order=dsorder,
                          transitive = depsets.codeps.sigs),
-        cli_link_deps = depset(order=dsorder,
-                               transitive = depsets.codeps.cli_link_deps),
+        cli_link_deps = depset(
+            order=dsorder,
+            transitive = depsets.codeps.cli_link_deps),
+        link_archives_deps = depset(
+            order=dsorder,
+            transitive = depsets.codeps.link_archives_deps),
         structs    = depset(order=dsorder,
                             transitive = depsets.codeps.structs),
         ofiles    = depset(order=dsorder,

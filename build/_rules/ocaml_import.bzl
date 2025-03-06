@@ -185,8 +185,12 @@ def _ocaml_import_impl(ctx):
         ppxCodepsInfo = OCamlCodepsProvider(
             sigs       = depset(order=dsorder,
                                 transitive = depsets.codeps.sigs),
-            cli_link_deps = depset(order=dsorder,
-                                   transitive=depsets.codeps.cli_link_deps),
+            cli_link_deps = depset(
+                order=dsorder,
+                transitive=depsets.codeps.cli_link_deps),
+            link_archives_deps = depset(
+                order=dsorder,
+                transitive=depsets.codeps.link_archives_deps),
             archives   = depset(order=dsorder,
                                 transitive = depsets.codeps.archives),
             structs    = depset(order=dsorder,
@@ -231,9 +235,14 @@ def _ocaml_import_impl(ctx):
         sigs    = depset(order=dsorder,
                          direct=ctx.files.sigs,
                          transitive = depsets.deps.sigs),
-        cli_link_deps = depset(order=dsorder,
-                               direct = [ctx.file.archive],
-                               transitive = depsets.deps.cli_link_deps),
+        cli_link_deps = depset(
+            order=dsorder,
+            direct = [ctx.file.archive],
+            transitive = depsets.deps.cli_link_deps),
+        link_archives_deps = depset(
+            order=dsorder,
+            direct = [ctx.file.archive],
+            transitive = depsets.deps.link_archives_deps),
         archives = depset(order=dsorder,
                           direct = [ctx.file.archive],
                           transitive = depsets.deps.archives),
