@@ -734,10 +734,6 @@ sig_in_transition = transition(
 def _toolchain_in_transition_impl(settings, attr):
     debug = False
 
-    if hasattr(attr, "archive_deps"):
-        print(attr.name)
-        print("ARCHIVE DEPS %s" % attr.archive_deps)
-
     tc = settings["@rules_ocaml//toolchain"]
     if tc == "nop":
         return {}

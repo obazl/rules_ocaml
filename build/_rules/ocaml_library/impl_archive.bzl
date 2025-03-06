@@ -96,7 +96,7 @@ def impl_archive(ctx, _linkage):
     if debug_lib:
         print("lib outputGroupInfo: %s" % outputGroupInfo)
 
-    _ = lib_providers[3] # OCamlLibraryProvider
+    libOCamlLibProvider = lib_providers[3] # OCamlLibraryProvider
 
     ppxCodepsProvider = lib_providers[4] ## may be empty
     if debug_lib:
@@ -208,7 +208,6 @@ def impl_archive(ctx, _linkage):
 
     ## ns_archives have submodules, plain archives have modules
     # direct_submodule_deps = ctx.files.manifest if ctx.attr._rule.startswith("ocaml_ns") else ctx.files.manifest
-    direct_submodule_deps = ctx.files.manifest
 
     # if OcamlProvider in ns_resolver:
     #     ns_resolver_files = ns_resolver[OcamlProvider].inputs.to_list()
@@ -230,9 +229,24 @@ def impl_archive(ctx, _linkage):
     for f in ns_resolver: # [0][DefaultInfo].files:
         submod_arglist.append(f)
 
-    for dep in libDefaultInfo.files.to_list():
-        if dep in direct_submodule_deps: # = manifest
-            submod_arglist.append(dep)
+    # these will be archives for libs:
+    direct_submodule_deps = ctx.files.manifest
+    # print("direct_submodule_deps: %s" % direct_submodule_deps)
+
+    for dep in libOCamlLibProvider.manifest.to_list():
+        # print("LIB ITEM %s" % dep)
+        submod_arglist.append(dep)
+
+    # for any archive file in manifest, we need to obtain
+    # the corresponding library, provided in OCamlLibraryProvider?
+
+    # for dep in libDefaultInfo.files.to_list():
+    #     ## this logic won’t work for lib deps:
+    #     # if dep in direct_submodule_deps: # = manifest
+    #         submod_arglist.append(dep)
+    #     ## so, workaround:
+    #     else:
+    #         submod_arglist.append(dep)
 
     if debug_cc:
         dump_CcInfo(ctx, lib_CcInfo)
@@ -266,14 +280,17 @@ def impl_archive(ctx, _linkage):
     ordered_submodules_depset = depset(direct=submod_arglist)
 
     archive_link_deps = [] # excluding direct (manifest) deps
+    # print("submod list %s" % submod_arglist)
     for dep in libOCamlDepsProvider.cli_link_deps.to_list():
+        # print("maybe dep %s" % dep)
         if dep in submod_arglist:
-            if debug:
-                print("adding link dep to args: %s" % dep)
-            args.add(dep)
+            if debug: print("adding link dep to args: %s" % dep)
+            # args.add(dep)
         else:
             # args.add(dep)
             archive_link_deps.append(dep)
+
+    args.add_all(submod_arglist)
 
     ##FIXME: cc deps same as for ocaml_binary, all indirect cc_deps in
     ## manifest should be added to cmd line of archive, plus direct cc
@@ -466,7 +483,7 @@ def impl_archive(ctx, _linkage):
         newDefaultInfo,
         ocamlProvider,
         installProvider,
-        OCamlLibraryProvider(),
+        libOCamlLibProvider,
         OcamlArchiveMarker(marker = "OcamlArchive"),
     ]
 

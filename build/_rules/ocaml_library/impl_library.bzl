@@ -159,14 +159,28 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         print("LIB MANIFEST: %s" % archive_manifest)
 
     depsets = DepsAggregator()
+    lib_manifest = []
     # print("LBL %s" % ctx.label)
     for dep in ctx.attr.manifest:
-        # if ctx.label.name == "re":
-        #     print("Merging %s" % dep)
-        # if dep.label.name == "Red":
-        #     print("red dep: %s" % dep[OCamlDepsProvider])
-        #     fail()
         depsets = merge_deps(ctx, dep, depsets, archive_manifest)
+        # if dep is a lib, get its manifest
+        # so we can add its members to -a cmd line
+
+        ## WARNING: do not also list such deps as indirect
+        ## deps?  If executable sets archive_deps to true,
+        ## then a direct lib dep may include an indirect lib
+        ## dep, resulting in "both define a module" error.
+        ## so any direct deps that we archive, should be
+        ## removed from the dep tree?
+        ## Or, just make sure they don’t get added to
+        ## link_archives_deps? which means we must remove
+        ## them, since modules will have already added themselves
+
+        if OCamlLibraryProvider in dep:
+            lib_manifest.append(dep[OCamlLibraryProvider].manifest)
+        else:
+            ## must be a module?
+            lib_manifest.append(dep[DefaultInfo].files)
 
     # print("cli link deps: %s" % depsets.deps.cli_link_deps)
     ################
@@ -390,7 +404,8 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
     ## Provider 3: Library Marker
     providers.append(
         OCamlLibraryProvider(
-            name = ctx.label.name
+            name = ctx.label.name,
+            manifest = depset(transitive=lib_manifest)
         )
     )
 

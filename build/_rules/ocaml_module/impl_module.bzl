@@ -1128,7 +1128,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     link_archives_depset = depset(
         order=dsorder,
-        # direct = this_link_dep,
+        # need to add this_link_dep for unarchived modules
+        # but module does not know if it will be archived
+        direct = this_link_dep,
         transitive = depsets.deps.link_archives_deps
     )
 
