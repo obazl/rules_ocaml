@@ -805,9 +805,13 @@ Runtime data dependencies: list of labels of data files needed by this module at
         cc_deps = attr.label_list(
             doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must by built or imported using Bazel's rules_cc ruleset (thus providing CcInfo output).",
             providers = [CcInfo],
+            # out transition sets compilation mode to opt
+            cfg = ocaml_module_cc_deps_out_transition
         ),
 
         cc_linkage = attr.label_keyed_string_dict(
+            ## FIXME: the val string should allow user to
+            ## specify linker flags and options?
             doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'cc_deps' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
             """,
             # providers = since this is a dictionary depset, no

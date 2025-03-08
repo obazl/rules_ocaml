@@ -328,29 +328,23 @@ ocaml_nslib_ns_out_transition = transition(
 )
 
 ##############################################################
+# Purpose: set compilation_mode for (external) cc deps
 def _ocaml_module_cc_deps_out_transition_impl(settings, attr):
-    # we do not want to do this - build cc deps in same ns as depender?
-    debug = False
-    if attr.name == "":
-        debug = False
-        print(">>> ocaml_module_ns_transition")
-        print_config_state(settings, attr)
-
     return {
-        "@rules_ocaml//cfg/ns:prefixes"    : [],
-        "@rules_ocaml//cfg/ns:submodules": []
+        "//command_line_option:compilation_mode": "opt",
     }
 
 ################
 ocaml_module_cc_deps_out_transition = transition(
     implementation = _ocaml_module_cc_deps_out_transition_impl,
     inputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
+        # "@rules_ocaml//cfg/ns:prefixes",
+        # "@rules_ocaml//cfg/ns:submodules",
     ],
     outputs = [
-        "@rules_ocaml//cfg/ns:prefixes",
-        "@rules_ocaml//cfg/ns:submodules",
+        "//command_line_option:compilation_mode",
+        # "@rules_ocaml//cfg/ns:prefixes",
+        # "@rules_ocaml//cfg/ns:submodules",
     ]
 )
 
