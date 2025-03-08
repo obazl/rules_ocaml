@@ -204,6 +204,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     ##FIXME: cc_deps?
 
+    # print("TC TARGET: %s" % tc.target)
+    # print("TC COMPILER: %s" % tc.compiler)
+    # print("VM_LINKAGE: %s" % ctx.attr.vm_linkage)
+
     ################
     #FIXME: executable name
     # use ctx.label.name or ctx.attr.exe if defined
@@ -227,15 +231,10 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     includes   = []
     args = ctx.actions.args()
 
-    ## the bazel tc for macos, fastbuild, inserts -DDEBUG
-    ## that forces us to use the debug runtime
-    ## to avoid "ld: Undefined symbols:  _caml_failed_assert"
-    ## which is caused by using #if DEBUG instead of #if NDEBUG
-    ## in ocaml/runtime/caml/misc.h
-    # if cc_tc.toolchain_id.startswith("darwin"):
-    #     if ctx.var["COMPILATION_MODE"] == "fastbuild":
-    #         # assump that -DDEBUG implies we need dbg runtime
-    #         args.add("-runtime-variant", "d")
+    # OCaml linker calls system linker (via cc cmd)
+    # so we pass the link options obtained from the cc toolchain
+    for opt in tc.cc_link_opts:
+        args.add("-ccopt", opt)
 
     _options = get_options(rule, ctx)
     # print("OPTIONS: %s" % _options)

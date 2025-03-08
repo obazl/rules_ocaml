@@ -1,7 +1,17 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
-load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
+load("@rules_cc//cc:find_cc_toolchain.bzl",
+     "CC_TOOLCHAIN_ATTRS", # for bazel 6.x, 7.x compatibility
+     "find_cpp_toolchain", "use_cc_toolchain")
+load("@rules_cc//cc:action_names.bzl",
+     "ACTION_NAMES",
+     "C_COMPILE_ACTION_NAME",
+     "CPP_LINK_EXECUTABLE_ACTION_NAME")
+
+# load("@bazel_tools//tools/cpp:toolchain_utils.bzl",
+#      "find_cpp_toolchain")
+
+# load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
 
 # load("//build:providers.bzl",
 #      "OcamlArchiveMarker",
@@ -26,8 +36,8 @@ def toolchain_selector(name, toolchain,
         visibility             = visibility
     )
 
-def _linker(ctx, cctc):
-    # print(CCRED + "link experiment")
+def _dump_linker(ctx, cctc):
+    print("link experiment")
     static_libs   = []
     dynamic_libs  = []
 
@@ -95,87 +105,108 @@ def _dump_cc_toolchain(ctx):
 
 ################
 def _dump_tc_frags(ctx):
-    print("**** host platform frags: %s" % ctx.host_fragments.platform)
-    ds = dir(ctx.host_fragments.platform)
-    for d in ds:
-        print("\t{d}:\n\t{dval}".format(
-            d = d, dval = getattr(ctx.host_fragments.platform, d)))
-        _platform = ctx.host_fragments.platform.platform
 
-    print("**** target platform frags: %s" % ctx.fragments.platform)
+    print("**** platform frags: %s" % ctx.fragments.platform)
     ds = dir(ctx.fragments.platform)
     for d in ds:
         print("\t{d}:\n\t{dval}".format(
-            d = d, dval = getattr(ctx.host_fragments.platform, d)))
-    _platform = ctx.host_fragments.platform.platform
+            d = d, dval = getattr(ctx.fragments.platform, d)))
+    _platform = ctx.fragments.platform.platform
 
-    if ctx.host_fragments.apple:
+    if ctx.fragments.apple:
         _cc_opts = ["-Wl,-no_compact_unwind"]
-        print("**** host apple frags: %s" % ctx.host_fragments.apple)
-        ds = dir(ctx.host_fragments.apple)
+        print("**** host apple frags: %s" % ctx.fragments.apple)
+        ds = dir(ctx.fragments.apple)
         for d in ds:
             print("\t{d}:\n\t{dval}".format(
-                d = d, dval = getattr(ctx.host_fragments.apple, d)))
+                d = d, dval = getattr(ctx.fragments.apple, d)))
     else:
         _cc_opts = []
 
-    print("**** host cpp frags: %s" % ctx.host_fragments.cpp)
+    print("**** cpp frags: %s" % ctx.fragments.cpp)
     ds = dir(ctx.fragments.cpp)
     for d in ds:
         print("\t{d}:\n\t{dval}".format(
             d = d,
             dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
 
-    print("**** target cpp frags: %s" % ctx.fragments.cpp)
-    ds = dir(ctx.fragments.cpp)
-    for d in ds:
-        print("\t{d}:\n\t{dval}".format(
-            d = d,
-            dval = getattr(ctx.fragments.cpp, d) if d != "custom_malloc" else ""))
+#########################################
+def _link_config(ctx, tc, feature_config):
 
-## obtaining CC toolchain:  https://github.com/bazelbuild/bazel/issues/7260
+    # adict = apple_common.apple_host_system_env(xcode_config)
 
-## two tc adapters, one for targeting vm, one for sys
+    config_map = {}
+
+    c_link_variables = cc_common.create_link_variables(
+        feature_configuration = feature_config,
+        cc_toolchain = tc,
+        # source_file = source_file.path,
+        # output_file = output_file.path,
+        # preprocessor_defines = depset(defines)
+    )
+
+    cmd_line = cc_common.get_memory_inefficient_command_line(
+        feature_configuration = feature_config,
+        action_name = ACTION_NAMES.cpp_link_executable,
+        variables = c_link_variables,
+    )
+    link_opts = []
+    for opt in cmd_line:
+        print("OPT %s" % opt)
+        if opt not in ["-lc++", "-fobjc-link-runtime",
+                       "-lm"  ## why always?
+                       ]:
+            link_opts.append(opt)
+
+    config_map["link_opts"] = link_opts
+
+    link_env = cc_common.get_environment_variables(
+        feature_configuration = feature_config,
+        action_name = ACTION_NAMES.cpp_link_executable,
+        variables = c_link_variables,
+    )
+    # print("link env: %s"% link_env)
+    config_map |= link_env
+    # print("config_map: %s" % config_map)
+
+    return config_map
 
 ################################################################
 def _ocaml_toolchain_adapter_impl(ctx):
     # print("\n\t_ocaml_toolchain_impl")
 
-    debug_cctc  = False
+    debug_cctc  = True
     debug_frags = False
 
-    if debug_cctc:
-        print("_cc_toolchain: %s" % ctx.attr._cc_toolchain)
-        for d in dir(ctx.attr._cc_toolchain):
-            # print(CCRED + "d %s" % d)
-            print("  %s" % getattr(ctx.attr._cc_toolchain, d))
-
-    ## On Linux, this yields a ToolchainInfo provider.
-    ## But on MacOS, it yields "dummy cc toolchain".
-    # cctc = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
-    # if debug_cctc: print("CC TOOLCHAIN: %s" % cctc)
+    ## ENHANCEMENT: obtain the link flags from the cc tc.
+    ## on macos, they should contain the -mmacos-version-min
+    ## flag we need to avoid the link mismatch warning,
+    ##   <lib> was built for newer 'macOS' version (14.5)
+    ##   than being linked (14.0)
 
     # if debug_frags:
     #     _dump_tc_frags(ctx)
 
     ## This returns a CcToolchainInfo provider on both platforms:
-    # cctc = find_cpp_toolchain(ctx)
-
+    cctc = find_cpp_toolchain(ctx)
     # if debug_cctc:
     #     _dump_cc_toolchain(ctx)
 
     # cctc_config = cc_common.CcToolchainInfo
     # if debug_cctc: print("cctc_config: %s" % cctc_config)
 
+    # _dump_linker(ctx, cctc)
+    # _dump_tc_frags(ctx)
+
     # print("in {}, the enabled features are {}".format(ctx.label.name, ctx.features))
     ## ctx.features == []
 
-    # feature_configuration = cc_common.configure_features(
-    #     ctx = ctx,
-    #     cc_toolchain = cctc,
-    #     requested_features = ctx.features,
-    #     unsupported_features = ctx.disabled_features,
-    # )
+    feature_config = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cctc,
+        requested_features = ctx.features,
+        unsupported_features = ctx.disabled_features,
+    )
     # if debug_cctc:
     #     print("feature_configuration t: %s" % type(feature_configuration))
     #     print("feature_configuration: %s" % feature_configuration)
@@ -184,20 +215,14 @@ def _ocaml_toolchain_adapter_impl(ctx):
     # x = cctc.static_runtime_lib(feature_configuration=feature_configuration)
     # print("STATIC_RUNTIME_LIB: %s" % x)
 
-    # _c_exe = cc_common.get_tool_for_action(
-    #     feature_configuration = feature_configuration,
-    #     action_name = C_COMPILE_ACTION_NAME,
-    # )
-    # if debug_cctc: print("c_exe: %s" % _c_exe)
+    _c_link = cc_common.get_tool_for_action(
+        feature_configuration = feature_config,
+        # action_name = C_COMPILE_ACTION_NAME,
+        action_name = CPP_LINK_EXECUTABLE_ACTION_NAME
+    )
+    if debug_cctc: print("c_link: %s" % _c_link)
 
-    # if not ctx.attr.linkmode in ["static", "dynamic"]:
-    #     fail("Bad value '{actual}' for attrib 'link'. Allowed values: 'static', 'dynamic' (in rule: ocaml_toolchain(name=\"{n}\"), build file: \"{bf}\", workspace: \"{ws}\"".format(
-    #         ws = ctx.workspace_name,
-    #         bf = ctx.build_file_path,
-    #         n = ctx.label.name,
-    #         actual = ctx.attr.linkmode
-    #     )
-    #          )
+    link_map = _link_config(ctx, cctc, feature_config)
 
     version = ctx.attr.version[BuildSettingInfo].value
     segs = version.split(".")
@@ -215,6 +240,10 @@ def _ocaml_toolchain_adapter_impl(ctx):
         compiler             = ctx.file.compiler,
         sigcompiler          = ctx.file.sigcompiler,
         version              = v, # ctx.attr.version,
+
+        cc_link_env_vars     = None,
+        cc_link_opts         = link_map["link_opts"],
+
         default_runtime      = ctx.file.default_runtime,
         std_runtime          = ctx.file.std_runtime,
         dbg_runtime          = ctx.file.dbg_runtime,
@@ -259,7 +288,6 @@ def _ocaml_toolchain_adapter_impl(ctx):
 ocaml_toolchain_adapter = rule(
     _ocaml_toolchain_adapter_impl,
     attrs = {
-
         "host": attr.string(
             doc     = "OCaml host platform: vm (bytecode) or an arch.",
             default = "local"
@@ -344,6 +372,9 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
             cfg = "exec",
         ),
 
+        "cc_link_env_vars": attr.string_dict(),
+        "cc_link_opts": attr.string_list(),
+
         "ocamllex": attr.label(
             executable = True,
             allow_single_file = True,
@@ -398,9 +429,9 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
 
         ## https://bazel.build/docs/integrating-with-rules-cc
         ## hidden attr required to make find_cpp_toolchain work:
-        "_cc_toolchain": attr.label(
-            default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
-        ),
+        # "_cc_toolchain": attr.label(
+        #     default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")
+        # ),
         # "_cc_opts": attr.string_list(
         #     default = ["-Wl,-no_compact_unwind"]
         # ),
@@ -414,6 +445,7 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
     fragments = ["cpp", "apple", "platform"],
     host_fragments = ["cpp", "apple", "platform"],
 
-    ## ocaml toolchain adapter depends on cc toolchain?
-    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]
+    ## ocaml toolchain adapter depends on cc toolchain
+    # toolchains = ["@bazel_tools//tools/cpp:toolchain_type"]
+    toolchains = use_cc_toolchain()
 )
