@@ -1,3 +1,6 @@
+load("@rules_cc//cc:find_cc_toolchain.bzl",
+     "find_cpp_toolchain", "use_cc_toolchain")
+
 load("//build:providers.bzl",
      "OCamlModuleProvider",
      "OCamlDepsProvider",
@@ -160,7 +163,7 @@ Label of an ocaml_ns target, which must list this module in its 'manifest' attri
     provides       = [OCamlModuleProvider, OCamlDepsProvider],
     executable     = False,
     toolchains     = ["@rules_ocaml//toolchain/type:std",
-                      "@rules_ocaml//toolchain/type:profile",
-                      "@bazel_tools//tools/cpp:toolchain_type"]
+                      "@rules_ocaml//toolchain/type:profile"]
+                      # ] + use_cc_toolchain()
+                      # "@bazel_tools//tools/cpp:toolchain_type"]
 )
-

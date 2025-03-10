@@ -99,12 +99,13 @@ def executable_in_transition_impl(transition, settings, attr):
     # if host != None:
     # host = "@rules_ocaml//platform:ocamlopt.opt"
     # tgt  = "@rules_ocaml//platform:ocamlopt.opt"
+    # why nop?
     configs = {
-        "@rules_ocaml//toolchain" : "nop", # "ocamlopt",
+        "@rules_ocaml//toolchain" : tc, # "nop", # "ocamlopt",
         "//command_line_option:host_platform": host,
         "//command_line_option:platforms": tgt
     }
-    print("CONFIGS: %s" % configs)
+    # print("CONFIGS: %s" % configs)
     return configs
 
 #######################################
@@ -147,6 +148,8 @@ def print_config_state(settings, attr):
 
 
 ################
+# Purpose: set host_platform and platforms based on
+# @rules_ocaml//toolchain
 def get_tc(settings, attr):
     build_host  = settings["//command_line_option:host_platform"]
     target_host = settings["//command_line_option:platforms"]
@@ -160,10 +163,10 @@ def get_tc(settings, attr):
     if build_host.name == tc:
         if target_host[0].name == tc:
             # endo-compiler, no change
-            return None, None
+            return build_host, target_host
         else:
             ## exo-compiler, target should already be set
-            return None, None
+            return build_host, target_host
     else:
         # print("Transition from %s to %s" % (
         #     build_host.name, tc))
@@ -177,7 +180,7 @@ def get_tc(settings, attr):
             host = "@rules_ocaml//platform:ocamlopt.opt"
             tgt  = "@rules_ocaml//platform:ocamlopt.opt"
         elif  tc == "ocamlc":
-            host = "@rules_ocaml//platform:ocamlc.byte"
+            host = "@rules_ocaml//platform:ocamlc.opt"
             tgt  = "@rules_ocaml//platform:ocamlc.byte"
         elif  tc == "ocamlc.byte":
             host = "@rules_ocaml//platform:ocamlc.byte"
@@ -731,6 +734,8 @@ sig_in_transition = transition(
 )
 
 ################################################################
+# Purpose: set host_platform and platforms based on
+# @rules_ocaml//toolchain
 def _toolchain_in_transition_impl(settings, attr):
     debug = False
 
@@ -759,6 +764,33 @@ toolchain_in_transition = transition(
     outputs = [
         "//command_line_option:host_platform",
         "//command_line_option:platforms"
+    ]
+)
+
+##################################################
+# Purpose: set compilation_mode to opt, so
+# that external deps will be optimized.
+# Probably not a good idea.
+def _test_in_transition_impl(settings, attr):
+    debug = False
+
+    tc = _toolchain_in_transition_impl(settings, attr)
+
+    return tc.update({
+            "//command_line_option:compilation_mode": "opt"
+    })
+
+###################
+test_in_transition = transition(
+    implementation = _test_in_transition_impl,
+    inputs = [
+        "@rules_ocaml//toolchain",
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms"],
+    outputs = [
+        "//command_line_option:host_platform",
+        "//command_line_option:platforms",
+        "//command_line_option:compilation_mode"
     ]
 )
 

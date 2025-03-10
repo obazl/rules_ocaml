@@ -1,4 +1,1 @@
-## during development:
-common --lockfile_mode=off
-
-try-import user.bazelrc
+try-import %workspace%/.config/user.bazelrc

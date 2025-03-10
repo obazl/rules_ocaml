@@ -214,9 +214,10 @@ def options_binary():
             default = "@rules_ocaml//rt:std"
         ),
 
-        vm_linkage = attr.label(
-            doc = "dynamic (default) or static",
-            default = "@rules_ocaml//vm/linkage:dynamic"
+        vm_linkage = attr.string(
+            doc = "custom, dynamic or static. Custom means link with -custom flag; static with -output-complete-exe",
+            values = ["custom", "static", "dynamic"],
+            default = "custom"
         ),
 
         # mode = attr.label(

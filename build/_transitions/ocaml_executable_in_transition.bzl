@@ -2,7 +2,9 @@ load("in_transitions.bzl", "executable_in_transition_impl")
 
 #######################################################
 def _ocaml_executable_in_transition_impl(settings, attr):
-    return executable_in_transition_impl("ocaml_executable_in_transition", settings, attr)
+    r = executable_in_transition_impl("ocaml_executable_in_transition", settings, attr)
+    # print(r)
+    return r
 
 ocaml_executable_in_transition = transition(
     implementation = _ocaml_executable_in_transition_impl,

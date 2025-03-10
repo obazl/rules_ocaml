@@ -506,7 +506,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     debug        = False
     debug_modname = False
-    debug_ccdeps = False
+    debug_ccdeps = False # True if ctx.label.name == "Test" else False
     debug_deps   = False
     debug_codeps = False
     debug_ns     = False
@@ -780,8 +780,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #########################
     args = ctx.actions.args()
 
+    args.add_all(tc.compile_opts)
+
+    # FIXME: get_compile_options
     _options = get_options(ctx.attr._rule, ctx)
 
+    # control whether cmx files added to inputs
     if "-opaque" in _options:  # ctx.attr.opts:
         xmo = False
     else:

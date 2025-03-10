@@ -108,6 +108,8 @@ def split_srcs(srcs):
 # setting rules, e.g. //cfg/debug, //cfg/opaque.
 # We also check 'opts' to avoid duplicates.
 # Special case: 'opaque' attr.
+## FIXME rename: get_compile_options
+## OR: pass args array prefilled from tc and tc_profile
 def get_options(rule, ctx):
     options = []
     tc_profile = ctx.toolchains["@rules_ocaml//toolchain/type:profile"]
@@ -152,12 +154,12 @@ def get_options(rule, ctx):
         if "-no-opaque" in ctx.attr.opts:
             if "-no-opaque" in options:
                 options.remove("-no-opaque")
-        else:
-            if not "-opaque" in ctx.attr.opts:
+        # else:
+        #     if not "-opaque" in ctx.attr.opts:
             #     options.append("-opaque")
             # else:
-                if not ctx.attr._xmo[BuildSettingInfo].value:
-                    options.append("-opaque")
+                # if not ctx.attr._xmo[BuildSettingInfo].value:
+                #     options.append("-opaque")
     else:
         if "-no-opaque" in ctx.attr.opts:
             if "-opaque" in options:

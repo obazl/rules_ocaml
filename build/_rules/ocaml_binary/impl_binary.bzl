@@ -233,6 +233,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     # OCaml linker calls system linker (via cc cmd)
     # so we pass the link options obtained from the cc toolchain
+    # print("TC LINKOPTS: %s" % tc.cc_link_opts)
+
     for opt in tc.cc_link_opts:
         args.add("-ccopt", opt)
 
@@ -408,7 +410,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         #   c: shared (.so) cclib deps
         #   d: both static and shared cclib deps
 
-        if ctx.attr.vm_linkage[BuildSettingInfo].value == "dynamic":
+        # if ctx.attr.vm_linkage[BuildSettingInfo].value == "dynamic":
+        if ctx.attr.vm_linkage == "dynamic":
             # print("VM RUNTIME DYNAMIC")
 
             # print("{c}vm_runtime:{r} {rt}".format(
@@ -578,11 +581,15 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                     # includes.append(paths.dirname(cclib.short_path))
                     # cc_runfiles.append(cclib)
                     # fail("xxxxxxxxxxxxxxxx")
+        elif ((ctx.attr.vm_linkage == "static")
+              or (ctx.attr.vm_linkage == "custom")):
 
-        elif ctx.attr.vm_linkage[BuildSettingInfo].value == "static":
-            # print("VM RUNTIME STATIC")
-            args.add("-custom")
+            if (ctx.attr.vm_linkage == "static"):
+                args.add("-output-complete-exe")
+            else:
+                args.add("-custom")
             ## should not be any .so files???
+
             sincludes = []
 
             for cclib in static_cc_arch:
@@ -623,7 +630,6 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
                 # else:
                 #     args.add("-ccopt", "-L" + cclib.dirname)
                 #     args.add("-cclib", "-l" + cclib.basename[3:-3])
-
             ## TESTING
             # args.add("-ccopt", "-Lexternal/ocaml~0.0.0")
             # args.add("-dllpath", "ocaml~0.0.0")

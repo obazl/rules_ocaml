@@ -150,14 +150,41 @@ def _link_config(ctx, tc, feature_config):
         action_name = ACTION_NAMES.cpp_link_executable,
         variables = c_link_variables,
     )
+    # print("LINKOPTS %s" % cmd_line)
+    compile_opts = []
     link_opts = []
     for opt in cmd_line:
-        print("OPT %s" % opt)
+        # print("LOPT %s" % opt)
         if opt not in ["-lc++", "-fobjc-link-runtime",
+                       "-headerpad_max_install_names",
                        "-lm"  ## why always?
                        ]:
             link_opts.append(opt)
 
+    # NB: man ld on macos says:
+    # -O0     Disables certain optimizations and layout algorithms to optimize build time. This option should be used with debug builds
+    # to speed up incremental development. The exact implementation might change to match the intent.
+    if cc_common.is_enabled(feature_name = "opt",
+        feature_configuration = feature_config):
+        link_opts.append("-Ofast")
+        compile_opts.append("-noassert")
+        compile_opts.append("-no-g")
+        if ctx.attr.target == "sys":
+            compile_opts.append("-O3")
+    elif cc_common.is_enabled(
+        feature_name = "dbg",
+        feature_configuration = feature_config):
+        link_opts.append("-O0")
+        compile_opts.append("-opaque")
+        compile_opts.append("-g")
+    else:  ## fastbuild
+        link_opts.append("-O0")
+        compile_opts.append("-no-g")
+        compile_opts.append("-opaque")
+        if ctx.attr.target == "sys":
+            compile_opts.append("-linscan")
+
+    config_map["compile_opts"] = compile_opts
     config_map["link_opts"] = link_opts
 
     link_env = cc_common.get_environment_variables(
@@ -207,6 +234,31 @@ def _ocaml_toolchain_adapter_impl(ctx):
         requested_features = ctx.features,
         unsupported_features = ctx.disabled_features,
     )
+
+    # print("FC %s" % feature_config)
+    # print("FC %s" % feature_config.default_compile_flags)
+    # print("F default_compile_flags %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "default_compile_flags"))
+    # print("F default_link_flags %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "default_link_flags"))
+    # print("F opt %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "opt"))
+    # print("F fb %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "fastbuild"))
+    # print("F dbg %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "dbg"))
+    # print("F static %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "static_linking_mode"))
+    # print("F dyn %s" % cc_common.is_enabled(
+    #     feature_configuration = feature_config,
+    #     feature_name = "dynamic_linking_mode"))
+
     # if debug_cctc:
     #     print("feature_configuration t: %s" % type(feature_configuration))
     #     print("feature_configuration: %s" % feature_configuration)
@@ -215,12 +267,12 @@ def _ocaml_toolchain_adapter_impl(ctx):
     # x = cctc.static_runtime_lib(feature_configuration=feature_configuration)
     # print("STATIC_RUNTIME_LIB: %s" % x)
 
-    _c_link = cc_common.get_tool_for_action(
-        feature_configuration = feature_config,
-        # action_name = C_COMPILE_ACTION_NAME,
-        action_name = CPP_LINK_EXECUTABLE_ACTION_NAME
-    )
-    if debug_cctc: print("c_link: %s" % _c_link)
+    # _c_link = cc_common.get_tool_for_action(
+    #     feature_configuration = feature_config,
+    #     # action_name = C_COMPILE_ACTION_NAME,
+    #     action_name = CPP_LINK_EXECUTABLE_ACTION_NAME
+    # )
+    # if debug_cctc: print("c_link: %s" % _c_link)
 
     link_map = _link_config(ctx, cctc, feature_config)
 
@@ -241,6 +293,8 @@ def _ocaml_toolchain_adapter_impl(ctx):
         sigcompiler          = ctx.file.sigcompiler,
         version              = v, # ctx.attr.version,
 
+        # compilation_mode     = ctx.attr.compilation_mode,
+        compile_opts         = link_map["compile_opts"],
         cc_link_env_vars     = None,
         cc_link_opts         = link_map["link_opts"],
 
@@ -426,6 +480,10 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
             doc = "Default link mode: 'static' or 'dynamic'"
             # default = "static"
         ),
+
+        # "compilation_mode": attr.label(
+        #     default = "//command_line_option:compilation_mode"
+        # )
 
         ## https://bazel.build/docs/integrating-with-rules-cc
         ## hidden attr required to make find_cpp_toolchain work:

@@ -1,8 +1,8 @@
 module(
     name                = "rules_ocaml",
-    version             = "3.0.0",
+    version             = "3.0.0.dev",
     compatibility_level = 3,
-    bazel_compatibility = [">=7.0.0"]
+    bazel_compatibility = [">=8.0.0"]
 )
 
 ## bcr:

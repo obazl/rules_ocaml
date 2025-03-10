@@ -258,7 +258,7 @@ def merge_deps(ctx,
 
     debug = False
     debug_archives = False
-    debug_ccinfo   = False # True
+    debug_ccinfo   = False # True if ctx.label.name == "Test" else False
     debug_runfiles = False
     # if target.label.name == "Ppxlib_driver":
     #     debug = True
@@ -557,7 +557,7 @@ def merge_deps(ctx,
 
     if CcInfo in target:
         if debug_ccinfo:
-            print("CCCCCCCCCCCCCCCC")
+            print("CCCC %s" % target)
         ## if target == vm, and linkage = dynamic, then cc_binary
         ## targets producing shared libs will deliver the shared lib
         ## in DefaultInfo, but not in CcInfo. E.g. jsoo
@@ -590,18 +590,20 @@ def merge_deps(ctx,
         #     # dump_CcInfo(ctx, dep[CcInfo])
 
         ccInfo = normalize_ccinfo(ctx, target)
-        # if ctx.label.name == "jsoo_runtime":
-        #     dump_CcInfo(ctx, ccInfo)
-        #     fail("asdf")
-
         # print("CCTGT %s" % target)
 
         if OCamlLibraryProvider in target:
+            # if ctx.label.name == "Test":
+            #     if target.label.name == "zstd":
+            #         dump_CcInfo(ctx, ccInfo)
+            #         fail("asdf")
             depsets.ccinfos_archived.append(ccInfo)
+            depsets.ccinfos.append(ccInfo)
         elif OCamlImportProvider in target:
             # print("IMPORTP %s" % ctx.label.name)
             # print("IMPORTP cc %s" % depsets.ccinfos_archived)
-           depsets.ccinfos_archived.append(ccInfo)
+            depsets.ccinfos_archived.append(ccInfo)
+            depsets.ccinfos.append(ccInfo)
         else:
             depsets.ccinfos.append(ccInfo)
 

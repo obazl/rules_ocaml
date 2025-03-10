@@ -3,6 +3,7 @@ load("//build/_rules/ocaml_binary:impl_binary.bzl", "impl_binary")
 load("//build/_lib:apis.bzl", "options", "options_binary")
 
 load("//build/_transitions:in_transitions.bzl",
+     "test_in_transition",
      "toolchain_in_transition")
 
 load("//lib:colors.bzl", "CCYEL", "CCRESET")
@@ -71,6 +72,7 @@ In addition to the [OCaml configurable defaults](#configdefs) that apply to all
     ),
     cfg = toolchain_in_transition,
     # cfg = executable_in_transition,
+    # cfg = test_in_transition,
     test = True,
     fragments = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],
