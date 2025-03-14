@@ -233,7 +233,8 @@ def impl_archive(ctx, _linkage):
     direct_submodule_deps = ctx.files.manifest
     # print("direct_submodule_deps: %s" % direct_submodule_deps)
 
-    for dep in libOCamlLibProvider.manifest.to_list():
+    libdeps = depset(transitive = [libOCamlLibProvider.manifest])
+    for dep in libdeps.to_list():
         # print("LIB ITEM %s" % dep)
         submod_arglist.append(dep)
 

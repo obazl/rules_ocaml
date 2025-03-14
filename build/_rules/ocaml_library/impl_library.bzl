@@ -159,7 +159,7 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         print("LIB MANIFEST: %s" % archive_manifest)
 
     depsets = DepsAggregator()
-    lib_manifest = []
+    lib_files = []
     # print("LBL %s" % ctx.label)
     for dep in ctx.attr.manifest:
         depsets = merge_deps(ctx, dep, depsets, archive_manifest)
@@ -175,12 +175,28 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         ## Or, just make sure they don’t get added to
         ## link_archives_deps? which means we must remove
         ## them, since modules will have already added themselves
-
         if OCamlLibraryProvider in dep:
-            lib_manifest.append(dep[OCamlLibraryProvider].manifest)
+            lib_files.append(dep[OCamlLibraryProvider].manifest)
+        elif OCamlModuleProvider in dep:
+            lib_files.append(dep[OCamlModuleProvider].struct)
+        elif OCamlNsResolverProvider in dep:
+            lib_files.append(dep[OCamlNsResolverProvider].struct)
         else:
             ## must be a module?
-            lib_manifest.append(dep[DefaultInfo].files)
+            lib_files.append(dep[DefaultInfo].files)
+
+    # depsets.deps are aggregated but not merged.
+    # we need to merge them to preserve link ordering
+    linkdeps = depset(transitive = depsets.deps.cli_link_deps)
+    linkarchdeps = depset(
+        transitive = depsets.deps.link_archives_deps)
+
+    lib_manifest = []
+    for dep in linkdeps.to_list():
+        if dep in lib_files:
+            lib_manifest.append(dep)
+        # if dep in ctx.attr.manifest:
+    # fail(lib_manifest)
 
     # print("cli link deps: %s" % depsets.deps.cli_link_deps)
     ################
@@ -260,7 +276,7 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
     defaultInfo = DefaultInfo(
         files = defaultDepset
     )
-    providers.append(defaultInfo)
+    providers.append(defaultInfo) # 0
 
     # fileset_depset = depset(
     #         transitive=([ns_resolver_depset] if ns_resolver_depset else []) + indirect_fileset_depsets
@@ -356,7 +372,7 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
         cli_link_deps = cli_link_deps_depset,
         link_archives_deps = link_archives_deps_depset
     )
-    providers.append(ocamlDepsProvider)
+    providers.append(ocamlDepsProvider) # 1
     # print("ocamlDepsProvider: %s" % ocamlDepsProvider)
 
     outputGroupInfo = OutputGroupInfo(
@@ -393,19 +409,13 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
             ]
         )
     )
-    providers.append(outputGroupInfo)
+    providers.append(outputGroupInfo) # 2
 
-    # providers = [
-    #     defaultInfo,
-    #     ocamlDepsProvider,
-    #     outputGroupInfo,
-    # ]
-
-    ## Provider 3: Library Marker
-    providers.append(
+    ## Provider 3: Library Provider
+    providers.append( # 3
         OCamlLibraryProvider(
             name = ctx.label.name,
-            manifest = depset(transitive=lib_manifest)
+            manifest = depset(direct=lib_manifest)
         )
     )
 
