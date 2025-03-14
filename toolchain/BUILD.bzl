@@ -168,7 +168,7 @@ def _link_config(ctx, tc, feature_config):
         feature_configuration = feature_config):
         link_opts.append("-Ofast")
         compile_opts.append("-noassert")
-        compile_opts.append("-no-g")
+        # compile_opts.append("-no-g")
         if ctx.attr.target == "sys":
             compile_opts.append("-O3")
     elif cc_common.is_enabled(
@@ -179,7 +179,7 @@ def _link_config(ctx, tc, feature_config):
         compile_opts.append("-g")
     else:  ## fastbuild
         link_opts.append("-O0")
-        compile_opts.append("-no-g")
+        # compile_opts.append("-no-g")
         compile_opts.append("-opaque")
         if ctx.attr.target == "sys":
             compile_opts.append("-linscan")

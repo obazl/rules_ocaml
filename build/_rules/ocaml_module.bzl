@@ -74,7 +74,7 @@ based on the `struct`, `sig`, `name`, and `module` attributes:
   structfile name, unless the `module` attribute is specified, in
   which case it overrides.
 
-**CONFIGURABLE DEFAULTS** for rule `ocaml_module`:
+=== Configurable defaults
 
 In addition to the <<Configurable defaults>> that apply to all
 `ocaml_*` rules, the following apply to this rule:
@@ -126,7 +126,7 @@ NOTE: These do not support `:enable`, `:disable` syntax.
         ## this one is for bottom-up namespacing:
         ns = attr.label(
             doc = """
-Label of an ocaml_ns target, which must list this module in its 'manifest' attribute. For bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
+Label of an link:ocaml_ns[ocaml_ns] target, which must list this module in its `manifest` attribute. For bottom-up namespacing. Modules may use this attribute to elect membership in a bottom-up namespace.
             """,
             allow_single_file = True,
             providers = [OCamlNsResolverProvider],

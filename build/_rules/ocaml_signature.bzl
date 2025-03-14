@@ -458,7 +458,7 @@ rule_options.update(options_ppx)
 #######################
 ocaml_signature = rule(
     implementation = _ocaml_signature_impl,
-    doc = """Generates OCaml .cmi (inteface) file. [User Guide](../ug/ocaml_signature.md). Provides `OCamlSignatureProvider`.
+    doc = """Generates OCaml .cmi (inteface) file. (link:../user-guide/signatures[signatures]). Provides `OCamlSignatureProvider`.
 
 **CONFIGURABLE DEFAULTS** for rule `ocaml_signature`
 
@@ -525,9 +525,9 @@ the difference between '/' and ':' in such labels):
             # cfg = ocaml_signature_deps_out_transition
         ),
 
-        data = attr.label_list(
-            allow_files = True
-        ),
+        # data = attr.label_list(
+        #     allow_files = True
+        # ),
 
         ns = attr.label(
             doc = "Bottom-up namespacing",

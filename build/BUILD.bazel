@@ -1,4 +1,12 @@
-# do not remove
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+package(default_visibility = ["//visibility:public"])
 
 # needed for remote stardoc
 exports_files(["rules.bzl"])
+
+
+bzl_library(
+    name = "stardoc",
+    srcs = glob(["*.bzl"]),
+    visibility = ["//visibility:public"],
+)

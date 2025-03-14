@@ -32,8 +32,16 @@ def _ocaml_ns_impl(name,
 #################
 ocaml_ns = macro(
     implementation = _ocaml_ns_impl,
+    doc = """
+
+Macro. Expands to an link:ocaml_ns_config[ocaml_ns_config] and an
+link:ocaml_module[ocaml_module] target that together define an OCaml pseudo-namespace.
+
+    """,
     attrs = {
-        "ns_name": attr.string(configurable=False),
+        "ns_name": attr.string(
+            doc = "Namespace name",
+            configurable=False),
         "private": attr.bool(configurable=False, default=False),
         "submodules": attr.string_list(),
         "import_as":  attr.label_keyed_string_dict(),
