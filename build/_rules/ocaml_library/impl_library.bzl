@@ -210,8 +210,8 @@ def impl_library(ctx, _linkage): ## , for_archive = True):
 
     ## The tricky bit: cc_binary producing .so does not deliver a
     ## CcInfo containing the .so file!
-    for dep in ctx.attr.cc_deps:
-        depsets = merge_deps(ctx, dep, depsets, archive_manifest)
+    # for dep in ctx.attr.cc_deps:
+    #     depsets = merge_deps(ctx, dep, depsets, archive_manifest)
 
     ##FIXME: irrelevant? no action to depend on these:
     action_inputs_depset = depset(

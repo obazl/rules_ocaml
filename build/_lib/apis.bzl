@@ -284,41 +284,49 @@ def options_aggregators():
         ## sets link strategy - needed because cc_library produces both .a and .so files on linux,
         ## and we need to decide which to use.
         ## FIXME: find a better name. cc_linkage?
-        vm_runtime = attr.label(
-            doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_runtime target label",
-            default = "@rules_ocaml//cfg/runtime:dynamic"
-        ),
+        # vm_runtime = attr.label(
+        #     doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_runtime target label",
+        #     default = "@rules_ocaml//cfg/runtime:dynamic"
+        # ),
 
-        cc_deps = attr.label_list(
-            doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must deliver a CcInfo provider. Since ocaml rules may deliver CcInfo providers, we cannnot assume these deps are produced directly by rules_cc.",
-            providers = [CcInfo],
-            cfg = cc_deps_out_transition
-        ),
+        # cc_deps = attr.label_list(
+        #     doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must deliver a CcInfo provider. Since ocaml rules may deliver CcInfo providers, we cannnot assume these deps are produced directly by rules_cc.",
+        #     providers = [CcInfo],
+        #     cfg = cc_deps_out_transition
+        # ),
 
-        _cc_deps = attr.label(
-            doc = "Global cc-deps, apply to all instances of rule. Added last.",
-            # default = "@rules_ocaml//cfg/ns:deps",
-            providers = [CcInfo],
-        ),
+        # _cc_deps = attr.label(
+        #     doc = "Global cc-deps, apply to all instances of rule. Added last.",
+        #     # default = "@rules_ocaml//cfg/ns:deps",
+        #     providers = [CcInfo],
+        # ),
 
-        cc_linkage = attr.label_keyed_string_dict(
-            doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'cc_deps' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
-            """,
-            # providers = since this is a dictionary depset, no
-            # providers constraints, but the keys must have CcInfo
-            # providers, check at build time
-            ## cfg = ocaml_module_cc_deps_out_transition
-        ),
+        # cc_linkage = attr.label_keyed_string_dict(
+        #     doc = """Dictionary specifying C/C++ library dependencies. Allows finer control over linking than the 'cc_deps' attribute. Key: a target label providing CcInfo; value: a linkmode string, which determines which file to link. Valid linkmodes: 'default', 'static', 'dynamic', 'shared' (synonym for 'dynamic'). For more information see link:../user-guide/dependencies-cc#_cc-linkmode[CC Dependencies: Linkmode].
+        #     """,
+        #     # providers = since this is a dictionary depset, no
+        #     # providers constraints, but the keys must have CcInfo
+        #     # providers, check at build time
+        #     ## cfg = ocaml_module_cc_deps_out_transition
+        # ),
 
-        _linklevel = attr.label(
-            default = "@rules_ocaml//cfg/library/linkage:level"
-        ),
+        ## For libs, linkage controls pkging:
+        ## static => archive, shared => cmxs,
+        ## default: no packaging
         _linkage = attr.label(
+            # vals: static, shared, none
             default = "@rules_ocaml//cfg/library/linkage"
         ),
         linkage = attr.string(
-            doc = "Overrides hidden _linkage",
-            values = ["static", "shared"]
+            doc = """
+Static: build archive; shared: build cmxs;
+Overrides hidden _linkage
+            """,
+            values = ["static", "shared"],
+            # no default, means use _linkage value
+        ),
+        _linklevel = attr.label(
+            default = "@rules_ocaml//cfg/library/linkage:level"
         ),
         shared = attr.bool(
             doc = "True: build a shared lib (.cmxs)",

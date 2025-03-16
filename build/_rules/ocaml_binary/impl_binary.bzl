@@ -332,7 +332,6 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # print("ws name: %s" % ws_name)
 
     if debug_vm:
-        # print("VM RUNTIME: %s" % ctx.attr.vm_runtime[OCamlRuntimeProvider].kind)
         print("TC.TARGET: %s" % tc.target)
 
     if ctx.attr.runtime[OCamlRuntimeProvider].sys:
