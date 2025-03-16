@@ -281,10 +281,13 @@ def options_aggregators():
             default = "@rules_ocaml//cfg/ns:prefixes"
         ),
 
-        # vm_runtime = attr.label(
-        #     doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_runtime target label",
-        #     default = "@rules_ocaml//cfg/runtime:dynamic"
-        # ),
+        ## sets link strategy - needed because cc_library produces both .a and .so files on linux,
+        ## and we need to decide which to use.
+        ## FIXME: find a better name. cc_linkage?
+        vm_runtime = attr.label(
+            doc = "@rules_ocaml//cfg/runtime:dynamic (default), @rules_ocaml//cfg/runtime:static, or a custom ocaml_runtime target label",
+            default = "@rules_ocaml//cfg/runtime:dynamic"
+        ),
 
         cc_deps = attr.label_list(
             doc = "Static (.a) or dynamic (.so, .dylib) libraries. Must deliver a CcInfo provider. Since ocaml rules may deliver CcInfo providers, we cannnot assume these deps are produced directly by rules_cc.",

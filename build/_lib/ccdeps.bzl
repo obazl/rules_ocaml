@@ -267,6 +267,8 @@ def extract_cclibs(ctx,
             for lib in libs:
                 # print("LIB: %s" % lib)
 
+                # on linux, cc_library may produce both .a and .so files
+                # on macos, only one is produced
                 if lib.static_library and lib.dynamic_library:
                     if ctx.attr.vm_runtime[OCamlRuntimeProvider].kind == "static":
                     # if default_linkmode == "static":
