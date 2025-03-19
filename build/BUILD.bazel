@@ -8,5 +8,17 @@ exports_files(["rules.bzl"])
 bzl_library(
     name = "stardoc",
     srcs = glob(["*.bzl"]),
+    deps = [
+        "//build/_actions:stardoc",
+        "//build/_lib:stardoc",
+        "//build/_providers:stardoc",
+        "//build/_rules:stardoc",
+        "//build/_rules/ocaml_binary:stardoc",
+        "//build/_rules/ocaml_library:stardoc",
+        "//build/_rules/ocaml_module:stardoc",
+        "//build/_rules/ocaml_ns:stardoc",
+        "//build/_transitions:stardoc",
+        "//lib:stardoc"
+    ],
     visibility = ["//visibility:public"],
 )

@@ -74,7 +74,9 @@ based on the `struct`, `sig`, `name`, and `module` attributes:
   structfile name, unless the `module` attribute is specified, in
   which case it overrides.
 
-=== Configurable defaults
+== Examples
+
+== Configurable defaults
 
 In addition to the <<Configurable defaults>> that apply to all
 `ocaml_*` rules, the following apply to this rule:
@@ -163,7 +165,7 @@ Label of an link:ocaml_ns[ocaml_ns] target, which must list this module in its `
     provides       = [OCamlModuleProvider, OCamlDepsProvider],
     executable     = False,
     toolchains     = ["@rules_ocaml//toolchain/type:std",
-                      "@rules_ocaml//toolchain/type:profile"]
-                      # ] + use_cc_toolchain()
+                      "@rules_ocaml//toolchain/type:profile"
+                      ] + use_cc_toolchain()
                       # "@bazel_tools//tools/cpp:toolchain_type"]
 )

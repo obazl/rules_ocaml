@@ -219,8 +219,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     else:
         ext = ctx.attr._sys_ext[BuildSettingInfo].value
 
-    if ctx.attr.exe:
-        out_bin = ctx.actions.declare_file(ctx.attr.exe)
+    if ctx.attr.exe_name:
+        out_bin = ctx.actions.declare_file(ctx.attr.exe_name)
     else:
         out_bin = ctx.actions.declare_file(ctx.label.name + ext)
         #out_bin = ctx.actions.declare_file("libfoo.o")
@@ -722,7 +722,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     #     args.add(struct)
 
     ## cli_link_deps should include prologue, main, epilogue, in order
-    if ctx.attr.archive_deps:
+    if ctx.attr.force_archived_libdeps:
         cli_link_depset = depset(
             order=dsorder,
             transitive= depsets.deps.link_archives_deps

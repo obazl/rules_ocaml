@@ -117,7 +117,7 @@ def options_binary():
         # _sdkpath = attr.label(
         #     default = Label("@rules_ocaml//cfg:sdkpath")
         # ),
-        exe  = attr.string(
+        exe_name  = attr.string(
             doc = "By default, executable name is derived from 'name' attribute; use this to override."
         ),
 
@@ -135,7 +135,10 @@ def options_binary():
         ## not exist yes (unlike e.g. a structfile whose code depends
         ## on some other module).
 
-        archive_deps = attr.bool(default = False),
+        force_archived_libdeps = attr.bool(
+            doc = "Force archiving of library dependencies",
+            default = False
+        ),
 
         prologue = attr.label_list(
             doc = "List of OCaml dependencies.",
@@ -245,8 +248,8 @@ def options_aggregators():
     return dict(
 
         # rename = attr.string(
-        ns_name = attr.string(
-        ),
+        # ns_name = attr.string(
+        # ),
 
         manifest = attr.label_list(
             doc = "List of component modules, for libraries and archives.",
@@ -328,16 +331,16 @@ Overrides hidden _linkage
         _linklevel = attr.label(
             default = "@rules_ocaml//cfg/library/linkage:level"
         ),
-        shared = attr.bool(
-            doc = "True: build a shared lib (.cmxs)",
-            default = False
-        ),
+        # shared = attr.bool(
+        #     doc = "True: build a shared lib (.cmxs)",
+        #     default = False
+        # ),
 
         ## FIXME: why?
-        standalone = attr.bool(
-            doc = "True: link total depgraph. False: link only direct deps.",
-            default = False
-        ),
+        # standalone = attr.bool(
+        #     doc = "True: link total depgraph. False: link only direct deps.",
+        #     default = False
+        # ),
 
         ## CONFIGURABLE DEFAULTS
         _linkall     = attr.label(default = "@rules_ocaml//cfg/archive/linkall"),
