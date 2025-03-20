@@ -440,6 +440,7 @@ def _ocaml_signature_impl(ctx):
     outputGroupInfo = OutputGroupInfo(
         cmi  = default_depset,
         cmti = cmti_depset,
+        cmts = cmti_depset,
         sigs = sigs_depset,
         #TODO: cmtis = cmtis_depset,
         all  = depset(order = dsorder,
@@ -569,3 +570,4 @@ the difference between '/' and ':' in such labels):
                   "@rules_ocaml//toolchain/type:profile",
                   "@bazel_tools//tools/cpp:toolchain_type"]
 )
+

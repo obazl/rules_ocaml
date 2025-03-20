@@ -189,6 +189,8 @@ def _handle_precompiled_sig(ctx, modname, ext):
     work_mli = sigProvider.mli
     work_cmi = sigProvider.cmi
 
+    cmti = sigProvider.cmti
+
     # we need to keep track of the original file when we ppx, because
     # some ppxes may write its path into the transformed outputs, and
     # tools may want to access it.
@@ -225,10 +227,11 @@ def _handle_precompiled_sig(ctx, modname, ext):
     return(ppx_src_ml, work_ml,
            work_struct,
            work_mli, work_cmi,
+           cmti,
            xmo)
 
 ########################
-def _handle_source_sig(ctx, modname, ext):
+def _handle_source_sig(ctx, modname, ext, gen_cmti):
     # we always link ml/mli/cmi under modname to workdir
     # so we return (work_ml, work_mli, work_cmi)
     # all are symlinked, to be listed as compile action inputs,
@@ -258,6 +261,13 @@ def _handle_source_sig(ctx, modname, ext):
         scope + modname + ".cmi"
     )
     # no symlink, will be output of compile action
+    if gen_cmti:
+        work_cmti = ctx.actions.declare_file(
+            scope + modname + ".cmti"
+        )
+    else:
+        work_cmti = None
+
 
     if ctx.attr.ppx: ## no sig, plus ppx
         if debug: print("ppxing module:")
@@ -279,6 +289,7 @@ def _handle_source_sig(ctx, modname, ext):
     return(ppx_src_ml, work_ml,
            out_struct,
            work_mli, work_cmi,
+           work_cmti,
            False) # xmo determined by opt
 
 ########################
@@ -722,6 +733,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
              out_struct,
              work_mli,
              out_cmi,   ## precompiled, possibly symlinked to __obazl
+             cmti,
              sig_is_xmo) = _handle_precompiled_sig(ctx, modname, ext)
 
         else: ################################################
@@ -733,7 +745,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
              work_mli,
              out_cmi,  ## declared output file
              # cmi_precompiled,
-             sig_is_xmo) = _handle_source_sig(ctx, modname, ext)
+             cmti,
+             sig_is_xmo) = _handle_source_sig(ctx, modname, ext,
+                                              True # FIXME: cmti
+                                              )
 
         if debug:
             print("WORK ml: %s" % work_ml)
@@ -764,6 +779,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             out_struct = ctx.actions.declare_file(
                 scope + fname + ext
             )
+            if True: ## FIXME: if -bin-annot
+                cmti = ctx.actions.declare_file(
+                    scope + fname + ".cmti"
+                )
+                action_outputs.append(cmti)
+            else:
+                cmti = None
         else: ## no sig, no ppx
             work_ml   = ctx.file.struct
             out_cmi = ctx.actions.declare_file(
@@ -772,7 +794,14 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             out_struct = ctx.actions.declare_file(
                 scope + fname + ext
             )
-
+            # if True: ## FIXME: if -bin-annot
+            #     cmti = ctx.actions.declare_file(
+            #         scope + fname + ".cmti"
+            #     )
+            #     action_outputs.append(cmti)
+            # else:
+            #     cmti = None
+            cmti = None
     if debug:
         print("scope: %s" % scope)
         print("work_ml: %s" % work_ml)
@@ -795,9 +824,12 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         xmo = True
 
     if "-bin-annot" in _options:
+        # FIXME: also cmti for sig
         f = fname + ".cmt"
         out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
         action_outputs.append(out_cmt)
+    else:
+        out_cmt = None
 
     # if "-for-pack" in _options:
     #     for_pack = True
@@ -1350,14 +1382,21 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     cc_infos = depsets.ccsharedlibinfos
     # )
     # providers.append(ccSharedLibInfo)
+    cmtyps = []
+    if out_cmt: cmtyps.append(out_cmt)
+    if cmti: cmtyps.append(cmti)
+    cmts_depset = depset(direct = cmtyps)
 
+    cmti_depset = depset(direct = [cmti] if cmti else [])
     ################
     outputGroupInfo = OutputGroupInfo(
         # cc         = ccInfo.linking_context.linker_inputs.libraries,
         # cmi       = sig_depset,
         sig       = depset(direct = [out_cmi]),
+        cmti      = cmti_depset,
         struct    = depset(direct = [out_struct]),
-
+        cmt     = depset(direct = [out_cmt] if out_cmt else []),
+        cmts      = cmts_depset,
         # ml = depset(direct = [work_ml]),
 
         sigs      = new_sigs_depset,
