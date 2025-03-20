@@ -15,8 +15,8 @@ load("//build/_lib:module_naming.bzl",
      "derive_module_name_from_file_name",
      "normalize_module_name")
 load("//build/_lib:apis.bzl", "options", "options_ppx")
-load("//build/_lib:utils.bzl",
-     "dsorder", "tmpdir", "get_options")
+load("//build/_lib:options.bzl", "get_options")
+load("//build/_lib:utils.bzl", "dsorder", "tmpdir")
 
 load("//build/_transitions:in_transitions.bzl",
      "module_in_transition",

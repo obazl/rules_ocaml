@@ -16,8 +16,8 @@ load(":impl_library.bzl", "impl_library")
 
 load("//build/_lib:module_naming.bzl", "normalize_module_name")
 
-load("//build/_lib:utils.bzl",
-     "get_options", "tmpdir", "dsorder")
+load("//build/_lib:options.bzl", "get_options")
+load("//build/_lib:utils.bzl", "dsorder", "tmpdir")
 
 load("@rules_ocaml//lib:colors.bzl",
      "CCRED", "CCGRN", "CCBLU", "CCBLUBG",

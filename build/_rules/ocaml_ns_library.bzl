@@ -34,7 +34,6 @@ def _ocaml_ns_library(ctx):
         c=CCRED, r=CCRESET)
     )
 
-
     # if ctx.attr.archived:
     #     return impl_archive(ctx)
     # else:

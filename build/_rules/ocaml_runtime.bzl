@@ -9,8 +9,9 @@ load("@rules_ocaml//build:providers.bzl",
 
 load("//build/_lib:apis.bzl", "options")
 load("//build/_lib:ccdeps.bzl", "extract_cclibs")
-load("//build/_lib:utils.bzl",
-     "get_options", "dsorder", "tmpdir")
+
+load("//build/_lib:options.bzl", "get_options")
+load("//build/_lib:utils.bzl", "dsorder", "tmpdir")
 
 load("//build/_transitions:in_transitions.bzl",
      "toolchain_in_transition")

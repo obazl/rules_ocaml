@@ -25,8 +25,8 @@ load("//build:actions.bzl", "ppx_transformation")
 load("//build/_lib:module_naming.bzl",
      "derive_module_name_from_file_name")
 
-load("//build/_lib:utils.bzl",
-     "get_options", "dsorder", "tmpdir")
+load("//build/_lib:options.bzl", "get_module_options")
+load("//build/_lib:utils.bzl", "dsorder", "tmpdir")
 
 # load("//build/_lib:utils.bzl",
 #      "capitalize_initial_char",
@@ -780,10 +780,13 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #########################
     args = ctx.actions.args()
 
-    args.add_all(tc.compile_opts)
+
 
     # FIXME: get_compile_options
-    _options = get_options(ctx.attr._rule, ctx)
+    _options = []
+    # _options.extend(tc.compile_opts)
+    # _options.extend(tc.module_compile_opts)
+    _options.extend(get_module_options(ctx))
 
     # control whether cmx files added to inputs
     if "-opaque" in _options:  # ctx.attr.opts:

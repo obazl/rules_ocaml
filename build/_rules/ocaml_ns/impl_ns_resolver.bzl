@@ -14,8 +14,9 @@ load("@rules_ocaml//lib:merge.bzl",
 
 load("//build/_lib:utils.bzl", "get_fs_prefix")
 
+load("//build/_lib:options.bzl", "get_options")
 load("//build/_lib:utils.bzl",
-     "get_options", "dsorder", "module_sep",
+     "dsorder", "module_sep",
      "resolver_suffix", "tmpdir")
 
 load("//build/_lib:module_naming.bzl",

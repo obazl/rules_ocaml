@@ -151,7 +151,17 @@ def _link_config(ctx, tc, feature_config):
         variables = c_link_variables,
     )
     # print("LINKOPTS %s" % cmd_line)
-    compile_opts = []
+    ## NB: this should obtain --mmacos_version_min,
+    ## which we pass to ocaml, eliminating warnings
+    ## about "object file ... was built for newer version..."
+    compile_opts = [
+        # options for both sig and struct compiles
+        "-keep-locs",
+        "-short-paths",
+        "-strict-formats",
+        "-strict-sequence",
+    ]
+    module_compile_opts = [ ]
     link_opts = []
     for opt in cmd_line:
         # print("LOPT %s" % opt)
@@ -166,25 +176,31 @@ def _link_config(ctx, tc, feature_config):
     # to speed up incremental development. The exact implementation might change to match the intent.
     if cc_common.is_enabled(feature_name = "opt",
         feature_configuration = feature_config):
+        # print("\nOPT ****************")
         link_opts.append("-Ofast")
         compile_opts.append("-noassert")
         # compile_opts.append("-no-g")
         if ctx.attr.target == "sys":
-            compile_opts.append("-O3")
+            module_compile_opts.append("-O3")
     elif cc_common.is_enabled(
         feature_name = "dbg",
         feature_configuration = feature_config):
+        # print("\nDBG ****************")
         link_opts.append("-O0")
         compile_opts.append("-opaque")
         compile_opts.append("-g")
+        compile_opts.append("-bin-annot")
     else:  ## fastbuild
+        # print("\nFASTBUILD ****************")
         link_opts.append("-O0")
         # compile_opts.append("-no-g")
         compile_opts.append("-opaque")
+        compile_opts.append("-bin-annot")
         if ctx.attr.target == "sys":
-            compile_opts.append("-linscan")
+            module_compile_opts.append("-linscan")
 
     config_map["compile_opts"] = compile_opts
+    config_map["module_compile_opts"] = module_compile_opts
     config_map["link_opts"] = link_opts
 
     link_env = cc_common.get_environment_variables(
@@ -293,8 +309,9 @@ def _ocaml_toolchain_adapter_impl(ctx):
         sigcompiler          = ctx.file.sigcompiler,
         version              = v, # ctx.attr.version,
 
-        # compilation_mode     = ctx.attr.compilation_mode,
+        # ocaml compile opts, based on compilation mode
         compile_opts         = link_map["compile_opts"],
+        module_compile_opts  = link_map["module_compile_opts"],
         cc_link_env_vars     = None,
         cc_link_opts         = link_map["link_opts"],
 
@@ -407,6 +424,18 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
             cfg = "exec",
         ),
 
+        "compile_opts": attr.string_list(
+            doc = """
+OCaml compile options options derived from cc toolchain and compilation mode."
+            """
+        ),
+        "module_compile_opts": attr.string_list(
+            doc = """
+OCaml module-only compile options options derived from cc toolchain and compilation mode."
+            """
+        ),
+
+
         "sigcompiler": attr.label(
             doc = "Alway compile sigfiles with this",
             executable = True,
@@ -427,7 +456,9 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
         ),
 
         "cc_link_env_vars": attr.string_dict(),
-        "cc_link_opts": attr.string_list(),
+        "cc_link_opts": attr.string_list(
+            doc = "Link options derived from cc toolchain and compilation mode."
+        ),
 
         "ocamllex": attr.label(
             executable = True,

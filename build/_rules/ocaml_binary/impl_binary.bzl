@@ -9,8 +9,8 @@ load("@rules_ocaml//build:providers.bzl",
      "OCamlTestProvider",
 )
 
-load("//build/_lib:utils.bzl",
-     "get_options", "dsorder", "tmpdir")
+load("//build/_lib:options.bzl", "get_options")
+load("//build/_lib:utils.bzl", "dsorder", "tmpdir")
 
 load("@rules_ocaml//build/_lib:ccdeps.bzl", "extract_cclibs",
      "dump_compilation_context",
