@@ -841,6 +841,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     env = {"PATH": path}
     ## sweet jeebus. this is the only way I could find to merge tw
     ## dicts. sheesh.
+
     for i in ctx.attr.env.items():
         env[i[0]] = i[1]
 
@@ -942,9 +943,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
     # else:
     #     fail("Wrong rule called impl_binary: %s" % ctx.attr._rule)
 
+    rtEnvInfo = RunEnvironmentInfo(
+        environment = ctx.attr.env
+    )
+
     providers = [
         defaultInfo,
-        exe_provider
+        exe_provider,
+        rtEnvInfo
     ]
 
     ## for ppx_executable: in addition to the compiled exe and
