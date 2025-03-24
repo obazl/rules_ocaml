@@ -717,6 +717,33 @@ def impl_module(ctx): ## , mode, tool, tool_args):
 
     ppx_src_ml = False
 
+    #########################
+    args = ctx.actions.args()
+
+    # FIXME: get_compile_options
+    _options = []
+    # _options.extend(tc.compile_opts)
+    # _options.extend(tc.module_compile_opts)
+    _options.extend(get_module_options(ctx))
+
+    # control whether cmx files added to inputs
+    if "-opaque" in _options:  # ctx.attr.opts:
+        xmo = False
+    else:
+        xmo = True
+
+    # if "-for-pack" in _options:
+    #     for_pack = True
+    #     _options.remove("-for-pack")
+    # else:
+    #     for_pack = False
+
+    # if ctx.attr.pack:
+    #     args.add("-for-pack", ctx.attr.pack)
+
+    out_cmti = None
+    precompiled_cmti = None
+
     if ctx.attr.sig:
         ##FIXME: make this a fn
         if debug: print("dyadic module, with sig: %s" % ctx.attr.sig)
@@ -733,7 +760,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
              out_struct,
              work_mli,
              out_cmi,   ## precompiled, possibly symlinked to __obazl
-             cmti,
+             precompiled_cmti,
              sig_is_xmo) = _handle_precompiled_sig(ctx, modname, ext)
 
         else: ################################################
@@ -745,11 +772,10 @@ def impl_module(ctx): ## , mode, tool, tool_args):
              work_mli,
              out_cmi,  ## declared output file
              # cmi_precompiled,
-             cmti,
+             out_cmti,
              sig_is_xmo) = _handle_source_sig(ctx, modname, ext,
-                                              True # FIXME: cmti
+                                              "-bin-annot" in _options
                                               )
-
         if debug:
             print("WORK ml: %s" % work_ml)
             print("WORK cmox: %s" % out_struct)
@@ -757,6 +783,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             print("WORK cmi: %s" % out_cmi)
             print("cmi_precompiled: %s" % cmi_precompiled)
     else: # no sig attr
+        out_cmti = None
         if debug:
             print("SINGLETON: no sigfile")
             print("module name: %s" % modname)
@@ -779,13 +806,6 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             out_struct = ctx.actions.declare_file(
                 scope + fname + ext
             )
-            if True: ## FIXME: if -bin-annot
-                cmti = ctx.actions.declare_file(
-                    scope + fname + ".cmti"
-                )
-                action_outputs.append(cmti)
-            else:
-                cmti = None
         else: ## no sig, no ppx
             work_ml   = ctx.file.struct
             out_cmi = ctx.actions.declare_file(
@@ -794,55 +814,22 @@ def impl_module(ctx): ## , mode, tool, tool_args):
             out_struct = ctx.actions.declare_file(
                 scope + fname + ext
             )
-            # if True: ## FIXME: if -bin-annot
-            #     cmti = ctx.actions.declare_file(
-            #         scope + fname + ".cmti"
-            #     )
-            #     action_outputs.append(cmti)
-            # else:
-            #     cmti = None
-            cmti = None
     if debug:
         print("scope: %s" % scope)
         print("work_ml: %s" % work_ml)
 
-    #########################
-    args = ctx.actions.args()
-
-
-
-    # FIXME: get_compile_options
-    _options = []
-    # _options.extend(tc.compile_opts)
-    # _options.extend(tc.module_compile_opts)
-    _options.extend(get_module_options(ctx))
-
-    # control whether cmx files added to inputs
-    if "-opaque" in _options:  # ctx.attr.opts:
-        xmo = False
-    else:
-        xmo = True
-
-    if "-bin-annot" in _options:
-        # FIXME: also cmti for sig
-        f = fname + ".cmt"
-        out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
-        action_outputs.append(out_cmt)
-    else:
-        out_cmt = None
-
-    # if "-for-pack" in _options:
-    #     for_pack = True
-    #     _options.remove("-for-pack")
-    # else:
-    #     for_pack = False
-
-    # if ctx.attr.pack:
-    #     args.add("-for-pack", ctx.attr.pack)
-
     args.add_all(_options)
 
     # args.add_all(tc_options.compile_opts)
+
+    if "-bin-annot" in _options:
+        f = fname + ".cmt"
+        out_cmt = ctx.actions.declare_file(f, sibling = out_struct)
+        action_outputs.append(out_cmt)
+        if out_cmti:
+            action_outputs.append(out_cmti)
+    else:
+        out_cmt = None
 
     if (not sig_is_xmo) or "-opaque" in _options:
         module_xmo = False
@@ -1384,10 +1371,18 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     # providers.append(ccSharedLibInfo)
     cmtyps = []
     if out_cmt: cmtyps.append(out_cmt)
-    if cmti: cmtyps.append(cmti)
-    cmts_depset = depset(direct = cmtyps)
+    # if out_cmti:
+    #     cmtyps.append(out_cmti)
+    # elif precompiled_cmti:
+    #     cmtyps.append(precompiled_cmti)
 
-    cmti_depset = depset(direct = [cmti] if cmti else [])
+    cmt_depset = depset(direct = [out_cmt] if out_cmt else [])
+
+    cmti_depset = depset(
+        direct = [out_cmti] if out_cmti else [precompiled_cmti] if precompiled_cmti else [])
+
+    gensig_depset = depset(direct = [out_sig])
+
     ################
     outputGroupInfo = OutputGroupInfo(
         # cc         = ccInfo.linking_context.linker_inputs.libraries,
@@ -1396,8 +1391,9 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         cmti      = cmti_depset,
         struct    = depset(direct = [out_struct]),
         cmt     = depset(direct = [out_cmt] if out_cmt else []),
-        cmts      = cmts_depset,
         # ml = depset(direct = [work_ml]),
+
+        gensig    = gensig_depset,
 
         sigs      = new_sigs_depset,
         structs   = structs_depset,  #new_structs_depset,

@@ -2,6 +2,7 @@ load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 load("//build:providers.bzl",
      "OcamlArchiveMarker",
+     "OCamlCodepsProvider",
      "OcamlExecutableMarker",
      "OCamlImportProvider",
      "OCamlLibraryProvider",
@@ -11,7 +12,6 @@ load("//build:providers.bzl",
      "OcamlNsSubmoduleMarker",
      "OCamlSignatureProvider",
 )
-load("@rules_ocaml//build:providers.bzl", "OCamlCodepsProvider")
 
 # load("//build/_transitions:in_transitions.bzl")
 
@@ -52,7 +52,6 @@ def options(ws):
         ## GLOBAL CONFIGURABLE DEFAULTS (all ppx_* rules)
         ## these should never be directly set.
         _debug           = attr.label(default = ws + "//cfg:debug"),
-        _cmt             = attr.label(default = "@rules_ocaml//cfg:cmt"),
         _keep_locs       = attr.label(default = ws + "//cfg:keep-locs"),
         _noassert        = attr.label(default = ws + "//cfg:noassert"),
         _opaque          = attr.label(default = ws + "//cfg:opaque"),
