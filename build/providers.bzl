@@ -18,6 +18,8 @@ load("//build/_providers:OCamlCodepsProvider.bzl",
 load("//build/_providers:OCamlImportProvider.bzl",
      _OCamlImportProvider = "OCamlImportProvider")
 
+load("//build/_providers:OCamlArchiveProvider.bzl",
+     _OCamlArchiveProvider = "OCamlArchiveProvider")
 load("//build/_providers:OCamlLibraryProvider.bzl",
      _OCamlLibraryProvider = "OCamlLibraryProvider")
 
@@ -48,6 +50,7 @@ OCamlCodepsProvider     = _OCamlCodepsProvider
 MergedDepsProvider      = _MergedDepsProvider
 OCamlDepsProvider       = _OCamlDepsProvider
 OCamlImportProvider     = _OCamlImportProvider
+OCamlArchiveProvider    = _OCamlArchiveProvider
 OCamlLibraryProvider    = _OCamlLibraryProvider
 OCamlModuleProvider     = _OCamlModuleProvider
 OCamlNsResolverProvider = _OCamlNsResolverProvider
@@ -65,7 +68,6 @@ PpxModuleMarker = provider(
     # }
 )
 
-OcamlArchiveMarker    = provider(doc = "OCaml Archive Marker provider.")
 OcamlExecutableMarker = provider(doc = "OCaml Executable Marker provider.")
 # OCamlModuleProvider    = provider(doc = "OCaml Module Marker provider.")
 OcamlNsMarker        = provider(doc = "OCaml Namespace Marker provider.")

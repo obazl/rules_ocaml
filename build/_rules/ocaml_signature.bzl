@@ -2,7 +2,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 load("//build:providers.bzl",
-     "OcamlArchiveMarker",
+     "OCamlArchiveProvider",
      "OCamlImportProvider",
      "OCamlLibraryProvider",
      "OCamlModuleProvider",
@@ -495,7 +495,7 @@ the difference between '/' and ':' in such labels):
             providers = [
                 [OCamlSignatureProvider],
                 [OCamlDepsProvider],
-                [OcamlArchiveMarker],
+                [OCamlArchiveProvider],
                 [OCamlImportProvider],
                 [OCamlLibraryProvider],
                 [OCamlModuleProvider],
@@ -517,7 +517,7 @@ the difference between '/' and ':' in such labels):
             providers = [
                 [OCamlSignatureProvider],
                 [OCamlDepsProvider],
-                [OcamlArchiveMarker],
+                [OCamlArchiveProvider],
                 [OCamlImportProvider],
                 [OCamlLibraryProvider],
                 [OCamlModuleProvider],

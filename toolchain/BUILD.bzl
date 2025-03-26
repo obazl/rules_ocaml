@@ -14,7 +14,7 @@ load("@rules_cc//cc:action_names.bzl",
 # load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "C_COMPILE_ACTION_NAME")
 
 # load("//build:providers.bzl",
-#      "OcamlArchiveMarker",
+#      "OCamlArchiveProvider",
 #      "OcamlExecutableMarker",
 #      "OCamlImportProvider")
 
@@ -439,7 +439,7 @@ OCaml module-only compile options options derived from cc toolchain and compilat
         "sigcompiler": attr.label(
             doc = "Alway compile sigfiles with this",
             executable = True,
-            # providers = [["OcamlArchiveMarker"]],
+            # providers = [["OCamlArchiveProvider"]],
             allow_single_file = True,
             cfg = "exec",
         ),

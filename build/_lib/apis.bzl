@@ -1,7 +1,7 @@
 load("@rules_ocaml//build:providers.bzl", "OCamlDepsProvider")
 
 load("//build:providers.bzl",
-     "OcamlArchiveMarker",
+     "OCamlArchiveProvider",
      "OCamlCodepsProvider",
      "OcamlExecutableMarker",
      "OCamlImportProvider",
@@ -140,8 +140,8 @@ def options_binary():
         ),
 
         prologue = attr.label_list(
-            doc = "List of OCaml dependencies.",
-            providers = [[OcamlArchiveMarker],
+            doc = "List of OCaml dependencies to be linked before `main`.",
+            providers = [[OCamlArchiveProvider],
                          [OCamlImportProvider],
                          [OCamlLibraryProvider],
                          [OCamlModuleProvider],
@@ -160,8 +160,8 @@ def options_binary():
         ),
 
         epilogue = attr.label_list(
-            doc = "List of OCaml dependencies.",
-            providers = [[OcamlArchiveMarker],
+            doc = "List of OCaml dependencies to be linked after `main`.",
+            providers = [[OCamlArchiveProvider],
                          [OCamlImportProvider],
                          [OCamlLibraryProvider],
                          [OCamlModuleProvider],
@@ -236,7 +236,7 @@ def options_binary():
 def options_aggregators():
 
     _providers = [
-        [OcamlArchiveMarker],
+        [OCamlArchiveProvider],
         [OCamlLibraryProvider],
         [OCamlModuleProvider],
         [OCamlNsResolverProvider],
@@ -252,7 +252,7 @@ def options_aggregators():
 
         manifest = attr.label_list(
             doc = "List of component modules, for libraries and archives.",
-            providers = [[OcamlArchiveMarker],
+            providers = [[OCamlArchiveProvider],
                          [OCamlImportProvider],
                          [OCamlLibraryProvider],
                          [OCamlModuleProvider],
@@ -350,7 +350,7 @@ Overrides hidden _linkage
 #######################
 # def options_pack_library(ws):
 
-#     providers = [[OcamlArchiveMarker],
+#     providers = [[OCamlArchiveProvider],
 #                  [OCamlSignatureProvider],
 #                  [OCamlLibraryProvider],
 #                  [OCamlModuleProvider],
@@ -726,7 +726,7 @@ options_ppx = dict(
 #######################
 def options_module(ws):
 
-    _providers = [[OcamlArchiveMarker],
+    _providers = [[OCamlArchiveProvider],
                   [OCamlDepsProvider],
                   [OCamlCodepsProvider],
                   [OCamlImportProvider],
@@ -793,7 +793,7 @@ def options_module(ws):
             doc = "List of OCaml dependencies to be passed with `-open`.",
             providers = [
                 [OCamlDepsProvider],
-                [OcamlArchiveMarker],
+                [OCamlArchiveProvider],
                 [OCamlImportProvider],
                 [OCamlLibraryProvider],
                 [OCamlModuleProvider],

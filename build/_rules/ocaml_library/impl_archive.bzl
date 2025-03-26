@@ -3,8 +3,8 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@rules_ocaml//build:providers.bzl",
      "OCamlCodepsProvider",
      "OCamlNsResolverProvider",
-      "OCamlDepsProvider",
-     "OcamlArchiveMarker",
+     "OCamlDepsProvider",
+     "OCamlArchiveProvider",
      "OCamlLibraryProvider",
      "OCamlModuleProvider",
      "OcamlNsMarker",
@@ -354,6 +354,11 @@ def impl_archive(ctx, _linkage):
     )
     newDefaultInfo = DefaultInfo(files = default_depset)
 
+    archive_depset = depset(direct = [archive_file])
+    ocamlArchiveProvider = OCamlArchiveProvider(
+        archive = archive_file
+    )
+
     # new_inputs_depset = depset(
     #     direct     = action_outputs, # + ns_resolver,
     #     transitive = [libOCamlDepsProvider.inputs]
@@ -447,7 +452,7 @@ def impl_archive(ctx, _linkage):
         # transitive = [depset(archive_link_deps)]
     )
 
-    ocamlProvider = OCamlDepsProvider(
+    ocamlDepsProvider = OCamlDepsProvider(
         # files   = libOCamlDepsProvider.files,
         # fileset = libOCamlDepsProvider.fileset,
         # inputs   = new_inputs_depset,
@@ -482,10 +487,10 @@ def impl_archive(ctx, _linkage):
 
     providers = [
         newDefaultInfo,
-        ocamlProvider,
+        ocamlArchiveProvider,
+        ocamlDepsProvider,
         installProvider,
         libOCamlLibProvider,
-        OcamlArchiveMarker(marker = "OcamlArchive"),
     ]
 
     # FIXME: only if needed
@@ -493,7 +498,18 @@ def impl_archive(ctx, _linkage):
     providers.append(ppxCodepsProvider)
     # ppx_codeps_depset = ppxCodepsProvider.ppx_codeps
 
+    if lib_CcInfo:
+        providers.append(lib_CcInfo)
+
+    # we may be called by ocaml_ns_archive, so:
+    if ctx.attr._rule.startswith("ocaml_ns"):
+        providers.append(OcamlNsMarker(
+            # marker = "OcamlNsMarker",
+            # ns_name     = nsMarker.ns_name
+        ))
+
     outputGroupInfo = OutputGroupInfo(
+        archive  = archive_depset,
         archives = archives_depset,
         afiles   = afiles_depset,
         cli_link = cli_link_depset,
@@ -523,14 +539,5 @@ def impl_archive(ctx, _linkage):
     )
     providers.append(outputGroupInfo)
 
-    if lib_CcInfo:
-        providers.append(lib_CcInfo)
-
-    # we may be called by ocaml_ns_archive, so:
-    if ctx.attr._rule.startswith("ocaml_ns"):
-        providers.append(OcamlNsMarker(
-            # marker = "OcamlNsMarker",
-            # ns_name     = nsMarker.ns_name
-        ))
-
+    # print(providers)
     return providers

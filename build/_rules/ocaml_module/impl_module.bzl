@@ -6,7 +6,7 @@ load("@rules_ocaml//build:providers.bzl",
      "OCamlDepsProvider",
      "OCamlModuleProvider",
 
-     "OcamlArchiveMarker",
+     "OCamlArchiveProvider",
      "OCamlImportProvider",
      "OCamlLibraryProvider",
      "OcamlNsMarker",

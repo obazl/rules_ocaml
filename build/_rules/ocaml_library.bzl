@@ -1,11 +1,11 @@
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-load("//build:providers.bzl", "OCamlLibraryProvider")
+load("//build:providers.bzl", "OCamlArchiveProvider", "OCamlLibraryProvider")
 
 load("//build/_lib:apis.bzl", "options", "options_aggregators")
 
 load("//build/_rules/ocaml_library:impl_archive.bzl", "impl_archive")
-load("//build/_rules/ocaml_library:impl_library.bzl", "impl_library")
+# load("//build/_rules/ocaml_library:impl_library.bzl", "impl_library")
 
 load("//build/_transitions:in_transitions.bzl",
      "toolchain_in_transition",
@@ -52,7 +52,7 @@ rule_options.update(options_aggregators())
 #####################
 ocaml_library = rule(
     implementation = _ocaml_library,
-    doc = """Aggregates a collection of OCaml modules. [User Guide](../ug/ocaml_library.md). Provides: [OCamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider).
+    doc = """Aggregates a collection of OCaml modules. (link:../ug/ocaml_library.md[User Guide]). Provides: [OCamlLibraryProvider](providers_ocaml.md#ocamllibraryprovider).
 
 An `ocaml_library` is a collection of modules packaged into an OBazl
 target; it is not a single binary file. It is a OBazl convenience rule
@@ -86,7 +86,7 @@ Packages](../ug/collections.md).
     #deps to its deps
     # cfg     = nslib_in_transition,
     cfg     = toolchain_in_transition,
-    provides = [OCamlLibraryProvider],
+    provides = [OCamlLibraryProvider, OCamlArchiveProvider],
     executable = False,
     fragments = ["platform", "cpp"],
     host_fragments = ["platform",  "cpp"],

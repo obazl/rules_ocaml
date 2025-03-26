@@ -8,6 +8,7 @@ load("@rules_ocaml//lib:merge.bzl",
 
 load("@rules_ocaml//build:providers.bzl",
      "OCamlCcInfo",
+     "OCamlArchiveProvider",
      "OCamlDepsProvider",
      "OCamlImportProvider",
      "OCamlCodepsProvider")
@@ -82,7 +83,8 @@ def _ocaml_import_impl(ctx):
         if not ctx.file.archive:
             if debug: print("Skipping dummy target: %s" % ctx.label)
             return [
-                OCamlImportProvider()
+                OCamlImportProvider(),
+                OCamlArchiveProvider()
             ]
 
     tc = ctx.toolchains["@rules_ocaml//toolchain/type:std"]
@@ -281,6 +283,10 @@ def _ocaml_import_impl(ctx):
     #     print("OCamlDepsProvider.astructs: %s" % ocamlDepsProvider.astructs)
     #     fail()
 
+    ocamlArchiveProvider = OCamlArchiveProvider(
+        archive = ctx.file.archive)
+    providers.append(ocamlArchiveProvider)
+
     providers.append(ocamlDepsProvider)
 
     ccInfo = cc_common.merge_cc_infos(
@@ -302,8 +308,10 @@ def _ocaml_import_impl(ctx):
 
     providers.append(OCamlImportProvider(name = ctx.label.name))
 
-    ## --output_groups only prints generated stuff, so there's no
-    ## --point in providing OutputGroupInfo for ocaml_import
+    outputGroupInfo = OutputGroupInfo(
+        archive = depset(direct = [ctx.file.archive])
+    )
+    providers.append(outputGroupInfo)
 
     return providers
 
@@ -398,7 +406,7 @@ ocaml_import = rule(
         # ),
     ),
     cfg     = _import_transition,
-    provides = [OCamlImportProvider],
+    provides = [OCamlImportProvider, OCamlArchiveProvider],
     executable = False,
     toolchains = ["@rules_ocaml//toolchain/type:std"],
 )
