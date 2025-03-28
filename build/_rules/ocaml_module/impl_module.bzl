@@ -1049,6 +1049,28 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     #     # compile
 
     ################
+    out_sig = ctx.actions.declare_file(ctx.label.name + ".mli")
+    ctx.actions.run_shell(
+        tools = [tc.compiler],
+        arguments = ["-i", args],
+        inputs    = action_inputs_depset,
+        outputs = [out_sig],
+        command = " ".join([
+            "{}".format(tc.compiler.path),
+            "$@",
+            "| tee %s" % out_sig.path
+        ]),
+        mnemonic = "GenerateSigfile",
+        progress_message = "{mode} gensig {rule}: {ws}//{pkg}:{tgt}".format(
+            mode = tc.host + ">" + tc.target,
+            rule = rule,
+            ws = ws_name,
+            pkg = ctx.label.package,
+            tgt=ctx.label.name,
+        )
+    )
+
+    ################
     ctx.actions.run(
         # env = {"MACOSX_DEPLOYMENT_TARGET": "13.1"},
         executable = tc.compiler,
