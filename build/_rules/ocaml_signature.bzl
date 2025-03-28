@@ -15,7 +15,7 @@ load("//build/_lib:module_naming.bzl",
      "derive_module_name_from_file_name",
      "normalize_module_name")
 load("//build/_lib:apis.bzl", "options", "options_ppx")
-load("//build/_lib:options.bzl", "get_options")
+load("//build/_lib:options.bzl", "get_sig_options")
 load("//build/_lib:utils.bzl", "dsorder", "tmpdir")
 
 load("//build/_transitions:in_transitions.bzl",
@@ -244,7 +244,8 @@ def _ocaml_signature_impl(ctx):
     args = ctx.actions.args()
     action_outputs = []
 
-    _options = get_options(rule, ctx)
+    _options = get_sig_options(rule, ctx)
+
     if "-opaque" in _options:
         xmo = False
     else:
@@ -506,6 +507,9 @@ the difference between '/' and ':' in such labels):
         src = attr.label(
             doc = "A single .mli source file label",
             allow_single_file = [".mli", ".ml"] #, ".cmi"]
+        ),
+        _cmt             = attr.label(
+            default = "@rules_ocaml//cfg:cmt",
         ),
 
         pack = attr.string(

@@ -1,6 +1,11 @@
 ####################################
 def _print_aspect_impl(target, ctx):
     print("TARGET: %s" % target)
+    if hasattr(ctx.rule.attr, 'struct'):
+        print("STRUCT %s" % ctx.rule.attr.struct)
+    if hasattr(ctx.rule.attr, 'sig'):
+        print("SIG %s" % ctx.rule.attr.sig)
+
     if hasattr(ctx.rule.attr, 'deps'):
         for dep in ctx.rule.attr.deps:
             print("dep: %s" % dep)

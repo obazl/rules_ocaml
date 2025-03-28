@@ -339,6 +339,8 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
             args.add("-runtime-variant", "d")
         elif ctx.attr.runtime[OCamlRuntimeProvider].name == "_instrumented":
             args.add("-runtime-variant", "i")
+        # else:
+        #     pass
     else: # user-defined runtime
         if tc.target == "vm":
             # extract from runtime[OCamlRuntimeProvider]:
@@ -795,7 +797,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         + ctx.files.main
         + oruntime
         + action_inputs
-        + tc.dllibs
+        + tc.stublibs
         ,
         transitive =
         depsets.deps.sigs
@@ -879,7 +881,7 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
         # for item in ctx.attr.data_prefix_map.items:
         #     print("runfiles item: %s" % item)
 
-    rfiles = cc_runfiles # tc.dllibs
+    rfiles = cc_runfiles # tc.stublibs
 
     rfsymlinks = {}
     # map prefixes
@@ -907,14 +909,14 @@ def impl_binary(ctx): # , mode, tc, tool, tool_args):
 
     if ctx.attr.data_prefix_map:
         myrunfiles = ctx.runfiles(
-            files = rfiles + tc.dllibs,
+            files = rfiles + tc.stublibs,
             symlinks = rfsymlinks,
             root_symlinks = rfsymlinks
         )
     else:
         myrunfiles = ctx.runfiles(
             files = rfiles + ctx.files.data
-            + tc.dllibs
+            + tc.stublibs
             + oruntime
         )
 

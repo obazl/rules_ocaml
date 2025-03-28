@@ -9,20 +9,23 @@ def _ocaml_ns_impl(name,
                    visibility,
                    **kwargs):
 
+    if ns_name:
+        if ns_name == "":
+            nsname = name
+        else:
+            nsname = ns_name
+    else:
+        nsname = name
+
     ocaml_ns_module(
         name      = name,
-        ns_config = name + "_Config",
+        ns_config = name + "_Config.ml",
         visibility = visibility
         # **kwargs
     )
 
-    if ns_name == "":
-        nsname = name
-    else:
-        nsname = ns_name
-
     ocaml_ns_config(
-        name       = name + "_Config",
+        name       = name + "_Config.ml",
         ns_name    = nsname,
         submodules = submodules,
         visibility = visibility,
@@ -35,18 +38,24 @@ ocaml_ns = macro(
     doc = """
 
 Macro. Expands to an link:ocaml_ns_config[ocaml_ns_config] and an
-link:ocaml_module[ocaml_module] target that together define an OCaml pseudo-namespace.
+link:ocaml_ns_module[ocaml_ns_module] target that together define an OCaml build namespace.
 
     """,
+    inherit_attrs = ocaml_ns_config,
     attrs = {
-        "ns_name": attr.string(
-            doc = "Namespace name",
-            configurable=False),
-        "private": attr.bool(configurable=False, default=False),
-        "submodules": attr.string_list(),
-        "import_as":  attr.label_keyed_string_dict(),
-        "ns_import_as": attr.label_keyed_string_dict(),
-        "ns_merge": attr.label_list(),
+        ## all inherited
+        ## inherited attrs we don’t need
+        "compatible_with": None,
+        "deprecation": None,
+        "exec_compatible_with": None,
+        "exec_properties": None,
+        "features": None,
+        "package_metadata": None,
+        "restricted_to": None,
+        "tags": None,
+        "target_compatible_with": None,
+        "testonly": None,
+        "toolchains": None
     },
 )
 

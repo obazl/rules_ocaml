@@ -26,7 +26,7 @@ ocaml_runtime(name = "_std")
 label_setting(name="dbg", build_setting_default = ":_dbg")
 ocaml_runtime(name = "_dbg")
 
-label_setting(name="instrumented",
+label_setting(name="i",
               build_setting_default = ":_instrumented")
 ocaml_runtime(name = "_instrumented")
 

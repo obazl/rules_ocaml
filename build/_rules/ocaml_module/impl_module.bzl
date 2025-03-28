@@ -202,7 +202,7 @@ def _handle_precompiled_sig(ctx, modname, ext):
     ppx_src_ml = False
     # FIXME: pass the ppx to the compiler using -ppx
     if ctx.attr.ppx:
-        if debug_ppx: print("ppxing sig:")
+        if debug_ppx: print("ppxing struct:")
         ppx_src_ml, work_ml = ppx_transformation(
             ctx.attr._rule, ctx,
             ctx.file.struct, modname + ".ml"
@@ -1090,6 +1090,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
     default_depset = depset(
         order = dsorder,
         direct = [out_struct]
+        # action_outputs
         # direct = [out_cmi, out_struct, out_ofile]
         # direct = default_outputs
     )
@@ -1234,6 +1235,7 @@ def impl_module(ctx): ## , mode, tool, tool_args):
         cc_dsos_depset = []
 
     ocamlModuleProvider = OCamlModuleProvider(
+        mlsrc   = ctx.file.struct,
         modname = modname,
         cmi      = out_cmi,  ## no need for a depset for one file?
         struct   = out_struct,

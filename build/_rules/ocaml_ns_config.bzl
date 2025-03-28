@@ -32,67 +32,12 @@ rule_options = options("rules_ocaml")
 #########################
 ocaml_ns_config = rule(
   implementation = _ocaml_ns_config_impl,
-    doc = """OBSOLETE DOCSTRING!  under revision...
-
-This rule initializes a 'namespace evaluation environment' consisting of a pseudo-namespace prefix string and optionally an ns resolver module.  A pseudo-namespace prefix string is a string that is used to form (by prefixation) a (presumably) globally unique name for a module. An ns resolver module is a module that contains nothing but alias equations mapping module names to pseudo-namespaced module names.
-
-This rule is designed to work in conjujnction with rules
-[ocaml_module](rules_ocaml.md#ocaml_module) and
-[ocaml_ns_module](rules_ocaml.md#ocaml_ns_module). An `ocaml_module`
-instance can use the prefix string of an `ppx_ns` to rename its
-source file by using attribute `ns` to reference the label of an
-`ppx_ns` target. Instances of `ocaml_ns_module` can list such
-modules as `submodule` dependencies. They can also use an
-`ppx_ns` prefix string to name themselves, by using their `ns`
-attribute similarly. This allows ns modules to be (pseudo-)namespaced in the
-same way submodules are namespaced.
-
-The prefix string defaults to the (Bazel) package name string, with
-each segment capitalized and the path separator ('/') replaced by the
-`sep` string (default: `_`). If you pass a prefix string it must be a
-legal OCaml module path; each segment will be capitalized and the segment
-separator ('.') will be replaced by the `sep` string. The resulting
-prefix may be used by `ocaml_module` rules (via the `ns` attribute) to
-rename their source files, and, if `module = True`, by this rule to
-generate alias equations.
-
-For example, if package `//alpha/beta/gamma` contains`foo.ml`:
-
-```
-ns_config() => Alpha_Beta_Gamma__foo.ml
-ns_config(sep="") => AlphaBetaGamma__foo.ml
-ns_config(sep="__") => Alpha__Beta__Gamma__foo.ml
-ns_config(prefix="foo.bar") => Foo_Bar__foo.ml (pkg path ignored)
-ns_config(prefix="foo.bar", sep="") => FooBar__foo.ml
-```
-
-The optional ns resolver module will be named `<prefix>__00.ml`; since
-`0` is not a legal initial character for an OCaml module name, this
-ensures it will never clash with a user-defined module.
-
-The ns resolver module will contain alias equations mapping module
-names derived from the `srcs` list to pseudo-namespaced module names
-(and thus indirectly filenames). For example, if `srcs` contains
-`foo.ml`, and the prefix is `a.b`, then the resolver module will
-contain `module Foo = A_b_foo`.
-
-Submodule file names will be formed by prefixing the pseudo-ns prefix to the (original, un-namespaced) module name, separated by 'sep' (default: '__'). For example, if the prefix is 'Foo_bar' and the module is 'baz.ml', the submodule file name will be 'Foo_bar__baz.ml'.
-
-The main namespace module will contain aliasing equations that map module names to these prefixed module names.
-
-By default, the ns prefix string is formed from the package name, with '/' replaced by '_'. You can use the 'ns' attribute to change this:
-
-ns(ns = "foobar", srcs = glob(["*.ml"]))
+    doc = """
+Generates a source `<ns>.ml` file containing the module aliasing equations needed to define an OCaml build namespace.
 
     """,
     attrs = dict(
         rule_options,
-
-        # struct = attr.label(
-        #     doc = "A single module (struct) source file label.",
-        #     mandatory = False,
-        #     allow_single_file = True # no constraints on extension
-        # ),
 
         ns_name = attr.string(
             doc = "Use this as the ns name (prefix string)",
@@ -101,10 +46,9 @@ ns(ns = "foobar", srcs = glob(["*.ml"]))
 
         private = attr.bool(
             doc = """
-If True, suffix '__0' to the ns name, to make it quasi-private. Not to be confused with the standard Bazel 'visibility' attribute.
+When True, adds suffix `+__+` to ns name. Use this option when you have a module whose name matches the ns name. Such a module will function as the ns resolver, and may export only a subset of the members of the namespace.
 
-Set this to True if you have a module whose name matches the ns name.
-
+Not to be confused with the https://bazel.build/concepts/visibility[visibility,window=_blank] attribute, which controls visibility of the target within the Bazel environment.
             """,
             default = False
         ),
@@ -125,12 +69,14 @@ The normalized submodule names must match the names of the modules electing memb
 
         import_as = attr.label_keyed_string_dict(
             doc = """
+Import exogenous (non-namepaced) modules.
+
 Exogenous (sub)modules, namespaced or non-namespaced.  Aliased names will not be prefixed with ns name of this ns_config.
 
 Keys: labels of modules;
 Values: alias name to be used in this resolver.
 
-e.g. '//mwe/rgb:R': 'Red' will generate
+e.g. `import_as = {"//mwe/rgb:R": "Red"}` will generate
 
 module R = Red
             """,
@@ -142,9 +88,11 @@ module R = Red
 
         ns_import_as = attr.label_keyed_string_dict(
             doc = """
-Dictionary: keys are exogenous namespaces (resolver modules),
+Import exogenous namespaces (`ocaml_ns` targets).
+
+Dictionary: keys are exogenous namespaces (`ocaml_ns` modules),
 values are strings to serve as ns name aliases.
-Example: {"//foo/bar:nsbaz": "FOOBARBAZ"}
+Example: {"//foo/bar:nsbaz": "FBB"}
             """,
             providers = [
                 [OCamlNsResolverProvider], ## subnamespace resolver

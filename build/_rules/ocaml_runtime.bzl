@@ -160,8 +160,11 @@ rule_options = options("rules_ocaml")
 ocaml_runtime = rule(
   implementation = _ocaml_runtime_impl,
     doc = """
-OCaml runtime, either system (std, debug, instrumented)or user-defined using ocamlc -make-runtime
+Builds a customized OCaml runtime using `ocamlc -make-runtime`.
+
+See https://ocaml.org/manual/5.3/intfc.html#ss%3Acustom-runtime[22.1.6 Building standalone custom runtime systems,window=_blank] for more information.
     """,
+
 # Manual https://ocaml.org/manual/5.3/comp.html
 # -make-runtime
 # Build a custom runtime system (in the file specified by option -o) incorporating the C object files and libraries given on the command line. This custom runtime system can be used later to execute bytecode executables produced with the ocamlc -use-runtime runtime-name option. See section 22.1.6 for more information.
@@ -171,7 +174,13 @@ OCaml runtime, either system (std, debug, instrumented)or user-defined using oca
     attrs = dict(
         rule_options,
         sys_runtime = attr.label(
-            doc = "System runtime to use: std, dbg, or instrumented.",
+            doc = """
+System runtime to use:
+
+`@rules_ocaml//rt:std` - standard (default)
+`@rules_ocaml//rt:dbg` - debug
+`@rules_ocaml//rt:i`   - instrumented
+            """
             # default = "@rules_ocaml//rt:_std"
         ),
 

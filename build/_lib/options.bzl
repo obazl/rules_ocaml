@@ -3,7 +3,7 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 # these are obazl-defined pseudo opts:
 NEGATION_OPTS = [
     "-no-g", "-no-noassert",
-    # "-no-bin-annot",
+    "-no-bin-annot",
     "-no-linkall",
     "-no-short-paths", "-no-strict-formats", "-no-strict-sequence",
     "-no-keep-locs", "-no-opaque",
@@ -32,8 +32,9 @@ def _get_options(ctx, options):
             if not "-g" in ctx.attr.opts:  # avoid dup, use the one in opts
                 options.append("-g")
 
+    # -bin-annot: tc default is true
     if hasattr(ctx.attr, "_cmt"):
-        # cmd line wins:
+        # cmd line wins: global default is false
         if ctx.attr._cmt[BuildSettingInfo].value:
             if not "-bin-annot" in options:
                 options.append("-bin-annot")
@@ -159,6 +160,14 @@ def get_module_options(ctx):
     options.extend(tc.module_compile_opts)
     return _get_options(ctx, options)
 
+def get_sig_options(rule, ctx):
+    options = []
+    opts =  _get_options(ctx, options)
+    return opts
+
 def get_options(rule, ctx):
     options = []
-    return _get_options(ctx, options)
+    opts =  _get_options(ctx, options)
+    # fail(opts)
+    return opts
+

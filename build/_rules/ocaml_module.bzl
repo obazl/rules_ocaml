@@ -2,8 +2,11 @@ load("@rules_cc//cc:find_cc_toolchain.bzl",
      "find_cpp_toolchain", "use_cc_toolchain")
 
 load("//build:providers.bzl",
-     "OCamlModuleProvider",
+     "OCamlCodepsProvider",
      "OCamlDepsProvider",
+     "OCamlImportProvider",
+     "OCamlLibraryProvider",
+     "OCamlModuleProvider",
      "OCamlNsResolverProvider")
 
 load("//build/_transitions:in_transitions.bzl", "module_in_transition")
@@ -118,6 +121,24 @@ NOTE: These do not support `:enable`, `:disable` syntax.
     """,
     attrs = dict(
         rule_options,
+
+        _cmt             = attr.label(
+            default = "@rules_ocaml//cfg:cmt",
+        ),
+
+        deps = attr.label_list(
+            doc = "List of dependencies. May include C/C++ libraries produced by https://github.com/bazelbuild/rules_cc[rules_cc].",
+            providers = [
+                [OCamlDepsProvider],
+                [OCamlCodepsProvider],
+                [OCamlImportProvider],
+                [OCamlLibraryProvider],
+                [OCamlModuleProvider],
+                [OCamlNsResolverProvider],
+                [CcInfo],
+                [CcSharedLibraryInfo]]
+        ),
+
         struct = attr.label(
             doc = "A single module (struct) source file label.",
             mandatory = True,

@@ -297,6 +297,10 @@ def _ocaml_toolchain_adapter_impl(ctx):
     v = struct(version = version,
                major = int(segs[0]))
 
+    stublibs_path = ""
+    for lib in ctx.attr.stublibs_path:
+        stublibs_path = stublibs_path + lib[BuildSettingInfo].value
+
     ## FIXME: this defines the public API of the tc model
     ## move it to @ocaml_toolchains?
     return [platform_common.ToolchainInfo(
@@ -314,6 +318,7 @@ def _ocaml_toolchain_adapter_impl(ctx):
         module_compile_opts  = link_map["module_compile_opts"],
         cc_link_env_vars     = None,
         cc_link_opts         = link_map["link_opts"],
+        linkopts  = None,
 
         default_runtime      = ctx.file.default_runtime,
         std_runtime          = ctx.file.std_runtime,
@@ -324,19 +329,23 @@ def _ocaml_toolchain_adapter_impl(ctx):
 
         # vmruntime_debug        = ctx.file.vmruntime_debug,
         # vmruntime_instrumented = ctx.file.vmruntime_instrumented,
-        dllibs                 = ctx.files.dllibs,
-        dllibs_path            = ctx.attr.dllibs_path[BuildSettingInfo].value,
+        stublibs                 = ctx.files.stublibs,
+        stublibs_path            = stublibs_path,
 
         ocamllex               = ctx.file.ocamllex,
         ocamlyacc              = ctx.file.ocamlyacc,
 
         ## deprecated:
-        ocamlc                 = ctx.file.ocamlc,
-        ocamlc_opt             = ctx.file.ocamlc_opt,
-        ocamlopt               = ctx.file.ocamlopt,
-        ocamlopt_opt           = ctx.file.ocamlopt_opt,
-        linkmode               = ctx.attr.linkmode,
+        # ocamlc                 = ctx.file.ocamlc,
+        # ocamlc_opt             = ctx.file.ocamlc_opt,
+        # ocamlopt               = ctx.file.ocamlopt,
+        # ocamlopt_opt           = ctx.file.ocamlopt_opt,
+        # linkmode               = ctx.attr.linkmode,
 
+        ## SDK tools
+        objinfo             = ctx.file.objinfo,
+        cmtinfo             = ctx.file.ocamlcmt,
+        ocamldoc            = ctx.file.ocamldoc,
 
         # cc_toolchain = ctx.attr.cc_toolchain,
         ## rules add [cc_toolchain.all_files] to action inputs
@@ -349,7 +358,6 @@ def _ocaml_toolchain_adapter_impl(ctx):
 
         ## config frag.cpp fld `linkopts` contains whatever was passed
         ## by CLI using `--linkopt`
-        linkopts  = None,
     )]
 
 ## toolchain adapters bind tc interface to tc implementation
@@ -408,18 +416,18 @@ Runtime emitted in linked executables. OCaml linkers are hardcoded to look for o
 
 
 
-        "dllibs": attr.label(
+        "stublibs": attr.label_list(
             doc = "Dynamically-loadable libs needed by the ocamlrun vm. Standard location: lib/stublibs. The libs are usually named 'dll<name>_stubs.so', e.g. 'dllcore_unix_stubs.so'.",
             allow_files = True,
         ),
-        "dllibs_path": attr.label(
+        "stublibs_path": attr.label_list(
             doc = "Label of string_setting target providing absolute path to stublibs dir"
         ),
 
         "compiler": attr.label(
             executable = True,
             ## providers constraints seem to be ignored
-            # providers = [["OcamlArchiveMarker"]],
+            # providers = [["OCamlArchiveProvider"]],
             allow_single_file = True,
             cfg = "exec",
         ),
@@ -472,33 +480,49 @@ OCaml module-only compile options options derived from cc toolchain and compilat
             cfg = "exec",
         ),
 
+        "objinfo": attr.label(
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
+        "ocamlcmt": attr.label(
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
+        "ocamldoc" : attr.label(
+            executable = True,
+            allow_single_file = True,
+            cfg = "exec",
+        ),
+
         ## DEPRECATED: with platforms and toolchains the 'compiler'
         ## attribute is sufficient - no need to list all compilers here.
-        "ocamlc": attr.label(
-            executable = True,
-            ## providers constraints seem to be ignored
-            # providers = [["OcamlArchiveMarker"]],
-            allow_single_file = True,
-            cfg = "exec",
-        ),
+        # "ocamlc": attr.label(
+        #     executable = True,
+        #     ## providers constraints seem to be ignored
+        #     # providers = [["OCamlArchiveProvider"]],
+        #     allow_single_file = True,
+        #     cfg = "exec",
+        # ),
 
-        "ocamlc_opt": attr.label(
-            executable = True,
-            allow_single_file = True,
-            cfg = "exec",
-        ),
+        # "ocamlc_opt": attr.label(
+        #     executable = True,
+        #     allow_single_file = True,
+        #     cfg = "exec",
+        # ),
 
-        "ocamlopt": attr.label(
-            executable = True,
-            allow_single_file = True,
-            cfg = "exec",
-        ),
+        # "ocamlopt": attr.label(
+        #     executable = True,
+        #     allow_single_file = True,
+        #     cfg = "exec",
+        # ),
 
-        "ocamlopt_opt": attr.label(
-            executable = True,
-            allow_single_file = True,
-            cfg = "exec",
-        ),
+        # "ocamlopt_opt": attr.label(
+        #     executable = True,
+        #     allow_single_file = True,
+        #     cfg = "exec",
+        # ),
 
         # "_coqc": attr.label(
         #     default = Label("//tools:coqc"),

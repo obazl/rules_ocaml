@@ -318,8 +318,7 @@ def _ocaml_import_impl(ctx):
 ################################################################
 ocaml_import = rule(
     implementation = _ocaml_import_impl,
-    doc = """Imports pre-compiled OCaml files. [User Guide](../ug/ocaml_import.md).
-
+    doc = """Imports pre-compiled OCaml files.
     """,
     attrs = dict(
         sigs     = attr.label_list(allow_files = True),
@@ -363,7 +362,7 @@ ocaml_import = rule(
         srcs = attr.label_list(allow_files = True),
 
         all = attr.label_list(
-            doc = "Glob all cm* files except for 'archive' or 'plugin' so theey can be added to action ldeps (rather than cmd line). I.e. the (transitive) deps of an archive, which must be accessible to the compiler (via search path, not command line), and so must be added to the action ldeps.",
+            doc = "Glob all cm* files except for 'archive' or 'plugin' so they can be added to action ldeps (rather than cmd line). I.e. the (transitive) deps of an archive, which must be accessible to the compiler (via search path, not command line), and so must be added to the action ldeps.",
             allow_files = True
         ),
 
