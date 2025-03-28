@@ -550,9 +550,9 @@ def merge_deps(ctx,
         depsets.ccinfos_archived.append(target[OCamlCcInfo].archived)
 
     if CcSharedLibraryInfo in target:
-        print("target: %s" % ctx.label)
-        print("CcSharedLibraryInfo %s" % target[CcSharedLibraryInfo])
-        print("Shared lib DefaultInfo %s" % target[DefaultInfo])
+        # print("target: %s" % ctx.label)
+        # print("CcSharedLibraryInfo %s" % target[CcSharedLibraryInfo])
+        # print("Shared lib DefaultInfo %s" % target[DefaultInfo])
         depsets.deps.cc_dsos.append(target[DefaultInfo].files)
 
     if CcInfo in target:
