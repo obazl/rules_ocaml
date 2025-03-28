@@ -81,11 +81,12 @@ def impl_ns_config(ctx):
 
 
     if ctx.attr.ns_name:
-        ns_name = ctx.attr.ns_name
         ns_modname = ctx.attr.ns_name[:1].capitalize() + ctx.attr.ns_name[1:]
+        ns_name = ns_modname # ctx.attr.ns_name
     else:
-        ns_name = ctx.label.name
+        # ns_name = ctx.label.name
         ns_modname = ctx.label.name[:1].capitalize() + ctx.label.name[1:]
+        ns_name = ns_modname # ctx.attr.ns_name
 
     if private:
         ns_modname = ns_modname + "__"
